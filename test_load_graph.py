@@ -243,6 +243,100 @@ def load_graph_v2(dishes: int, mod: int) -> GraphInterface:
     return gi
 
 
+def load_graph_increment(dishes: int) -> GraphInterface:
+    """
+
+    Instantiate a GraphInterface, and set up a HIRAX-style graph with :param dishes: all dish signal chains connected at dish# and never disconnected.
+
+    :param dishes: Number of dishes the graph will contain.
+    :type dishes: int
+    :return: A GraphInterface instance containing the graph traversal to the instantiated graph.
+    :rtype: GraphInterface
+    """
+
+    gi = GraphInterface()
+
+    # Clear entire graph.
+    clear_graph(gi)
+
+    # Correlator node name
+    cor = 'COR000000'
+
+    # Set up the types
+    types = ['COR', 'ANT', 'DPF', 'BLN', 'RFT', 'OPF', 'RFR', 'ADC']
+
+    total = 0
+
+    now = datetime.now()
+
+    for t in types:
+        gi.add_type(t)
+
+    # Add a correlator input node
+    gi.add_component(cor)
+    gi.set_type(cor, 'COR')
+
+    total += (datetime.now() - now).total_seconds()
+
+    # Add the components and connect them at different times.
+    for i in range(1, dishes + 1):
+
+        # The names of the components to refer to
+        ant = f'ANT{str(i).zfill(6)}'
+        dpf = f'DPF{str(i).zfill(6)}'
+        bln = (f'BLN{str(2 * i - 1).zfill(6)}', f'BLN{str(2 * i).zfill(6)}')
+        rft = (f'RFT{str(2 * i - 1).zfill(6)}', f'RFT{str(2 * i).zfill(6)}')
+        opf = (f'OPF{str(2 * i - 1).zfill(6)}', f'OPF{str(2 * i).zfill(6)}')
+        rfr = (f'RFR{str(2 * i - 1).zfill(6)}', f'RFR{str(2 * i).zfill(6)}')
+        adc = (f'ADC{str(2 * i - 1).zfill(6)}', f'ADC{str(2 * i).zfill(6)}')
+
+        now = datetime.now()
+
+        gi.add_component(ant)
+        gi.add_component(dpf)
+
+        gi.set_type(ant, 'ANT')
+        gi.set_type(dpf, 'DPF')
+
+        for ind in (0, 1):
+            gi.add_component(bln[ind])
+            gi.add_component(rft[ind])
+            gi.add_component(opf[ind])
+            gi.add_component(rfr[ind])
+            gi.add_component(adc[ind])
+
+            gi.set_type(bln[ind], 'BLN')
+            gi.set_type(rft[ind], 'RFT')
+            gi.set_type(opf[ind], 'OPF')
+            gi.set_type(rfr[ind], 'RFR')
+            gi.set_type(adc[ind], 'ADC')
+
+        
+        connections = [(i, True)]
+
+        for (time, connection) in connections:
+
+            gi.set_connection(name1=ant, name2=dpf, time=time, connection=connection)
+
+            for ind in (0, 1):
+
+                # Pairs of names to connect
+                pairs = [(ant, dpf), (dpf, bln[ind]), (bln[ind], rft[ind]), (rft[ind], opf[ind]), (opf[ind], rfr[ind]), (rfr[ind], adc[ind]), (adc[ind], cor)]
+
+                for pair in pairs:
+                    gi.set_connection(name1=pair[0], name2=pair[1], time=time, connection=connection)
+
+        delta = (datetime.now() - now).total_seconds()
+
+        total += delta
+
+        log_to_file(message=f"Adding dish {i} done, took {delta} seconds.")
+    
+    log_to_file(message=f"Graph with {dishes} dishes loaded, took {total} total seconds.")
+
+    return gi
+
+
 def benchmark_paths(time: int, dishes: int, mod: int) -> None:
     """Run a benchmark performing path queries on the entire graph stored in GraphInterface and an igraph.Graph LocalGraph, and compare the two.
 
@@ -307,14 +401,86 @@ def benchmark_paths(time: int, dishes: int, mod: int) -> None:
 
     log_to_file(message=f"Benchmark: Finished benchmark with {dishes} dishes, modulo of {mod} and at time {time}.")
 
-    gi.local_graph.visualize_graph('subgraph.pdf')
+    # gi.local_graph.visualize_graph('subgraph.pdf')
 
-    gi.export_graph('test_load_graph.xml')
+    # gi.export_graph('test_load_graph.xml')
+
+
+def benchmark_increment(dishes: int, step: int) -> None:
+    """Run a benchmark performing path queries on the entire graph stored in GraphInterface and an igraph.Graph LocalGraph, and compare the two.
+
+    :param dishes: Number of dishes
+    :type dishes: int
+    :param step: Incrementation of the time to query the graph at.
+    :type step: int
+    """
+
+    log_to_file(message=f"Benchmark: Started incremental benchmark with {dishes} dishes, step of {step}.")
+
+    gi = load_graph_increment(dishes=dishes)
+
+    times_bruteforce = []
+
+    times_subgraph = []
+
+    for time in range(1, dishes + 1, step):
+        
+        total_bruteforce, total_subgraph = 0, 0
+
+        now = datetime.now()
+
+        pairs = gi.get_connected_vertices_at_time(time)
+
+        gi.local_graph.create_from_connections_undirected(pairs)
+
+        total_subgraph += (datetime.now() - now).total_seconds()
+
+        dishes_to_test = list(range(1, time + 1))
+
+        for d in dishes_to_test:
+            ant = f'ANT{str(d).zfill(6)}'
+
+            now = datetime.now()
+
+            gi.find_paths(name1=ant, name2='COR000000', avoid_type='', time=time)
+
+            total_bruteforce += (datetime.now() - now).total_seconds()
+
+            now = datetime.now()
+
+            gi.local_graph.find_shortest_paths(name1=ant, name2='COR000000')
+
+            total_subgraph += (datetime.now() - now).total_seconds()
+
+        times_bruteforce.append(total_bruteforce)
+
+        times_subgraph.append(total_subgraph)
+    
+
+    plt.plot(list(range(1, dishes + 1, step)), times_subgraph, label="Subgraph")
+    plt.plot(list(range(1, dishes + 1, step)), times_bruteforce, label="Direct DB")
+    plt.title(f"{dishes} dishes, step of {step}")
+    plt.xlabel("Number of dishes")
+    plt.ylabel("Query Time (s)")
+    plt.legend()
+    plt.savefig('benchmark_plot.png')
+
+    log_to_file(message=f"Benchmark: entire graph query times: {times_bruteforce}")
+    log_to_file(message=f"Benchmark: subgraph times: {times_subgraph}")
+
+    log_to_file(message=f"Benchmark: total for entire graph: {sum(times_bruteforce)} seconds.")
+    log_to_file(message=f"Benchmark: total for subgraph: {sum(times_subgraph)} seconds.")
+
+    log_to_file(message=f"Benchmark: Finished incremental benchmark with {dishes} dishes and step of {step}. See saved plot.")
+
+    # gi.local_graph.visualize_graph('subgraph.pdf')
+
+    # gi.export_graph('test_load_graph.xml')
 
 
 if __name__ == "__main__":
     
-    benchmark_paths(time=1, dishes=4, mod=4)
+    benchmark_increment(dishes=16, step=1)
 
     
 
