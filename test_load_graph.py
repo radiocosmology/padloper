@@ -243,7 +243,7 @@ def load_graph_v2(dishes: int, mod: int) -> GraphInterface:
     return gi
 
 
-def load_graph_increment(dishes: int) -> GraphInterface:
+def load_graph_increment(dishes: int, skip_creation: bool) -> GraphInterface:
     """
 
     Instantiate a GraphInterface, and set up a HIRAX-style graph with :param dishes: all dish signal chains connected at dish# and never disconnected.
@@ -256,83 +256,85 @@ def load_graph_increment(dishes: int) -> GraphInterface:
 
     gi = GraphInterface()
 
-    # Clear entire graph.
-    clear_graph(gi)
+    if not skip_creation:
 
-    # Correlator node name
-    cor = 'COR000000'
+        # Clear entire graph.
+        clear_graph(gi)
 
-    # Set up the types
-    types = ['COR', 'ANT', 'DPF', 'BLN', 'RFT', 'OPF', 'RFR', 'ADC']
+        # Correlator node name
+        cor = 'COR000000'
 
-    total = 0
+        # Set up the types
+        types = ['COR', 'ANT', 'DPF', 'BLN', 'RFT', 'OPF', 'RFR', 'ADC']
 
-    now = datetime.now()
-
-    for t in types:
-        gi.add_type(t)
-
-    # Add a correlator input node
-    gi.add_component(cor)
-    gi.set_type(cor, 'COR')
-
-    total += (datetime.now() - now).total_seconds()
-
-    # Add the components and connect them at different times.
-    for i in range(1, dishes + 1):
-
-        # The names of the components to refer to
-        ant = f'ANT{str(i).zfill(6)}'
-        dpf = f'DPF{str(i).zfill(6)}'
-        bln = (f'BLN{str(2 * i - 1).zfill(6)}', f'BLN{str(2 * i).zfill(6)}')
-        rft = (f'RFT{str(2 * i - 1).zfill(6)}', f'RFT{str(2 * i).zfill(6)}')
-        opf = (f'OPF{str(2 * i - 1).zfill(6)}', f'OPF{str(2 * i).zfill(6)}')
-        rfr = (f'RFR{str(2 * i - 1).zfill(6)}', f'RFR{str(2 * i).zfill(6)}')
-        adc = (f'ADC{str(2 * i - 1).zfill(6)}', f'ADC{str(2 * i).zfill(6)}')
+        total = 0
 
         now = datetime.now()
 
-        gi.add_component(ant)
-        gi.add_component(dpf)
+        for t in types:
+            gi.add_type(t)
 
-        gi.set_type(ant, 'ANT')
-        gi.set_type(dpf, 'DPF')
+        # Add a correlator input node
+        gi.add_component(cor)
+        gi.set_type(cor, 'COR')
 
-        for ind in (0, 1):
-            gi.add_component(bln[ind])
-            gi.add_component(rft[ind])
-            gi.add_component(opf[ind])
-            gi.add_component(rfr[ind])
-            gi.add_component(adc[ind])
+        total += (datetime.now() - now).total_seconds()
 
-            gi.set_type(bln[ind], 'BLN')
-            gi.set_type(rft[ind], 'RFT')
-            gi.set_type(opf[ind], 'OPF')
-            gi.set_type(rfr[ind], 'RFR')
-            gi.set_type(adc[ind], 'ADC')
+        # Add the components and connect them at different times.
+        for i in range(1, dishes + 1):
 
-        
-        connections = [(i, True)]
+            # The names of the components to refer to
+            ant = f'ANT{str(i).zfill(6)}'
+            dpf = f'DPF{str(i).zfill(6)}'
+            bln = (f'BLN{str(2 * i - 1).zfill(6)}', f'BLN{str(2 * i).zfill(6)}')
+            rft = (f'RFT{str(2 * i - 1).zfill(6)}', f'RFT{str(2 * i).zfill(6)}')
+            opf = (f'OPF{str(2 * i - 1).zfill(6)}', f'OPF{str(2 * i).zfill(6)}')
+            rfr = (f'RFR{str(2 * i - 1).zfill(6)}', f'RFR{str(2 * i).zfill(6)}')
+            adc = (f'ADC{str(2 * i - 1).zfill(6)}', f'ADC{str(2 * i).zfill(6)}')
 
-        for (time, connection) in connections:
+            now = datetime.now()
 
-            gi.set_connection(name1=ant, name2=dpf, time=time, connection=connection)
+            gi.add_component(ant)
+            gi.add_component(dpf)
+
+            gi.set_type(ant, 'ANT')
+            gi.set_type(dpf, 'DPF')
 
             for ind in (0, 1):
+                gi.add_component(bln[ind])
+                gi.add_component(rft[ind])
+                gi.add_component(opf[ind])
+                gi.add_component(rfr[ind])
+                gi.add_component(adc[ind])
 
-                # Pairs of names to connect
-                pairs = [(ant, dpf), (dpf, bln[ind]), (bln[ind], rft[ind]), (rft[ind], opf[ind]), (opf[ind], rfr[ind]), (rfr[ind], adc[ind]), (adc[ind], cor)]
+                gi.set_type(bln[ind], 'BLN')
+                gi.set_type(rft[ind], 'RFT')
+                gi.set_type(opf[ind], 'OPF')
+                gi.set_type(rfr[ind], 'RFR')
+                gi.set_type(adc[ind], 'ADC')
 
-                for pair in pairs:
-                    gi.set_connection(name1=pair[0], name2=pair[1], time=time, connection=connection)
+            
+            connections = [(i, True)]
 
-        delta = (datetime.now() - now).total_seconds()
+            for (time, connection) in connections:
 
-        total += delta
+                gi.set_connection(name1=ant, name2=dpf, time=time, connection=connection)
 
-        log_to_file(message=f"Adding dish {i} done, took {delta} seconds.")
-    
-    log_to_file(message=f"Graph with {dishes} dishes loaded, took {total} total seconds.")
+                for ind in (0, 1):
+
+                    # Pairs of names to connect
+                    pairs = [(ant, dpf), (dpf, bln[ind]), (bln[ind], rft[ind]), (rft[ind], opf[ind]), (opf[ind], rfr[ind]), (rfr[ind], adc[ind]), (adc[ind], cor)]
+
+                    for pair in pairs:
+                        gi.set_connection(name1=pair[0], name2=pair[1], time=time, connection=connection)
+
+            delta = (datetime.now() - now).total_seconds()
+
+            total += delta
+
+            log_to_file(message=f"Adding dish {i} done, took {delta} seconds.")
+        
+        log_to_file(message=f"Graph with {dishes} dishes loaded, took {total} total seconds.")
 
     return gi
 
@@ -406,18 +408,20 @@ def benchmark_paths(time: int, dishes: int, mod: int) -> None:
     # gi.export_graph('test_load_graph.xml')
 
 
-def benchmark_increment(dishes: int, step: int) -> None:
+def benchmark_increment(dishes: int, step: int, skip_creation: bool=False) -> None:
     """Run a benchmark performing path queries on the entire graph stored in GraphInterface and an igraph.Graph LocalGraph, and compare the two.
 
     :param dishes: Number of dishes
     :type dishes: int
     :param step: Incrementation of the time to query the graph at.
     :type step: int
+    :param skip_creation: Whether to skip creation of the graph if it already exists, defaults to False
+    :type skip_creation: bool
     """
 
     log_to_file(message=f"Benchmark: Started incremental benchmark with {dishes} dishes, step of {step}.")
 
-    gi = load_graph_increment(dishes=dishes)
+    gi = load_graph_increment(dishes=dishes, skip_creation=skip_creation)
 
     times_bruteforce = []
 
@@ -425,6 +429,8 @@ def benchmark_increment(dishes: int, step: int) -> None:
 
     for time in range(1, dishes + 1, step):
         
+        log_to_file(message=f"Benchmark: Now looking at time {time}.")
+
         total_bruteforce, total_subgraph = 0, 0
 
         now = datetime.now()
@@ -480,7 +486,7 @@ def benchmark_increment(dishes: int, step: int) -> None:
 
 if __name__ == "__main__":
     
-    benchmark_increment(dishes=16, step=1)
+    benchmark_increment(dishes=2000, step=40)
 
     
 

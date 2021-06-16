@@ -67,16 +67,12 @@ class LocalGraph():
 
             vertex_index_connections.append(tuple(indices))
 
-        log_to_file(message="Making local graph.")
-
         self.graph = igraph.Graph(vertex_index_connections)
 
         self.graph.vs['name'] = vertex_name_arr
 
         self.graph.vs['label'] = self.graph.vs['name']
 
-        log_to_file(message=f"Done making local graph, that took {(datetime.now() - now).total_seconds()} seconds.")
-        
 
     def find_shortest_paths(self, name1: str, name2: str):
         """
