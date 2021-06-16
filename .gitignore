@@ -1,0 +1,6 @@
+*.zip
+janusgraph-0.5.3/
+janusgraph-full-0.5.3/
+apache-cassandra-3.11.10/
+__pycache__/
+.vscode/
