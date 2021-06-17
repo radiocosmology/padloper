@@ -59,11 +59,18 @@ class LocalGraph():
 
             for i in range(len(pair)):
 
-                if pair[i] not in vertex_name_to_ind:
-                    vertex_name_to_ind[pair[i]] = len(vertex_name_arr)
-                    vertex_name_arr.append(pair[i])
+                # pair[i] is a dictionary with two keys: 'properties' and 'type'.
+                properties = pair[i]['properties']
+                # type = pair[i]['type']
 
-                indices.append(vertex_name_to_ind[pair[i]])
+                # TinkerPop maintains a **LIST** of values per key for vertex properties, so you must extract the first element from this list.
+                name = properties['name'][0]
+
+                if name not in vertex_name_to_ind:
+                    vertex_name_to_ind[name] = len(vertex_name_arr)
+                    vertex_name_arr.append(name)
+
+                indices.append(vertex_name_to_ind[name])
 
             vertex_index_connections.append(tuple(indices))
 

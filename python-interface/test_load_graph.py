@@ -243,13 +243,15 @@ def load_graph_v2(dishes: int, mod: int) -> GraphInterface:
     return gi
 
 
-def load_graph_increment(dishes: int, skip_creation: bool) -> GraphInterface:
+def load_graph_increment(dishes: int, skip_creation: bool=False) -> GraphInterface:
     """
 
     Instantiate a GraphInterface, and set up a HIRAX-style graph with :param dishes: all dish signal chains connected at dish# and never disconnected.
 
     :param dishes: Number of dishes the graph will contain.
     :type dishes: int
+    :param skip_creation: Whether to skip creation of the graph if it already exists, defaults to False
+    :type skip_creation: bool
     :return: A GraphInterface instance containing the graph traversal to the instantiated graph.
     :rtype: GraphInterface
     """
@@ -483,62 +485,11 @@ def benchmark_increment(dishes: int, step: int, skip_creation: bool=False) -> No
 
     # gi.export_graph('test_load_graph.xml')
 
-
-def benchmark_subgraph_queries(dishes: int, step: int) -> None:
-    """Run a benchmark creating subgraphs from graph stored in GraphInterface using both `get_connected_vertices_at_time` queries, and compare the two..
-
-    :param dishes: Number of dishes
-    :type dishes: int
-    :param step: Incrementation of the time to query the graph at.
-    :type step: int
-    """
-
-    log_to_file(message=f"Benchmark: Started subgraph query benchmark with {dishes} dishes, step of {step}.")
-
-    gi = load_graph_increment(dishes=dishes)
-
-    times_query_1 = []
-
-    times_query_2 = []
-
-    for time in range(1, dishes + 1, step):
-        
-        log_to_file(message=f"Benchmark: Now testing time {time}.")
-
-        now = datetime.now()
-
-        pairs = gi.get_connected_vertices_at_time(time)
-
-        times_query_1.append((datetime.now() - now).total_seconds())
-
-        now = datetime.now()
-
-        pairs = gi.get_connected_vertices_at_time_v2(time)
-
-        times_query_2.append((datetime.now() - now).total_seconds())
-    
-
-    plt.plot(list(range(1, dishes + 1, step)), times_query_1, label="Using Project")
-    plt.plot(list(range(1, dishes + 1, step)), times_query_2, label="Using Select")
-    plt.title(f"Subgraph query benchmark: {dishes} dishes, step of {step}")
-    plt.xlabel("Number of dishes")
-    plt.ylabel("Query Time (s)")
-    plt.legend()
-    plt.savefig('benchmark_plot.png')
-
-    log_to_file(message=f"Benchmark: entire graph query times: {times_bruteforce}")
-    log_to_file(message=f"Benchmark: subgraph times: {times_subgraph}")
-
-    log_to_file(message=f"Benchmark: total for entire graph: {sum(times_bruteforce)} seconds.")
-    log_to_file(message=f"Benchmark: total for subgraph: {sum(times_subgraph)} seconds.")
-
-    log_to_file(message=f"Benchmark: Finished subgraph query benchmark with {dishes} dishes and step of {step}. See saved plot.")
-
-
-
 if __name__ == "__main__":
     
-    benchmark_subgraph_queries(dishes=16, step=1)
+    # benchmark_subgraph_queries(dishes=1024, step=32, skip_creation=True)
+
+    benchmark_increment(dishes=1024, step=32, skip_creation=False)
 
     
 

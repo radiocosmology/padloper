@@ -209,34 +209,7 @@ class GraphInterface:
         """
 
         # l is a list containing at most one elemnt, which is a large dictionary of vertex1: vertex2 entries.
-        l = self.g.E().hasLabel('connection').has('start', P.lte(time)).has('end', P.gt(time)).project('a', 'b').by(__.inV().values('name')).by(__.outV().values('name')).toList()
-
-        # Query to get valueMap would look like
-        # g.E().hasLabel('connection').has('start', lte(time)).has('end', gt(time)).project('a', 'b').by(inV().valueMap()).by(outV().valueMap()).toList()
-
-        # Gotta figure out how to also include type in there.
-        
-        # [{'a': ..., 'b': ...}]
-        
-
-        if len(l) == 0:
-            return l
-        else:
-            return [tuple(d.values()) for d in l]
-
-    
-    def get_connected_vertices_at_time_v2(self, time: float) -> list:
-        """Given a time, return the name properties of the component vertices connected by an edge that existed at this time and format it as a list[tuple[str, str]]
-
-
-        :param time: Time to check
-        :type time: float
-        :return: List of 2-tuples containing the names of the pairs of vertices connected at :param time:.
-        :rtype: list[tuple[str, str]]
-        """
-
-        # l is a list containing at most one elemnt, which is a large dictionary of vertex1: vertex2 entries.
-        l = self.g.E().hasLabel('connection').has('start', P.lte(time)).has('end', P.gt(time)).as_('edge').inV().values('name').as_('a-values').select('edge').outV().values('name').as_('b-values').select('a-values', 'b-values').toList()
+        l = self.g.E().hasLabel('connection').has('start', P.lte(time)).has('end', P.gt(time)).as_('edge').inV().as_('a-vertex').valueMap().as_('properties').select('a-vertex').out('type').values('name').as_('type').select('properties', 'type').as_('a').select('edge').outV().as_('b-vertex').valueMap().as_('properties').select('b-vertex').out('type').values('name').as_('type').select('properties', 'type').as_('b').select('a', 'b').toList()
 
         # Query to get valueMap would look like
         # g.E().hasLabel('connection').has('start', lte(time)).has('end', gt(time)).project('a', 'b').by(inV().valueMap()).by(outV().valueMap()).toList()
