@@ -489,7 +489,7 @@ if __name__ == "__main__":
     
     # benchmark_subgraph_queries(dishes=1024, step=32, skip_creation=True)
 
-    benchmark_increment(dishes=1024, step=32, skip_creation=False)
+    benchmark_increment(dishes=1024, step=32, skip_creation=True)
 
     
 

@@ -44,31 +44,45 @@ class LocalGraph():
         now = datetime.now()
 
 
-        # vertex_names[i] denotes the name of the i'th vertex in the local graph.
-        vertex_name_arr = []
+        # vertex_properties[<PROPERTY>][i] denotes the <PROPERTY> value of the i'th vertex in the local graph.
+        vertex_properties = {}
 
-        # Dictionary of style {..., vertex_names[i]: i, ...}.   
+        # Dictionary of style {..., <i'th vertex name>: i, ...}.   
         vertex_name_to_ind = {}
 
         # List of 2-tuples containing the indices of the pairs of vertices to be added (instead of the names).
         vertex_index_connections = []
 
+        # How many distinct vertices have been added so far
+        vertices_so_far = 0
+
         for pair in vertex_connections:
 
+            # the two indices of the two ends of the connection
             indices = []
 
             for i in range(len(pair)):
 
                 # pair[i] is a dictionary with two keys: 'properties' and 'type'.
-                properties = pair[i]['properties']
-                # type = pair[i]['type']
+                properties = pair[i]['properties'] # This is a dictionary pointing to ARRAYS
+                type = pair[i]['type'] # This is a STRING.
+
+                properties['type'] = [type] # Just to make it consistent
 
                 # TinkerPop maintains a **LIST** of values per key for vertex properties, so you must extract the first element from this list.
                 name = properties['name'][0]
 
                 if name not in vertex_name_to_ind:
-                    vertex_name_to_ind[name] = len(vertex_name_arr)
-                    vertex_name_arr.append(name)
+                    vertex_name_to_ind[name] = vertices_so_far
+
+                    for key in properties:
+                        if key not in vertex_properties:
+                            vertex_properties[key] = []
+
+                        vertex_properties[key].append(properties[key][0]) # Extract the property from the list
+
+                    vertices_so_far += 1
+
 
                 indices.append(vertex_name_to_ind[name])
 
@@ -76,7 +90,8 @@ class LocalGraph():
 
         self.graph = igraph.Graph(vertex_index_connections)
 
-        self.graph.vs['name'] = vertex_name_arr
+        for key in vertex_properties:
+            self.graph.vs[key] = vertex_properties[key]
 
         self.graph.vs['label'] = self.graph.vs['name']
 
