@@ -437,9 +437,9 @@ def benchmark_increment(dishes: int, step: int, skip_creation: bool=False) -> No
 
         now = datetime.now()
 
-        pairs = gi.get_connected_vertices_at_time(time)
+        pairs_and_dict = gi.get_connected_vertices_at_time(time)
 
-        gi.local_graph.create_from_connections_undirected(pairs)
+        gi.local_graph.create_from_connections_undirected(pairs_and_dict[0], pairs_and_dict[1])
 
         total_subgraph += (datetime.now() - now).total_seconds()
 
@@ -489,7 +489,8 @@ if __name__ == "__main__":
     
     # benchmark_subgraph_queries(dishes=1024, step=32, skip_creation=True)
 
-    benchmark_increment(dishes=1024, step=32, skip_creation=True)
+    benchmark_increment(dishes=1024, step=32, skip_creation=False)
+
 
     
 

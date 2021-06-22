@@ -31,12 +31,14 @@ class LocalGraph():
         self.graph = igraph.Graph()
 
 
-    def create_from_connections_undirected(self, vertex_connections: list) -> None:
+    def create_from_connections_undirected(self, vertex_connections: list, vertex_properties: dict) -> None:
         """
         Instantiate a simple undirected igraph.Graph given pairs of vertices to connect.
 
         :param vertex_connections: A list of the format [(name1, name2), (name3, name4), ...] where name# represents the names of the vertices.
         :type vertex_connections: list[tuple[str, str]]
+        :param vertex_properties: A dictionary with keys being vertex names and their corresponding values being a property dictionary
+        :type vertex_connections: dict[str, dict[str, str]]
         """
 
         # See https://igraph.org/python/doc/tutorial/tutorial.html#setting-and-retrieving-attributes for help regarding igraph vertex/edge attributes.
@@ -44,55 +46,40 @@ class LocalGraph():
         now = datetime.now()
 
 
-        # vertex_properties[<PROPERTY>][i] denotes the <PROPERTY> value of the i'th vertex in the local graph.
-        vertex_properties = {}
+        # vertex_names[i] denotes the name of the i'th vertex in the local graph.
+        vertex_name_arr = []
 
-        # Dictionary of style {..., <i'th vertex name>: i, ...}.   
+        # Dictionary of style {..., vertex_names[i]: i, ...}.   
         vertex_name_to_ind = {}
 
         # List of 2-tuples containing the indices of the pairs of vertices to be added (instead of the names).
         vertex_index_connections = []
 
-        # How many distinct vertices have been added so far
-        vertices_so_far = 0
-
         for pair in vertex_connections:
 
-            # the two indices of the two ends of the connection
             indices = []
 
             for i in range(len(pair)):
 
-                # pair[i] is a dictionary with two keys: 'properties' and 'type'.
-                properties = pair[i]['properties'] # This is a dictionary pointing to ARRAYS
-                type = pair[i]['type'] # This is a STRING.
+                if pair[i] not in vertex_name_to_ind:
+                    vertex_name_to_ind[pair[i]] = len(vertex_name_arr)
+                    vertex_name_arr.append(pair[i])
 
-                properties['type'] = [type] # Just to make it consistent
-
-                # TinkerPop maintains a **LIST** of values per key for vertex properties, so you must extract the first element from this list.
-                name = properties['name'][0]
-
-                if name not in vertex_name_to_ind:
-                    vertex_name_to_ind[name] = vertices_so_far
-
-                    for key in properties:
-                        if key not in vertex_properties:
-                            vertex_properties[key] = []
-
-                        vertex_properties[key].append(properties[key][0]) # Extract the property from the list
-
-                    vertices_so_far += 1
-
-
-                indices.append(vertex_name_to_ind[name])
+                indices.append(vertex_name_to_ind[pair[i]])
 
             vertex_index_connections.append(tuple(indices))
 
         self.graph = igraph.Graph(vertex_index_connections)
 
-        for key in vertex_properties:
-            self.graph.vs[key] = vertex_properties[key]
+        self.graph.vs['name'] = vertex_name_arr
 
+        for i in range(len(vertex_name_arr)):
+            name = vertex_name_arr[i]
+
+            for key in vertex_properties[name]:
+                self.graph.vs[i][key] = vertex_properties[name][key]
+
+        # Choosing what to display the vertices by in the visualization of the local graph.
         self.graph.vs['label'] = self.graph.vs['name']
 
 
