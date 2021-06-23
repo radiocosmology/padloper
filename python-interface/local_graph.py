@@ -77,7 +77,12 @@ class LocalGraph():
             name = vertex_name_arr[i]
 
             for key in vertex_properties[name]:
-                self.graph.vs[i][key] = vertex_properties[name][key]
+
+                if isinstance(vertex_properties[name][key], list) and len(vertex_properties[name][key]) == 1:
+                    self.graph.vs[i][key] = vertex_properties[name][key][0]
+
+                else:
+                    self.graph.vs[i][key] = vertex_properties[name][key]
 
         # Choosing what to display the vertices by in the visualization of the local graph.
         self.graph.vs['label'] = self.graph.vs['name']
