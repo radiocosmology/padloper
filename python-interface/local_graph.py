@@ -31,7 +31,8 @@ class LocalGraph():
         self.graph = igraph.Graph()
 
 
-    def create_from_connections_undirected(self, vertex_connections: list) -> None:
+    def create_from_connections_undirected(self, vertex_connections: list,
+        types: dict) -> None:
         """
         Instantiate a simple undirected igraph.Graph given pairs of vertices to connect.
 
@@ -43,14 +44,14 @@ class LocalGraph():
 
         now = datetime.now()
 
-
-        # vertex_properties[<PROPERTY>][i] denotes the <PROPERTY> value of the i'th vertex in the local graph.
-        vertex_properties = {}
+        # Get properties given an index of the vertex.
+        vertex_ind_to_props = []
 
         # Dictionary of style {..., <i'th vertex name>: i, ...}.   
         vertex_name_to_ind = {}
 
-        # List of 2-tuples containing the indices of the pairs of vertices to be added (instead of the names).
+        # List of 2-tuples containing the indices of the pairs of 
+        # vertices to be added (instead of the names).
         vertex_index_connections = []
 
         # How many distinct vertices have been added so far
@@ -63,35 +64,41 @@ class LocalGraph():
 
             for i in range(len(pair)):
 
-                # pair[i] is a dictionary with two keys: 'properties' and 'type'.
-                properties = pair[i]['properties'] # This is a dictionary pointing to ARRAYS
-                type = pair[i]['type'] # This is a STRING.
+                properties = pair[i] # This is a dictionary pointing to ARRAYS
 
-                properties['type'] = [type] # Just to make it consistent
-
-                # TinkerPop maintains a **LIST** of values per key for vertex properties, so you must extract the first element from this list.
+                # TinkerPop maintains a **LIST** of values per key for vertex
+                # properties, so you must extract the first element from this 
+                # list.
                 name = properties['name'][0]
 
                 if name not in vertex_name_to_ind:
                     vertex_name_to_ind[name] = vertices_so_far
 
-                    for key in properties:
-                        if key not in vertex_properties:
-                            vertex_properties[key] = []
+                    props = {key: properties[key][0] 
+                            if isinstance(properties[key], list)
+                            and len(properties[key]) == 1 
+                            else properties[key] for key in properties}
 
-                        vertex_properties[key].append(properties[key][0]) # Extract the property from the list
+                    vertex_ind_to_props.append(props)
 
                     vertices_so_far += 1
 
 
                 indices.append(vertex_name_to_ind[name])
-
+ 
             vertex_index_connections.append(tuple(indices))
+
+        for key in types:
+            for name in types[key]:
+                if name in vertex_name_to_ind:
+                    vertex_ind_to_props[vertex_name_to_ind[name]]['type'] = key
+
 
         self.graph = igraph.Graph(vertex_index_connections)
 
-        for key in vertex_properties:
-            self.graph.vs[key] = vertex_properties[key]
+        for i in range(vertices_so_far):
+            for key in vertex_ind_to_props[i]:
+                self.graph.vs[i][key] = vertex_ind_to_props[i][key]
 
         self.graph.vs['label'] = self.graph.vs['name']
 

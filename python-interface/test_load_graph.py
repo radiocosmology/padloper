@@ -429,6 +429,8 @@ def benchmark_increment(dishes: int, step: int, skip_creation: bool=False) -> No
 
     times_subgraph = []
 
+    times_subgraph_query = []
+
     for time in range(1, dishes + 1, step):
         
         log_to_file(message=f"Benchmark: Now looking at time {time}.")
@@ -437,11 +439,17 @@ def benchmark_increment(dishes: int, step: int, skip_creation: bool=False) -> No
 
         now = datetime.now()
 
-        pairs = gi.get_connected_vertices_at_time(time)
+        pairs, types = gi.get_connected_vertices_at_time(time)
 
-        gi.local_graph.create_from_connections_undirected(pairs)
+        query_time = (datetime.now() - now).total_seconds()
 
-        total_subgraph += (datetime.now() - now).total_seconds()
+        times_subgraph_query.append(query_time)
+
+        now = datetime.now()
+
+        gi.local_graph.create_from_connections_undirected(pairs, types)
+
+        total_subgraph += (datetime.now() - now).total_seconds() + query_time
 
         dishes_to_test = list(range(1, time + 1))
 
@@ -474,7 +482,8 @@ def benchmark_increment(dishes: int, step: int, skip_creation: bool=False) -> No
     plt.savefig('benchmark_plot.png')
 
     log_to_file(message=f"Benchmark: entire graph query times: {times_bruteforce}")
-    log_to_file(message=f"Benchmark: subgraph times: {times_subgraph}")
+    log_to_file(message=f"Benchmark: total subgraph times: {times_subgraph}")
+    log_to_file(message=f"Benchmark: subgraph query times: {times_subgraph_query}")
 
     log_to_file(message=f"Benchmark: total for entire graph: {sum(times_bruteforce)} seconds.")
     log_to_file(message=f"Benchmark: total for subgraph: {sum(times_subgraph)} seconds.")

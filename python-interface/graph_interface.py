@@ -197,19 +197,28 @@ class GraphInterface:
             log_to_file(message=f"Could not find paths between {name1} and {name2} at time {time} avoiding {avoid_type}. {e}", urgency=2)
 
 
-    def get_connected_vertices_at_time(self, time: float) -> list:
-        """Given a time, return the name properties of the component vertices connected by an edge that existed at this time and format it as a list[tuple[str, str]]
+    def get_connected_vertices_at_time(self, time: float) -> tuple:
+        """
 
-        # TODO: this Gremlin query returns a really ugly thing, but it works. Fix, maybe?
+        # TODO: Write description here.
 
         :param time: Time to check
         :type time: float
-        :return: List of 2-tuples containing the names of the pairs of vertices connected at :param time:.
-        :rtype: list[tuple[str, str]]
+        :return: A 2-tuple with the 1st element being a list of 2-tuples
+        containing the properties of the pairs of vertices connected
+        at :param time:, and the 2nd element being a dictionary with
+        keys being types, and values being lists of vertices of that type.
+        :rtype: tuple[ list[tuple[str, str]], dict[str, list[str]] ]
         """
 
         # l is a list containing at most one elemnt, which is a large dictionary of vertex1: vertex2 entries.
-        l = self.g.E().hasLabel('connection').has('start', P.lte(time)).has('end', P.gt(time)).as_('edge').inV().as_('a-vertex').valueMap().as_('properties').select('a-vertex').out('type').values('name').as_('type').select('properties', 'type').as_('a').select('edge').outV().as_('b-vertex').valueMap().as_('properties').select('b-vertex').out('type').values('name').as_('type').select('properties', 'type').as_('b').select('a', 'b').toList()
+        l = self.g.E().hasLabel('connection').has('start', P.lte(time)).has('end', P.gt(time)).as_('edge') \
+            .inV().as_('a-vertex').valueMap().as_('a') \
+            .select('edge').outV().as_('b-vertex').valueMap().as_('b') \
+            .select('a', 'b').toList()
+
+        types = self.g.V().hasLabel('type').group().by('name') \
+                .by(__.in_('type').values('name').fold()).next()
 
         # Query to get valueMap would look like
         # g.E().hasLabel('connection').has('start', lte(time)).has('end', gt(time)).project('a', 'b').by(inV().valueMap()).by(outV().valueMap()).toList()
@@ -218,11 +227,13 @@ class GraphInterface:
         
         # [{'a': ..., 'b': ...}]
         
+        pairs = []
 
-        if len(l) == 0:
-            return l
-        else:
-            return [tuple(d.values()) for d in l]
+        if len(l) > 0:
+            pairs = [tuple(d.values()) for d in l]
+        
+        
+        return (pairs, types)
 
 
     def export_graph(self, file_name: str) -> None:
