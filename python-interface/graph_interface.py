@@ -209,9 +209,14 @@ class GraphInterface:
         """
 
         # l is a list containing at most one elemnt, which is a large dictionary of vertex1: vertex2 entries.
-        l = self.g.E().hasLabel('connection').has('start', P.lte(time)).has('end', P.gt(time)).as_('edge').inV().values('name').as_('a-values').select('edge').outV().values('name').as_('b-values').select('a-values', 'b-values').toList()
+        l = self.g.E().hasLabel('connection').has('start', P.lte(time)).has('end', P.gt(time)).as_('edge').inV() \
+            .values('name').as_('a-values').select('edge').outV().values('name').as_('b-values').select('a-values', 'b-values').toList()
 
-        properties = self.g.V().hasLabel('component').as_('vertex').group().by('name').by(__.select('vertex').valueMap().as_('properties').select('vertex').out('type').values('name').as_('type').select('properties', 'type')).toList()
+        properties = self.g.V().hasLabel('component').as_('vertex').group().by('name').by(__.select('vertex').valueMap()).next()
+
+        types = self.g.V().hasLabel('type').group().by('name').by(__.in_('type').values('name').fold()).next()
+
+        # Returns in a format {NAME: {"properties": {...}, "type": {...} }}
 
         # Query to get valueMap would look like
         # g.E().hasLabel('connection').has('start', lte(time)).has('end', gt(time)).project('a', 'b').by(inV().valueMap()).by(outV().valueMap()).toList()
@@ -220,28 +225,22 @@ class GraphInterface:
         
         # [{'a': ..., 'b': ...}]
 
-        property_dict = {}
-
-        if len(properties) > 0:
-            property_dict = properties[0]
-            for name in property_dict:
-                property_dict[name]['properties']['type'] = [property_dict[name]['type']] # Make it a list to make it consistent
-                property_dict[name] = property_dict[name]['properties']
+        for key in types:
+            for name in types[key]:
+                properties[name]['type'] = [key]
 
         if len(l) == 0:
             name_pairs = l
         else:
             name_pairs = [tuple(d.values()) for d in l]
 
-        log_to_file(message=f"Extracted all vertices, dictionary of their properties: {property_dict}")
-
-        return (name_pairs, property_dict)
+        return (name_pairs, properties)
 
 
     def export_graph(self, file_name: str) -> None:
         """
         Export the graph to :param file_name:.
-
+ 
         :param file_name: A file path.
         :type file_name: str
         """
