@@ -1,0 +1,27 @@
+# The following commands should be pasted into Gremlin console to set up
+# indexing when a Gremlin server is FIRST CREATED.
+
+# These commands add:
+# composite index on "name" for vertices: g.V().has('name', ...)
+# composite index on "category" for vertices: g.V().has('category', ...)
+# composite index for "category" THEN "name" for vertices: 
+# 	g.V().has('category', ...).has('name', ...)
+# mixed index on "start" THEN "end" for edges:
+# 	g.E().has('start', ...).has('end', ...)
+
+mgmt = graph.openManagement()
+name = mgmt.makePropertyKey('name').dataType(String.class).make()
+category = mgmt.makePropertyKey('category').dataType(String.class).make()
+start = mgmt.makePropertyKey('start').dataType(Long.class).make()
+end = mgmt.makePropertyKey('end').dataType(Long.class).make()
+mgmt.buildIndex('byCategoryComposite', Vertex.class).addKey(category).buildCompositeIndex()
+mgmt.buildIndex('byCategoryAndNameComposite', Vertex.class).addKey(category).buildCompositeIndex()
+mgmt.buildIndex('byNameComposite', Vertex.class).addKey(name).buildCompositeIndex()
+mgmt.buildIndex('startAndEndMixed', Edge.class).addKey(start).addKey(end).buildMixedIndex("search")
+mgmt.commit()
+mgmt = graph.openManagement()
+mgmt.updateIndex(mgmt.getGraphIndex("byNameComposite"), SchemaAction.REINDEX).get()
+mgmt.updateIndex(mgmt.getGraphIndex("byCategoryComposite"), SchemaAction.REINDEX).get()
+mgmt.updateIndex(mgmt.getGraphIndex("byCategoryAndNameComposite"), SchemaAction.REINDEX).get()
+mgmt.updateIndex(mgmt.getGraphIndex("startAndEndMixed"), SchemaAction.REINDEX).get()
+mgmt.commit()
