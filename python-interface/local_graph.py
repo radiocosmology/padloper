@@ -1,7 +1,9 @@
 """
 local_graph.py
 
-Contains the LocalGraph class, which contains an igraph.Graph instance and some methods to access and modify it.
+Contains the LocalGraph class, which contains an igraph.Graph instance and some
+methods to access and modify it.
+
 Used for subgraphs in a GraphInterface.
 
 Anatoly Zavyalov, 2021
@@ -34,9 +36,13 @@ class LocalGraph():
     def create_from_connections_undirected(self, vertex_connections: list,
         types: dict) -> None:
         """
-        Instantiate a simple undirected igraph.Graph given pairs of vertices to connect.
+        Instantiate a simple undirected igraph.Graph given pairs of
+        vertices to connect.
 
-        :param vertex_connections: A list of the format [(name1, name2), (name3, name4), ...] where name# represents the names of the vertices.
+        :param vertex_connections: A list of the format 
+        [(name1, name2), (name3, name4), ...] where name# 
+        represents the names of the vertices.
+
         :type vertex_connections: list[tuple[str, str]]
         """
 
@@ -74,9 +80,9 @@ class LocalGraph():
                 if name not in vertex_name_to_ind:
                     vertex_name_to_ind[name] = vertices_so_far
 
-                    props = {key: properties[key][0] 
-                            if isinstance(properties[key], list)
-                            and len(properties[key]) == 1 
+                    props = {key: properties[key][0] \
+                            if isinstance(properties[key], list) \
+                            and len(properties[key]) == 1 \
                             else properties[key] for key in properties}
 
                     vertex_ind_to_props.append(props)
@@ -100,7 +106,7 @@ class LocalGraph():
             for key in vertex_ind_to_props[i]:
                 self.graph.vs[i][key] = vertex_ind_to_props[i][key]
 
-        self.graph.vs['label'] = self.graph.vs['name']
+        # self.graph.vs['label'] = self.graph.vs['name']
 
 
     def find_shortest_paths(self, name1: str, name2: str):
@@ -124,7 +130,9 @@ class LocalGraph():
         """
         Export the graph as an image to :param target:.
 
-        :param target: File location to export the file to. Should be in PNG, PDF, SVG or PostScript format.
+        :param target: File location to export the file to. 
+        Should be in PNG, PDF, SVG or PostScript format.
+        
         :type target: str
         """
 

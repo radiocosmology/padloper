@@ -458,7 +458,8 @@ def benchmark_increment(dishes: int, step: int, skip_creation: bool=False) -> No
 
             now = datetime.now()
 
-            gi.find_paths(name1=ant, name2='COR000000', avoid_type='', time=time)
+            gi.find_shortest_path(name1=ant, name2='COR000000', 
+                avoid_type='', time=time)
 
             total_bruteforce += (datetime.now() - now).total_seconds()
 
@@ -479,6 +480,7 @@ def benchmark_increment(dishes: int, step: int, skip_creation: bool=False) -> No
     plt.xlabel("Number of dishes")
     plt.ylabel("Query Time (s)")
     plt.legend()
+    plt.grid(True)
     plt.savefig('benchmark_plot.png')
 
     log_to_file(message=f"Benchmark: entire graph query times: {times_bruteforce}")
