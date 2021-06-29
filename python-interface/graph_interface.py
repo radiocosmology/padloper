@@ -95,7 +95,7 @@ class GraphInterface:
                 + "to instantiate graph traversal. {e}")            
 
 
-    def add_vertex(self, label: str, name: str, allow_duplicates: bool=False,
+    def _add_vertex(self, label: str, name: str, allow_duplicates: bool=False,
                    enforce_label_scheme: bool=True) -> None:
         """
         Add a vertex to the graph with the label :param label: 
@@ -149,7 +149,7 @@ class GraphInterface:
         :type name: str
         """
 
-        self.add_vertex(label='component', name=name)
+        self._add_vertex(label='component', name=name)
 
 
     def add_type(self, type_: str) -> None:
@@ -163,7 +163,7 @@ class GraphInterface:
         :type type_: str
         """
 
-        self.add_vertex(label='type', name=type_)
+        self._add_vertex(label='type', name=type_)
 
 
     def set_type(self, name: str, type_: str) -> None:
