@@ -19,7 +19,7 @@ Anatoly Zavyalov, 2021
 """
 
 from graph_interface import GraphInterface
-from gremlin_python.driver.protocol import GremlinServerError # Gremlin server error
+from gremlin_python.driver.protocol import GremlinServerError
 
 from datetime import datetime
 
@@ -56,14 +56,20 @@ def clear_graph(gi: GraphInterface) -> None:
 def load_graph(dishes: int, connections: list) -> GraphInterface:
     """
 
-    Instantiate a GraphInterface, and set up a HIRAX-style graph with :param dishes: dishes with each pair of components in the 
-    signal chain being connected and disconnected identically based on :param connections:.
+    Instantiate a GraphInterface, and set up a HIRAX-style graph with 
+    :param dishes: dishes with each pair of components in the 
+    signal chain being connected and disconnected identically 
+    based on :param connections:.
 
     :param dishes: Number of dishes the graph will contain.
     :type dishes: int
-    :param connections: A list of (float, bool) 2-tuples, where the first element is the time and the second element is whether a connection was started or stopped at that time. List must be sorted by time, and each second element must alternate.
+    :param connections: A list of (float, bool) 2-tuples, where the first 
+    element is the time and the second element is whether a connection was 
+    started or stopped at that time. List must be sorted by time, 
+    and each second element must alternate.
     :type connections: list
-    :return: A GraphInterface instance containing the graph traversal to the instantiated graph.
+    :return: A GraphInterface instance containing the 
+    graph traversal to the instantiated graph.
     :rtype: GraphInterface
     """
 
@@ -126,15 +132,19 @@ def load_graph(dishes: int, connections: list) -> GraphInterface:
 
         for (time, connection) in connections:
 
-            gi.set_connection(name1=ant, name2=dpf, time=time, connection=connection)
+            gi.set_connection(name1=ant, name2=dpf, 
+                time=time, connection=connection)
 
             for ind in (0, 1):
 
                 # Pairs of names to connect
-                pairs = [(ant, dpf), (dpf, bln[ind]), (bln[ind], rft[ind]), (rft[ind], opf[ind]), (opf[ind], rfr[ind]), (rfr[ind], adc[ind]), (adc[ind], cor)]
+                pairs = [(ant, dpf), (dpf, bln[ind]), (bln[ind], rft[ind]), 
+                    (rft[ind], opf[ind]), (opf[ind], rfr[ind]), 
+                    (rfr[ind], adc[ind]), (adc[ind], cor)]
 
                 for pair in pairs:
-                    gi.set_connection(name1=pair[0], name2=pair[1], time=time, connection=connection)
+                    gi.set_connection(name1=pair[0], name2=pair[1], 
+                        time=time, connection=connection)
 
         delta = (datetime.now() - now).total_seconds()
 
@@ -151,13 +161,16 @@ def load_graph(dishes: int, connections: list) -> GraphInterface:
 def load_graph_v2(dishes: int, mod: int) -> GraphInterface:
     """
 
-    Instantiate a GraphInterface, and set up a HIRAX-style graph with :param dishes: all dish signal chains connected at dish# % :param mod:, disconnected at dish# % :param mod: + 1
+    Instantiate a GraphInterface, and set up a HIRAX-style graph with 
+    :param dishes: all dish signal chains connected at dish# % :param mod:, 
+    disconnected at dish# % :param mod: + 1
 
     :param dishes: Number of dishes the graph will contain.
     :type dishes: int
     :param mod: What to modulo each time of dish signal chain connectedness by
     :type mod: int
-    :return: A GraphInterface instance containing the graph traversal to the instantiated graph.
+    :return: A GraphInterface instance containing the 
+    graph traversal to the instantiated graph.
     :rtype: GraphInterface
     """
 
@@ -223,15 +236,19 @@ def load_graph_v2(dishes: int, mod: int) -> GraphInterface:
 
         for (time, connection) in connections:
 
-            gi.set_connection(name1=ant, name2=dpf, time=time, connection=connection)
+            gi.set_connection(name1=ant, name2=dpf, 
+                time=time, connection=connection)
 
             for ind in (0, 1):
 
                 # Pairs of names to connect
-                pairs = [(ant, dpf), (dpf, bln[ind]), (bln[ind], rft[ind]), (rft[ind], opf[ind]), (opf[ind], rfr[ind]), (rfr[ind], adc[ind]), (adc[ind], cor)]
+                pairs = [(ant, dpf), (dpf, bln[ind]), (bln[ind], rft[ind]), 
+                (rft[ind], opf[ind]), (opf[ind], rfr[ind]), 
+                (rfr[ind], adc[ind]), (adc[ind], cor)]
 
                 for pair in pairs:
-                    gi.set_connection(name1=pair[0], name2=pair[1], time=time, connection=connection)
+                    gi.set_connection(name1=pair[0], name2=pair[1], 
+                        time=time, connection=connection)
 
         delta = (datetime.now() - now).total_seconds()
 
@@ -245,16 +262,21 @@ def load_graph_v2(dishes: int, mod: int) -> GraphInterface:
     return gi
 
 
-def load_graph_increment(dishes: int, skip_creation: bool=False) -> GraphInterface:
+def load_graph_increment(dishes: int, 
+    skip_creation: bool=False) -> GraphInterface:
     """
 
-    Instantiate a GraphInterface, and set up a HIRAX-style graph with :param dishes: all dish signal chains connected at dish# and never disconnected.
+    Instantiate a GraphInterface, and set up a HIRAX-style graph with 
+    :param dishes: all dish signal chains connected at 
+    dish# and never disconnected.
 
     :param dishes: Number of dishes the graph will contain.
     :type dishes: int
-    :param skip_creation: Whether to skip creation of the graph if it already exists, defaults to False
+    :param skip_creation: Whether to skip creation of the graph 
+    if it already exists, defaults to False
     :type skip_creation: bool
-    :return: A GraphInterface instance containing the graph traversal to the instantiated graph.
+    :return: A GraphInterface instance containing the 
+    graph traversal to the instantiated graph.
     :rtype: GraphInterface
     """
 
@@ -322,15 +344,19 @@ def load_graph_increment(dishes: int, skip_creation: bool=False) -> GraphInterfa
 
             for (time, connection) in connections:
 
-                gi.set_connection(name1=ant, name2=dpf, time=time, connection=connection)
+                gi.set_connection(name1=ant, name2=dpf, 
+                    time=time, connection=connection)
 
                 for ind in (0, 1):
 
                     # Pairs of names to connect
-                    pairs = [(ant, dpf), (dpf, bln[ind]), (bln[ind], rft[ind]), (rft[ind], opf[ind]), (opf[ind], rfr[ind]), (rfr[ind], adc[ind]), (adc[ind], cor)]
+                    pairs = [(ant, dpf), (dpf, bln[ind]), (bln[ind], rft[ind]), 
+                        (rft[ind], opf[ind]), (opf[ind], rfr[ind]), 
+                        (rfr[ind], adc[ind]), (adc[ind], cor)]
 
                     for pair in pairs:
-                        gi.set_connection(name1=pair[0], name2=pair[1], time=time, connection=connection)
+                        gi.set_connection(name1=pair[0], name2=pair[1], 
+                            time=time, connection=connection)
 
             delta = (datetime.now() - now).total_seconds()
 
@@ -345,13 +371,15 @@ def load_graph_increment(dishes: int, skip_creation: bool=False) -> GraphInterfa
 
 
 def benchmark_paths(time: int, dishes: int, mod: int) -> None:
-    """Run a benchmark performing path queries on the entire graph stored in GraphInterface and an igraph.Graph LocalGraph, and compare the two.
+    """Run a benchmark performing path queries on the entire graph stored in 
+    GraphInterface and an igraph.Graph LocalGraph, and compare the two.
 
     :param time: Time to which to query the graph at.
     :type time: int
     :param dishes: Number of dishes
     :type dishes: int
-    :param mod: Number to modulo by in order to have the times of the dishes repeat.
+    :param mod: Number to modulo by in order to 
+    have the times of the dishes repeat.
     :type mod: int
     """
 
@@ -418,14 +446,17 @@ def benchmark_paths(time: int, dishes: int, mod: int) -> None:
     # gi.export_graph('test_load_graph.xml')
 
 
-def benchmark_increment(dishes: int, step: int, skip_creation: bool=False) -> None:
-    """Run a benchmark performing path queries on the entire graph stored in GraphInterface and an igraph.Graph LocalGraph, and compare the two.
+def benchmark_increment(dishes: int, step: int, 
+    skip_creation: bool=False) -> None:
+    """Run a benchmark performing path queries on the entire graph stored 
+    in GraphInterface and an igraph.Graph LocalGraph, and compare the two.
 
     :param dishes: Number of dishes
     :type dishes: int
     :param step: Incrementation of the time to query the graph at.
     :type step: int
-    :param skip_creation: Whether to skip creation of the graph if it already exists, defaults to False
+    :param skip_creation: Whether to skip creation of the graph if 
+    it already exists, defaults to False
     :type skip_creation: bool
     """
 
@@ -491,7 +522,8 @@ def benchmark_increment(dishes: int, step: int, skip_creation: bool=False) -> No
     
 
     plt.plot(list(range(1, dishes + 1, step)), times_subgraph, label="Subgraph")
-    plt.plot(list(range(1, dishes + 1, step)), times_bruteforce, label="Direct DB")
+    plt.plot(list(range(1, dishes + 1, step)), 
+        times_bruteforce, label="Direct DB")
     plt.title(f"{dishes} dishes, step of {step}")
     plt.xlabel("Number of dishes")
     plt.ylabel("Query Time (s)")

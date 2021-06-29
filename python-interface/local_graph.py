@@ -94,9 +94,8 @@ class LocalGraph():
 
     def find_shortest_paths(self, name1: str, name2: str):
         """
-        Given two vertices labelled with <name1> and <name2>, return the SHORTEST paths between the vertices.
-
-        See https://igraph.org/python/doc/api/igraph._igraph.GraphBase.html#get_all_shortest_paths for documentation.
+        Given two vertices labelled with <name1> and <name2>, return the 
+        SHORTEST paths between the vertices.
 
         :param name1: name property of the vertex to start the traversal at
         :type name1: str
@@ -106,7 +105,8 @@ class LocalGraph():
 
         # TODO: maybe perform a check to see if the vertices exist?
 
-        return self.graph.get_all_shortest_paths(name1, to=name2, weights=None, mode='all')
+        return self.graph.get_all_shortest_paths(name1, to=name2, 
+            weights=None, mode='all')
         
 
     def visualize_graph(self, target: str) -> None:
