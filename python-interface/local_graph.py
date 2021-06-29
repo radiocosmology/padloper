@@ -9,7 +9,6 @@ Used for subgraphs in a GraphInterface.
 Anatoly Zavyalov, 2021
 """
 
-from log_to_file import log_to_file
 from datetime import datetime
 
 import igraph

@@ -27,10 +27,9 @@ from gremlin_python.process.traversal import Pop
 from gremlin_python.process.strategies import SubgraphStrategy
 from gremlin_python.process.graph_traversal import GraphTraversalSource
 
-from log_to_file import log_to_file
-
 from local_graph import LocalGraph
 
+import logging
 
 class GraphInterface:
     """
@@ -55,7 +54,8 @@ class GraphInterface:
 
     local_graph: LocalGraph
 
-    def __init__(self, port: int=8182, traversal_source: str='g') -> None:
+    def __init__(self, port: int=8182, traversal_source: str='g',
+    log_file: str='interface.log') -> None:
         """
         Constructor class.
 
@@ -70,9 +70,16 @@ class GraphInterface:
         defaults to 'g'
 
         :type traversal_source: str, optional
+
+        :param log_file: The file to write the log to, 
+        defaults to 'interface.log'
+
+        :type log_file: str
         """
 
-        log_to_file(message=f"Instantiating graph interface.")
+        self._init_logging(log_file=log_file)
+
+        logging.info("Instantiating graph interface.")
 
         self.graph = Graph()
 
@@ -84,9 +91,8 @@ class GraphInterface:
                         f'ws://localhost:{port}/gremlin', traversal_source)
                     )
         except GremlinServerError as e:
-            log_to_file(
-                    message="GremlinServerError when trying to" \
-                            + f"instantiate graph traversal. {e}", urgency=2)            
+            logging.critical("GremlinServerError when trying"
+                + "to instantiate graph traversal. {e}")            
 
 
     def add_vertex(self, label: str, name: str, allow_duplicates: bool=False,
@@ -111,15 +117,12 @@ class GraphInterface:
         """
 
         if not enforce_label_scheme:
-            log_to_file(
-                message=f"Adding vertex with label {label}," \
-                + f"name {name} without enforcing label naming scheme.", 
-                urgency=1
-            )
+            logging.warn(f"Adding vertex with label {label}, name {name}"
+                + "without enforcing label naming scheme.")
 
         elif label not in self.ALLOWED_VERTEX_LABELS:
-            log_to_file(message=f"Vertex label {label} is not in" \
-                    + f"{self.ALLOWED_VERTEX_LABELS}", urgency=2)
+            logging.error(f"Vertex label {label} is not in allowed vertex"
+            + f"labels {self.ALLOWED_VERTEX_LABELS}")
 
             # TODO: Make own exception (?), raise it here.
             return
@@ -131,12 +134,10 @@ class GraphInterface:
                     .property('name', name).iterate()
 
             else:
-                log_to_file(message=f"Vertex of name {name} already exists.",
-                        urgency=2)
+                logging.error(f"Vertex of name {name} already exists.")
 
         except GremlinServerError as e:
-            log_to_file(message=f"Failed to add component of name {name}. {e}",
-                    urgency=2)
+            logging.error(f"Failed to add component of name {name}. {e}")
 
 
     def add_component(self, name: str) -> None:
@@ -187,8 +188,8 @@ class GraphInterface:
                 .addE("type").from_("a").to("b").iterate()
 
         except GremlinServerError as e:
-            log_to_file(message=f"Failed to set type of component {name}" \
-                                + f"to type {type_}. {e}", urgency=2)
+            logging.error(f"Failed to set type of component {name} to type"
+                + f"{type_}. {e}")
 
 
     def set_connection(self, name1: str, name2: str, time: float, 
@@ -230,14 +231,14 @@ class GraphInterface:
                 # property, create an end property of :param time:.
                 self.g.V().has('category', 'component').has('name', name1) \
                     .bothE('connection').as_('e').bothV() \
-                    .has('category', 'component').has('name', name2).select('e') \
+                    .has('category', 'component').has('name', name2) \
+                    .select('e') \
                     .has('end', self.EXISTING_CONNECTION_END_PLACEHOLDER) \
                     .property('end', time).iterate()
 
         except GremlinServerError as e:
-            log_to_file(message=f"Failed to set {connection} connection" \
-                + f"between components {name1} and {name2} at time {time}. {e}",
-                urgency=2)
+            logging.error(f"Failed to set {connection} connection"
+                + f"between components {name1} and {name2} at time {time}. {e}")
 
     
     # This will put it in V-E-V-E-V-...-V form as a list per path.
@@ -281,8 +282,8 @@ class GraphInterface:
                     ).path().toList()
         
         except GremlinServerError as e:
-            log_to_file(message=f"Could not find paths between {name1} and "
-            + f"{name2} at time {time} avoiding {avoid_type}. {e}", urgency=2)
+            logging.error(f"Could not find paths between {name1} and " \
+            + f"{name2} at time {time} avoiding {avoid_type}. {e}")
 
 
     # This will put it in V-E-V-E-V-...-V form as a list per path.
@@ -325,11 +326,8 @@ class GraphInterface:
                     ).path().toList()
         
         except GremlinServerError as e:
-            log_to_file(
-                message=f"Could not find shortest path between {name1}"
-                    + f"and {name2} at time {time} avoiding {avoid_type}. {e}", 
-                urgency=2
-            )
+            logging.error(f"Could not find shortest path between {name1}"
+                    + f"and {name2} at time {time} avoiding {avoid_type}. {e}")
 
 
     def get_subgraph_iterators(self, time: float) -> tuple:
@@ -371,10 +369,19 @@ class GraphInterface:
         :type file_name: str
         """
 
-        log_to_file(message=f"Exporting graph to {file_name}.")
+        logging.info(message=f"Exporting graph to {file_name}.")
 
         try:
             self.g.io(file_name).write().iterate()
         except GremlinServerError as e:
-            log_to_file(message=f"Failed to write graph to {file_name}. {e}",
-                    urgency=2)
+            logging.error(f"Failed to export graph to {file_name}. {e}")
+
+    def _init_logging(self, log_file: str) -> None:
+        """
+        Instantiate the logging package to log to file.
+
+        :param log_file: the location of the log file
+        :type log_file: str
+        """
+
+        logging.basicConfig(filename=log_file, level=logging.INFO)

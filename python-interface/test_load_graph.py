@@ -21,11 +21,11 @@ Anatoly Zavyalov, 2021
 from graph_interface import GraphInterface
 from gremlin_python.driver.protocol import GremlinServerError # Gremlin server error
 
-from log_to_file import log_to_file
-
 from datetime import datetime
 
 import matplotlib.pyplot as plt
+
+import logging
 
 
 def clear_graph(gi: GraphInterface) -> None:
@@ -39,7 +39,7 @@ def clear_graph(gi: GraphInterface) -> None:
     :type gi: GraphInterface
     """
 
-    log_to_file(message=f"Dropping graph!", urgency=1)
+    logging.warn("Dropping all vertices!")
 
     success = False
     while not success:
@@ -49,7 +49,7 @@ def clear_graph(gi: GraphInterface) -> None:
             success = True
 
         except GremlinServerError as e:
-            log_to_file(message=f"Error while trying to drop all vertices. {e}", urgency=1)
+            logging.warn(f"Error while trying to drop all vertices. {e}")
 
     
 
@@ -140,9 +140,10 @@ def load_graph(dishes: int, connections: list) -> GraphInterface:
 
         total += delta
 
-        log_to_file(message=f"Adding dish {i} done, took {delta} seconds.")
+        logging.info(f"Adding dish {i} done, took {delta} seconds.")
     
-    log_to_file(message=f"Graph with {dishes} dishes loaded, took {total} total seconds.")
+    logging.info(f"Graph with {dishes} dishes loaded, "
+        + f"took {total} total seconds.")
 
     return gi
 
@@ -236,9 +237,10 @@ def load_graph_v2(dishes: int, mod: int) -> GraphInterface:
 
         total += delta
 
-        log_to_file(message=f"Adding dish {i} done, took {delta} seconds.")
+        logging.info(f"Adding dish {i} done, took {delta} seconds.")
     
-    log_to_file(message=f"Graph with {dishes} dishes loaded, took {total} total seconds.")
+    logging.info(f"Graph with {dishes} dishes loaded, "
+        + f"took {total} total seconds.")
 
     return gi
 
@@ -334,9 +336,10 @@ def load_graph_increment(dishes: int, skip_creation: bool=False) -> GraphInterfa
 
             total += delta
 
-            log_to_file(message=f"Adding dish {i} done, took {delta} seconds.")
+            logging.info(f"Adding dish {i} done, took {delta} seconds.")
         
-        log_to_file(message=f"Graph with {dishes} dishes loaded, took {total} total seconds.")
+        logging.info(f"Graph with {dishes} dishes loaded, "
+            +f"took {total} total seconds.")
 
     return gi
 
@@ -352,7 +355,8 @@ def benchmark_paths(time: int, dishes: int, mod: int) -> None:
     :type mod: int
     """
 
-    log_to_file(message=f"Benchmark: Started benchmark with {dishes} dishes, modulo of {mod} and at time {time}.")
+    logging.info(f"Benchmark: Started benchmark with {dishes} dishes, "
+        + f"modulo of {mod} and at time {time}.")
 
     gi = load_graph_v2(dishes=dishes, mod=mod)
 
@@ -396,14 +400,18 @@ def benchmark_paths(time: int, dishes: int, mod: int) -> None:
     plt.legend()
     plt.savefig('benchmark_plot.png')
 
-    log_to_file(message=f"Benchmark: entire graph query times: {times1}")
-    log_to_file(message=f"Benchmark: Making subgraph took {subgraph_load_time} seconds.")
-    log_to_file(message=f"Benchmark: subgraph query times: {times2}")
+    logging.info(f"Benchmark: entire graph query times: {times1}")
+    logging.info(f"Benchmark: Making subgraph took \
+        {subgraph_load_time} seconds.")
+    logging.info(f"Benchmark: subgraph query times: {times2}")
 
-    log_to_file(message=f"Benchmark: total for entire graph: {sum(times1)} seconds.")
-    log_to_file(message=f"Benchmark: total for subgraph: {sum(times2)} + {subgraph_load_time} = {sum(times2) + subgraph_load_time} seconds.")
+    logging.info(f"Benchmark: total for entire graph: {sum(times1)} seconds.")
+    logging.info(f"Benchmark: total for subgraph: "
+        + f"{sum(times2)} + {subgraph_load_time} = "
+        + f"{sum(times2) + subgraph_load_time} seconds.")
 
-    log_to_file(message=f"Benchmark: Finished benchmark with {dishes} dishes, modulo of {mod} and at time {time}.")
+    logging.info(f"Benchmark: Finished benchmark with {dishes} dishes, "
+        + f"modulo of {mod} and at time {time}.")
 
     # gi.local_graph.visualize_graph('subgraph.pdf')
 
@@ -421,7 +429,8 @@ def benchmark_increment(dishes: int, step: int, skip_creation: bool=False) -> No
     :type skip_creation: bool
     """
 
-    log_to_file(message=f"Benchmark: Started incremental benchmark with {dishes} dishes, step of {step}.")
+    logging.info(f"Benchmark: Started incremental benchmark "
+        + f"with {dishes} dishes, step of {step}.")
 
     gi = load_graph_increment(dishes=dishes, skip_creation=skip_creation)
 
@@ -435,7 +444,7 @@ def benchmark_increment(dishes: int, step: int, skip_creation: bool=False) -> No
 
     for time in range(1, dishes + 1, step):
         
-        log_to_file(message=f"Benchmark: Now looking at time {time}.")
+        logging.info(f"Benchmark: Now looking at time {time}.")
 
         total_bruteforce, total_subgraph = 0, 0
 
@@ -490,17 +499,21 @@ def benchmark_increment(dishes: int, step: int, skip_creation: bool=False) -> No
     plt.grid(True)
     plt.savefig('benchmark_plot.png')
 
-    log_to_file(message=f"Benchmark: entire graph query times: {times_bruteforce}")
-    log_to_file(message=f"Benchmark: total subgraph times: {times_subgraph}")
-    log_to_file(message=f"Benchmark: subgraph query times: {times_subgraph_query}")
+    logging.info(f"Benchmark: entire graph query times: {times_bruteforce}")
+    logging.info(f"Benchmark: total subgraph times: {times_subgraph}")
+    logging.info(f"Benchmark: subgraph query times: {times_subgraph_query}")
 
-    log_to_file(message=f"Benchmark: subgraph local creation times:" \
-            + f"{times_subgraph_setup}")
+    logging.info(f"Benchmark: subgraph local "
+        + f"creation times: {times_subgraph_setup}")
 
-    log_to_file(message=f"Benchmark: total for entire graph: {sum(times_bruteforce)} seconds.")
-    log_to_file(message=f"Benchmark: total for subgraph: {sum(times_subgraph)} seconds.")
+    logging.info(f"Benchmark: total for entire graph: "
+        + f"{sum(times_bruteforce)} seconds.")
 
-    log_to_file(message=f"Benchmark: Finished incremental benchmark with {dishes} dishes and step of {step}. See saved plot.")
+    logging.info(f"Benchmark: total for subgraph: "
+        + f"{sum(times_subgraph)} seconds.")
+
+    logging.info(f"Benchmark: Finished incremental benchmark with "
+        + f"{dishes} dishes and step of {step}. See saved plot.")
 
     # gi.local_graph.visualize_graph('subgraph.pdf')
 
@@ -534,6 +547,8 @@ def visualize_subgraph_at_time(time: float,
 if __name__ == "__main__":
     
     # benchmark_subgraph_queries(dishes=1024, step=32, skip_creation=False)
+
+    logging.basicConfig(filename='interface.log', level=logging.INFO)
 
     benchmark_increment(dishes=1024, step=32, skip_creation=True)
 
