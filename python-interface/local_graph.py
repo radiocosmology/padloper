@@ -33,80 +33,64 @@ class LocalGraph():
         self.graph = igraph.Graph()
 
 
-    def create_from_connections_undirected(self, vertex_connections: list,
-        types: dict) -> None:
+    def create_from_connections_undirected(self, 
+            vertices_iter, edges_iter) -> tuple:
         """
-        Instantiate a simple undirected igraph.Graph given pairs of
-        vertices to connect.
+        Instantiate a simple undirected igraph.Graph given an iterator of
+        vertices containing their properties, and an iterator of edges
+        containing the pairs of vertex names to connect.
 
-        :param vertex_connections: A list of the format 
-        [(name1, name2), (name3, name4), ...] where name# 
-        represents the names of the vertices.
+        Return a tuple of the type 
+        (time to set up vertices, time to set up edges).
 
-        :type vertex_connections: list[tuple[str, str]]
+        :param vertices_iter: an iterable object containing all of the vertices
+        as a dictionary with a 'properties' and a 'type' key. 
+        
+        :param edges_iter: an iterable object containing all of the necessary
+        edges as dictionaries with the values of 2 keys being the names of the
+        two vertices to connect with an edge.
+
+        :return: a tuple of the type
+        (time to set up vertices, time to set up edges)
+        
+        :rtype: (float, float)
         """
 
-        # See https://igraph.org/python/doc/tutorial/tutorial.html#setting-and-retrieving-attributes for help regarding igraph vertex/edge attributes.
+        self.graph = igraph.Graph()
+
+        vertex_name_to_index = {}
+
+        
+        now = datetime.now()
+
+        for vertex_dict in vertices_iter:
+            vertex = self.graph.add_vertex()
+            vertex['type'] = vertex_dict['type']
+
+            for prop in vertex_dict['properties']:
+                vertex[prop] = vertex_dict['properties'][prop][0]
+
+            vertex_name_to_index[vertex['name']] = vertex.index
+
+        vertices_time = (datetime.now() - now).total_seconds()
 
         now = datetime.now()
 
-        # Get properties given an index of the vertex.
-        vertex_ind_to_props = []
+        edges_list = [
+                (vertex_name_to_index[edges_dict['a']], \
+                 vertex_name_to_index[edges_dict['b']]) \
+                for edges_dict in edges_iter]
 
-        # Dictionary of style {..., <i'th vertex name>: i, ...}.   
-        vertex_name_to_ind = {}
+        self.graph.add_edges(edges_list)
 
-        # List of 2-tuples containing the indices of the pairs of 
-        # vertices to be added (instead of the names).
-        vertex_index_connections = []
+        # for edges_dict in edges_iter:
+        #     pass
 
-        # How many distinct vertices have been added so far
-        vertices_so_far = 0
-
-        for pair in vertex_connections:
-
-            # the two indices of the two ends of the connection
-            indices = []
-
-            for i in range(len(pair)):
-
-                properties = pair[i] # This is a dictionary pointing to ARRAYS
-
-                # TinkerPop maintains a **LIST** of values per key for vertex
-                # properties, so you must extract the first element from this 
-                # list.
-                name = properties['name'][0]
-
-                if name not in vertex_name_to_ind:
-                    vertex_name_to_ind[name] = vertices_so_far
-
-                    props = {key: properties[key][0] \
-                            if isinstance(properties[key], list) \
-                            and len(properties[key]) == 1 \
-                            else properties[key] for key in properties}
-
-                    vertex_ind_to_props.append(props)
-
-                    vertices_so_far += 1
-
-
-                indices.append(vertex_name_to_ind[name])
- 
-            vertex_index_connections.append(tuple(indices))
-
-        for key in types:
-            for name in types[key]:
-                if name in vertex_name_to_ind:
-                    vertex_ind_to_props[vertex_name_to_ind[name]]['type'] = key
-
-
-        self.graph = igraph.Graph(vertex_index_connections)
-
-        for i in range(vertices_so_far):
-            for key in vertex_ind_to_props[i]:
-                self.graph.vs[i][key] = vertex_ind_to_props[i][key]
+        edges_time = (datetime.now() - now).total_seconds()
 
         # self.graph.vs['label'] = self.graph.vs['name']
+
+        return (vertices_time, edges_time)
 
 
     def find_shortest_paths(self, name1: str, name2: str):

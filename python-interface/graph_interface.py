@@ -183,7 +183,7 @@ class GraphInterface:
 
         try:
             self.g.V().has('category', 'component').has('name', name).as_("a") \
-                .V().has('type', 'name', type_).as_("b") \
+                .V().has('category', 'type').has('name', type_).as_("b") \
                 .addE("type").from_("a").to("b").iterate()
 
         except GremlinServerError as e:
@@ -273,7 +273,8 @@ class GraphInterface:
                 .repeat(
                 __.bothE('connection').has('start', P.lte(time)) \
                     .has('end', P.gt(time)).otherV().not_(
-                        __.outE('type').inV().has('type', 'name', avoid_type)
+                        __.outE('type').inV().has('category', 'type') \
+                            .has('name', avoid_type)
                         ).simplePath()
             ).until(
                     __.has('category', 'component').has('name', name2)
@@ -316,7 +317,8 @@ class GraphInterface:
                 .repeat(
                 __.bothE('connection').has('start', P.lte(time)) \
                     .has('end', P.gt(time)).otherV().not_(
-                        __.outE('type').inV().has('type', 'name', avoid_type)
+                        __.outE('type').inV().has('category', 'type') \
+                            .has('name', avoid_type)
                         ).limit(1).simplePath()
             ).until(
                     __.has('category', 'component').has('name', name2)
@@ -330,38 +332,35 @@ class GraphInterface:
             )
 
 
-    def get_connected_vertices_at_time(self, time: float) -> tuple:
+    def get_subgraph_iterators(self, time: float) -> tuple:
         """
-
-        # TODO: Write description here.
+        Return a pair of iterators, where the first one is the iterator
+        pointing to the collection of vertices, represented by
+        {'properties'={...}, type=<str>},
+        and the second iterator is pointing to the collection of edges
+        active at time :param time:, represented by
+        {'a': <str>, 'b': <str>}
 
         :param time: Time to check
         :type time: float
-        :return: A 2-tuple with the 1st element being a list of 2-tuples
-        containing the properties of the pairs of vertices connected
-        at :param time:, and the 2nd element being a dictionary with
-        keys being types, and values being lists of vertices of that type.
+        :return: A 2-tuple with the 1st element being an iterator 
+        of vertices, and the second being an iterator of edges
+        represented by pairs of the names of vertices.
         :rtype: tuple[ list[tuple[str, str]], dict[str, list[str]] ]
         """
 
-        # l is a list containing at most one element, 
-        # which is a large dictionary of vertex1: vertex2 entries.
-        l = self.g.E().hasLabel('connection') \
+        vertices_iter = self.g.V().has('category', 'component').as_('v') \
+                .valueMap().as_('properties') \
+                .select('v').out('type').values('name').as_('type') \
+                .select('properties', 'type')
+
+        edges_iter = self.g.E().hasLabel('connection') \
                 .has('start', P.lte(time)).has('end', P.gt(time)).as_('edge') \
-            .inV().as_('a-vertex').valueMap().as_('a') \
-            .select('edge').outV().as_('b-vertex').valueMap().as_('b') \
-            .select('a', 'b').toList()
-
-        types = self.g.V().has('category', 'type').group().by('name') \
-                .by(__.in_('type').values('name').fold()).next()
-        
-        pairs = []
-
-        if len(l) > 0:
-            pairs = [tuple(d.values()) for d in l]
-        
-        
-        return (pairs, types)
+                .inV().values('name').as_('a') \
+                .select('edge').outV().values('name').as_('b') \
+                .select('a', 'b')
+       
+        return (vertices_iter, edges_iter)
 
 
     def export_graph(self, file_name: str) -> None:

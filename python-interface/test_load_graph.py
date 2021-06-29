@@ -431,6 +431,8 @@ def benchmark_increment(dishes: int, step: int, skip_creation: bool=False) -> No
 
     times_subgraph_query = []
 
+    times_subgraph_setup = []
+
     for time in range(1, dishes + 1, step):
         
         log_to_file(message=f"Benchmark: Now looking at time {time}.")
@@ -439,7 +441,7 @@ def benchmark_increment(dishes: int, step: int, skip_creation: bool=False) -> No
 
         now = datetime.now()
 
-        pairs, types = gi.get_connected_vertices_at_time(time)
+        vertices_iter, edges_iter = gi.get_subgraph_iterators(time)
 
         query_time = (datetime.now() - now).total_seconds()
 
@@ -447,9 +449,14 @@ def benchmark_increment(dishes: int, step: int, skip_creation: bool=False) -> No
 
         now = datetime.now()
 
-        gi.local_graph.create_from_connections_undirected(pairs, types)
+        times = gi.local_graph \
+            .create_from_connections_undirected(
+                vertices_iter, edges_iter
+        )
 
         total_subgraph += (datetime.now() - now).total_seconds() + query_time
+
+        times_subgraph_setup.append(times)
 
         dishes_to_test = list(range(1, time + 1))
 
@@ -487,6 +494,9 @@ def benchmark_increment(dishes: int, step: int, skip_creation: bool=False) -> No
     log_to_file(message=f"Benchmark: total subgraph times: {times_subgraph}")
     log_to_file(message=f"Benchmark: subgraph query times: {times_subgraph_query}")
 
+    log_to_file(message=f"Benchmark: subgraph local creation times:" \
+            + f"{times_subgraph_setup}")
+
     log_to_file(message=f"Benchmark: total for entire graph: {sum(times_bruteforce)} seconds.")
     log_to_file(message=f"Benchmark: total for subgraph: {sum(times_subgraph)} seconds.")
 
@@ -496,13 +506,38 @@ def benchmark_increment(dishes: int, step: int, skip_creation: bool=False) -> No
 
     # gi.export_graph('test_load_graph.xml')
 
+
+def visualize_subgraph_at_time(time: float, 
+        location: str='subgraph.pdf') -> None:
+    """
+    Visualize the subgraph at some time :param time:.
+
+
+    :param time: The time to visualize the subgraph at.
+    :type time: float
+
+    :param location: Where to save the subgraph at, defaults to subgraph.pdf
+    :type location: str
+    """
+
+    gi = GraphInterface()
+
+    vertices_iter, edges_iter = gi.get_subgraph_iterators(time)
+
+    gi.local_graph.create_from_connections_undirected(
+            vertices_iter, edges_iter
+    )
+
+    gi.local_graph.visualize_graph(location)
+
+
 if __name__ == "__main__":
     
-    # benchmark_subgraph_queries(dishes=1024, step=32, skip_creation=True)
+    # benchmark_subgraph_queries(dishes=1024, step=32, skip_creation=False)
 
     benchmark_increment(dishes=1024, step=32, skip_creation=True)
 
-    
+    # visualize_subgraph_at_time(5)
 
     
 
