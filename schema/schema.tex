@@ -74,7 +74,7 @@
         \(\vdots\)
     };
 
-    \node [rect_node] (flag) at (6, -6) {
+    \node [rect_node] (flag) at (6, -5.5) {
         \color{red} ``flag'' \\
         \color{blue} ``name'': \color{black} str \\
         \color{blue} ``start_time'': \color{black} num \\ 
@@ -83,13 +83,7 @@
         \color{blue} ``comments'': \color{black} str
     };
 
-    \node [rect_node] (instrument) at (12, -4) {
-        \color{red} ``instrument'' \\
-        \color{blue} ``name'': \color{black} str \\
-        \color{blue} ``comments'': \color{black} str
-    };
-
-    \node [rect_node] (flag_type) at (12, -7) {
+    \node [rect_node] (flag_type) at (12, -5.5) {
         \color{red} ``flag_type'' \\
         \color{blue} ``name'': \color{black} str \\
         \color{blue} ``comments'': \color{black} str
@@ -126,7 +120,7 @@
 
     \draw[edge_style] (main_component) -- (component_revision) node[midway, anchor=center, auto] {
         \color{red} ``cxn_revision'' \\ 
-        \color{black} (1 per \color{red} ``component'' \color{black})
+        \color{black} ($\leq 1$ per \color{red} ``component'' \color{black})
     };
 
     \draw[edge_style] (component_type) -- (component_revision) node[midway, anchor=center, left] {
@@ -148,12 +142,9 @@
 
     \draw[edge_style] (main_component) -- (flag) node[midway, anchor=center, left, yshift=-35] {
         \color{red} ``cxn_flag_component'' \\ 
-    };
-
-    \draw[edge_style] (flag) -- (instrument) node[midway, anchor=center, above, yshift=5] {
-        \color{red} ``cxn_flag_instrument'' \\ 
         \color{black} (1 per \color{red} ``flag'' \color{black})
     };
+
 
     \draw[edge_style] (flag) -- (flag_type) node[midway, anchor=center, below, yshift=-5] {
         \color{red} ``cxn_flag_type'' \\ 
