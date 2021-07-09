@@ -1,0 +1,170 @@
+\documentclass[12pt]{article}
+
+\usepackage[T1]{fontenc}
+\usepackage[margin=0.5in]{geometry}
+\usepackage{amssymb}
+\usepackage{listings}
+\usepackage{xcolor}
+\usepackage{graphicx}
+\usepackage{float}
+\usepackage{hyperref}
+\usepackage{enumitem}
+\usepackage{bm}
+\usepackage{amsmath}
+\usepackage{amsthm}
+\usepackage{tikz}
+\usepackage{charter}
+\usepackage[charter, cal=cmcal]{mathdesign}
+\newtheorem{theorem}{Theorem}
+\newtheorem{definition}{Definition}
+\newcommand{\subtitle}[1]{\posttitle{\par\end{center}\begin{center}\large#1\end{center}\vskip0.5em}}
+\setlength\parindent{0pt}
+
+\catcode`\_=12
+
+\begin{document}
+
+\begin{center}
+    \textbf{HIRAX Layout DB Schema}
+\end{center}
+
+\begin{center}
+
+    
+\begin{tikzpicture}[
+    rect_node/.style={rectangle, draw=black, fill=white, very thick, minimum size=1cm, align=left, inner sep = 2mm, font=\footnotesize},
+    duplicate_rect_node/.style={rectangle, draw=black, dashed, very thick, minimum size=1cm, align=center, inner sep=2mm, font=\footnotesize},
+    edge_style/.style={draw=black, ultra thick, align=center, font=\scriptsize}
+]
+    
+
+    \node[rect_node] (main_component) at (6, 0) {
+        \color{red} ``component'' \\
+        \color{blue} ``name'': \color{black} str
+    };
+
+    \node[rect_node] (property) at (12, 0) {
+        \color{red} ``property'' \\
+        \color{blue} ``values'': \color{black} list[str]
+    };
+
+    \node[rect_node] (property_type) at (12, 4) {
+        \color{red} ``property_type'' \\
+        \color{blue} ``name'': \color{black} str \\ 
+        \color{blue} ``units'': \color{black} str \\ 
+        \color{blue} ``allowed_regex'': \color{black} str \\ 
+        \color{blue} ``n_values'': \color{black} int \\ 
+        \color{blue} ``comments'': \color{black} str
+    };
+
+    \node [rect_node] (component_type) at (4, 4) {
+        \color{red} ``component_type'' \\
+        \color{blue} ``name'': \color{black} str \\ 
+        \color{blue} ``comments'': \color{black} str
+    };
+
+    \node [rect_node] (component_revision) at (0, 0) {
+        \color{red} ``component_revision'' \\
+        \color{blue} ``name'': \color{black} str \\
+        \color{blue} ``comments'': \color{black} str
+    };
+
+    \node [duplicate_rect_node] (duplicate_component) at (0, -6) {
+        \color{red} ``component'' \\ 
+        \(\vdots\)
+    };
+
+    \node [rect_node] (flag) at (6, -6) {
+        \color{red} ``flag'' \\
+        \color{blue} ``name'': \color{black} str \\
+        \color{blue} ``start_time'': \color{black} num \\ 
+        \color{blue} ``end_time'': \color{black} num \\ 
+        \color{blue} ``severity'': \color{black} num \\
+        \color{blue} ``comments'': \color{black} str
+    };
+
+    \node [rect_node] (instrument) at (12, -4) {
+        \color{red} ``instrument'' \\
+        \color{blue} ``name'': \color{black} str \\
+        \color{blue} ``comments'': \color{black} str
+    };
+
+    \node [rect_node] (flag_type) at (12, -7) {
+        \color{red} ``flag_type'' \\
+        \color{blue} ``name'': \color{black} str \\
+        \color{blue} ``comments'': \color{black} str
+    };
+
+    %%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%
+
+    \draw[edge_style] (main_component) -- (property) node[midway, below] {
+        \color{red} ``cxn_property'' \\ 
+        \color{blue} ``start_time'': \color{black} num \\ 
+        \color{blue} ``end_time'': \color{black} num \\ 
+        \color{blue} ``start_uid'': \color{black} str \\ 
+        \color{blue} ``end_uid'': \color{black} str \\
+        \color{blue} ``start_edit_time'': \color{black} num \\ 
+        \color{blue} ``end_edit_time'': \color{black} num \\ 
+        \color{blue} ``start_comments'': \color{black} str \\  
+        \color{blue} ``end_comments'': \color{black} str
+    };
+
+    \draw[edge_style] (property) -- (property_type) node[midway, left] {
+        \color{red} ``cxn_property_type'' \\ 
+        \color{black} (1 per \color{red} ``property'' \color{black})
+    };
+
+    \draw[edge_style] (property_type) -- (component_type) node[midway, below] {
+        \color{red} ``cxn_property_allowed_type'' \\ 
+        \color{black} (1 per \color{red} ``property_type'' \color{black})
+    };
+
+    \draw[edge_style] (main_component) -- (component_type) node[midway, anchor=center, right] {
+        \color{red} ``cxn_component_type'' \\ 
+        \color{black} (1 per \color{red} ``component'' \color{black})
+    };
+
+    \draw[edge_style] (main_component) -- (component_revision) node[midway, anchor=center, auto] {
+        \color{red} ``cxn_revision'' \\ 
+        \color{black} (1 per \color{red} ``component'' \color{black})
+    };
+
+    \draw[edge_style] (component_type) -- (component_revision) node[midway, anchor=center, left] {
+        \color{red} ``cxn_revision_allowed_type'' \\ 
+        \color{black} (1 per \color{red} ``component_revision'' \color{black})
+    };
+
+    \draw[edge_style] (main_component) -- (duplicate_component) node[midway, anchor=center, left, xshift=-35] {
+        \color{red} ``cxn_component'' \\ 
+        \color{blue} ``start_time'': \color{black} num \\ 
+        \color{blue} ``end_time'': \color{black} num \\ 
+        \color{blue} ``start_uid'': \color{black} str \\ 
+        \color{blue} ``end_uid'': \color{black} str \\
+        \color{blue} ``start_edit_time'': \color{black} num \\ 
+        \color{blue} ``end_edit_time'': \color{black} num \\  
+        \color{blue} ``start_comments'': \color{black} str \\ 
+        \color{blue} ``end_comments'': \color{black} str
+    };
+
+    \draw[edge_style] (main_component) -- (flag) node[midway, anchor=center, left, yshift=-35] {
+        \color{red} ``cxn_flag_component'' \\ 
+    };
+
+    \draw[edge_style] (flag) -- (instrument) node[midway, anchor=center, above, yshift=5] {
+        \color{red} ``cxn_flag_instrument'' \\ 
+        \color{black} (1 per \color{red} ``flag'' \color{black})
+    };
+
+    \draw[edge_style] (flag) -- (flag_type) node[midway, anchor=center, below, yshift=-5] {
+        \color{red} ``cxn_flag_type'' \\ 
+        \color{black} (1 per \color{red} ``flag'' \color{black})
+    };
+
+\end{tikzpicture}
+
+\end{center}
+
+
+
+
+\end{document}
