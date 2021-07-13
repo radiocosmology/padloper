@@ -10,9 +10,12 @@ from typing import Optional, List
 # A placeholder value for the end_time attribute for a 
 # connection that is still ongoing.
 EXISTING_CONNECTION_END_PLACEHOLDER = 2**63 - 1
+
+# A placeholder value for the end_edit_time attribute for a connection
+# that is still ongoing.
 EXISTING_CONNECTION_END_EDIT_PLACEHOLDER = -1
 
-# 
+# Placeholder for the ID of an element that does not exist serverside.
 VIRTUAL_ID_PLACEHOLDER = -1
 
 class Element:
