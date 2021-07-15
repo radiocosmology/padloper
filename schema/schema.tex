@@ -69,7 +69,7 @@
         \color{blue} ``comments'': \color{black} str
     };
 
-    \node [duplicate_rect_node] (duplicate_component) at (0, -6) {
+    \node [duplicate_rect_node] (duplicate_component) at (-1, -6) {
         \color{red} ``component'' \\ 
         \(\vdots\)
     };
@@ -110,7 +110,7 @@
 
     \draw[edge_style] (property_type) -- (component_type) node[midway, below] {
         \color{red} ``cxn_property_allowed_type'' \\ 
-        \color{black} (1 per \color{red} ``property_type'' \color{black})
+        \color{black} (\(\geq 1\) per \color{red} ``property_type'' \color{black})
     };
 
     \draw[edge_style] (main_component) -- (component_type) node[midway, anchor=center, right] {
@@ -138,7 +138,14 @@
         \color{blue} ``end_edit_time'': \color{black} num \\  
         \color{blue} ``start_comments'': \color{black} str \\ 
         \color{blue} ``end_comments'': \color{black} str \\
-        \color{blue} ``permanent'': \color{black} bool
+    };
+
+    \draw[edge_style] (main_component) -- (duplicate_component) node[midway, anchor=center, below, yshift=-50, xshift=-6] {
+        \color{red} ``cxn_component_permanent'' \\ 
+        \color{blue} ``start_time'': \color{black} num \\ 
+        \color{blue} ``start_uid'': \color{black} str \\ 
+        \color{blue} ``start_edit_time'': \color{black} num \\ 
+        \color{blue} ``start_comments'': \color{black} str
     };
 
     \draw[edge_style] (main_component) -- (flag) node[midway, anchor=center, left, yshift=-35] {
@@ -155,8 +162,6 @@
 \end{tikzpicture}
 
 \end{center}
-
-
 
 
 \end{document}
