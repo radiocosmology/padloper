@@ -28,7 +28,6 @@ class Element:
     """
 
     id: int
-    
 
     def __init__(self, id: int):
         """
@@ -52,28 +51,29 @@ class Element:
         self.id = id
 
 
-class Node(Element):
+class Vertex(Element):
     """
-    The representation of a node. Can contain attributes.
+    The representation of a vertex. Can contain attributes.
 
-    :ivar category: The category of the Node.
+    :ivar category: The category of the Vertex.
     """
 
     category: str
 
-    edges: list
+    # edges: list
 
     def __init__(self, id: int, category: str, edges: list=[]):
         """
-        Initialize the Node.
+        Initialize the Vertex.
 
-        :param id: ID of the Node.
+        :param id: ID of the Vertex.
         :type id: int
 
-        :param category: The category of the Node.
+        :param category: The category of the Vertex.
         :type category: str
 
-        :param edges: The list of Edge instances that are connected to the Node.
+        :param edges: The list of Edge instances that are 
+        connected to the Vertex.
         :type edges: List[Edge]
         """
 
@@ -95,33 +95,36 @@ class Node(Element):
 
 class Edge(Element):
     """
-    The representation of an edge connecting two Node instances.
+    The representation of an edge connecting two Vertex instances.
 
-    :ivar inNode: The Node instance that the Edge is going into.
-    :ivar outNode: The Node instance that the Edge is going out of.
+    :ivar inVertex: The Vertex instance that the Edge is going into.
+    :ivar outVertex: The Vertex instance that the Edge is going out of.
     :ivar category: The category of the Edge.
     """
 
-    inNode: Node
-    outNode: Node
+    inVertex: Vertex
+    outVertex: Vertex
 
     category: str
 
-    def __init__(self, id: int, inNode: Node, outNode: Node, category: str):
+    def __init__(
+        self, id: int, inVertex: Vertex, 
+        outVertex: Vertex, category: str
+    ):
         """
         Initialize the Edge.
 
         :param id: ID of the Edge.
         :type id: int
 
-        :param inNode: A Node instance that the Edge will go into.
-        :type inNode: Node
+        :param inVertex: A Vertex instance that the Edge will go into.
+        :type inVertex: Vertex
 
-        :param outNode: A Node instance that the Edge will go out of.
-        :type outNote: Node
+        :param outVertex: A Vertex instance that the Edge will go out of.
+        :type outNote: Vertex
 
-        :param outNode: A Node instance that the Edge will go out of.
-        :type outNote: Node
+        :param outVertex: A Vertex instance that the Edge will go out of.
+        :type outNote: Vertex
 
         :param category: The category of the Edge
         :type category: str
@@ -129,8 +132,8 @@ class Edge(Element):
 
         Element.__init__(self, id)
 
-        self.inNode = inNode
-        self.outNode = outNode
+        self.inVertex = inVertex
+        self.outVertex = outVertex
 
         self.category = category
 
@@ -139,7 +142,7 @@ class Edge(Element):
 #                                   NODES                                     #
 ###############################################################################
 
-class ComponentType(Node):
+class ComponentType(Vertex):
     """
     The representation of a component type.
 
@@ -150,9 +153,11 @@ class ComponentType(Node):
     comments: str
     name: str
 
-    def __init__(self, name: str, comments: str):
+    def __init__(
+        self, name: str, comments: str, id: int=VIRTUAL_ID_PLACEHOLDER
+    ):
         """
-        Initialize the ComponentType node with a category, name,
+        Initialize the ComponentType vertex with a category, name,
         and comments for self.attributes.
 
         :param name: The name of the component type. 
@@ -166,11 +171,11 @@ class ComponentType(Node):
 
         self.comments = comments
 
-        Node.__init__(self, id=VIRTUAL_ID_PLACEHOLDER, 
+        Vertex.__init__(self, id=id, 
             category="component_type")
 
 
-class ComponentRevision(Node):
+class ComponentRevision(Vertex):
     """
     The representation of a component revision.
 
@@ -184,9 +189,12 @@ class ComponentRevision(Node):
     name: str
     allowed_type: ComponentType
 
-    def __init__(self, name: str, comments: str, allowed_type: ComponentType):
+    def __init__(
+        self, name: str, comments: str, allowed_type: ComponentType,
+        id: int=VIRTUAL_ID_PLACEHOLDER
+        ):
         """
-        Initialize the ComponentRevision node.
+        Initialize the ComponentRevision vertex.
 
         :param name: The name of the component revision. 
         :param comments: The comments attached to the component revision.    
@@ -198,11 +206,11 @@ class ComponentRevision(Node):
         self.comments = comments
         self.allowed_type = allowed_type
 
-        Node.__init__(self, id=VIRTUAL_ID_PLACEHOLDER, 
+        Vertex.__init__(self, id=id, 
             category="component_revision")
 
 
-class Component(Node):
+class Component(Vertex):
     """
     The representation of a component. 
     Contains a name attribute, ComponentType instance and can contain a
@@ -223,9 +231,11 @@ class Component(Node):
 
     def __init__(
         self, name: str, component_type: ComponentType, 
-        revision: ComponentRevision=None):
+        revision: ComponentRevision=None,
+        id: int=VIRTUAL_ID_PLACEHOLDER
+        ):
         """
-        Initialize the ComponentRevision node.
+        Initialize the ComponentRevision vertex.
 
         :param name: The name of the component revision. 
         :param type: A ComponentType instance representing the type of the
@@ -238,10 +248,12 @@ class Component(Node):
         self.component_type = component_type
         self.revision = revision
 
-        Node.__init__(self, id=VIRTUAL_ID_PLACEHOLDER, category="component")
+        # TODO: component name needs to be unique.
+
+        Vertex.__init__(self, id=id, category="component")
 
 
-class PropertyType(Node):
+class PropertyType(Vertex):
     """
     The representation of a property type.
 
@@ -253,8 +265,8 @@ class PropertyType(Node):
     :ivar n_values: The expected number of values for the properties of this
     property type.
     :ivar comments: Additional comments about the property type.
-    :ivar allowed_type: The allowed component type of the property type Node,
-    as a ComponentType attribute.
+    :ivar allowed_types: The allowed component types of the property type 
+    Vertex, as a list of ComponentType attributes.
     """
 
     name: str
@@ -262,23 +274,24 @@ class PropertyType(Node):
     allowed_regex: str
     n_values: int
     comments: str
-    allowed_type: ComponentType
+    allowed_types: List[ComponentType]
 
     def __init__(
         self, name: str, units: str, allowed_regex: str,
-        n_values: int, comments: str, allowed_type: ComponentType
+        n_values: int, comments: str, allowed_types: List[ComponentType],
+        id: int=VIRTUAL_ID_PLACEHOLDER
     ):
         self.name = name
         self.units = units
         self.allowed_regex = allowed_regex
         self.n_values = n_values
         self.comments = comments
-        self.allowed_type = allowed_type
+        self.allowed_types = allowed_types
 
-        Node.__init__(self, id=VIRTUAL_ID_PLACEHOLDER, category="property_type")
+        Vertex.__init__(self, id=id, category="property_type")
 
 
-class Property(Node):
+class Property(Vertex):
     """The representation of a property.
     
     :ivar values: The values contained within the property.
@@ -290,7 +303,8 @@ class Property(Node):
     property_type: PropertyType
 
     def __init__(
-        self, values: List[str], property_type: PropertyType
+        self, values: List[str], property_type: PropertyType,
+        id: int=VIRTUAL_ID_PLACEHOLDER
     ):
 
         if len(values) != property_type.n_values:
@@ -299,14 +313,15 @@ class Property(Node):
 
             raise ValueError
 
+        # TODO: Make sure it adheres to the regex.
+
         self.values = values
         self.property_type = property_type
 
-        Node.__init__(self, id=VIRTUAL_ID_PLACEHOLDER, 
-            category="property")
+        Vertex.__init__(self, id=id, category="property")
 
 
-class FlagType(Node):
+class FlagType(Vertex):
     """The representation of a flag type. 
 
     :ivar name: The name of the flag type.
@@ -316,14 +331,16 @@ class FlagType(Node):
     name: str
     comments: str
 
-    def __init__(self, name: str, comments: str):
+    def __init__(
+        self, name: str, comments: str, id: int=VIRTUAL_ID_PLACEHOLDER
+    ):
         self.name = name
         self.comments = comments
 
-        Node.__init__(self, id=VIRTUAL_ID_PLACEHOLDER, category="flag_type")
+        Vertex.__init__(self, id=id, category="flag_type")
 
 
-class Flag(Node):
+class Flag(Vertex):
     """
     The representation of a flag.
 
@@ -347,7 +364,8 @@ class Flag(Node):
     def __init__(
         self, name: str, start_time: int, end_time: int,
         severity: int, comments: str, flag_type: FlagType,
-        flag_components: List[Component]=[]
+        flag_components: List[Component]=[],
+        id: int=VIRTUAL_ID_PLACEHOLDER
     ):
         self.name = name
         self.start_time = start_time
@@ -357,13 +375,12 @@ class Flag(Node):
         self.flag_type = flag_type
         self.flag_components = flag_components
 
-        Node.__init__(self=self, id=VIRTUAL_ID_PLACEHOLDER, category="flag")
+        Vertex.__init__(self=self, id=id, category="flag")
 
 
 ###############################################################################
 #                                   EDGES                                     #
 ###############################################################################
-
 
 
 class ConnectionComponent(Edge):
@@ -378,6 +395,9 @@ class ConnectionComponent(Edge):
     :ivar start_comments: Comments about starting the connection.
     :ivar end_comments: Comments about ending the connection.
     :ivar permanent: Whether the connection is permanent.
+
+    # TODO: Make permanent edges a separate edge category.
+    # User ID can be an integer, not a string.
     """
 
     start_time: float
@@ -391,18 +411,19 @@ class ConnectionComponent(Edge):
     permanent: bool
 
     def __init__(
-        self, inNode: Node, outNode: Node, start_time: float, start_uid: str,
-        start_edit_time: float, start_comments: str="",
+        self, inVertex: Vertex, outVertex: Vertex, start_time: float, 
+        start_uid: str, start_edit_time: float, start_comments: str="",
         end_time: float=EXISTING_CONNECTION_END_PLACEHOLDER, end_uid: str="", 
         end_edit_time: float=EXISTING_CONNECTION_END_EDIT_PLACEHOLDER, 
-        end_comments: str="", permanent: bool=False
+        end_comments: str="", permanent: bool=False,
+        id: int=VIRTUAL_ID_PLACEHOLDER
     ):
         """Initialize the connection.
 
-        :param inNode: The Node that the edge is going into.
-        :type inNode: Node
-        :param outNode: The Node that the edge is going out of.
-        :type outNode: Node
+        :param inVertex: The Vertex that the edge is going into.
+        :type inVertex: Vertex
+        :param outVertex: The Vertex that the edge is going out of.
+        :type outVertex: Vertex
         :param start_time: The (physical) start time of the connection.
         :type start_time: float
         :param start_uid: The ID of the user that started the connection.
@@ -447,7 +468,7 @@ class ConnectionComponent(Edge):
             self.end_comments = end_comments
         
 
-        Edge.__init__(self=self, id=-1, inNode=inNode, outNode=outNode,
+        Edge.__init__(self=self, id=id, inVertex=inVertex, outVertex=outVertex,
         category="cxn_component")
 
 
@@ -496,17 +517,18 @@ class ConnectionProperty(Edge):
     end_comments: str
 
     def __init__(
-        self, inNode: Node, outNode: Node, start_time: float, start_uid: str,
-        start_edit_time: float, start_comments: str="",
+        self, inVertex: Vertex, outVertex: Vertex, start_time: float, 
+        start_uid: str, start_edit_time: float, start_comments: str="",
         end_time: float=EXISTING_CONNECTION_END_PLACEHOLDER, end_uid: str="", 
-        end_edit_time: float=-1, end_comments: str=""
+        end_edit_time: float=-1, end_comments: str="",
+        id: int=VIRTUAL_ID_PLACEHOLDER
     ):
         """Initialize the connection.
 
-        :param inNode: The Node that the edge is going into.
-        :type inNode: Node
-        :param outNode: The Node that the edge is going out of.
-        :type outNode: Node
+        :param inVertex: The Vertex that the edge is going into.
+        :type inVertex: Vertex
+        :param outVertex: The Vertex that the edge is going out of.
+        :type outVertex: Vertex
         :param start_time: The (physical) start time of the connection.
         :type start_time: float
         :param start_uid: The ID of the user that started the connection.
@@ -539,8 +561,8 @@ class ConnectionProperty(Edge):
         self.end_edit_time = end_edit_time
         self.end_comments = end_comments
 
-        Edge.__init__(self=self, id=VIRTUAL_ID_PLACEHOLDER, inNode=inNode, 
-        outNode=outNode, category="cxn_property")
+        Edge.__init__(self=self, id=id, inVertex=inVertex, 
+        outVertex=outVertex, category="cxn_property")
 
 
     def end_connection(
@@ -571,10 +593,11 @@ class ConnectionRevision(Edge):
     """ 
 
     def __init__(
-        self, inNode: Node, outNode: Node
+        self, inVertex: Vertex, outVertex: Vertex,
+        id: int=VIRTUAL_ID_PLACEHOLDER
     ):
-        Edge.__init__(self=self, id=VIRTUAL_ID_PLACEHOLDER,
-        inNode=inNode, outNode=outNode, category="cxn_revision")
+        Edge.__init__(self=self, id=id,
+        inVertex=inVertex, outVertex=outVertex, category="cxn_revision")
 
 
 class ConnectionRevisionAllowedType(Edge):
@@ -583,10 +606,13 @@ class ConnectionRevisionAllowedType(Edge):
     """ 
 
     def __init__(
-        self, inNode: Node, outNode: Node
+        self, inVertex: Vertex, outVertex: Vertex,
+        id: int=VIRTUAL_ID_PLACEHOLDER
     ):
-        Edge.__init__(self=self, id=VIRTUAL_ID_PLACEHOLDER,
-        inNode=inNode, outNode=outNode, category="cxn_revision_allowed_type")
+        Edge.__init__(self=self, id=id,
+            inVertex=inVertex, outVertex=outVertex, 
+            category="cxn_revision_allowed_type"
+        )
 
 
 class ConnectionComponentType(Edge):
@@ -595,10 +621,11 @@ class ConnectionComponentType(Edge):
     """ 
 
     def __init__(
-        self, inNode: Node, outNode: Node
+        self, inVertex: Vertex, outVertex: Vertex, 
+        id: int=VIRTUAL_ID_PLACEHOLDER
     ):
-        Edge.__init__(self=self, id=VIRTUAL_ID_PLACEHOLDER,
-        inNode=inNode, outNode=outNode, category="cxn_component_type")
+        Edge.__init__(self=self, id=id,
+        inVertex=inVertex, outVertex=outVertex, category="cxn_component_type")
 
 
 class ConnectionPropertyType(Edge):
@@ -607,11 +634,12 @@ class ConnectionPropertyType(Edge):
     """ 
 
     def __init__(
-        self, inNode: Node, outNode: Node
+        self, inVertex: Vertex, outVertex: Vertex,
+        id: int=VIRTUAL_ID_PLACEHOLDER
     ):
         Edge.__init__(
-            self=self, id=VIRTUAL_ID_PLACEHOLDER,
-            inNode=inNode, outNode=outNode, category="cxn_property_type"
+            self=self, id=id,
+            inVertex=inVertex, outVertex=outVertex, category="cxn_property_type"
         )
 
 
@@ -621,11 +649,13 @@ class ConnectionPropertyAllowedType(Edge):
     """ 
 
     def __init__(
-        self, inNode: Node, outNode: Node
+        self, inVertex: Vertex, outVertex: Vertex,
+        id: int=VIRTUAL_ID_PLACEHOLDER
     ):
         Edge.__init__(
-            self=self, id=VIRTUAL_ID_PLACEHOLDER,
-            inNode=inNode, outNode=outNode, category="cxn_property_allowed_type"
+            self=self, id=id,
+            inVertex=inVertex, outVertex=outVertex, 
+            category="cxn_property_allowed_type"
         )
 
 
@@ -635,11 +665,13 @@ class ConnectionFlagComponent(Edge):
     """ 
 
     def __init__(
-        self, inNode: Node, outNode: Node
+        self, inVertex: Vertex, outVertex: Vertex, 
+        id: int=VIRTUAL_ID_PLACEHOLDER
     ):
         Edge.__init__(
-            self=self, id=VIRTUAL_ID_PLACEHOLDER,
-            inNode=inNode, outNode=outNode, category="cxn_flag_component"
+            self=self, id=id,
+            inVertex=inVertex, outVertex=outVertex, 
+            category="cxn_flag_component"
         )
 
 
@@ -649,9 +681,10 @@ class ConnectionFlagType(Edge):
     """ 
 
     def __init__(
-        self, inNode: Node, outNode: Node
+        self, inVertex: Vertex, outVertex: Vertex, 
+        id: int=VIRTUAL_ID_PLACEHOLDER
     ):
         Edge.__init__(
-            self=self, id=VIRTUAL_ID_PLACEHOLDER,
-            inNode=inNode, outNode=outNode, category="cxn_flag_type"
+            self=self, id=id,
+            inVertex=inVertex, outVertex=outVertex, category="cxn_flag_type"
         )
