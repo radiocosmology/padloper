@@ -5,6 +5,11 @@ Contains methods for storing clientside interface information.
 
 """
 
+from copy import Error
+from graph_connection import g
+from gremlin_python.process.graph_traversal import __   
+
+
 from typing import Optional, List
 
 # A placeholder value for the end_time attribute for a 
@@ -17,6 +22,8 @@ EXISTING_CONNECTION_END_EDIT_PLACEHOLDER = -1
 
 # Placeholder for the ID of an element that does not exist serverside.
 VIRTUAL_ID_PLACEHOLDER = -1
+
+_vertex_cache = dict()
 
 class Element:
     """
@@ -39,6 +46,7 @@ class Element:
 
         self.set_id(id)
 
+
     def set_id(self, id: int):
         """Set the ID of the element.
 
@@ -50,6 +58,19 @@ class Element:
 
         self.id = id
 
+    
+    def added_to_db(self) -> bool:
+        """Return whether this element is added to the database,
+        that is, whether the ID is not the virtual ID placeholder.
+
+        :return: True if element is added to database, False otherwise.
+        :rtype: bool
+        """
+
+        # TODO: do an actual query to determine whether this is added to DB.
+
+        return self.id != VIRTUAL_ID_PLACEHOLDER
+
 
 class Vertex(Element):
     """
@@ -60,9 +81,8 @@ class Vertex(Element):
 
     category: str
 
-    # edges: list
 
-    def __init__(self, id: int, category: str, edges: list=[]):
+    def __init__(self, id: int, category: str):
         """
         Initialize the Vertex.
 
@@ -81,16 +101,62 @@ class Vertex(Element):
 
         self.category = category
 
-        self.edges = edges
+    
+    def add(self, attributes: dict):
+        """
+        Add the vertex of category self.category
+        to the JanusGraph DB along with attributes from :param attributes:.
 
-    def add_edge(self, edge):
-        """Add an edge to self.edges
-
-        :param edge: An Edge instance 
-        :type edge: Edge
+        :param attributes: A dictionary of attributes to attach to the vertex.
+        :type attributes: dict
         """
 
-        self.edges.append(edge)
+        if not self.added_to_db():
+
+            traversal = g.addV().property('category', self.category)
+
+            for key in attributes:
+                traversal = traversal.property(key, attributes[key])
+
+            v = traversal.next()
+
+            self.set_id(v.id)
+
+            Vertex._cache_vertex(self)
+
+
+    def _in_vertex_cache(self) -> bool:
+        """Return whether this vertex ID is in the vertex cache.
+
+        :return: True if vertex ID is in _vertex_cache, false otherwise.
+        :rtype: bool
+        """
+
+        return self.id in _vertex_cache
+
+
+    @classmethod
+    def _cache_vertex(cls, vertex):
+        """Add a vertex and its ID to the vertex cache if not already added,
+        and return this new cached vertex. 
+
+        TODO: Raise an error if already cached, because that'd mean there's
+        an implementation error with the caching.
+        """
+
+        if not vertex.added_to_db():
+                
+            # Do nothing?
+                
+            return
+
+        if vertex.id not in _vertex_cache:
+
+            _vertex_cache[vertex.id] = vertex
+
+        return _vertex_cache[vertex.id]
+
+
 
 
 class Edge(Element):
@@ -137,6 +203,28 @@ class Edge(Element):
 
         self.category = category
 
+    
+    def add(self, attributes: dict):
+        """Add an edge between two vertices in JanusGraph.
+
+        :param attributes: Attributes to add to the edge. Must have string
+        keys and corresponding values.
+        :type attributes: dict
+        """
+
+        if self.inVertex.added_to_db() and self.outVertex.added_to_db():
+
+            traversal = g.V(self.outVertex.id).addE(self.category) \
+                        .to(__.V(self.inVertex.id)) \
+                        .property('category', self.category)
+
+            for key in attributes:
+                traversal = traversal.property(key, attributes[key])
+
+            e = traversal.next()
+
+            self.id = e.id
+
 
 ###############################################################################
 #                                   NODES                                     #
@@ -154,7 +242,7 @@ class ComponentType(Vertex):
     name: str
 
     def __init__(
-        self, name: str, comments: str, id: int=VIRTUAL_ID_PLACEHOLDER
+        self, name: str, comments: str="", id: int=VIRTUAL_ID_PLACEHOLDER
     ):
         """
         Initialize the ComponentType vertex with a category, name,
@@ -174,6 +262,73 @@ class ComponentType(Vertex):
         Vertex.__init__(self, id=id, 
             category="component_type")
 
+    def add(self):
+        """Add this ComponentType vertex to the serverside.
+        """
+
+        attributes = {
+            'name': self.name,
+            'comments': self.comments
+        }
+
+        Vertex.add(self=self, attributes=attributes)
+
+    @classmethod
+    def from_db(cls, name: str):
+        """Query the database and return a ComponentType instance based on
+        component type of name :param name:.
+
+        :param name: The name of the component type.
+        :type name: str
+        :return: A ComponentType instance with the correct name, comments, and 
+        ID.
+        :rtype: ComponentType
+        """
+
+        d =  g.V().has('category', 'component_type').has('name', name) \
+            .as_('v').valueMap().as_('props').select('v').id().as_('id') \
+            .select('props', 'id').next()
+        
+        props, id = d['props'], d['id']
+
+
+
+        if id not in _vertex_cache:
+
+            Vertex._cache_vertex(
+                ComponentType(
+                    name=name, 
+                    comments=props['comments'][0], 
+                    id=id
+                )
+            )
+
+
+        return _vertex_cache[id]
+
+    @classmethod
+    def from_id(cls, id: int):
+        """Query te database and return a ComponentType instance based on
+        the ID.
+
+        :param id: The serverside ID of the ComponentType vertex.
+        :type id: int
+        :return: Return a ComponentType from that ID.
+        :rtype: ComponentType
+        """
+
+        if id not in _vertex_cache:
+
+            d = g.V(id).valueMap().next()
+
+            _vertex_cache[id] = ComponentType(
+                name=d['name'][0], 
+                comments=d['comments'][0], 
+                id=id
+            )
+
+        return _vertex_cache[id]
+    
 
 class ComponentRevision(Vertex):
     """
@@ -208,6 +363,97 @@ class ComponentRevision(Vertex):
 
         Vertex.__init__(self, id=id, 
             category="component_revision")
+
+    def add(self):
+        """Add this ComponentType vertex to the serverside.
+        """
+
+        attributes = {
+            'name': self.name,
+            'comments': self.comments
+        }
+
+        Vertex.add(self=self, attributes=attributes)     
+
+        if not self.allowed_type.added_to_db():
+            self.allowed_type.add()
+
+        e = ConnectionRevisionAllowedType(
+                inVertex=self.allowed_type, 
+                outVertex=self
+            )
+
+        e.add()
+
+    @classmethod
+    def from_db(cls, name: str, allowed_type: ComponentType):
+        """Query the database and return a ComponentRevision instance based on
+        component revision of name :param name: connected to component type
+        :param allowed_type:.
+
+        :param name: The name of the component type.
+        :type name: str
+        :param allowed_type: The ComponentType instance that this component
+        revision is to be connected to.
+        :type allowed_type: ComponentType
+        :return: A ComponentRevision instance with the correct name, comments, 
+        allowed component type, and ID.
+        :rtype: ComponentRevision
+        """
+
+        if allowed_type.added_to_db():
+
+            d =  g.V(allowed_type.id) \
+                .both("cxn_revision_allowed_type").has('name', name) \
+                .as_('v').valueMap().as_('attrs').select('v').id().as_('id') \
+                .select('attrs', 'id').next()
+            
+            props, id = d['props'], d['id']
+
+            if id not in _vertex_cache:
+
+                Vertex._cache_vertex(
+                    ComponentRevision(
+                        name=name, 
+                        comments=props['comments'][0], 
+                        allowed_type=allowed_type,
+                        id=id
+                    )
+                )
+
+            return _vertex_cache[id]
+
+        else:
+            # TODO: RAISE CUSTOM ERROR!
+
+            raise Error
+
+    @classmethod
+    def from_id(cls, id: int):
+        """Query te database and return a ComponentRevision instance based on
+        the ID.
+
+        :param id: The serverside ID of the ComponentRevision vertex.
+        :type id: int
+        :return: Return a ComponentRevision from that ID.
+        :rtype: ComponentRevision
+        """
+
+        if id not in _vertex_cache:
+
+            d = g.V(id).project('attrs', 'type_id').by(__.valueMap()) \
+                .by(__.id()).next()
+
+            t = ComponentType.from_id(d['type_id'])
+
+            _vertex_cache[id] = ComponentRevision(
+                name=d['attrs']['name'][0], 
+                comments=d['attrs']['comments'][0], 
+                allowed_type=t,
+                id=id
+            )
+
+        return _vertex_cache[id]
 
 
 class Component(Vertex):
@@ -251,6 +497,79 @@ class Component(Vertex):
         # TODO: component name needs to be unique.
 
         Vertex.__init__(self, id=id, category="component")
+
+
+    def add(self):
+
+        attributes = {
+            'name': self.name
+        }
+
+        Vertex.add(self, attributes)
+
+        if self.revision is not None:
+            if not self.revision.added_to_db():
+                self.revision.add()
+
+            rev_edge = ConnectionRevision(
+                inVertex=self.revision,
+                outVertex=self
+            )
+
+            rev_edge.add()
+
+        if not self.component_type.added_to_db():
+            self.component_type.add()
+
+        type_edge = ConnectionComponentType(
+            inVertex=self.component_type,
+            outVertex=self
+        )
+
+        type_edge.add()
+
+    @classmethod
+    def from_db(cls, name: str):
+        """Query the database and return a Component instance based on
+        name :param name:.
+
+        :param name: The name attribute of the component serverside.
+        :type name: str
+        """
+
+        d = g.V().has('category', 'component').has('name', name) \
+            .project('id', 'type_id', 'rev_ids') \
+            .by(__.id()).by(__.both('cxn_component_type').id()) \
+            .by(__.both('cxn_revision').id().fold()).next()
+
+        id, type_id, rev_ids = d['id'], d['type_id'], d['rev_ids']
+
+        if type_id not in _vertex_cache:
+            Vertex._cache_vertex(ComponentType.from_id(type_id))
+
+        crev = None
+
+        if len(rev_ids) > 1:
+
+            # raise an error because THIS SHOULD NOT HAPPEN!!!
+            raise ValueError
+
+        if len(rev_ids) == 1:
+            crev = Vertex._cache_vertex(
+                ComponentRevision.from_id(id=rev_ids[0])
+            )
+
+        if id not in _vertex_cache:
+            Vertex._cache_vertex(
+                Component(
+                    name=name,  
+                    id=id,
+                    component_type=_vertex_cache[type_id],
+                    revision=crev
+                )
+            )
+
+        return _vertex_cache[id]
 
 
 class PropertyType(Vertex):
@@ -599,6 +918,12 @@ class ConnectionRevision(Edge):
         Edge.__init__(self=self, id=id,
         inVertex=inVertex, outVertex=outVertex, category="cxn_revision")
 
+    def add(self):
+        """Add this connection to the serverside.
+        """
+
+        Edge.add(self, attributes={})
+
 
 class ConnectionRevisionAllowedType(Edge):
     """
@@ -614,6 +939,12 @@ class ConnectionRevisionAllowedType(Edge):
             category="cxn_revision_allowed_type"
         )
 
+    def add(self):
+        """Add this connection to the serverside.
+        """
+
+        Edge.add(self, attributes={})
+
 
 class ConnectionComponentType(Edge):
     """
@@ -626,6 +957,12 @@ class ConnectionComponentType(Edge):
     ):
         Edge.__init__(self=self, id=id,
         inVertex=inVertex, outVertex=outVertex, category="cxn_component_type")
+
+    def add(self):
+        """Add this connection to the serverside.
+        """
+
+        Edge.add(self, attributes={})
 
 
 class ConnectionPropertyType(Edge):
@@ -652,11 +989,12 @@ class ConnectionPropertyAllowedType(Edge):
         self, inVertex: Vertex, outVertex: Vertex,
         id: int=VIRTUAL_ID_PLACEHOLDER
     ):
-        Edge.__init__(
+        super.__init__(
             self=self, id=id,
             inVertex=inVertex, outVertex=outVertex, 
             category="cxn_property_allowed_type"
         )
+
 
 
 class ConnectionFlagComponent(Edge):

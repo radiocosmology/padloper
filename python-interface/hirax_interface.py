@@ -77,16 +77,7 @@ class HIRAXInterface:
         :type component: Component
         """
 
-        # attributes = {
-        #     'name': component.name
-        # }
-
-        # v = self._add_vertex_to_graph(
-        #     category=component.category,
-        #     attributes=attributes
-        # )
-
-        # component.set_id(id=v.id)
+        # component.add()
 
         raise NotImplementedError
 

@@ -34,7 +34,7 @@ from structure import *
 import logging
 
 
-class GraphInterface:
+class _GraphInterface:
     """
     A wrapper class for a graph interface, containing methods to intantiate the 
     graph, as well as add/get graph information.
@@ -50,7 +50,6 @@ class GraphInterface:
     :ivar local_graph: A LocalGraph instance for subgraphing.
 
     # TODO: Consider multiple LocalGraphs in a GraphInterface?
-
     """
 
     _g: GraphTraversalSource
@@ -93,7 +92,7 @@ class GraphInterface:
                 + "to instantiate graph traversal. {e}")            
 
 
-    def _add_vertex_to_graph(
+    def add_vertex_to_graph(
         self, category: str, attributes: dict
     ) -> gremlin_graph.Vertex:
         """
@@ -129,10 +128,12 @@ class GraphInterface:
         raise NotImplementedError
 
 
-    
-    # def _add_edge_to_graph(self, edge: Edge, attributes: dict) -> None:
-    #     """
-    #     Turn a clientside Edge instance into a serverside edge.
+        
+
+
+    def add_edge_to_graph(self, edge: Edge, attributes: dict) -> None:
+        """
+        Turn a clientside Edge instance into a serverside edge.
 
 
     #     :param edge: An Edge instance.
