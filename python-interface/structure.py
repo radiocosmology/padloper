@@ -116,7 +116,13 @@ class Vertex(Element):
             traversal = g.addV().property('category', self.category)
 
             for key in attributes:
-                traversal = traversal.property(key, attributes[key])
+
+                if isinstance(attributes[key], list):
+                    for val in attributes[key]:
+                        traversal = traversal.property(key, val)
+                
+                else:
+                    traversal = traversal.property(key, attributes[key])
 
             v = traversal.next()
 
@@ -326,10 +332,12 @@ class ComponentType(Vertex):
 
             d = g.V(id).valueMap().next()
 
-            _vertex_cache[id] = ComponentType(
-                name=d['name'][0], 
-                comments=d['comments'][0], 
-                id=id
+            Vertex._cache_vertex(
+                ComponentType(
+                    name=d['name'][0], 
+                    comments=d['comments'][0], 
+                    id=id
+                )
             )
 
         return _vertex_cache[id]
@@ -505,6 +513,8 @@ class Component(Vertex):
 
 
     def add(self):
+        """Add this Component to the serverside.
+        """
 
         attributes = {
             'name': self.name
@@ -620,6 +630,8 @@ class PropertyType(Vertex):
         Vertex.__init__(self, id=id, category="property_type")
 
     def add(self):
+        """Add this PropertyType to the serverside.
+        """
 
         attributes = {
             'name': self.name,
@@ -671,15 +683,19 @@ class PropertyType(Vertex):
                 else:
                     ctypes.append(ComponentType.from_id(ctype_id))
 
-            _vertex_cache[id] = PropertyType(
-                name=name,
-                units=attrs['units'][0],
-                allowed_regex=attrs['allowed_regex'][0],
-                n_values=attrs['n_values'][0],
-                comments=attrs['comments'][0],
-                allowed_types=ctypes,
-                id=id
+
+            Vertex._cache_vertex(
+                PropertyType(
+                    name=name,
+                    units=attrs['units'][0],
+                    allowed_regex=attrs['allowed_regex'][0],
+                    n_values=attrs['n_values'][0],
+                    comments=attrs['comments'][0],
+                    allowed_types=ctypes,
+                    id=id
+                )
             )
+
         
         return _vertex_cache[id]
 
@@ -711,14 +727,16 @@ class PropertyType(Vertex):
                 else:
                     ctypes.append(ComponentType.from_id(ctype_id))
 
-            _vertex_cache[id] = PropertyType(
-                name=attrs['name'][0],
-                units=attrs['units'][0],
-                allowed_regex=attrs['allowed_regex'][0],
-                n_values=attrs['n_values'][0],
-                comments=attrs['comments'][0],
-                allowed_types=ctypes,
-                id=id
+            Vertex._cache_vertex(
+                PropertyType(
+                    name=attrs['name'][0],
+                    units=attrs['units'][0],
+                    allowed_regex=attrs['allowed_regex'][0],
+                    n_values=attrs['n_values'][0],
+                    comments=attrs['comments'][0],
+                    allowed_types=ctypes,
+                    id=id
+                )
             )
 
         return _vertex_cache[id]
@@ -752,6 +770,50 @@ class Property(Vertex):
         self.property_type = property_type
 
         Vertex.__init__(self, id=id, category="property")
+
+    def add(self):
+        """
+        Add this Property to the serverside.
+        """
+
+        attributes = {
+            'values': self.values
+        }
+
+        Vertex.add(self, attributes)
+
+        if not self.property_type.added_to_db():
+            self.property_type.add()
+
+        e = ConnectionPropertyType(
+            inVertex=self.property_type,
+            outVertex=self
+        )
+
+        e.add()
+
+    @classmethod
+    def from_id(cls, id: int):
+        """Given an ID of a serverside property vertex, 
+        return a Property instance. 
+        """
+
+        if id not in _vertex_cache:
+            
+            d = g.V(id).project('values', 'ptype_id') \
+                .by(__.values('values')) \
+                .by(__.both('cxn_property_type').id()).next()
+
+            values, ptype_id = d['values'], d['ptype_id']
+
+            Vertex._cache_vertex(
+                Property(
+                    values=values, 
+                    property_type=ComponentType.from_id(ptype_id)
+                )
+            )
+
+        return _vertex_cache[id]
 
 
 class FlagType(Vertex):
@@ -1092,6 +1154,12 @@ class ConnectionPropertyType(Edge):
             self=self, id=id,
             inVertex=inVertex, outVertex=outVertex, category="cxn_property_type"
         )
+
+    def add(self):
+        """Add this connection to the serverside.
+        """
+
+        Edge.add(self, attributes={})
 
 
 class ConnectionPropertyAllowedType(Edge):
