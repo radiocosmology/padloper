@@ -266,6 +266,11 @@ class ComponentType(Vertex):
         """Add this ComponentType vertex to the serverside.
         """
 
+        if self.added_to_db():
+
+            # TODO: CUSTOM ERROR!!
+            raise Error
+
         attributes = {
             'name': self.name,
             'comments': self.comments
@@ -430,7 +435,7 @@ class ComponentRevision(Vertex):
 
     @classmethod
     def from_id(cls, id: int):
-        """Query te database and return a ComponentRevision instance based on
+        """Query the database and return a ComponentRevision instance based on
         the ID.
 
         :param id: The serverside ID of the ComponentRevision vertex.
@@ -541,7 +546,7 @@ class Component(Vertex):
             .project('id', 'type_id', 'rev_ids') \
             .by(__.id()).by(__.both('cxn_component_type').id()) \
             .by(__.both('cxn_revision').id().fold()).next()
-
+ 
         id, type_id, rev_ids = d['id'], d['type_id'], d['rev_ids']
 
         if type_id not in _vertex_cache:
@@ -597,7 +602,7 @@ class PropertyType(Vertex):
 
     def __init__(
         self, name: str, units: str, allowed_regex: str,
-        n_values: int, comments: str, allowed_types: List[ComponentType],
+        n_values: int, allowed_types: List[ComponentType], comments: str="", 
         id: int=VIRTUAL_ID_PLACEHOLDER
     ):
         self.name = name
@@ -607,7 +612,116 @@ class PropertyType(Vertex):
         self.comments = comments
         self.allowed_types = allowed_types
 
+        if len(self.allowed_types) == 0:
+            
+            # TODO: raise a custom error
+            raise ValueError
+
         Vertex.__init__(self, id=id, category="property_type")
+
+    def add(self):
+
+        attributes = {
+            'name': self.name,
+            'units': self.units,
+            'allowed_regex': self.allowed_regex,
+            'n_values': self.n_values,
+            'comments': self.comments
+        }
+
+        Vertex.add(self, attributes)
+
+        for ctype in self.allowed_types:
+
+            if not ctype.added_to_db():
+                ctype.add()
+
+            e = ConnectionPropertyAllowedType(
+                inVertex=ctype,
+                outVertex=self
+            )
+
+            e.add()
+
+    @classmethod
+    def from_db(cls, name: str):
+        """Query the database and return a PropertyType instance based on
+        name :param name:.
+
+        :param name: The name attribute of the property type
+        :type name: str
+        """
+
+        d = g.V().has('category', 'property_type').has('name', name) \
+            .project('id', 'attrs', 'type_ids') \
+            .by(__.id()) \
+            .by(__.valueMap()) \
+            .by(__.both('cxn_property_allowed_type').id().fold()).next()
+
+        # to access attributes from attrs, do attrs[...][0]
+        id, attrs, ctype_ids = d['id'], d['attrs'], d['type_ids']
+
+        if id not in _vertex_cache:
+
+            ctypes = []
+
+            for ctype_id in ctype_ids:
+                if ctype_id in _vertex_cache:
+                    ctypes.append(_vertex_cache[ctype_id])
+                else:
+                    ctypes.append(ComponentType.from_id(ctype_id))
+
+            _vertex_cache[id] = PropertyType(
+                name=name,
+                units=attrs['units'][0],
+                allowed_regex=attrs['allowed_regex'][0],
+                n_values=attrs['n_values'][0],
+                comments=attrs['comments'][0],
+                allowed_types=ctypes,
+                id=id
+            )
+        
+        return _vertex_cache[id]
+
+    @classmethod
+    def from_id(cls, id: int):
+        """Query the database and return a ComponentRevision instance based on
+        the ID.
+
+        :param id: The serverside ID of the ComponentRevision vertex.
+        :type id: int
+        :return: Return a ComponentRevision from that ID.
+        :rtype: ComponentRevision
+        """
+
+        if id not in _vertex_cache:
+
+            d = g.V(id).project('attrs', 'type_ids') \
+                .by(__.valueMap()) \
+                .by(__.both('cxn_property_allowed_type').id().fold()).next()
+
+            # to access attributes from attrs, do attrs[...][0]
+            attrs, ctype_ids = d['attrs'], d['type_ids']
+
+            ctypes = []
+
+            for ctype_id in ctype_ids:
+                if ctype_id in _vertex_cache:
+                    ctypes.append(_vertex_cache[ctype_id])
+                else:
+                    ctypes.append(ComponentType.from_id(ctype_id))
+
+            _vertex_cache[id] = PropertyType(
+                name=attrs['name'][0],
+                units=attrs['units'][0],
+                allowed_regex=attrs['allowed_regex'][0],
+                n_values=attrs['n_values'][0],
+                comments=attrs['comments'][0],
+                allowed_types=ctypes,
+                id=id
+            )
+
+        return _vertex_cache[id]
 
 
 class Property(Vertex):
@@ -989,11 +1103,17 @@ class ConnectionPropertyAllowedType(Edge):
         self, inVertex: Vertex, outVertex: Vertex,
         id: int=VIRTUAL_ID_PLACEHOLDER
     ):
-        super.__init__(
+        Edge.__init__(
             self=self, id=id,
             inVertex=inVertex, outVertex=outVertex, 
             category="cxn_property_allowed_type"
         )
+
+    def add(self):
+        """Add this connection to the serverside.
+        """
+
+        Edge.add(self, attributes={})
 
 
 
