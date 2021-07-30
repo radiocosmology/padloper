@@ -307,8 +307,6 @@ class ComponentType(Vertex):
         
         props, id = d['props'], d['id']
 
-
-
         if id not in _vertex_cache:
 
             Vertex._cache_vertex(
@@ -863,6 +861,49 @@ class Component(Vertex):
 
         return _vertex_cache[id]
 
+    @classmethod
+    def from_id(cls, id: int):
+        """Query the database and return a Component instance based on
+        the ID :param id:
+
+        :param id: The ID of the component serverside.
+        :type id: int
+        """
+        if id not in _vertex_cache:
+
+            d = g.V(id).project('name', 'type_id', 'rev_ids') \
+                .by(__.values('name')).by(__.both('cxn_component_type').id()) \
+                .by(__.both('cxn_revision').id().fold()).next()
+    
+            name, type_id, rev_ids = d['name'], d['type_id'], d['rev_ids']
+
+            if type_id not in _vertex_cache:
+                Vertex._cache_vertex(ComponentType.from_id(type_id))
+
+            crev = None
+
+            if len(rev_ids) > 1:
+
+                # raise an error because THIS SHOULD NOT HAPPEN!!!
+                raise ValueError
+
+            if len(rev_ids) == 1:
+                crev = Vertex._cache_vertex(
+                    ComponentRevision.from_id(id=rev_ids[0])
+                )
+
+            
+            Vertex._cache_vertex(
+                Component(
+                    name=name,  
+                    id=id,
+                    component_type=_vertex_cache[type_id],
+                    revision=crev
+                )
+            )
+
+        return _vertex_cache[id]
+
 
 class PropertyType(Vertex):
     """
@@ -1111,6 +1152,78 @@ class FlagType(Vertex):
 
         Vertex.__init__(self, id=id, category="flag_type")
 
+    def add(self):
+        """Add this FlagType to the database.
+        """
+
+        if self.added_to_db():
+
+            # TODO: CUSTOM ERROR!!!!!1
+            raise Exception
+
+        attributes = {
+            'name': self.name,
+            'comments': self.comments
+        }
+
+        Vertex.add(self=self, attributes=attributes)
+
+
+    @classmethod
+    def from_db(cls, name: str):
+        """Query the database and return a FlagType instance based on
+        component type of name :param name:.
+
+        :param name: The name of the flag type.
+        :type name: str
+        :return: A FlagType instance with the correct name, comments, and 
+        ID.
+        :rtype: FlagType
+        """
+
+        d =  g.V().has('category', 'flag_type').has('name', name) \
+            .as_('v').valueMap().as_('props').select('v').id().as_('id') \
+            .select('props', 'id').next()
+        
+        props, id = d['props'], d['id']
+
+        if id not in _vertex_cache:
+
+            Vertex._cache_vertex(
+                FlagType(
+                    name=name, 
+                    comments=props['comments'][0], 
+                    id=id
+                )
+            )
+
+        return _vertex_cache[id]
+
+    @classmethod
+    def from_id(cls, id: int):
+        """Query the database and return a FlagType instance based on
+        the ID.
+
+        :param id: The serverside ID of the FlagType vertex.
+        :type id: int
+        :return: Return a FlagType from that ID.
+        :rtype: FlagType
+        """
+
+        if id not in _vertex_cache:
+
+            d = g.V(id).valueMap().next()
+
+            Vertex._cache_vertex(
+                FlagType(
+                    name=d['name'][0], 
+                    comments=d['comments'][0], 
+                    id=id
+                )
+            )
+
+        return _vertex_cache[id]
+
 
 class Flag(Vertex):
     """
@@ -1135,8 +1248,8 @@ class Flag(Vertex):
 
     def __init__(
         self, name: str, start_time: int, end_time: int,
-        severity: int, comments: str, flag_type: FlagType,
-        flag_components: List[Component]=[],
+        severity: int, flag_type: FlagType,
+        flag_components: List[Component]=[], comments: str="", 
         id: int=VIRTUAL_ID_PLACEHOLDER
     ):
         self.name = name
@@ -1148,6 +1261,90 @@ class Flag(Vertex):
         self.flag_components = flag_components
 
         Vertex.__init__(self=self, id=id, category="flag")
+
+    def add(self):
+        """
+        Add this Flag instance to the database.
+        """
+
+        attributes = {
+            'name': self.name,
+            'start_time': self.start_time,
+            'end_time': self.end_time,
+            'severity': self.severity,
+            'comments': self.comments
+        }
+
+        Vertex.add(self=self, attributes=attributes)
+
+        if not self.flag_type.added_to_db():
+            self.flag_type.add()
+
+        e = ConnectionFlagType(
+            inVertex=self.flag_type,
+            outVertex=self
+        )
+
+        e.add()
+
+        for c in self.flag_components:
+            
+            if not c.added_to_db():
+                c.add()
+
+            e = ConnectionFlagComponent(
+                inVertex=c,
+                outVertex=self
+            )
+
+            e.add()
+
+    @classmethod
+    def from_db(cls, name: str):
+        """Quer the database and return a Flag instance based on the name
+        :param name:, connected to the necessary Components and FlagType
+        instances.
+
+        :param name: The name of the Flag instance
+        :type name: str
+        """
+
+
+        d = g.V().has('category', 'flag').has('name', name) \
+            .project('id', 'attrs', 'type_id', 'component_ids') \
+            .by(__.id()) \
+            .by(__.valueMap()) \
+            .by(__.both('cxn_flag_type').id()) \
+            .by(__.both('cxn_flag_component').id().fold()).next()
+
+        id, attrs, type_id, component_ids = d['id'], d['attrs'], \
+            d['type_id'], d['component_ids']
+
+        if id not in _vertex_cache:
+
+            if type_id not in _vertex_cache:
+                Vertex._cache_vertex(FlagType.from_id(type_id))
+
+            components = []
+
+            for c_id in component_ids:
+                if c_id not in _vertex_cache:
+                    components.append(Component.from_id(c_id))
+
+            Vertex._cache_vertex(
+                Flag(
+                    name=name,
+                    start_time=attrs['start_time'][0],
+                    end_time=attrs['end_time'][0],
+                    severity=attrs['severity'][0],
+                    comments=attrs['comments'][0],
+                    flag_type=_vertex_cache[type_id],
+                    flag_components=components,
+                    id=id
+                )
+            )
+
+        return _vertex_cache[id]
 
 
 ###############################################################################
@@ -1511,6 +1708,11 @@ class ConnectionFlagComponent(Edge):
             category="cxn_flag_component"
         )
 
+    def add(self):
+        """Add this connection to the serverside."""
+
+        Edge.add(self, attributes={})
+
 
 class ConnectionFlagType(Edge):
     """
@@ -1525,3 +1727,8 @@ class ConnectionFlagType(Edge):
             self=self, id=id,
             inVertex=inVertex, outVertex=outVertex, category="cxn_flag_type"
         )
+
+    def add(self):
+        """Add this connection to the serverside."""
+
+        Edge.add(self, attributes={})
