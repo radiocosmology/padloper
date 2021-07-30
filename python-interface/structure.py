@@ -5,10 +5,11 @@ Contains methods for storing clientside interface information.
 
 """
 
-from copy import Error
+import time
+
+from gremlin_python.process.traversal import P
 from graph_connection import g
 from gremlin_python.process.graph_traversal import __   
-
 
 from typing import Optional, List
 
@@ -231,6 +232,10 @@ class Edge(Element):
 
             self.id = e.id
 
+        else:
+            # RAISE NOT ADDED TO DB ERROR (or just add them maybe first?)
+            raise Exception
+
 
 ###############################################################################
 #                                   NODES                                     #
@@ -275,7 +280,7 @@ class ComponentType(Vertex):
         if self.added_to_db():
 
             # TODO: CUSTOM ERROR!!
-            raise Error
+            raise Exception
 
         attributes = {
             'name': self.name,
@@ -439,7 +444,7 @@ class ComponentRevision(Vertex):
         else:
             # TODO: RAISE CUSTOM ERROR!
 
-            raise Error
+            raise Exception
 
     @classmethod
     def from_id(cls, id: int):
@@ -531,7 +536,7 @@ class Component(Vertex):
                 outVertex=self
             )
 
-            rev_edge.add()
+            rev_edge._add()
 
         if not self.component_type.added_to_db():
             self.component_type.add()
@@ -542,6 +547,278 @@ class Component(Vertex):
         )
 
         type_edge.add()
+
+    def get_property(self, property_type, time: int):
+        """
+        Given a property type, get a property of this component active at time
+        :param time:. 
+
+        :param property_type: The type of the property to extract
+        :type property_type: PropertyType
+        :param time: The time to check the active property at.
+        :type time: int
+        """
+
+        if not self.added_to_db() or not property_type.added_to_db():
+            # RAISE ERROR 
+            raise Exception
+
+        # list of property vertices of this property type 
+        # and active at this time
+        vs = g.V(self.id).bothE('cxn_property').has('start_time', P.lte(time)) \
+            .has('end_time', P.gt(time)).otherV().as_('v') \
+            .both('cxn_property_type').has('name', property_type.name) \
+            .select('v').toList()
+
+        # If no such vertices found
+        if len(vs) == 0:
+            return None
+
+        # There should be only one!
+
+        assert len(vs) == 1
+        
+        return Property.from_id(vs[0].id)    
+
+    def add_property(
+        self, property, time: int, 
+        uid: str, edit_time:int=int(time.time()),
+        comments=""
+    ):
+        """
+        Given a property :param property:, MAKE A VIRTUAL COPY of it,
+        add it, then connect it to the component self at start time
+        :start_time:. Return the Property instance that was added.
+
+        :param property: The property to add
+        :type property: Property
+        :param time: The time at which the property was added (real time)
+        :type time: int
+        :param uid: The ID of the user that added the property
+        :type uid: str
+        :param edit_time: The time at which the user made the change,
+        defaults to int(time.time())
+        :type edit_time: int, optional
+        :param comments: Comments to add with property change, defaults to ""
+        :type comments: str, optional
+        """
+
+        p = self.get_property(property.property_type, time)
+
+        if p is not None:
+            
+            if p.values == property.values:
+                # RAISE CUSTOM ERROR SAYING THAT PROPERTY IS ALREADY ADDED
+                raise Exception
+
+            else:
+                # end that property.
+                self._remove_property(p, time, uid, edit_time, comments)
+        
+        prop_copy = Property(
+            values=property.values,
+            property_type=property.property_type
+        )
+
+        prop_copy._add()
+
+        e = ConnectionProperty(
+            inVertex=prop_copy,
+            outVertex=self,
+            start_time=time,
+            start_uid=uid,
+            start_edit_time=edit_time,
+            start_comments=comments
+        )
+
+        e.add()
+
+        return prop_copy
+
+
+    def _remove_property(
+        self, property, time: int, uid: str,
+        edit_time: int=int(time.time()), comments=""
+    ):
+        """
+        Given a property that is connected to this component,
+        set the "end" attributes of the edge connecting the component and
+        the property to indicate that this property has been removed from the
+        component.
+
+        :param property: The property vertex connected by an edge to the 
+        component vertex.
+        :type property: Property
+        :param time: The time at which the property was removed (real time)
+        :type time: int
+        :param uid: The user that removed the property
+        :type uid: str
+        :param edit_time: The time at which the 
+        user made the change, defaults to int(time.time())
+        :type edit_time: int, optional
+        :param comments: Comments about the property removal, defaults to ""
+        :type comments: str, optional
+        """
+        
+        if not self.added_to_db():
+            # RAISE ERROR, YOU SHOULD BE ADDED TO DB
+            
+            raise Exception
+
+        if not property.added_to_db():
+            # RAISE ERROR, PROPERTY SHOULD BE ADDED TO DB. 
+
+            raise Exception
+
+        g.V(property.id).bothE('cxn_property').as_('e').otherV() \
+            .hasId(self.id).select('e') \
+            .has('end_time', EXISTING_CONNECTION_END_PLACEHOLDER) \
+            .property('end_time', time).property('end_uid', uid) \
+            .property('end_edit_time', edit_time) \
+            .property('end_comments', comments).iterate()
+
+
+    def connect(
+        self, component, time: int, 
+        uid: str, edit_time: int=int(time.time()), comments=""
+        ):
+        """Given another Component :param component:,
+        connect the two components.
+
+        :param component: Another Component to connect this component to.
+        :type component: Component
+        :param time: The time at which these components were connected 
+        (real time)
+        :type time: int
+        :param uid: The ID of the user that connected the components
+        :type uid: str
+        :param edit_time: The time at which the user made the change,
+        defaults to int(time.time())
+        :type edit_time: int, optional
+        :param comments: Comments to add with the connection, defaults to ""
+        :type comments: str, optional
+        """
+
+        if not self.added_to_db() or not component.added_to_db():
+
+            # Raise a "component not added exception"
+
+            raise Exception
+
+        current_connection = self.get_connection(
+            component=component, 
+            time=time
+        )
+
+        if current_connection is not None:
+            
+            # Already connected!
+            raise Exception
+
+        else:
+            current_connection = ConnectionComponent(
+                inVertex=self,
+                outVertex=component,
+                start_time=time,
+                start_uid=uid,
+                start_edit_time=edit_time,
+                start_comments=comments
+            )
+
+            current_connection.add()
+
+
+    def disconnect(
+        self, component, time: int, uid: str, 
+        edit_time: int=int(time.time()), comments=""
+    ):
+        """Given another Component :param component:, disconnect the two
+        components at time :param time:.
+
+        :param component: Another Component to disconnect this component from.
+        :type component: Component
+        :param time: The time at which these components are disconnected
+        (real time)
+        :type time: int
+        :param uid: The ID of the user that disconnected the components
+        :type uid: str
+        :param edit_time: The time at which the user made the change,
+        defaults to int(time.time())
+        :type edit_time: int, optional
+        :param comments: Comments to add with the disconnection, defaults to ""
+        :type comments: str, optional
+        """
+
+        if not self.added_to_db() or not component.added_to_db():
+
+            # Raise a "component not added exception"
+
+            raise Exception
+
+        current_connection = self.get_connection(
+            component=component, 
+            time=time
+        )
+
+        if current_connection is None:
+            
+            # Not connected yet!
+            raise Exception
+
+        else:
+            current_connection._end_connection(
+                end_time=time,
+                end_uid=uid,
+                end_edit_time=edit_time,
+                end_comments=comments
+            )
+
+    def get_connection(
+        self, component, time: int
+    ):
+        """Given two components, return the edge that connected them at
+        time :param time:.
+
+        :param component: The other component to check the connections with.
+        :type component: Component
+        :param time: The time to check
+        :type time: int
+        """
+
+        if not self.added_to_db():
+            # Raise a "component not added exception"
+
+            raise Exception
+
+        if not component.added_to_db():
+            # Raise a "component not added exception"
+
+            raise Exception
+
+        e = g.V(self.id).bothE('cxn_component') \
+            .has('start_time', P.lte(time)) \
+            .has('end_time', P.gt(time)) \
+            .as_('e').otherV() \
+            .hasId(component.id).select('e') \
+            .project('properties', 'id').by(__.valueMap()).by(__.id()).toList()
+
+        if len(e) == 0:
+            return None
+
+        assert len(e) == 1
+
+        return ConnectionComponent(
+            inVertex=self, outVertex=component,
+            start_time=e[0]['properties']['start_time'],
+            start_uid=e[0]['properties']['start_uid'],
+            start_edit_time=e[0]['properties']['start_edit_time'],
+            start_comments=e[0]['properties']['start_comments'],
+            end_time=e[0]['properties']['end_time'],
+            end_uid=e[0]['properties']['end_uid'],
+            end_edit_time=e[0]['properties']['end_edit_time'],
+            end_comments=e[0]['properties']['end_comments'],
+            id=e[0]['id']['@value']['relationId'] # weird but you have to
+        )
 
     @classmethod
     def from_db(cls, name: str):
@@ -771,7 +1048,7 @@ class Property(Vertex):
 
         Vertex.__init__(self, id=id, category="property")
 
-    def add(self):
+    def _add(self):
         """
         Add this Property to the serverside.
         """
@@ -903,14 +1180,13 @@ class ConnectionComponent(Edge):
     end_edit_time: float
     start_comments: str
     end_comments: str
-    permanent: bool
 
     def __init__(
         self, inVertex: Vertex, outVertex: Vertex, start_time: float, 
         start_uid: str, start_edit_time: float, start_comments: str="",
         end_time: float=EXISTING_CONNECTION_END_PLACEHOLDER, end_uid: str="", 
         end_edit_time: float=EXISTING_CONNECTION_END_EDIT_PLACEHOLDER, 
-        end_comments: str="", permanent: bool=False,
+        end_comments: str="",
         id: int=VIRTUAL_ID_PLACEHOLDER
     ):
         """Initialize the connection.
@@ -948,26 +1224,35 @@ class ConnectionComponent(Edge):
         self.start_edit_time = start_edit_time
         self.start_comments = start_comments
 
-        self.permanent = permanent
-
-        if permanent:
-            self.end_time = EXISTING_CONNECTION_END_PLACEHOLDER
-            self.end_uid = ""
-            self.end_edit_time = EXISTING_CONNECTION_END_EDIT_PLACEHOLDER
-            self.end_comments = ""
-
-        else:
-            self.end_time = end_time
-            self.end_uid = end_uid
-            self.end_edit_time = end_edit_time
-            self.end_comments = end_comments
+        self.end_time = end_time
+        self.end_uid = end_uid
+        self.end_edit_time = end_edit_time
+        self.end_comments = end_comments
         
 
         Edge.__init__(self=self, id=id, inVertex=inVertex, outVertex=outVertex,
         category="cxn_component")
 
 
-    def end_connection(
+    def add(self):
+        """Add this connection as an edge to the database.
+        """
+
+        attributes = {
+            "start_time": self.start_time,
+            "start_uid": self.start_uid,
+            "start_edit_time": self.start_edit_time,
+            "start_comments": self.start_comments,
+            "end_time": self.end_time,
+            "end_uid": self.end_uid,
+            "end_edit_time": self.end_edit_time,
+            "end_comments": self.end_comments
+        }
+
+        Edge.add(self, attributes=attributes)
+
+
+    def _end_connection(
         self, end_time: float, 
         end_uid: str, end_edit_time: float, end_comments: str=""
     ):
@@ -983,10 +1268,21 @@ class ConnectionComponent(Edge):
         defaults to ""
         :type end_comments: str, optional
         """
+
+        if not self.added_to_db():
+
+            # Edge not added to DB!
+            raise Exception
+
         self.end_time = end_time
         self.end_uid = end_uid
         self.end_edit_time = end_edit_time
         self.end_comments = end_comments
+
+        g.E(self.id).property('end_time', end_time) \
+            .property('end_uid', end_uid) \
+            .property('end_edit_time', end_edit_time) \
+            .property('end_comments', end_comments).iterate()        
 
 
 class ConnectionProperty(Edge):
@@ -1058,6 +1354,21 @@ class ConnectionProperty(Edge):
 
         Edge.__init__(self=self, id=id, inVertex=inVertex, 
         outVertex=outVertex, category="cxn_property")
+
+    def add(self):
+        """Add this connection to the serverside.
+        """
+
+        Edge.add(self, attributes={
+            "start_time": self.start_time,
+            "start_uid": self.start_uid,
+            "start_edit_time": self.start_edit_time,
+            "start_comments": self.start_comments,
+            "end_time": self.end_time,
+            "end_uid": self.end_uid,
+            "end_edit_time": self.end_edit_time,
+            "end_comments": self.end_comments
+        })
 
 
     def end_connection(
