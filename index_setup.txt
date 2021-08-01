@@ -8,6 +8,7 @@
 # 	g.V().has('category', ...).has('name', ...)
 # mixed index on "start" THEN "end" for edges:
 # 	g.E().hasLabel('connection').has('start', ...).has('end', ...)
+# a LIST cardinality on the "values" attribute of vertices (for property vertices)
 
 # Read more here: https://docs.janusgraph.org/index-management/index-performance/
 
@@ -29,4 +30,8 @@ mgmt.updateIndex(mgmt.getGraphIndex("byNameComposite"), SchemaAction.REINDEX).ge
 mgmt.updateIndex(mgmt.getGraphIndex("byCategoryComposite"), SchemaAction.REINDEX).get()
 mgmt.updateIndex(mgmt.getGraphIndex("byCategoryAndNameComposite"), SchemaAction.REINDEX).get()
 mgmt.updateIndex(mgmt.getGraphIndex("startAndEndMixed"), SchemaAction.REINDEX).get()
+mgmt.commit()
+
+mgmt = graph.openManagement()
+vals = mgmt.makePropertyKey('values').dataType(String.class).cardinality(org.janusgraph.core.Cardinality.LIST).make()
 mgmt.commit()

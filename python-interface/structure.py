@@ -515,6 +515,19 @@ class Component(Vertex):
         Vertex.__init__(self, id=id, category="component")
 
 
+    def __str__(self):
+
+        if self.revision is None:
+            revision_text = "no revision"
+        
+        else:
+            revision_text = 'revision "{self.revision.name}"'
+
+        return f'Component of name "{self.name}", \
+            type "{self.component_type.name}", \
+            {revision_text}, id {self.id}'
+
+
     def add(self):
         """Add this Component to the serverside.
         """
