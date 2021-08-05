@@ -14,12 +14,12 @@ from gremlin_python.process.graph_traversal import __
 from typing import Optional, List
 
 # A placeholder value for the end_time attribute for a 
-# connection that is still ongoing.
-EXISTING_CONNECTION_END_PLACEHOLDER = 2**63 - 1
+# relation that is still ongoing.
+EXISTING_RELATION_END_PLACEHOLDER = 2**63 - 1
 
-# A placeholder value for the end_edit_time attribute for a connection
+# A placeholder value for the end_edit_time attribute for a relation
 # that is still ongoing.
-EXISTING_CONNECTION_END_EDIT_PLACEHOLDER = -1
+EXISTING_RELATION_END_EDIT_PLACEHOLDER = -1
 
 # Placeholder for the ID of an element that does not exist serverside.
 VIRTUAL_ID_PLACEHOLDER = -1
@@ -80,10 +80,10 @@ class Vertex(Element):
     :ivar category: The category of the Vertex.
     """
 
-    category: str
+    category: str 
 
 
-    def __init__(self, id: int, category: str):
+    def __init__(self, id: int):
         """
         Initialize the Vertex.
 
@@ -99,8 +99,6 @@ class Vertex(Element):
         """
 
         Element.__init__(self, id)
-
-        self.category = category
 
     
     def add(self, attributes: dict):
@@ -181,8 +179,7 @@ class Edge(Element):
     category: str
 
     def __init__(
-        self, id: int, inVertex: Vertex, 
-        outVertex: Vertex, category: str
+        self, id: int, inVertex: Vertex, outVertex: Vertex
     ):
         """
         Initialize the Edge.
@@ -207,8 +204,6 @@ class Edge(Element):
 
         self.inVertex = inVertex
         self.outVertex = outVertex
-
-        self.category = category
 
     
     def add(self, attributes: dict):
@@ -251,6 +246,7 @@ class ComponentType(Vertex):
 
     comments: str
     name: str
+    category: str = "component_type"
 
     def __init__(
         self, name: str, comments: str="", id: int=VIRTUAL_ID_PLACEHOLDER
@@ -270,8 +266,7 @@ class ComponentType(Vertex):
 
         self.comments = comments
 
-        Vertex.__init__(self, id=id, 
-            category="component_type")
+        Vertex.__init__(self, id=id)
 
     def add(self):
         """Add this ComponentType vertex to the serverside.
@@ -301,7 +296,7 @@ class ComponentType(Vertex):
         :rtype: ComponentType
         """
 
-        d =  g.V().has('category', 'component_type').has('name', name) \
+        d =  g.V().has('category', ComponentType.category).has('name', name) \
             .as_('v').valueMap().as_('props').select('v').id().as_('id') \
             .select('props', 'id').next()
         
@@ -353,6 +348,8 @@ class ComponentRevision(Vertex):
     type of the component revision.
     """
 
+    category: str = "component_revision"
+
     comments: str
     name: str
     allowed_type: ComponentType
@@ -374,8 +371,7 @@ class ComponentRevision(Vertex):
         self.comments = comments
         self.allowed_type = allowed_type
 
-        Vertex.__init__(self, id=id, 
-            category="component_revision")
+        Vertex.__init__(self, id=id)
 
     def add(self):
         """Add this ComponentType vertex to the serverside.
@@ -391,7 +387,7 @@ class ComponentRevision(Vertex):
         if not self.allowed_type.added_to_db():
             self.allowed_type.add()
 
-        e = ConnectionRevisionAllowedType(
+        e = RelationRevisionAllowedType(
                 inVertex=self.allowed_type, 
                 outVertex=self
             )
@@ -417,7 +413,7 @@ class ComponentRevision(Vertex):
         if allowed_type.added_to_db():
 
             d =  g.V(allowed_type.id) \
-                .both("cxn_revision_allowed_type").has('name', name) \
+                .both(RelationRevisionAllowedType.category).has('name', name) \
                 .as_('v').valueMap().as_('attrs').select('v').id().as_('id') \
                 .select('attrs', 'id').next()
             
@@ -485,6 +481,8 @@ class Component(Vertex):
     # TODO: Figure out how to represent properties along with timestamps.
     """
 
+    category: str = "component"
+
     name: str
     component_type: ComponentType
     revision: ComponentRevision = None
@@ -510,7 +508,7 @@ class Component(Vertex):
 
         # TODO: component name needs to be unique.
 
-        Vertex.__init__(self, id=id, category="component")
+        Vertex.__init__(self, id=id)
 
 
     def __str__(self):
@@ -539,7 +537,7 @@ class Component(Vertex):
             if not self.revision.added_to_db():
                 self.revision.add()
 
-            rev_edge = ConnectionRevision(
+            rev_edge = RelationRevision(
                 inVertex=self.revision,
                 outVertex=self
             )
@@ -549,7 +547,7 @@ class Component(Vertex):
         if not self.component_type.added_to_db():
             self.component_type.add()
 
-        type_edge = ConnectionComponentType(
+        type_edge = RelationComponentType(
             inVertex=self.component_type,
             outVertex=self
         )
@@ -573,9 +571,11 @@ class Component(Vertex):
 
         # list of property vertices of this property type 
         # and active at this time
-        vs = g.V(self.id).bothE('cxn_property').has('start_time', P.lte(time)) \
+        vs = g.V(self.id).bothE(RelationProperty.category) \
+            .has('start_time', P.lte(time)) \
             .has('end_time', P.gt(time)).otherV().as_('v') \
-            .both('cxn_property_type').has('name', property_type.name) \
+            .both(RelationPropertyType.category) \
+            .has('name', property_type.name) \
             .select('v').toList()
 
         # If no such vertices found
@@ -630,7 +630,7 @@ class Component(Vertex):
 
         prop_copy._add()
 
-        e = ConnectionProperty(
+        e = RelationProperty(
             inVertex=prop_copy,
             outVertex=self,
             start_time=time,
@@ -678,9 +678,9 @@ class Component(Vertex):
 
             raise Exception
 
-        g.V(property.id).bothE('cxn_property').as_('e').otherV() \
+        g.V(property.id).bothE(RelationProperty.category).as_('e').otherV() \
             .hasId(self.id).select('e') \
-            .has('end_time', EXISTING_CONNECTION_END_PLACEHOLDER) \
+            .has('end_time', EXISTING_RELATION_END_PLACEHOLDER) \
             .property('end_time', time).property('end_uid', uid) \
             .property('end_edit_time', edit_time) \
             .property('end_comments', comments).iterate()
@@ -724,7 +724,7 @@ class Component(Vertex):
             raise Exception
 
         else:
-            current_connection = ConnectionComponent(
+            current_connection = RelationConnection(
                 inVertex=self,
                 outVertex=component,
                 start_time=time,
@@ -803,7 +803,7 @@ class Component(Vertex):
 
             raise Exception
 
-        e = g.V(self.id).bothE('cxn_component') \
+        e = g.V(self.id).bothE(RelationConnection.category) \
             .has('start_time', P.lte(time)) \
             .has('end_time', P.gt(time)) \
             .as_('e').otherV() \
@@ -815,7 +815,7 @@ class Component(Vertex):
 
         assert len(e) == 1
 
-        return ConnectionComponent(
+        return RelationConnection(
             inVertex=self, outVertex=component,
             start_time=e[0]['properties']['start_time'],
             start_uid=e[0]['properties']['start_uid'],
@@ -884,10 +884,10 @@ class Component(Vertex):
         :type name: str
         """
 
-        d = g.V().has('category', 'component').has('name', name) \
+        d = g.V().has('category', Component.category).has('name', name) \
             .project('id', 'type_id', 'rev_ids') \
-            .by(__.id()).by(__.both('cxn_component_type').id()) \
-            .by(__.both('cxn_revision').id().fold()).next()
+            .by(__.id()).by(__.both(RelationComponentType.category).id()) \
+            .by(__.both(RelationRevision.category).id().fold()).next()
  
         id, type_id, rev_ids = d['id'], d['type_id'], d['rev_ids']
 
@@ -904,8 +904,9 @@ class Component(Vertex):
         if id not in _vertex_cache:
 
             d = g.V(id).project('name', 'type_id', 'rev_ids') \
-                .by(__.values('name')).by(__.both('cxn_component_type').id()) \
-                .by(__.both('cxn_revision').id().fold()).next()
+                .by(__.values('name')) \
+                .by(__.both(RelationComponentType.category).id()) \
+                .by(__.both(RelationRevision.category).id().fold()).next()
     
             name, type_id, rev_ids = d['name'], d['type_id'], d['rev_ids']
 
@@ -915,23 +916,24 @@ class Component(Vertex):
             return _vertex_cache[id]
 
     @classmethod
-    def get_list(cls, limit: int):
+    def get_list(cls, range: tuple):
         """Return a list of Components up to a limit of :param limit: from
         the database.
 
-        :param limit: The limit of how many Components to query.
-        :type limit: int
+        :param range: The range of Components to query
+        :type limit: tuple[int, int]
         :return: A list of Component instances.
         :rtype: list[Component]
         """
 
-        cs = g.V().has('category', 'component').order().by('name', Order.asc) \
-            .limit(int(limit)) \
+        cs = g.V().has('category', Component.category) \
+            .order().by('name', Order.asc) \
+            .range(range[0], range[1]) \
             .project('id', 'name', 'type_id', 'rev_ids') \
             .by(__.id()) \
             .by(__.values('name')) \
-            .by(__.both('cxn_component_type').id()) \
-            .by(__.both('cxn_revision').id().fold()) \
+            .by(__.both(RelationComponentType.category).id()) \
+            .by(__.both(RelationRevision.category).id().fold()) \
             .toList()
 
         components = []
@@ -951,6 +953,18 @@ class Component(Vertex):
         
         return components
 
+    @classmethod
+    def get_count(cls):
+        """Return the count of components of a particular filter.
+
+        # TODO: implement filtering.
+
+        :return: The number of Components.
+        :rtype: int
+        """
+
+        return g.V().has('category', Component.category).count().next()
+
 
 class PropertyType(Vertex):
     """
@@ -967,6 +981,8 @@ class PropertyType(Vertex):
     :ivar allowed_types: The allowed component types of the property type 
     Vertex, as a list of ComponentType attributes.
     """
+
+    category: str = "property_type"
 
     name: str
     units: str
@@ -992,7 +1008,7 @@ class PropertyType(Vertex):
             # TODO: raise a custom error
             raise ValueError
 
-        Vertex.__init__(self, id=id, category="property_type")
+        Vertex.__init__(self, id=id)
 
     def add(self):
         """Add this PropertyType to the serverside.
@@ -1013,7 +1029,7 @@ class PropertyType(Vertex):
             if not ctype.added_to_db():
                 ctype.add()
 
-            e = ConnectionPropertyAllowedType(
+            e = RelationPropertyAllowedType(
                 inVertex=ctype,
                 outVertex=self
             )
@@ -1029,11 +1045,12 @@ class PropertyType(Vertex):
         :type name: str
         """
 
-        d = g.V().has('category', 'property_type').has('name', name) \
+        d = g.V().has('category', PropertyType.category).has('name', name) \
             .project('id', 'attrs', 'type_ids') \
             .by(__.id()) \
             .by(__.valueMap()) \
-            .by(__.both('cxn_property_allowed_type').id().fold()).next()
+            .by(__.both(RelationPropertyAllowedType.category).id().fold()) \
+            .next()
 
         # to access attributes from attrs, do attrs[...][0]
         id, attrs, ctype_ids = d['id'], d['attrs'], d['type_ids']
@@ -1076,7 +1093,8 @@ class PropertyType(Vertex):
 
             d = g.V(id).project('attrs', 'type_ids') \
                 .by(__.valueMap()) \
-                .by(__.both('cxn_property_allowed_type').id().fold()).next()
+                .by(__.both(RelationPropertyAllowedType.category).id().fold()) \
+                .next()
 
             # to access attributes from attrs, do attrs[...][0]
             attrs, ctype_ids = d['attrs'], d['type_ids']
@@ -1109,6 +1127,8 @@ class Property(Vertex):
     type of this property.
     """
 
+    category: str = "property"
+
     values: List[str]
     property_type: PropertyType
 
@@ -1128,7 +1148,7 @@ class Property(Vertex):
         self.values = values
         self.property_type = property_type
 
-        Vertex.__init__(self, id=id, category="property")
+        Vertex.__init__(self, id=id)
 
     def _add(self):
         """
@@ -1144,7 +1164,7 @@ class Property(Vertex):
         if not self.property_type.added_to_db():
             self.property_type.add()
 
-        e = ConnectionPropertyType(
+        e = RelationPropertyType(
             inVertex=self.property_type,
             outVertex=self
         )
@@ -1161,7 +1181,7 @@ class Property(Vertex):
             
             d = g.V(id).project('values', 'ptype_id') \
                 .by(__.values('values')) \
-                .by(__.both('cxn_property_type').id()).next()
+                .by(__.both(RelationPropertyType.category).id()).next()
 
             values, ptype_id = d['values'], d['ptype_id']
 
@@ -1182,6 +1202,8 @@ class FlagType(Vertex):
     :ivar comments: Comments about the flag type.
     """
 
+    category: str = "flag_type"
+
     name: str
     comments: str
 
@@ -1191,7 +1213,7 @@ class FlagType(Vertex):
         self.name = name
         self.comments = comments
 
-        Vertex.__init__(self, id=id, category="flag_type")
+        Vertex.__init__(self, id=id)
 
     def add(self):
         """Add this FlagType to the database.
@@ -1222,7 +1244,7 @@ class FlagType(Vertex):
         :rtype: FlagType
         """
 
-        d =  g.V().has('category', 'flag_type').has('name', name) \
+        d =  g.V().has('category', FlagType.category).has('name', name) \
             .as_('v').valueMap().as_('props').select('v').id().as_('id') \
             .select('props', 'id').next()
         
@@ -1277,6 +1299,8 @@ class Flag(Vertex):
     :ivar flag_components: A list of Component instances related to the flag.
     """
 
+    category: str = "flag"
+
     name: str
     start_time: int
     end_time: int
@@ -1299,7 +1323,7 @@ class Flag(Vertex):
         self.flag_type = flag_type
         self.flag_components = flag_components
 
-        Vertex.__init__(self=self, id=id, category="flag")
+        Vertex.__init__(self=self, id=id)
 
     def add(self):
         """
@@ -1319,7 +1343,7 @@ class Flag(Vertex):
         if not self.flag_type.added_to_db():
             self.flag_type.add()
 
-        e = ConnectionFlagType(
+        e = RelationFlagType(
             inVertex=self.flag_type,
             outVertex=self
         )
@@ -1331,7 +1355,7 @@ class Flag(Vertex):
             if not c.added_to_db():
                 c.add()
 
-            e = ConnectionFlagComponent(
+            e = RelationFlagComponent(
                 inVertex=c,
                 outVertex=self
             )
@@ -1349,12 +1373,12 @@ class Flag(Vertex):
         """
 
 
-        d = g.V().has('category', 'flag').has('name', name) \
+        d = g.V().has('category', Flag.category).has('name', name) \
             .project('id', 'attrs', 'type_id', 'component_ids') \
             .by(__.id()) \
             .by(__.valueMap()) \
-            .by(__.both('cxn_flag_type').id()) \
-            .by(__.both('cxn_flag_component').id().fold()).next()
+            .by(__.both(RelationFlagType.category).id()) \
+            .by(__.both(RelationFlagComponent.category).id().fold()).next()
 
         id, attrs, type_id, component_ids = d['id'], d['attrs'], \
             d['type_id'], d['component_ids']
@@ -1389,8 +1413,8 @@ class Flag(Vertex):
 ###############################################################################
 
 
-class ConnectionComponent(Edge):
-    """Representation of a "cxn_component" edge.
+class RelationConnection(Edge):
+    """Representation of a "rel_connection" edge.
 
     :ivar start_time: The start time of the connection.
     :ivar end_time: The end time of the connection. 
@@ -1406,6 +1430,8 @@ class ConnectionComponent(Edge):
     # User ID can be an integer, not a string.
     """
 
+    category: str = "rel_connection"
+
     start_time: float
     end_time: float
     start_uid: str
@@ -1418,8 +1444,8 @@ class ConnectionComponent(Edge):
     def __init__(
         self, inVertex: Vertex, outVertex: Vertex, start_time: float, 
         start_uid: str, start_edit_time: float, start_comments: str="",
-        end_time: float=EXISTING_CONNECTION_END_PLACEHOLDER, end_uid: str="", 
-        end_edit_time: float=EXISTING_CONNECTION_END_EDIT_PLACEHOLDER, 
+        end_time: float=EXISTING_RELATION_END_PLACEHOLDER, end_uid: str="", 
+        end_edit_time: float=EXISTING_RELATION_END_EDIT_PLACEHOLDER, 
         end_comments: str="",
         id: int=VIRTUAL_ID_PLACEHOLDER
     ):
@@ -1464,8 +1490,7 @@ class ConnectionComponent(Edge):
         self.end_comments = end_comments
         
 
-        Edge.__init__(self=self, id=id, inVertex=inVertex, outVertex=outVertex,
-        category="cxn_component")
+        Edge.__init__(self=self, id=id, inVertex=inVertex, outVertex=outVertex)
 
 
     def add(self):
@@ -1519,18 +1544,20 @@ class ConnectionComponent(Edge):
             .property('end_comments', end_comments).iterate()        
 
 
-class ConnectionProperty(Edge):
-    """Representation of a "cxn_property" edge.
+class RelationProperty(Edge):
+    """Representation of a "rel_property" edge.
 
-    :ivar start_time: The start time of the connection.
-    :ivar end_time: The end time of the connection. 
-    :ivar start_uid: The ID of the user that started the connection.
-    :ivar end_uid: The ID of the user that ended the connection.
-    :ivar start_edit_time: The time that the connection was started at.
-    :ivar end_edit_time: The time that the connection was ended at.
-    :ivar start_comments: Comments about starting the connection.
-    :ivar end_comments: Comments about ending the connection.
+    :ivar start_time: The start time of the relation.
+    :ivar end_time: The end time of the relation. 
+    :ivar start_uid: The ID of the user that started the relation.
+    :ivar end_uid: The ID of the user that ended the relation.
+    :ivar start_edit_time: The time that the relation was started at.
+    :ivar end_edit_time: The time that the relation was ended at.
+    :ivar start_comments: Comments about starting the relation.
+    :ivar end_comments: Comments about ending the relation.
     """
+
+    category: str = "rel_property"
 
     start_time: float
     end_time: float
@@ -1544,36 +1571,36 @@ class ConnectionProperty(Edge):
     def __init__(
         self, inVertex: Vertex, outVertex: Vertex, start_time: float, 
         start_uid: str, start_edit_time: float, start_comments: str="",
-        end_time: float=EXISTING_CONNECTION_END_PLACEHOLDER, end_uid: str="", 
+        end_time: float=EXISTING_RELATION_END_PLACEHOLDER, end_uid: str="", 
         end_edit_time: float=-1, end_comments: str="",
         id: int=VIRTUAL_ID_PLACEHOLDER
     ):
-        """Initialize the connection.
+        """Initialize the relation.
 
         :param inVertex: The Vertex that the edge is going into.
         :type inVertex: Vertex
         :param outVertex: The Vertex that the edge is going out of.
         :type outVertex: Vertex
-        :param start_time: The (physical) start time of the connection.
+        :param start_time: The (physical) start time of the relation.
         :type start_time: float
-        :param start_uid: The ID of the user that started the connection.
+        :param start_uid: The ID of the user that started the relation.
         :type start_uid: str
-        :param start_edit_time: When the connection start event was entered.
+        :param start_edit_time: When the relation start event was entered.
         :type start_edit_time: float
         :param start_comments: Comments regarding the starting of 
-        the connection, defaults to ""
+        the relation, defaults to ""
         :type start_comments: str, optional
-        :param end_time: The (physical) end time of the connection, 
-        defaults to EXISTING_CONNECTION_END_PLACEHOLDER
+        :param end_time: The (physical) end time of the relation, 
+        defaults to EXISTING_RELATION_END_PLACEHOLDER
         :type end_time: float, optional
-        :param end_uid: The ID of the user that ended the connection, 
+        :param end_uid: The ID of the user that ended the relation, 
         defaults to ""
         :type end_uid: str, optional
-        :param end_edit_time: When the connection end event was entered, 
-        defaults to EXISTING_CONNECTION_END_EDIT_PLACEHOLDER
+        :param end_edit_time: When the relation end event was entered, 
+        defaults to EXISTING_RELATION_END_EDIT_PLACEHOLDER
         :type end_edit_time: float, optional
         :param end_comments: Comments regarding the ending of 
-        the connection, defaults to ""
+        the relation, defaults to ""
         :type end_comments: str, optional
         """
 
@@ -1587,10 +1614,10 @@ class ConnectionProperty(Edge):
         self.end_comments = end_comments
 
         Edge.__init__(self=self, id=id, inVertex=inVertex, 
-        outVertex=outVertex, category="cxn_property")
+        outVertex=outVertex)
 
     def add(self):
-        """Add this connection to the serverside.
+        """Add this relation to the serverside.
         """
 
         Edge.add(self, attributes={
@@ -1605,19 +1632,19 @@ class ConnectionProperty(Edge):
         })
 
 
-    def end_connection(
+    def end_relation(
         self, end_time: float, 
         end_uid: str, end_edit_time: float, end_comments: str=""
     ):
-        """End the connection.
+        """End the relation.
 
-        :param end_time: The (physical) end time of the connection. 
+        :param end_time: The (physical) end time of the relation. 
         :type end_time: float
-        :param end_uid: The ID of the user that ended the connection.
+        :param end_uid: The ID of the user that ended the relation.
         :type end_uid: str
-        :param end_edit_time: When the connection ending was entered. 
+        :param end_edit_time: When the relation ending was entered. 
         :type end_edit_time: float
-        :param end_comments: Comments regarding the ending of the connection,
+        :param end_comments: Comments regarding the ending of the relation,
         defaults to ""
         :type end_comments: str, optional
         """
@@ -1627,29 +1654,33 @@ class ConnectionProperty(Edge):
         self.end_comments = end_comments
 
 
-class ConnectionRevision(Edge):
+class RelationRevision(Edge):
     """
-    Representation of a "cxn_revision" edge.
+    Representation of a "rel_revision" edge.
     """ 
+
+    category: str = "rel_revision"
 
     def __init__(
         self, inVertex: Vertex, outVertex: Vertex,
         id: int=VIRTUAL_ID_PLACEHOLDER
     ):
         Edge.__init__(self=self, id=id,
-        inVertex=inVertex, outVertex=outVertex, category="cxn_revision")
+        inVertex=inVertex, outVertex=outVertex)
 
     def add(self):
-        """Add this connection to the serverside.
+        """Add this relation to the serverside.
         """
 
         Edge.add(self, attributes={})
 
 
-class ConnectionRevisionAllowedType(Edge):
+class RelationRevisionAllowedType(Edge):
     """
-    Representation of a "cxn_revision_allowed_type" edge.
+    Representation of a "rel_revision_allowed_type" edge.
     """ 
+
+    category: str = "rel_revision_allowed_type"
 
     def __init__(
         self, inVertex: Vertex, outVertex: Vertex,
@@ -1657,39 +1688,42 @@ class ConnectionRevisionAllowedType(Edge):
     ):
         Edge.__init__(self=self, id=id,
             inVertex=inVertex, outVertex=outVertex, 
-            category="cxn_revision_allowed_type"
         )
 
     def add(self):
-        """Add this connection to the serverside.
+        """Add this relation to the serverside.
         """
 
         Edge.add(self, attributes={})
 
 
-class ConnectionComponentType(Edge):
+class RelationComponentType(Edge):
     """
-    Representation of a "cxn_component_type" edge.
+    Representation of a "rel_component_type" edge.
     """ 
+
+    category: str = "rel_component_type"
 
     def __init__(
         self, inVertex: Vertex, outVertex: Vertex, 
         id: int=VIRTUAL_ID_PLACEHOLDER
     ):
         Edge.__init__(self=self, id=id,
-        inVertex=inVertex, outVertex=outVertex, category="cxn_component_type")
+        inVertex=inVertex, outVertex=outVertex)
 
     def add(self):
-        """Add this connection to the serverside.
+        """Add this relation to the serverside.
         """
 
         Edge.add(self, attributes={})
 
 
-class ConnectionPropertyType(Edge):
+class RelationPropertyType(Edge):
     """
-    Representation of a "cxn_property_type" edge.
+    Representation of a "rel_property_type" edge.
     """ 
+
+    category: str = "rel_property_type"
 
     def __init__(
         self, inVertex: Vertex, outVertex: Vertex,
@@ -1697,20 +1731,22 @@ class ConnectionPropertyType(Edge):
     ):
         Edge.__init__(
             self=self, id=id,
-            inVertex=inVertex, outVertex=outVertex, category="cxn_property_type"
+            inVertex=inVertex, outVertex=outVertex
         )
 
     def add(self):
-        """Add this connection to the serverside.
+        """Add this relation to the serverside.
         """
 
         Edge.add(self, attributes={})
 
 
-class ConnectionPropertyAllowedType(Edge):
+class RelationPropertyAllowedType(Edge):
     """
-    Representation of a "cxn_property_allowed_type" edge.
+    Representation of a "rel_property_allowed_type" edge.
     """ 
+
+    category: str = "rel_property_allowed_type"
 
     def __init__(
         self, inVertex: Vertex, outVertex: Vertex,
@@ -1718,22 +1754,22 @@ class ConnectionPropertyAllowedType(Edge):
     ):
         Edge.__init__(
             self=self, id=id,
-            inVertex=inVertex, outVertex=outVertex, 
-            category="cxn_property_allowed_type"
+            inVertex=inVertex, outVertex=outVertex
         )
 
     def add(self):
-        """Add this connection to the serverside.
+        """Add this relation to the serverside.
         """
 
         Edge.add(self, attributes={})
 
 
-
-class ConnectionFlagComponent(Edge):
+class RelationFlagComponent(Edge):
     """
-    Representation of a "cxn_flag_component" edge.
+    Representation of a "rel_flag_component" edge.
     """ 
+
+    category: str = "rel_flag_component"
 
     def __init__(
         self, inVertex: Vertex, outVertex: Vertex, 
@@ -1741,20 +1777,21 @@ class ConnectionFlagComponent(Edge):
     ):
         Edge.__init__(
             self=self, id=id,
-            inVertex=inVertex, outVertex=outVertex, 
-            category="cxn_flag_component"
+            inVertex=inVertex, outVertex=outVertex
         )
 
     def add(self):
-        """Add this connection to the serverside."""
+        """Add this relation to the serverside."""
 
         Edge.add(self, attributes={})
 
 
-class ConnectionFlagType(Edge):
+class RelationFlagType(Edge):
     """
-    Representation of a "cxn_flag_type" edge.
+    Representation of a "rel_flag_type" edge.
     """ 
+
+    category: str = "rel_flag_type"
 
     def __init__(
         self, inVertex: Vertex, outVertex: Vertex, 
@@ -1762,10 +1799,10 @@ class ConnectionFlagType(Edge):
     ):
         Edge.__init__(
             self=self, id=id,
-            inVertex=inVertex, outVertex=outVertex, category="cxn_flag_type"
+            inVertex=inVertex, outVertex=outVertex
         )
 
     def add(self):
-        """Add this connection to the serverside."""
+        """Add this relation to the serverside."""
 
         Edge.add(self, attributes={})

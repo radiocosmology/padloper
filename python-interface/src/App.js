@@ -6,6 +6,8 @@ import './App.css';
 
 import ElementList from './ElementList.js';
 
+import ElementRangePanel from './ElementRangePanel.js';
+
 const useStyles = makeStyles((theme) => ({
   root: {
     flexGrow: 1,
@@ -25,24 +27,55 @@ function App() {
 
   const [components, setComponents] = useState([]);
 
+  const [component_min, setComponentMin] = useState(0);
+
+  const [component_count, setComponentCount] = useState(0);
+
+  const [component_range, setComponentRange] = useState(100);
+
+  const [components_loaded, setComponentsLoaded] = useState(false);
+
   useEffect(() => {
-    fetch("/components_list/&limit=100").then(res => res.json()).then(data => {
+
+    setComponentsLoaded(false);
+
+    fetch(`/api/component_list?range=${component_min},
+      ${component_min+component_range}`).then(
+        res => res.json()
+      ).then(data => {
       setComponents(data.result);
+      setComponentsLoaded(true);
+    });
+  }, [component_min, component_range]);
+
+  useEffect(() => {
+
+    fetch("/api/component_count").then(
+        res => res.json()
+      ).then(data => {
+      setComponentCount(data.result);
     });
   }, []);
 
- // 
   return (
     <div className="App">
       <AppBar position="static">
         <Toolbar>
           <Typography variant="h6" className={classes.title}>
-            HIRAX Layout DB Hello Adam
+            HIRAX Layout DB
           </Typography>
         </Toolbar>
       </AppBar>
 
-      <ElementList components={components} />
+      <ElementRangePanel 
+        min={component_min} 
+        updateMin={(n)=>{setComponentMin(n)}} 
+        range={component_range} 
+        updateRange={(n)=>{setComponentRange(n)}} 
+        count={component_count}
+      />
+
+      <ElementList components={components} loaded={components_loaded} />
 
     </div>
   );

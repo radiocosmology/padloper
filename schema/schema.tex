@@ -92,7 +92,7 @@
     %%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%
 
     \draw[edge_style] (main_component) -- (property) node[midway, below] {
-        \color{red} ``cxn_property'' \\ 
+        \color{red} ``rel_property'' \\ 
         \color{blue} ``start_time'': \color{black} num \\ 
         \color{blue} ``end_time'': \color{black} num \\ 
         \color{blue} ``start_uid'': \color{black} str \\ 
@@ -104,32 +104,32 @@
     };
 
     \draw[edge_style] (property) -- (property_type) node[midway, left] {
-        \color{red} ``cxn_property_type'' \\ 
+        \color{red} ``rel_property_type'' \\ 
         \color{black} (1 per \color{red} ``property'' \color{black})
-    };
+    };  
 
     \draw[edge_style] (property_type) -- (component_type) node[midway, below] {
-        \color{red} ``cxn_property_allowed_type'' \\ 
+        \color{red} ``rel_property_allowed_type'' \\ 
         \color{black} (\(\geq 1\) per \color{red} ``property_type'' \color{black})
     };
 
     \draw[edge_style] (main_component) -- (component_type) node[midway, anchor=center, right] {
-        \color{red} ``cxn_component_type'' \\ 
+        \color{red} ``rel_component_type'' \\ 
         \color{black} (1 per \color{red} ``component'' \color{black})
     };
 
     \draw[edge_style] (main_component) -- (component_revision) node[midway, anchor=center, auto] {
-        \color{red} ``cxn_revision'' \\ 
+        \color{red} ``rel_revision'' \\ 
         \color{black} ($\leq 1$ per \color{red} ``component'' \color{black})
     };
 
     \draw[edge_style] (component_type) -- (component_revision) node[midway, anchor=center, left] {
-        \color{red} ``cxn_revision_allowed_type'' \\ 
+        \color{red} ``rel_revision_allowed_type'' \\ 
         \color{black} (1 per \color{red} ``component_revision'' \color{black})
     };
 
     \draw[edge_style] (main_component) -- (duplicate_component) node[midway, anchor=center, left, xshift=-35] {
-        \color{red} ``cxn_component'' \\ 
+        \color{red} ``rel_connection'' \\ 
         \color{blue} ``start_time'': \color{black} num \\ 
         \color{blue} ``end_time'': \color{black} num \\ 
         \color{blue} ``start_uid'': \color{black} str \\ 
@@ -141,7 +141,7 @@
     };
 
     \draw[edge_style] (main_component) -- (duplicate_component) node[midway, anchor=center, below, yshift=-50, xshift=-6] {
-        \color{red} ``cxn_component_permanent'' \\ 
+        \color{red} ``rel_connection_permanent'' \\ 
         \color{blue} ``start_time'': \color{black} num \\ 
         \color{blue} ``start_uid'': \color{black} str \\ 
         \color{blue} ``start_edit_time'': \color{black} num \\ 
@@ -149,13 +149,13 @@
     };
 
     \draw[edge_style] (main_component) -- (flag) node[midway, anchor=center, left, yshift=-35] {
-        \color{red} ``cxn_flag_component'' \\ 
+        \color{red} ``rel_flag_component'' \\ 
         \color{black} (1 per \color{red} ``flag'' \color{black})
     };
 
 
     \draw[edge_style] (flag) -- (flag_type) node[midway, anchor=center, below, yshift=-5] {
-        \color{red} ``cxn_flag_type'' \\ 
+        \color{red} ``rel_flag_type'' \\ 
         \color{black} (1 per \color{red} ``flag'' \color{black})
     };
 
