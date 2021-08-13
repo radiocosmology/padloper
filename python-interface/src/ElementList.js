@@ -1,64 +1,126 @@
-import React, { useState, useEffect } from 'react';
 import { Paper, Box, Table, TableBody, TableRow, 
     TableHead, TableCell, TableContainer, 
-    CircularProgress } from '@material-ui/core';
+    CircularProgress,
+    TableSortLabel,
+} from '@material-ui/core';
 import { makeStyles } from '@material-ui/core/styles';
 
 const useStyles = makeStyles((theme) => ({
-    root: {
+    table: {
         marginTop: theme.spacing(1),
+        width: theme.spacing(75),
+        maxWidth: '100%',
+        marginLeft: 'auto',
+        marginRight: 'auto',
+        textAlign: 'center',
+    },
+    progressWrapper: {
         textAlign: 'center',
     },
     progress: {
         paddingTop: theme.spacing(2),
         paddingBottom: theme.spacing(2),
+    },
+    noComponentsText: {
+        padding: theme.spacing(2),
+        textAlign: 'center',
     }
 }));
 
-function createData(name, id) {
-    return { name, id };
-}  
 
-
-
-function ElementList({ components, loaded }) {
+function ElementList(
+    { components, loaded, orderBy, direction, setOrderBy, setOrderDirection }
+    ) {
     
+    const updateSort = (property) => {
+        if (orderBy === property) {
+            setOrderDirection(direction === 'asc' ? 'desc' : 'asc')
+        }
+        else {
+            setOrderBy(property)
+            setOrderDirection('asc')
+        }
+    }
+
     const classes = useStyles();
 
-    let rows = components.map((c) => createData(c.name, c.id))
+    let content = (
+        <TableRow>
+            <TableCell colSpan={3} className={classes.progressWrapper}>
+                <CircularProgress className={classes.progress} />
+            </TableCell>
+        </TableRow>
+    );
 
-    let content = <CircularProgress className={classes.progress} />;
+    const headCells = [
+        {id: 'name', label: 'Component Name', align: 'left'},
+        {id: 'component_type', label: 'Type', align: 'right'},
+        {id: 'revision', label: 'Revision', align: 'right'},
+    ];
 
     if (loaded) {
-        content = (
-        <TableContainer component={Paper} className={classes.root}>
-            <Table className={classes.table} aria-label="simple table">
-                <TableHead>
+
+        if (components.length == 0) {
+            content = (
                 <TableRow>
-                    <TableCell>Component Name</TableCell>
-                    <TableCell align="right">ID</TableCell>
-                </TableRow>
-                </TableHead>
-                <TableBody>
-                {rows.map((row) => (
-                    <TableRow key={row.name}>
-                    <TableCell component="th" scope="row">
-                        {row.name}
+                    <TableCell colSpan={3} className={classes.noComponentsText}>
+                        No components found :(
                     </TableCell>
-                    <TableCell align="right">{row.id}</TableCell>
+                </TableRow>
+            )
+        } 
+
+        else {
+            content = (
+                <>
+                    {components.map((c) => (
+                    <TableRow key={c.name}>
+                        <TableCell component="th" scope="row">
+                            {c.name}
+                        </TableCell>
+                        <TableCell align="right">
+                            {c.component_type.name}
+                        </TableCell>
+                        <TableCell align="right">
+                            {(c.revision.name == null) ? "--" : c.revision.name}
+                        </TableCell>
                     </TableRow>
-                ))}
-                </TableBody>
-            </Table>
-        </TableContainer>
-        )
+                    ))}
+                </>
+            );
+        }
     }
 
     return (
-        <Paper className={classes.root}>
-            {content}
-        </Paper>
-        
+        <TableContainer component={Paper} className={classes.table}>
+            <Table className={classes.table} size="small">
+                <TableHead>
+                    <TableRow>
+                        {
+                            headCells.map((headCell) => (
+                                <TableCell
+                                    key={headCell.id}
+                                    align={headCell.align}
+                                >
+                                    <TableSortLabel
+                                        active={orderBy === headCell.id}
+                                        direction={orderBy === headCell.id ? direction : 'asc'}
+                                        onClick={()=>{updateSort(headCell.id)}}
+                                    >   
+                                        {headCell.label}
+                                    </TableSortLabel>
+                                </TableCell>
+                            ))
+                        }
+                    </TableRow>
+                </TableHead>
+
+                <TableBody>
+                    {content}
+                </TableBody>
+                
+            </Table>
+        </TableContainer>
     )
 }
 

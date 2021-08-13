@@ -2,12 +2,11 @@
 structure.py
 
 Contains methods for storing clientside interface information.
-
 """
 
 import time
 
-from gremlin_python.process.traversal import Order, P
+from gremlin_python.process.traversal import Order, P, TextP
 from graph_connection import g
 from gremlin_python.process.graph_traversal import __   
 
@@ -262,11 +261,13 @@ class ComponentType(Vertex):
         :str comments: str  
         """
 
-        self.name = name
+        if id is not VIRTUAL_ID_PLACEHOLDER and id in _vertex_cache:
+            self = _vertex_cache[id]
 
-        self.comments = comments
-
-        Vertex.__init__(self, id=id)
+        else:
+            self.name = name
+            self.comments = comments
+            Vertex.__init__(self, id=id)
 
     def add(self):
         """Add this ComponentType vertex to the serverside.
@@ -336,6 +337,61 @@ class ComponentType(Vertex):
             )
 
         return _vertex_cache[id]
+
+    @classmethod
+    def _attrs_to_type(cls, name: str, comments: str, id: int):
+        """Given name, comments and id of a ComponentType, see if one
+        exists in the cache. If so, return the cached ComponentType.
+        Otherwise, create a new one, cache it, and return it.
+
+        :param name: The name of the ComponentType vertex
+        :type name: str
+        :param comments: Comments associated with the ComponentType vertex
+        :type comments: str
+        :param id: The ID of the ComponentType vertex.
+        :type id: int
+        """
+
+        if id not in _vertex_cache:
+            Vertex._cache_vertex(
+                ComponentType(
+                    name=name, 
+                    comments=comments, 
+                    id=id
+                )
+            )
+        
+        return _vertex_cache[id]
+
+    @classmethod
+    def get_names_of_types_and_revisions(cls):
+        """
+        Return a list of dictionaries, of the format
+        {'type': <ctypename>, 'revisions': [<revname>, ..., <revname>]}
+
+        where <ctypename> is the name of the component type, and
+        the corresponding value of the 'revisions' key is a list of the names
+        of all of the revisions.
+
+        Used for updating the filter panels.
+
+        :return: a list of dictionaries, of the format
+        {'type': <ctypename>, 'revisions': [<revname>, ..., <revname>]}
+        :rtype: list[dict]
+        """
+
+        ts = g.V().has('category', ComponentType.category) \
+            .order().by('name', Order.asc) \
+            .project('name', 'revisions') \
+            .by(__.values('name')) \
+            .by(
+                __.both(RelationRevisionAllowedType.category) \
+                    .order().by('name', Order.asc).values('name').fold()
+            ) \
+            .toList()
+
+        return ts
+            
     
 
 class ComponentRevision(Vertex):
@@ -829,7 +885,7 @@ class Component(Vertex):
         )
 
     @classmethod
-    def _name_ids_to_component(self, name, id, type_id, rev_ids):
+    def _attrs_to_component(self, name, id, type_id, rev_ids):
         """Given the name ID of the component :param id: and the ID of the 
         component type :param type_id: and a list of the IDs of the
         component revision vertices :param rev_ids:, 
@@ -891,7 +947,7 @@ class Component(Vertex):
  
         id, type_id, rev_ids = d['id'], d['type_id'], d['rev_ids']
 
-        return Component._name_ids_to_component(name, id, type_id, rev_ids)
+        return Component._attrs_to_component(name, id, type_id, rev_ids)
 
     @classmethod
     def from_id(cls, id: int):
@@ -910,25 +966,141 @@ class Component(Vertex):
     
             name, type_id, rev_ids = d['name'], d['type_id'], d['rev_ids']
 
-            return Component._name_ids_to_component(name, id, type_id, rev_ids)
+            return Component._attrs_to_component(name, id, type_id, rev_ids)
 
         else:
             return _vertex_cache[id]
 
     @classmethod
-    def get_list(cls, range: tuple):
+    def get_list(cls, 
+        range: tuple, 
+        order_by: str,
+        order_direction: str,
+        filters: list):
         """Return a list of Components up to a limit of :param limit: from
         the database.
 
         :param range: The range of Components to query
-        :type limit: tuple[int, int]
+        :type range: tuple[int, int]
+
+        :param order_by: What to order the components by. Must be in
+        {'name', 'component_type', 'revision'}
+        :type order_by: str
+
+        :param order_direction: Order the components by ascending or descending?
+        Must be in {'asc', 'desc'}
+        :type order_by: str
+
+        :param filters: A list of 3-tuples of the format (name, ctype, revision)
+        :type order_by: list
+        
         :return: A list of Component instances.
         :rtype: list[Component]
         """
 
-        cs = g.V().has('category', Component.category) \
-            .order().by('name', Order.asc) \
-            .range(range[0], range[1]) \
+        assert order_direction in {'asc', 'desc'}
+
+        assert order_by in {'name', 'component_type', 'revision'}
+
+        # if order_direction is not asc or desc, it will just sort by asc.
+        # Keep like this if removing the assert above only in production.
+        if order_direction == 'desc':
+            direction = Order.desc
+        else:
+            direction = Order.asc
+
+        traversal = g.V().has('category', Component.category)
+
+        # FILTERS
+
+        if filters is not None:
+
+            ands = []
+
+            for f in filters:
+                
+                assert len(f) == 3
+
+                contents = []
+
+                # substring of component name
+                if f[0] != "":
+                    contents.append(__.has('name', TextP.containing(f[0])))
+
+                # component type
+                if f[1] != "":
+                    contents.append(
+                        __.both(RelationComponentType.category).has(
+                            'name', 
+                            f[1]
+                        )
+                    )
+
+                    # component revision
+                    
+                    if f[2] != "":
+                        contents.append(
+                            __.both(RelationRevision.category).has(
+                                'name', 
+                                f[2]
+                            )
+                        )
+
+                if len(contents) > 0:
+                    ands.append(__.and_(*contents))
+
+            if len(ands) > 0:
+                traversal = traversal.or_(*ands)
+
+
+        # chr(0x10FFFF) is the "biggest" character in unicode
+
+        if order_by == 'revision':
+            traversal = traversal.order() \
+                .by(
+                    __.coalesce(
+                        __.both(RelationRevision.category).values('name'), 
+                        __.constant(chr(0x10FFFF))
+                    ),
+                    direction
+                ) \
+                .by('name', Order.asc) \
+                .by(
+                    __.both(RelationComponentType.category).values('name'), 
+                    Order.asc
+                )
+
+        elif order_by == 'component_type':
+            traversal = traversal.order() \
+                .by(
+                    __.both(RelationComponentType.category).values('name'), 
+                    direction
+                ) \
+                .by('name', Order.asc) \
+                .by(
+                    __.coalesce(
+                        __.both(RelationRevision.category).values('name'), 
+                        __.constant(chr(0x10FFFF))
+                    ),
+                    Order.asc
+                )
+
+        else:
+            traversal = traversal.order() \
+                .by('name', direction) \
+                .by(
+                    __.both(RelationComponentType.category).values('name'), 
+                    Order.asc
+                ) \
+                .by(
+                    __.coalesce(
+                        __.both(RelationRevision.category).values('name'), 
+                        __.constant(chr(0x10FFFF))
+                    ),
+                    Order.asc,
+                )
+
+        cs = traversal.range(range[0], range[1]) \
             .project('id', 'name', 'type_id', 'rev_ids') \
             .by(__.id()) \
             .by(__.values('name')) \
@@ -943,7 +1115,7 @@ class Component(Vertex):
                 d['type_id'], d['rev_ids']
 
             components.append(
-                Component._name_ids_to_component(
+                Component._attrs_to_component(
                     id=id, 
                     name=name, 
                     type_id=type_id,
@@ -954,16 +1126,63 @@ class Component(Vertex):
         return components
 
     @classmethod
-    def get_count(cls):
-        """Return the count of components of a particular filter.
+    def get_count(cls, filters: str):
+        """Return the count of components given a list of filters.
 
-        # TODO: implement filtering.
+        # TODO: make a helper function for putting in the filters into 
+        the traversal.
+
+        :param filters: A list of 3-tuples of the format (name, ctype, revision)
+        :type order_by: list
 
         :return: The number of Components.
         :rtype: int
         """
 
-        return g.V().has('category', Component.category).count().next()
+        traversal = g.V().has('category', Component.category)
+
+        # FILTERS
+
+        if filters is not None:
+
+            ands = []
+
+            for f in filters:
+                
+                assert len(f) == 3
+
+                contents = []
+
+                # substring of component name
+                if f[0] != "":
+                    contents.append(__.has('name', TextP.containing(f[0])))
+
+                # component type
+                if f[1] != "":
+                    contents.append(
+                        __.both(RelationComponentType.category).has(
+                            'name', 
+                            f[1]
+                        )
+                    )
+
+                    # component revision
+                    
+                    if f[2] != "":
+                        contents.append(
+                            __.both(RelationRevision.category).has(
+                                'name', 
+                                f[2]
+                            )
+                        )
+
+                if len(contents) > 0:
+                    ands.append(__.and_(*contents))
+
+            if len(ands) > 0:
+                traversal = traversal.or_(*ands)
+
+        return traversal.count().next()
 
 
 class PropertyType(Vertex):
@@ -1668,7 +1887,7 @@ class RelationRevision(Edge):
         Edge.__init__(self=self, id=id,
         inVertex=inVertex, outVertex=outVertex)
 
-    def add(self):
+    def _add(self):
         """Add this relation to the serverside.
         """
 
