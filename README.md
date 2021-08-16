@@ -1,6 +1,6 @@
 # HIRAX Layout DB
 
-A repository containing Python interface for accessing the HIRAX Layout DB.
+A repository containing Python interface for accessing the HIRAX Layout DB, as well as the code for the web interface.
 
 ## JanusGraph Installation Instructions
 
