@@ -125,6 +125,8 @@ function App() {
         res => res.json()
       ).then(data => {
       setComponentCount(data.result);
+
+      setComponentMin(0);
     });
   }, [filters]);
 
