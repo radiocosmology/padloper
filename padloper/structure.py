@@ -3,12 +3,13 @@ structure.py
 
 Contains methods for storing clientside interface information.
 """
-
 import time
 
 from gremlin_python.process.traversal import Order, P, TextP
 from graph_connection import g
 from gremlin_python.process.graph_traversal import __   
+
+from exceptions import *
 
 from typing import Optional, List
 
@@ -27,7 +28,7 @@ _vertex_cache = dict()
 
 class Element:
     """
-    The simplest element. Contains an ID, and some attributes.
+    The simplest element. Contains an ID.
 
     :ivar id: The unique identifier of the element. 
     If id is VIRTUAL_ID_PLACEHOLDER, then the 
@@ -57,7 +58,7 @@ class Element:
         """
 
         self.id = id
-
+ 
     
     def added_to_db(self) -> bool:
         """Return whether this element is added to the database,
@@ -127,6 +128,9 @@ class Vertex(Element):
             self.set_id(v.id)
 
             Vertex._cache_vertex(self)
+
+        else:
+            raise VertexAlreadyAddedError
 
 
     def _in_vertex_cache(self) -> bool:
@@ -213,22 +217,22 @@ class Edge(Element):
         :type attributes: dict
         """
 
-        if self.inVertex.added_to_db() and self.outVertex.added_to_db():
+        if not self.inVertex.added_to_db():
+            self.inVertex.add()
 
-            traversal = g.V(self.outVertex.id).addE(self.category) \
+        if not self.outVertex.added_to_db():
+            self.outVertex.add()
+
+        traversal = g.V(self.outVertex.id).addE(self.category) \
                         .to(__.V(self.inVertex.id)) \
                         .property('category', self.category)
 
-            for key in attributes:
-                traversal = traversal.property(key, attributes[key])
+        for key in attributes:
+            traversal = traversal.property(key, attributes[key])
 
-            e = traversal.next()
+        e = traversal.next()
 
-            self.id = e.id
-
-        else:
-            # RAISE NOT ADDED TO DB ERROR (or just add them maybe first?)
-            raise Exception
+        self.id = e.id
 
 
 ###############################################################################
@@ -272,11 +276,6 @@ class ComponentType(Vertex):
     def add(self):
         """Add this ComponentType vertex to the serverside.
         """
-
-        if self.added_to_db():
-
-            # TODO: CUSTOM ERROR!!
-            raise Exception
 
         attributes = {
             'name': self.name,
@@ -489,7 +488,7 @@ class ComponentRevision(Vertex):
         else:
             # TODO: RAISE CUSTOM ERROR!
 
-            raise Exception
+            raise ComponentTypeNotAddedError
 
     @classmethod
     def from_id(cls, id: int):
@@ -517,7 +516,6 @@ class ComponentRevision(Vertex):
                     id=id
                 )
             )
-
 
         return _vertex_cache[id]
 
@@ -621,9 +619,11 @@ class Component(Vertex):
         :type time: int
         """
 
-        if not self.added_to_db() or not property_type.added_to_db():
-            # RAISE ERROR 
-            raise Exception
+        if not self.added_to_db():
+            raise ComponentNotAddedError
+
+        if not property_type.added_to_db():
+            raise ComponentTypeNotAddedError
 
         # list of property vertices of this property type 
         # and active at this time
@@ -673,7 +673,7 @@ class Component(Vertex):
             
             if p.values == property.values:
                 # RAISE CUSTOM ERROR SAYING THAT PROPERTY IS ALREADY ADDED
-                raise Exception
+                raise PropertyIsSameError
 
             else:
                 # end that property.
@@ -727,12 +727,12 @@ class Component(Vertex):
         if not self.added_to_db():
             # RAISE ERROR, YOU SHOULD BE ADDED TO DB
             
-            raise Exception
+            raise ComponentNotAddedError
 
         if not property.added_to_db():
             # RAISE ERROR, PROPERTY SHOULD BE ADDED TO DB. 
 
-            raise Exception
+            raise PropertyNotAddedError
 
         g.V(property.id).bothE(RelationProperty.category).as_('e').otherV() \
             .hasId(self.id).select('e') \
@@ -763,11 +763,14 @@ class Component(Vertex):
         :type comments: str, optional
         """
 
-        if not self.added_to_db() or not component.added_to_db():
+        # Done for troubleshooting (so you know which component is not added?)
 
-            # Raise a "component not added exception"
+        if not self.added_to_db():
+            raise ComponentNotAddedError
 
-            raise Exception
+        if not component.added_to_db():
+            raise ComponentNotAddedError
+
 
         current_connection = self.get_connection(
             component=component, 
@@ -777,7 +780,7 @@ class Component(Vertex):
         if current_connection is not None:
             
             # Already connected!
-            raise Exception
+            raise ComponentsAlreadyConnectedError
 
         else:
             current_connection = RelationConnection(
@@ -813,11 +816,14 @@ class Component(Vertex):
         :type comments: str, optional
         """
 
-        if not self.added_to_db() or not component.added_to_db():
+        # Done for troubleshooting (so you know which component is not added?)
 
-            # Raise a "component not added exception"
+        if not self.added_to_db():
+            raise ComponentNotAddedError
 
-            raise Exception
+        if not component.added_to_db():
+            raise ComponentNotAddedError
+
 
         current_connection = self.get_connection(
             component=component, 
@@ -827,7 +833,7 @@ class Component(Vertex):
         if current_connection is None:
             
             # Not connected yet!
-            raise Exception
+            raise ComponentsAlreadyDisconnectedError
 
         else:
             current_connection._end_connection(
@@ -849,15 +855,12 @@ class Component(Vertex):
         :type time: int
         """
 
+        # Done for troubleshooting (so you know which component is not added?)
         if not self.added_to_db():
-            # Raise a "component not added exception"
-
-            raise Exception
+            raise ComponentNotAddedError
 
         if not component.added_to_db():
-            # Raise a "component not added exception"
-
-            raise Exception
+            raise ComponentNotAddedError
 
         e = g.V(self.id).bothE(RelationConnection.category) \
             .has('start_time', P.lte(time)) \
@@ -1225,7 +1228,7 @@ class PropertyType(Vertex):
         if len(self.allowed_types) == 0:
             
             # TODO: raise a custom error
-            raise ValueError
+            raise PropertyTypeZeroAllowedTypesError
 
         Vertex.__init__(self, id=id)
 
@@ -1360,7 +1363,7 @@ class Property(Vertex):
 
             # TODO: RAISE A CUSTOM ERROR!
 
-            raise ValueError
+            raise PropertyWrongNValuesError
 
         # TODO: Make sure it adheres to the regex.
 
@@ -1437,11 +1440,6 @@ class FlagType(Vertex):
     def add(self):
         """Add this FlagType to the database.
         """
-
-        if self.added_to_db():
-
-            # TODO: CUSTOM ERROR!!!!!1
-            raise Exception
 
         attributes = {
             'name': self.name,
@@ -1750,7 +1748,7 @@ class RelationConnection(Edge):
         if not self.added_to_db():
 
             # Edge not added to DB!
-            raise Exception
+            raise EdgeNotAddedError
 
         self.end_time = end_time
         self.end_uid = end_uid

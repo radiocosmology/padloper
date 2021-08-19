@@ -1,6 +1,6 @@
 # https://flask.palletsprojects.com/en/2.0.x/quickstart/
 
-from ..padloper.structure import *
+from padloper.structure import *
 from re import split
 from flask import Flask, request
 from flask.scaffold import F
