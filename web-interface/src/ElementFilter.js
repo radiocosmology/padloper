@@ -11,6 +11,7 @@ import React, { useState, useEffect } from 'react';
 
 import { Close } from '@material-ui/icons';
 
+// styling for the React elements 
 const useStyles = makeStyles((theme) => ({
     root: {
         marginTop: theme.spacing(1),
@@ -63,18 +64,22 @@ function ElementFilter(
     
     const classes = useStyles();
 
+    // the list of revisions for this specific element filter panel.
     const [revisions, setRevisions] = useState([]);
 
+    // update a specific value of the filter by key
     const filterUpdateKey = (key, val) => {
         let filterCopy = {...filter};
         filterCopy[key] = val;
         changeFilter(index, filterCopy);
     }
 
+    // update the name key of the filter with the value from the input field.
     const filterUpdateName = (event) => {
         filterUpdateKey('name', event.target.value);
     }
 
+    // update the type key of the filter with the value from the select field.
     const filterUpdateType = (event) => {
         if (event.target.value != -1) {
 
@@ -94,10 +99,13 @@ function ElementFilter(
         }
     }
 
+    // update the revision key of the filter with the 
+    // value from the select field.
     const filterUpdateRevision = (event) => {
         filterUpdateKey('revision', event.target.value);
     }
 
+    // render the filter
     return (
         <Paper className={classes.root}>
             <TextField 

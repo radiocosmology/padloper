@@ -13,7 +13,7 @@ import { makeStyles } from '@material-ui/core/styles';
 import { ArrowForward, ArrowBack } from '@material-ui/icons';
 
 
-
+// styling for the React elements
 const useStyles = makeStyles((theme) => ({
     root: {
         marginTop: theme.spacing(2),
@@ -66,6 +66,7 @@ function ElementRangePanel(
 
     const classes = useStyles();
 
+    // function to call when the component range is changed. is changed.
     const handleRangeChange = (event) => {
         updateRange(event.target.value);
     }
@@ -101,9 +102,10 @@ function ElementRangePanel(
 
     let numDisplayText = `Viewing ${min+1}-${max} components out of ${count}`
     if (count == 0) {
-        numDisplayText = "No components found"
+        numDisplayText = "No components found";
     }
 
+    // return the range panel.
     return (
         <Paper className={classes.root}>
             <Box component="span" className={classes.num_display}>
@@ -148,8 +150,6 @@ function ElementRangePanel(
                     <ArrowForward />
                 </Button>
             </div>
-
-            
 
             <div className={classes.filter_control_wrapper}>
                     <Button

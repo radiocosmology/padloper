@@ -17,12 +17,22 @@ class VertexAlreadyAddedError(Error):
     """
     pass
 
+
+class EdgeAlreadyAddedError(Error):
+    """
+    Exception raised when an edge is trying to be accessed that has not been
+    added to the database.
+    """
+    pass
+
+
 class EdgeNotAddedError(Error):
     """
     Exception raised when an edge is trying to be accessed that has not been
     added to the database.
     """
     pass
+
 
 class ComponentNotAddedError(Error):
     """
@@ -63,6 +73,14 @@ class ComponentsAlreadyDisconnectedError(Error):
     pass
 
 
+class PropertyTypeZeroAllowedTypesError(Error):
+    """
+    Exception raised when trying to create a property type with zero allowed
+    component types.
+    """
+    pass
+
+
 class PropertyNotAddedError(Error):
     """
     Exception raised when trying to access a property when its allowed
@@ -79,17 +97,19 @@ class PropertyIsSameError(Error):
     """
     pass
 
-class PropertyTypeZeroAllowedTypesError(Error):
-    """
-    Exception raised when trying to create a property type with zero allowed
-    component types.
-    """
-    pass
 
 class PropertyWrongNValuesError(Error):
     """
     Exception raised when trying to create a property in which the number of
     values is different from the n_values attribute of the property's
     corresponding property type.
+    """
+    pass
+
+
+class PropertyNotMatchRegexError(Error):
+    """
+    Exception raised when a value of the property does not match the
+    allowed regex of the associated property type.
     """
     pass

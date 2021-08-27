@@ -5,6 +5,7 @@ import { Paper, Box, Table, TableBody, TableRow,
 } from '@material-ui/core';
 import { makeStyles } from '@material-ui/core/styles';
 
+// styling for the react elements.
 const useStyles = makeStyles((theme) => ({
     table: {
         marginTop: theme.spacing(1),
@@ -32,6 +33,10 @@ function ElementList(
     { components, loaded, orderBy, direction, setOrderBy, setOrderDirection }
     ) {
     
+    const classes = useStyles();
+
+    // function to call when clicking on a table header to change sort.
+    // property is the name of the property that you are changing the order of.
     const updateSort = (property) => {
         if (orderBy === property) {
             setOrderDirection(direction === 'asc' ? 'desc' : 'asc')
@@ -42,8 +47,27 @@ function ElementList(
         }
     }
 
-    const classes = useStyles();
+    // the header cells of the table with their ids, labels, and how to align
+    // them. 
+    const headCells = [
+        {
+            id: 'name', 
+            label: 'Component Name', 
+            align: 'left'
+        },
+        {
+            id: 'component_type', 
+            label: 'Type', 
+            align: 'right'
+        },
+        {
+            id: 'revision', 
+            label: 'Revision', 
+            align: 'right'
+        },
+    ];
 
+    // initial contents of the table IF the component list is not loaded
     let content = (
         <TableRow>
             <TableCell colSpan={3} className={classes.progressWrapper}>
@@ -52,12 +76,7 @@ function ElementList(
         </TableRow>
     );
 
-    const headCells = [
-        {id: 'name', label: 'Component Name', align: 'left'},
-        {id: 'component_type', label: 'Type', align: 'right'},
-        {id: 'revision', label: 'Revision', align: 'right'},
-    ];
-
+    // if the components are loaded, update the contents of the table.
     if (loaded) {
 
         if (components.length == 0) {
@@ -91,6 +110,7 @@ function ElementList(
         }
     }
 
+    // return the table along with the content
     return (
         <TableContainer component={Paper} className={classes.table}>
             <Table className={classes.table} size="small">
@@ -104,7 +124,10 @@ function ElementList(
                                 >
                                     <TableSortLabel
                                         active={orderBy === headCell.id}
-                                        direction={orderBy === headCell.id ? direction : 'asc'}
+                                        direction={
+                                            orderBy === headCell.id 
+                                            ? direction : 'asc'
+                                        }
                                         onClick={()=>{updateSort(headCell.id)}}
                                     >   
                                         {headCell.label}

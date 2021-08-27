@@ -3,7 +3,7 @@ structure.py
 
 Contains methods for storing clientside interface information.
 """
-import time
+import time, re
 
 from gremlin_python.process.traversal import Order, P, TextP
 from graph_connection import g
@@ -110,8 +110,11 @@ class Vertex(Element):
         :type attributes: dict
         """
 
-        if not self.added_to_db():
-
+        # If already added.
+        if self.added_to_db(check_db=True):
+            raise VertexAlreadyAddedError
+        
+        else:
             traversal = g.addV().property('category', self.category)
 
             for key in attributes:
@@ -129,8 +132,27 @@ class Vertex(Element):
 
             Vertex._cache_vertex(self)
 
-        else:
-            raise VertexAlreadyAddedError
+    
+    def added_to_db(self, check_db: bool=False) -> bool:
+        """Return whether this vertex is added to the database,
+        that is, whether the ID is not the virtual ID placeholder.
+
+        If :param check_db: is True, actually perform a query to the database
+        to determine if the vertex has already been added.
+
+        :param check_db: Whether to query the database or not.
+        :type check_db: bool
+        :return: True if element is added to database, False otherwise.
+        :rtype: bool
+        """
+
+        # TODO: do an actual query to determine whether this is added to DB.
+
+        return (
+            self.id != VIRTUAL_ID_PLACEHOLDER and (
+                not check_db or g.V(self.id).count() == 1
+            )
+        )
 
 
     def _in_vertex_cache(self) -> bool:
@@ -163,8 +185,6 @@ class Vertex(Element):
             _vertex_cache[vertex.id] = vertex
 
         return _vertex_cache[vertex.id]
-
-
 
 
 class Edge(Element):
@@ -223,16 +243,42 @@ class Edge(Element):
         if not self.outVertex.added_to_db():
             self.outVertex.add()
 
-        traversal = g.V(self.outVertex.id).addE(self.category) \
+        if self.added_to_db(check_db=True):
+            raise EdgeAlreadyAddedError
+
+        else:
+            traversal = g.V(self.outVertex.id).addE(self.category) \
                         .to(__.V(self.inVertex.id)) \
                         .property('category', self.category)
 
-        for key in attributes:
-            traversal = traversal.property(key, attributes[key])
+            for key in attributes:
+                traversal = traversal.property(key, attributes[key])
 
-        e = traversal.next()
+            e = traversal.next()
 
-        self.id = e.id
+            self.id = e.id
+
+
+    def added_to_db(self, check_db: bool=False) -> bool:
+        """Return whether this edge is added to the database,
+        that is, whether the ID is not the virtual ID placeholder.
+
+        If :param check_db: is True, actually perform a query to the database
+        to determine if the vertex has already been added.
+
+        :param check_db: Whether to query the database or not.
+        :type check_db: bool
+        :return: True if element is added to database, False otherwise.
+        :rtype: bool
+        """
+
+        # TODO: do an actual query to determine whether this is added to DB.
+
+        return (
+            self.id != VIRTUAL_ID_PLACEHOLDER and (
+                not check_db or g.E(self.id).count() == 1
+            )
+        )
 
 
 ###############################################################################
@@ -283,6 +329,27 @@ class ComponentType(Vertex):
         }
 
         Vertex.add(self=self, attributes=attributes)
+
+    def added_to_db(self, check_db: bool=False) -> bool:
+        """Return whether this ComponentType is added to the database,
+        that is, whether the ID is not the virtual ID placeholder.
+
+        If :param check_db: is True, actually perform a query to the database
+        to determine if the vertex has already been added.
+
+        :param check_db: Whether to query the database or not.
+        :type check_db: bool
+        :return: True if element is added to database, False otherwise.
+        :rtype: bool
+        """
+
+        return (
+            self.id != VIRTUAL_ID_PLACEHOLDER and (
+                not check_db or \
+                g.V().has('category', ComponentType.category) \
+                    .has('name', self.name).count() == 1
+            )
+        )
 
     @classmethod
     def from_db(cls, name: str):
@@ -449,6 +516,29 @@ class ComponentRevision(Vertex):
 
         e.add()
 
+    def added_to_db(self, check_db: bool=False) -> bool:
+        """Return whether this ComponentRevision is added to the database,
+        that is, whether the ID is not the virtual ID placeholder.
+
+        If :param check_db: is True, actually perform a query to the database
+        to determine if the vertex has already been added.
+
+        :param check_db: Whether to query the database or not.
+        :type check_db: bool
+        :return: True if element is added to database, False otherwise.
+        :rtype: bool
+        """
+
+        return (
+            self.allowed_type.added_to_db(check_db=check_db) and 
+            self.id != VIRTUAL_ID_PLACEHOLDER and (
+                not check_db or \
+                g.V(self.allowed_type.id) \
+                .both(RelationRevisionAllowedType.category) \
+                    .has('name', self.name).count() == 1
+            )
+        )
+
     @classmethod
     def from_db(cls, name: str, allowed_type: ComponentType):
         """Query the database and return a ComponentRevision instance based on
@@ -580,6 +670,9 @@ class Component(Vertex):
     def add(self):
         """Add this Component to the serverside.
         """
+
+        if self.added_to_db(check_db=True):
+            raise VertexAlreadyAddedError
 
         attributes = {
             'name': self.name
@@ -886,6 +979,28 @@ class Component(Vertex):
             end_comments=e[0]['properties']['end_comments'],
             id=e[0]['id']['@value']['relationId'] # weird but you have to
         )
+    
+    def added_to_db(self, check_db: bool=False) -> bool:
+        """Return whether this Component is added to the database,
+        that is, whether the ID is not the virtual ID placeholder.
+
+        If :param check_db: is True, actually perform a query to the database
+        to determine if the vertex has already been added.
+
+        :param check_db: Whether to query the database or not.
+        :type check_db: bool
+        :return: True if element is added to database, False otherwise.
+        :rtype: bool
+        """
+
+        if check_db:
+            return g.V() \
+                .has('category', Component.category) \
+                    .has('name', self.name).count().next() == 1
+            
+        else:
+            return self.id != VIRTUAL_ID_PLACEHOLDER
+
 
     @classmethod
     def _attrs_to_component(self, name, id, type_id, rev_ids):
@@ -1258,6 +1373,29 @@ class PropertyType(Vertex):
 
             e.add()
 
+
+    def added_to_db(self, check_db: bool=False) -> bool:
+        """Return whether this PropertyType is added to the database,
+        that is, whether the ID is not the virtual ID placeholder.
+
+        If :param check_db: is True, actually perform a query to the database
+        to determine if the vertex has already been added.
+
+        :param check_db: Whether to query the database or not.
+        :type check_db: bool
+        :return: True if element is added to database, False otherwise.
+        :rtype: bool
+        """
+
+        return (
+            self.id != VIRTUAL_ID_PLACEHOLDER and (
+                not check_db or \
+                g.V().has('category', PropertyType.category) \
+                    .has('name', self.name).count() == 1
+            )
+        )
+
+
     @classmethod
     def from_db(cls, name: str):
         """Query the database and return a PropertyType instance based on
@@ -1365,7 +1503,11 @@ class Property(Vertex):
 
             raise PropertyWrongNValuesError
 
-        # TODO: Make sure it adheres to the regex.
+        for val in values:
+
+            # If the value does not match the property type's regex
+            if not bool(re.fullmatch(property_type.allowed_regex, val)):
+                raise PropertyNotMatchRegexError
 
         self.values = values
         self.property_type = property_type
@@ -1447,6 +1589,28 @@ class FlagType(Vertex):
         }
 
         Vertex.add(self=self, attributes=attributes)
+
+
+    def added_to_db(self, check_db: bool=False) -> bool:
+        """Return whether this FlagType is added to the database,
+        that is, whether the ID is not the virtual ID placeholder.
+
+        If :param check_db: is True, actually perform a query to the database
+        to determine if the vertex has already been added.
+
+        :param check_db: Whether to query the database or not.
+        :type check_db: bool
+        :return: True if element is added to database, False otherwise.
+        :rtype: bool
+        """
+
+        return (
+            self.id != VIRTUAL_ID_PLACEHOLDER and (
+                not check_db or \
+                g.V().has('category', FlagType.category) \
+                    .has('name', self.name).count() == 1
+            )
+        )
 
 
     @classmethod
