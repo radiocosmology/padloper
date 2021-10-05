@@ -2,6 +2,28 @@
 
 A repository containing Python interface for accessing the HIRAX Layout DB, as well as the code for the web interface.
 
+## How to start everything up
+
+Assuming that JanusGraph is installed and configured (see section below), we can start the JanusGraph server, followed by the Flask server, and then the React server for testing.
+
+To start the JanusGraph server, do
+```
+cd janusgraph-full-0.5.3/
+bin/janusgraph.sh start
+```
+
+Once the JanusGraph server is started, we start the Flask server:
+```
+cd flask-interface/
+flask run --no-debugger
+```
+
+Finally, we start the React server:
+```
+cd web-interface/
+npm start
+```
+
 ## JanusGraph Installation Instructions
 
 The following steps outline how to install [JanusGraph](https://janusgraph.org/) along with the [Apache Cassandra](https://cassandra.apache.org/) storage backend and the [Elasticsearch](https://www.elastic.co/elasticsearch/) indexing backend, as well as setting up [Gremlin-Python](https://pypi.org/project/gremlinpython/), which is used for querying the JanusGraph backend from a Python interface. The operating system used is Windows 10 running Windows Subsystem for Linux using Ubuntu 20.04.2 LTS, however the following instructions will work for native Ubuntu 20.04.2 LTS.
