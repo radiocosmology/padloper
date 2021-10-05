@@ -113,3 +113,10 @@ class PropertyNotMatchRegexError(Error):
     allowed regex of the associated property type.
     """
     pass
+
+class UnassignedError(Error):
+    """
+    Exception raised when something unexpected occurs, but should still
+    have an error.
+    """
+    pass
