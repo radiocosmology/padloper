@@ -712,7 +712,7 @@ class Component(Vertex):
         id: int=VIRTUAL_ID_PLACEHOLDER
         ):
         """
-        Initialize the ComponentRevision vertex.
+        Initialize the Component vertex.
 
         :param name: The name of the component revision. 
         :param type: A ComponentType instance representing the type of the
