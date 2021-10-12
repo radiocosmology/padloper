@@ -50,7 +50,9 @@ def get_component_by_id(id):
 
 @app.route("/api/components_name/<name>")
 def get_component_by_name(name):
-    return str(Component.from_db(str(escape(name))))
+    return {
+        'result': Component.get_as_dict(str(escape(name)))
+    }
 
 @app.route("/api/component_list")
 def get_component_list():

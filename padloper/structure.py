@@ -1371,6 +1371,26 @@ class Component(Vertex):
 
         return traversal.count().next()
 
+    @classmethod
+    def get_as_dict(cls, name: str):
+        """Return a dictionary representation of this Componenet.
+
+        :param name: The name attribute of the Component
+        :type name: str
+
+        :return: A dictionary representation of this Components's attributes.
+        :rtype: dict
+        """
+
+        c = Component.from_db(name)
+
+        return {
+            'name': c.name,
+            'type': {
+                'name': c.component_type.name,
+            }
+        }
+
 
 class PropertyType(Vertex):
     """

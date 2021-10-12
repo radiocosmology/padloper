@@ -1,9 +1,10 @@
 import { Paper, Box, Table, TableBody, TableRow, 
     TableHead, TableCell, TableContainer, 
     CircularProgress,
-    TableSortLabel,
+    TableSortLabel
 } from '@material-ui/core';
 import { makeStyles } from '@material-ui/core/styles';
+import { BrowserRouter as Router, Link } from "react-router-dom";
 
 // styling for the react elements.
 const useStyles = makeStyles((theme) => ({
@@ -95,7 +96,9 @@ function ElementList(
                     {components.map((c) => (
                     <TableRow key={c.name}>
                         <TableCell component="th" scope="row">
-                            {c.name}
+                            <Link to={`/component/${c.name}`}>
+                                    {c.name}
+                            </Link>
                         </TableCell>
                         <TableCell align="right">
                             {c.component_type.name}
