@@ -4,8 +4,6 @@ import {
     Paper, 
 } from '@material-ui/core';
 
-
-
 import {
     useParams
 } from "react-router-dom";

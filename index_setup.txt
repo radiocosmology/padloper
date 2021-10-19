@@ -21,7 +21,7 @@ connection = mgmt.makeEdgeLabel('connection').make()
 
 mgmt.buildIndex('byCategoryComposite', Vertex.class).addKey(category).buildCompositeIndex()
 mgmt.buildIndex('byCategoryAndNameMixed', Vertex.class).addKey(category).addKey(name).buildMixedIndex("search")
-mgmt.buildIndex('byNameComposite', Vertex.class).addKey(name).unique().buildCompositeIndex()
+mgmt.buildIndex('byNameComposite', Vertex.class).addKey(name).buildCompositeIndex()
 mgmt.buildIndex('startAndEndMixed', Edge.class).addKey(start).addKey(end).indexOnly(connection).buildMixedIndex("search")
 mgmt.commit()
 

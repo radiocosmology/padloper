@@ -1,10 +1,10 @@
 import React, { useState, useEffect } from 'react';
-import { Button, AppBar, Toolbar, IconButton, Typography } from '@material-ui/core';
 import { makeStyles } from '@material-ui/core/styles';
 import './App.css';
 
 import ComponentList from './ComponentList.js';
 import ComponentPage from './ComponentPage.js';
+import Header from './Header.js';
 
 import {
   BrowserRouter as Router,
@@ -33,22 +33,14 @@ function App() {
     <div className="App">
       <Router>
 
-        <AppBar position="static">
-          <Toolbar>
-            <Typography variant="h6" className={classes.title}>
-              HIRAX Layout DB
-            </Typography>
-          </Toolbar>
-        </AppBar>
+        <Header />
 
         <Switch>
-          <Route exact={true} path="/">
+          <Route exact={true} path="/list/component">
             <ComponentList />
           </Route>
           <Route path="/component/:name">
-            <h3>
-              <ComponentPage />
-            </h3>
+            <ComponentPage />
           </Route>
         </Switch>
 
