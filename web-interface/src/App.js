@@ -3,6 +3,7 @@ import { makeStyles } from '@material-ui/core/styles';
 import './App.css';
 
 import ComponentList from './ComponentList.js';
+import ComponentTypeList from './ComponentTypeList.js';
 import ComponentPage from './ComponentPage.js';
 import Header from './Header.js';
 
@@ -38,6 +39,9 @@ function App() {
         <Switch>
           <Route exact={true} path="/list/component">
             <ComponentList />
+          </Route>
+          <Route exact={true} path="/list/component-types">
+            <ComponentTypeList />
           </Route>
           <Route path="/component/:name">
             <ComponentPage />

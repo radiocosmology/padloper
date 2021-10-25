@@ -471,8 +471,102 @@ class ComponentType(Vertex):
             .toList()
 
         return ts
-            
-    
+
+
+    @classmethod
+    def get_list(
+        cls, 
+        range: tuple, 
+        order_by: str,
+        order_direction: str, 
+        name_substring: str
+        ):
+        """
+        Return a list of ComponentTypes based in the range :param range:,
+        based on the filters in :param filters:, and order them based on 
+        :param order_by: in the direction :param order_direction:.
+
+        :param range: The range of ComponentTypes to query
+        :type range: tuple[int, int]
+
+        :param order_by: What to order the component types by. Must be in
+        {'name'}
+        :type order_by: str
+
+        :param order_direction: Order the component tyoes by 
+        ascending or descending?
+        Must be in {'asc', 'desc'}
+        :type order_by: str
+
+        :param name_substring: What substring of the name property of the
+        component type to filter by.
+        :type name_substring: str
+        
+        :return: A list of ComponentType instances.
+        :rtype: list[ComponentType]
+        """
+
+        assert order_direction in {'asc', 'desc'}
+
+        assert order_by in {'name', 'component_type', 'revision'}
+
+        traversal = g.V().has('category', ComponentType.category) \
+            .has('name', TextP.containing(name_substring))
+        
+        # if order_direction is not asc or desc, it will just sort by asc.
+        # Keep like this if removing the assert above only in production.
+        if order_direction == 'desc':
+            direction = Order.desc
+        else:
+            direction = Order.asc
+
+        # How to order the component types.
+        if order_by == 'name':
+            traversal = traversal.order().by('name', direction)
+
+        # Component type query to DB
+        cts = traversal.range(range[0], range[1]) \
+            .project('id', 'name', 'comments') \
+            .by(__.id()) \
+            .by(__.values('name')) \
+            .by(__.values('comments')) \
+            .toList()
+
+        component_types = []
+
+        for entry in cts:
+            id, name, comments = entry['id'], entry['name'], entry['comments']
+
+
+            component_types.append(
+                ComponentType._attrs_to_type(
+                    id=id, 
+                    name=name,
+                    comments=comments
+                )
+            )
+        
+        return component_types
+
+
+    @classmethod
+    def get_count(cls, name_substring: str):
+        """Return the count of ComponentTypes given a substring of the name
+        property.
+
+        :param name_substring: A substring of the name property of the
+        ComponentType
+        :type name_substring: str
+
+        :return: The number of ComponentTypes that contain 
+        :param name_substring: as a substring in the name property.
+        :rtype: int
+        """
+
+        return g.V().has('category', ComponentType.category) \
+            .has('name', TextP.containing(name_substring)) \
+            .count().next()
+
 
 class ComponentRevision(Vertex):
     """
@@ -1164,8 +1258,10 @@ class Component(Vertex):
         order_by: str,
         order_direction: str,
         filters: list):
-        """Return a list of Components up to a limit of :param limit: from
-        the database.
+        """
+        Return a list of Components based in the range :param range:,
+        based on the filters in :param filters:, and order them based on 
+        :param order_by: in the direction :param order_direction:.
 
         :param range: The range of Components to query
         :type range: tuple[int, int]

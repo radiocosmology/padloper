@@ -3,6 +3,12 @@ import React, { useState, useEffect } from 'react';
 import ElementList from './ElementList.js';
 import ElementRangePanel from './ElementRangePanel.js';
 import ElementFilter from './ElementFilter.js';
+import { Link } from "react-router-dom";
+
+import { 
+    Button, 
+    } 
+    from '@material-ui/core';
 
 function ComponentList() {
 
@@ -178,6 +184,34 @@ function ComponentList() {
         });
     }, []);
 
+    // the header cells of the table with their ids, labels, and how to align
+    // them. 
+    const tableHeadCells = [
+        {
+            id: 'name', 
+            label: 'Component Name',
+            allowOrdering: true,
+        },
+        {
+            id: 'component_type', 
+            label: 'Type',
+            allowOrdering: true,
+        },
+        {
+            id: 'revision', 
+            label: 'Revision',
+            allowOrdering: true,
+        },
+    ];
+
+    let tableRowContent = components.map((c) => [
+        <Link to={`/component/${c.name}`}>
+            {c.name}
+        </Link>,
+        c.component_type.name,
+        c.revision.name,
+    ]);
+
     return (
         <>
             <ElementRangePanel
@@ -186,7 +220,17 @@ function ComponentList() {
                 range={component_range}
                 updateRange={(n) => { setComponentRange(n) }}
                 count={component_count}
-                addFilter={addFilter}
+                rightColumn={
+                    (
+                        <Button
+                            variant="contained"
+                            color="primary"
+                            onClick={addFilter}
+                        >
+                            Add Filter
+                        </Button>
+                    )
+                }
             />
 
             {
@@ -205,12 +249,13 @@ function ComponentList() {
             }
 
             <ElementList
-                components={components}
+                tableRowContent={tableRowContent}
                 loaded={components_loaded}
                 orderBy={components_orderBy}
                 direction={components_orderDirection}
                 setOrderBy={setComponentsOrderBy}
                 setOrderDirection={setComponentsOrderDirection}
+                tableHeadCells={tableHeadCells}
             />
         </>
 

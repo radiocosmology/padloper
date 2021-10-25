@@ -10,7 +10,7 @@ import {
 
 import { makeStyles } from '@material-ui/core/styles';
 
-import { ArrowForward, ArrowBack } from '@material-ui/icons';
+import { ArrowForward, ArrowBack, Autorenew } from '@material-ui/icons';
 
 
 // styling for the React elements
@@ -23,16 +23,17 @@ const useStyles = makeStyles((theme) => ({
         marginBottom: theme.spacing(1),
         textAlign: 'center',
         display: 'grid',
-        rowGap: theme.spacing(0.5),
-
+        justifyContent: 'space-between',
+        rowGap: theme.spacing(1),
         width: theme.spacing(75),
         maxWidth: '100%',
-        marginRight: 'auto',
-        marginLeft: 'auto',
+        margin: 'auto',
     },
-    num_display: {
+    num_display_wrapper: {
         gridRow: '1',
-        gridColumn: '1 / 3',
+        gridColumn: '1',
+        margin: 'auto',
+        paddingTop: theme.spacing(1),
     },
     range_select: {
         marginRight: theme.spacing(1),
@@ -41,14 +42,20 @@ const useStyles = makeStyles((theme) => ({
     change_range_button: {
         marginRight: theme.spacing(1),
         marginLeft: theme.spacing(1),
+        padding: theme.spacing(2),
     },
     range_wrapper: {
         gridRow: '2',
-        gridColumn: '1',
+        gridColumn: '1 / 2',
+        margin: 'auto',
     },
-    filter_control_wrapper: {
-        gridRow: '2',
+    right_column_wrapper: {
+        gridRow: '1 / 3',
         gridColumn: '2',
+        marginLeft: theme.spacing(2),
+        marginRight: theme.spacing(2),
+        marginTop: 'auto',
+        marginBottom: 'auto',
     },
     
 }));
@@ -60,7 +67,7 @@ function ElementRangePanel(
             range, 
             updateRange, 
             count, 
-            addFilter,
+            rightColumn,
         }
     ) {
 
@@ -100,17 +107,17 @@ function ElementRangePanel(
         max = count;
     }
 
-    let numDisplayText = `Viewing ${min+1}-${max} components out of ${count}`
+    let numDisplayText = `Viewing ${min+1}-${max} out of ${count}`
     if (count == 0) {
-        numDisplayText = "No components found";
+        numDisplayText = "No objects found";
     }
 
     // return the range panel.
     return (
         <Paper className={classes.root}>
-            <Box component="span" className={classes.num_display}>
+            <div component="span" className={classes.num_display_wrapper}>
                 {numDisplayText}
-            </Box>
+            </div>
             <div className={classes.range_wrapper}>
                 <Button 
                     color="primary" 
@@ -137,7 +144,7 @@ function ElementRangePanel(
                     <MenuItem value={50}>50</MenuItem>
                     <MenuItem value={100}>100</MenuItem>
                 </Select>
-                components at a time
+                at a time
 
                 <Button 
                     color="primary" 
@@ -151,15 +158,9 @@ function ElementRangePanel(
                 </Button>
             </div>
 
-            <div className={classes.filter_control_wrapper}>
-                    <Button
-                        variant="contained"
-                        color="primary"
-                        onClick={addFilter}
-                    >
-                        Add Filter
-                    </Button>
-                </div>
+            <div className={classes.right_column_wrapper}>
+                {rightColumn}
+            </div>
         </Paper>
     )
 }

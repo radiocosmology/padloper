@@ -39,11 +39,6 @@ def read_filters(filters):
 def hello_world():
     return "Hello, World!"
 
-@app.route("/api/graph")
-def graph_load():
-
-    return {'a': f'{g.V().toList()}'}
-
 @app.route("/api/components_id/<id>")
 def get_component_by_id(id):
     return str(Component.from_id(escape(id)))
@@ -115,8 +110,44 @@ def get_component_types_and_revisions():
 
     types = ComponentType.get_names_of_types_and_revisions()
 
-    print(types)
+    return {'result': types}
+
+
+@app.route("/api/component_type_list")
+def get_component_type_list():
+    component_range = escape(request.args.get('range'))
+    order_by = escape(request.args.get('orderBy'))
+    order_direction = escape(request.args.get('orderDirection'))
+    name_substring = escape(request.args.get('nameSubstring'))
+
+    range_bounds = tuple(map(int, component_range.split(';')))
+
+    # A bunch of assertions to make sure everything is as intended.
+    assert len(range_bounds) == 2
+    assert order_by in {'name'}
+    assert order_direction in {'asc', 'desc'}
+
+    component_types = ComponentType.get_list(
+        range=range_bounds, 
+        order_by=order_by,
+        order_direction=order_direction,
+        name_substring=name_substring
+    )
 
     return {
-        'result': types
+        'result': [
+            {
+                'name': c.name, 
+                'id': c.id,
+                'comments': c.comments
+            }   
+            for c in component_types
+        ] 
     }
+
+@app.route("/api/component_type_count")
+def get_component_type_count():
+    
+    name_substring = escape(request.args.get('nameSubstring'))
+
+    return {'result': ComponentType.get_count(name_substring=name_substring)}

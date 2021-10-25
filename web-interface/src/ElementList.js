@@ -4,7 +4,7 @@ import { Paper, Box, Table, TableBody, TableRow,
     TableSortLabel
 } from '@material-ui/core';
 import { makeStyles } from '@material-ui/core/styles';
-import { BrowserRouter as Router, Link } from "react-router-dom";
+import { Link } from "react-router-dom";
 
 // styling for the react elements.
 const useStyles = makeStyles((theme) => ({
@@ -23,7 +23,7 @@ const useStyles = makeStyles((theme) => ({
         paddingTop: theme.spacing(2),
         paddingBottom: theme.spacing(2),
     },
-    noComponentsText: {
+    noElementsText: {
         padding: theme.spacing(2),
         textAlign: 'center',
     }
@@ -31,7 +31,15 @@ const useStyles = makeStyles((theme) => ({
 
 
 function ElementList(
-    { components, loaded, orderBy, direction, setOrderBy, setOrderDirection }
+    { 
+        tableRowContent, 
+        tableHeadCells,
+        loaded, 
+        orderBy, 
+        direction, 
+        setOrderBy, 
+        setOrderDirection
+        }
     ) {
     
     const classes = useStyles();
@@ -48,43 +56,23 @@ function ElementList(
         }
     }
 
-    // the header cells of the table with their ids, labels, and how to align
-    // them. 
-    const headCells = [
-        {
-            id: 'name', 
-            label: 'Component Name', 
-            align: 'left'
-        },
-        {
-            id: 'component_type', 
-            label: 'Type', 
-            align: 'right'
-        },
-        {
-            id: 'revision', 
-            label: 'Revision', 
-            align: 'right'
-        },
-    ];
-
-    // initial contents of the table IF the component list is not loaded
+    // initial contents of the table IF the element list is not loaded
     let content = (
-        <TableRow>
+        <TableRow>  
             <TableCell colSpan={3} className={classes.progressWrapper}>
                 <CircularProgress className={classes.progress} />
             </TableCell>
         </TableRow>
     );
 
-    // if the components are loaded, update the contents of the table.
+    // if the elements are loaded, update the contents of the table.
     if (loaded) {
 
-        if (components.length == 0) {
+        if (tableRowContent.length == 0) {
             content = (
                 <TableRow>
-                    <TableCell colSpan={3} className={classes.noComponentsText}>
-                        No components found :(
+                    <TableCell colSpan={3} className={classes.noElementsText}>
+                        No objects found :(
                     </TableCell>
                 </TableRow>
             )
@@ -93,20 +81,18 @@ function ElementList(
         else {
             content = (
                 <>
-                    {components.map((c) => (
-                    <TableRow key={c.name}>
-                        <TableCell component="th" scope="row">
-                            <Link to={`/component/${c.name}`}>
-                                    {c.name}
-                            </Link>
-                        </TableCell>
-                        <TableCell align="right">
-                            {c.component_type.name}
-                        </TableCell>
-                        <TableCell align="right">
-                            {(c.revision.name == null) ? "--" : c.revision.name}
-                        </TableCell>
-                    </TableRow>
+                    {tableRowContent.map((row) => (
+                        <TableRow>
+                            {
+                                row.map((c, index) => (
+                                    <TableCell 
+                                        align={(index == 0) ? "left" : "right"}
+                                    >
+                                        {(c == null) ? "--" : c}
+                                    </TableCell>
+                                ))
+                            }
+                        </TableRow>
                     ))}
                 </>
             );
@@ -120,21 +106,31 @@ function ElementList(
                 <TableHead>
                     <TableRow>
                         {
-                            headCells.map((headCell) => (
+                            tableHeadCells.map((headCell, index) => (
                                 <TableCell
                                     key={headCell.id}
-                                    align={headCell.align}
+                                    align={(index == 0) ? 'left' : 'right'}
                                 >
-                                    <TableSortLabel
-                                        active={orderBy === headCell.id}
-                                        direction={
-                                            orderBy === headCell.id 
-                                            ? direction : 'asc'
-                                        }
-                                        onClick={()=>{updateSort(headCell.id)}}
-                                    >   
-                                        {headCell.label}
-                                    </TableSortLabel>
+                                    {
+                                        (headCell.allowOrdering) ? (
+                                            <TableSortLabel
+                                                active={orderBy === headCell.id}
+                                                direction={
+                                                    orderBy === headCell.id 
+                                                    ? direction : 'asc'
+                                                }
+                                                onClick={
+                                                    () => {
+                                                        updateSort(headCell.id)
+                                                    }
+                                                }
+                                            >   
+                                                {headCell.label}
+                                            </TableSortLabel>
+                                        ) : (
+                                            headCell.label
+                                        )
+                                    }
                                 </TableCell>
                             ))
                         }
