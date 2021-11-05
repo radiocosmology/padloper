@@ -4,6 +4,7 @@ import './App.css';
 
 import ComponentList from './ComponentList.js';
 import ComponentTypeList from './ComponentTypeList.js';
+import ComponentRevisionList from './ComponentRevisionList.js';
 import ComponentPage from './ComponentPage.js';
 import Header from './Header.js';
 
@@ -43,6 +44,10 @@ function App() {
           <Route exact={true} path="/list/component-types">
             <ComponentTypeList />
           </Route>
+          <Route exact={true} path="/list/component-revisions">
+            <ComponentRevisionList />
+          </Route>
+          
           <Route path="/component/:name">
             <ComponentPage />
           </Route>

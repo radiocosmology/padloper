@@ -7,7 +7,7 @@ import {
     } 
 from '@material-ui/core';
 
-function ComponentTypeList() {
+function ComponentRevisionList() {
     
     // the list of component types in objects representation
     const [elements, setElements] = useState([]);
@@ -46,7 +46,7 @@ function ComponentTypeList() {
         setLoaded(false);
 
         // create the URL query string
-        let input = '/api/component_type_list'
+        let input = '/api/component_revision_list'
         input += `?range=${min};${min + range}`
         input += `&orderBy=${orderBy}`
         input += `&orderDirection=${orderDirection}`
@@ -73,7 +73,9 @@ function ComponentTypeList() {
     */
     useEffect(() => {
 
-        fetch(`/api/component_type_count?nameSubstring=${nameSubstring}`).then(
+        fetch(
+            `/api/component_revision_count?nameSubstring=${nameSubstring}`
+            ).then(
             res => res.json()
         ).then(data => {
             setCount(data.result);
@@ -89,7 +91,7 @@ function ComponentTypeList() {
     const tableHeadCells = [
         {
             id: 'name', 
-            label: 'Component Type Name',
+            label: 'Component Revision',
             allowOrdering: true,
         },
         {
@@ -97,11 +99,17 @@ function ComponentTypeList() {
             label: 'Comments',
             allowOrdering: false,
         },
+        {
+            id: 'allowed_type', 
+            label: 'Allowed Type',
+            allowOrdering: true,
+        },
     ];
 
     let tableRowContent = elements.map((e) => [
         e.name,
         e.comments,
+        e.allowed_type.name
     ]);
 
     return (
@@ -139,4 +147,4 @@ function ComponentTypeList() {
     )
 }
 
-export default ComponentTypeList;
+export default ComponentRevisionList;

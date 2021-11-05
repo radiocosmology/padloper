@@ -55,7 +55,7 @@ def get_component_list():
     
     range_bounds = tuple(map(int, component_range.split(';')))
 
-    assert len(range_bounds) == 2
+    
 
     order_by = escape(request.args.get('orderBy'))
 
@@ -65,8 +65,8 @@ def get_component_list():
 
     filter_triples = read_filters(filters)
 
-    assert order_by in {'name', 'component_type', 'revision'} \
-        and order_direction in {'asc', 'desc'}
+    assert len(range_bounds) == 2
+    assert order_direction in {'asc', 'desc'}
 
     components = Component.get_list(
         range=range_bounds, 
@@ -124,9 +124,9 @@ def get_component_type_list():
 
     # A bunch of assertions to make sure everything is as intended.
     assert len(range_bounds) == 2
-    assert order_by in {'name'}
     assert order_direction in {'asc', 'desc'}
 
+    # query to padloper
     component_types = ComponentType.get_list(
         range=range_bounds, 
         order_by=order_by,
@@ -145,9 +145,56 @@ def get_component_type_list():
         ] 
     }
 
+
 @app.route("/api/component_type_count")
 def get_component_type_count():
     
     name_substring = escape(request.args.get('nameSubstring'))
 
     return {'result': ComponentType.get_count(name_substring=name_substring)}
+
+
+@app.route("/api/component_revision_list")
+def get_component_revision_list():
+    list_range = escape(request.args.get('range'))
+    order_by = escape(request.args.get('orderBy'))
+    order_direction = escape(request.args.get('orderDirection'))
+    name_substring = escape(request.args.get('nameSubstring'))
+
+    range_bounds = tuple(map(int, list_range.split(';')))
+
+    # A bunch of assertions to make sure everything is as intended.
+    assert len(range_bounds) == 2
+    assert order_direction in {'asc', 'desc'}
+
+    # query to padloper
+    component_revisions = ComponentRevision.get_list(
+        range=range_bounds, 
+        order_by=order_by,
+        order_direction=order_direction,
+        name_substring=name_substring
+    )
+
+    return {
+        'result': [
+            {
+                'name': c.name, 
+                'id': c.id,
+                'comments': c.comments,
+                'allowed_type': {
+                    'name': c.allowed_type.name,
+                    'comments': c.allowed_type.comments,
+                },
+            }   
+            for c in component_revisions
+        ] 
+    }
+
+@app.route("/api/component_revision_count")
+def get_component_revision_count():
+    
+    name_substring = escape(request.args.get('nameSubstring'))
+
+    return {
+        'result': ComponentRevision.get_count(name_substring=name_substring)
+        }

@@ -204,6 +204,7 @@ function ComponentList() {
         },
     ];
 
+    // 
     let tableRowContent = components.map((c) => [
         <Link to={`/component/${c.name}`}>
             {c.name}

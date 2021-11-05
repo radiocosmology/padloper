@@ -508,7 +508,7 @@ class ComponentType(Vertex):
 
         assert order_direction in {'asc', 'desc'}
 
-        assert order_by in {'name', 'component_type', 'revision'}
+        assert order_by in {'name'}
 
         traversal = g.V().has('category', ComponentType.category) \
             .has('name', TextP.containing(name_substring))
@@ -677,6 +677,40 @@ class ComponentRevision(Vertex):
             )
         )
 
+
+    @classmethod
+    def _attrs_to_revision(
+            cls, 
+            name: str, 
+            comments: str,
+            allowed_type: ComponentType, 
+            id: int
+        ):
+        """Given name, comments and id of a ComponentType, see if one
+        exists in the cache. If so, return the cached ComponentType.
+        Otherwise, create a new one, cache it, and return it.
+
+        :param name: The name of the ComponentType vertex
+        :type name: str
+        :param comments: Comments associated with the ComponentType vertex
+        :type comments: str
+        :param id: The ID of the ComponentType vertex.
+        :type id: int
+        """
+
+        if id not in _vertex_cache:
+            Vertex._cache_vertex(
+                ComponentRevision(
+                    name=name,
+                    comments=comments,
+                    allowed_type=allowed_type,
+                    id=id
+                )
+            )
+        
+        return _vertex_cache[id]
+
+
     @classmethod
     def from_db(cls, name: str, allowed_type: ComponentType):
         """Query the database and return a ComponentRevision instance based on
@@ -732,7 +766,7 @@ class ComponentRevision(Vertex):
         if id not in _vertex_cache:
 
             d = g.V(id).project('attrs', 'type_id').by(__.valueMap()) \
-                .by(__.id()).next()
+                .by(__.both(RelationRevisionAllowedType.category).id()).next()
 
             t = ComponentType.from_id(d['type_id'])
 
@@ -746,6 +780,119 @@ class ComponentRevision(Vertex):
             )
 
         return _vertex_cache[id]
+
+
+    @classmethod
+    def get_list(
+        cls, 
+        range: tuple, 
+        order_by: str,
+        order_direction: str, 
+        name_substring: str
+        ):
+        """
+        Return a list of ComponentRevisions based in the range :param range:,
+        based on the name substring :param name_substring:, 
+        and order them based on  :param order_by: in the direction 
+        :param order_direction:.
+
+        :param range: The range of ComponentRevisions to query
+        :type range: tuple[int, int]
+
+        :param order_by: What to order the component revisions by. Must be in
+        {'name', 'allowed_type'}
+        :type order_by: str
+
+        :param order_direction: Order the component revisions by 
+        ascending or descending?
+        Must be in {'asc', 'desc'}
+        :type order_by: str
+
+        :param name_substring: What substring of the name property of the
+        component revision to filter by.
+        :type name_substring: str
+        
+        :return: A list of ComponentRevision instances.
+        :rtype: list[ComponentType]
+        """
+
+        assert order_direction in {'asc', 'desc'}
+
+        assert order_by in {'name', 'allowed_type'}
+
+        traversal = g.V().has('category', ComponentRevision.category) \
+            .has('name', TextP.containing(name_substring))
+        
+        # if order_direction is not asc or desc, it will just sort by asc.
+        # Keep like this if removing the assert above only in production.
+        if order_direction == 'desc':
+            direction = Order.desc
+        else:
+            direction = Order.asc
+
+        # How to order the component types.
+        if order_by == 'name':
+            traversal = traversal.order().by('name', direction) \
+                .by(
+                    __.both(
+                        RelationRevisionAllowedType.category
+                    ).values('name'),
+                    Order.asc
+                )
+        elif order_by == 'allowed_type':
+            traversal = traversal.order().by(
+                    __.both(
+                        RelationRevisionAllowedType.category
+                    ).values('name'),
+                    direction
+                ).by('name', Order.asc)
+
+        # Component type query to DB
+        cts = traversal.range(range[0], range[1]) \
+            .project('id', 'name', 'comments', 'type_id') \
+            .by(__.id()) \
+            .by(__.values('name')) \
+            .by(__.values('comments')) \
+            .by(__.both(RelationRevisionAllowedType.category).id()) \
+            .toList()
+
+        component_revisions = []
+
+        for entry in cts:
+            id, name, comments, type_id = entry['id'], entry['name'], \
+                entry['comments'], entry['type_id']
+
+            t = ComponentType.from_id(id=type_id)
+
+            component_revisions.append(
+                ComponentRevision._attrs_to_revision(
+                    id=id, 
+                    name=name,
+                    comments=comments,
+                    allowed_type=t
+                )
+            )
+        
+        return component_revisions
+
+
+    @classmethod
+    def get_count(cls, name_substring: str):
+        """Return the count of ComponentRevisions given a substring of the name
+        property.
+
+        :param name_substring: A substring of the name property of the
+        ComponentRevision
+        :type name_substring: str
+
+        :return: The number of ComponentRevisions that contain 
+        :param name_substring: as a substring in the name property.
+        :rtype: int
+        """
+
+        return g.V().has('category', ComponentRevision.category) \
+            .has('name', TextP.containing(name_substring)) \
+            .count().next()
 
 
 class Component(Vertex):

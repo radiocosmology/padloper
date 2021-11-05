@@ -6,15 +6,15 @@ if __name__ == "__main__":
 
     types_count = 10
 
-    revisions_per_type_count = 5
+    revisions_per_type_count = 50
 
-    components_per_revision_count = 5
+    components_per_revision_count = 20
 
     for i in range(types_count):
         t = ComponentType(name=f"TYPE-{i}", comments=f"{i}th type")
 
         rev_numbers = sample(
-            range(1, 16), 
+            range(1, 100), 
             revisions_per_type_count
         )
 

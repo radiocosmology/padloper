@@ -43,6 +43,12 @@ function Header() {
                 </Button>
             </Link>
 
+            <Link to={`/list/component-revisions`} className={classes.buttonLink}>
+                <Button variant="outlined" color="inherit" className={classes.button}>
+                    Component Revisions
+                </Button>
+            </Link>
+
           </Toolbar>
         </AppBar>
     )
