@@ -13,16 +13,16 @@ from markupsafe import escape
 app = Flask(__name__)
 
 def read_filters(filters):
-    """Return a list of filter 3-tuples given a URL string containing the
+    """Return a list of filter tuples given a URL string containing the
     filters.
 
-    :param filters: A string of the format 
-    <name>,<ctype>,<revision>;...;<name>,<ctype>,<revision>
-    where each substring separated by a ; is a filter.
+    :param filters: A string consisting of , and ;
+    where each substring separated by a ; is a filter, and each substring
+    separated by , is a parameter for a filter.
 
     :type filters: str
-    :return: A list of 3-tuples of the format (<name>, <ctype>, <revision>)
-    :rtype: list[tuple[str, str, str]]
+    :return: A list of tuples
+    :rtype: list[tuple]
     """
 
     if filters is not None and filters != '':
@@ -54,8 +54,6 @@ def get_component_list():
     component_range = escape(request.args.get('range'))
     
     range_bounds = tuple(map(int, component_range.split(';')))
-
-    
 
     order_by = escape(request.args.get('orderBy'))
 
@@ -111,7 +109,7 @@ def get_component_types_and_revisions():
     types = ComponentType.get_names_of_types_and_revisions()
 
     return {'result': types}
-
+    
 
 @app.route("/api/component_type_list")
 def get_component_type_list():
@@ -159,7 +157,10 @@ def get_component_revision_list():
     list_range = escape(request.args.get('range'))
     order_by = escape(request.args.get('orderBy'))
     order_direction = escape(request.args.get('orderDirection'))
-    name_substring = escape(request.args.get('nameSubstring'))
+
+    filters = request.args.get('filters')
+
+    filter_tuples = read_filters(filters)
 
     range_bounds = tuple(map(int, list_range.split(';')))
 
@@ -172,7 +173,7 @@ def get_component_revision_list():
         range=range_bounds, 
         order_by=order_by,
         order_direction=order_direction,
-        name_substring=name_substring
+        filters=filter_tuples,
     )
 
     return {
@@ -193,8 +194,10 @@ def get_component_revision_list():
 @app.route("/api/component_revision_count")
 def get_component_revision_count():
     
-    name_substring = escape(request.args.get('nameSubstring'))
+    filters = request.args.get('filters')
+
+    filter_tuples = read_filters(filters)
 
     return {
-        'result': ComponentRevision.get_count(name_substring=name_substring)
+        'result': ComponentRevision.get_count(filters=filter_tuples)
         }

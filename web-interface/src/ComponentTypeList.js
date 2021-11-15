@@ -57,7 +57,6 @@ function ComponentTypeList() {
             res => res.json()
         ).then(data => {
             setElements(data.result);
-
             setLoaded(true);
         });
     }, [
@@ -89,7 +88,7 @@ function ComponentTypeList() {
     const tableHeadCells = [
         {
             id: 'name', 
-            label: 'Component Type Name',
+            label: 'Component Type',
             allowOrdering: true,
         },
         {

@@ -486,7 +486,8 @@ class ComponentType(Vertex):
         based on the filters in :param filters:, and order them based on 
         :param order_by: in the direction :param order_direction:.
 
-        :param range: The range of ComponentTypes to query
+        :param range: The range of ComponentTypes to query. If the second
+        coordinate is -1, then the range is (range[1], inf)
         :type range: tuple[int, int]
 
         :param order_by: What to order the component types by. Must be in
@@ -788,11 +789,11 @@ class ComponentRevision(Vertex):
         range: tuple, 
         order_by: str,
         order_direction: str, 
-        name_substring: str
+        filters: list
         ):
         """
-        Return a list of ComponentRevisions based in the range :param range:,
-        based on the name substring :param name_substring:, 
+        Return a list of ComponentRevisions in the range :param range:,
+        based on the filters in :param filters:,
         and order them based on  :param order_by: in the direction 
         :param order_direction:.
 
@@ -808,9 +809,8 @@ class ComponentRevision(Vertex):
         Must be in {'asc', 'desc'}
         :type order_by: str
 
-        :param name_substring: What substring of the name property of the
-        component revision to filter by.
-        :type name_substring: str
+        :param filters: A list of 2-tuples of the format (name, ctype)
+        :type order_by: list
         
         :return: A list of ComponentRevision instances.
         :rtype: list[ComponentType]
@@ -820,8 +820,7 @@ class ComponentRevision(Vertex):
 
         assert order_by in {'name', 'allowed_type'}
 
-        traversal = g.V().has('category', ComponentRevision.category) \
-            .has('name', TextP.containing(name_substring))
+        traversal = g.V().has('category', ComponentRevision.category)
         
         # if order_direction is not asc or desc, it will just sort by asc.
         # Keep like this if removing the assert above only in production.
@@ -830,6 +829,36 @@ class ComponentRevision(Vertex):
         else:
             direction = Order.asc
 
+        if filters is not None:
+
+            ands = []
+
+            for f in filters:
+                
+                assert len(f) == 2
+
+                contents = []
+
+                # substring of component revision name
+                if f[0] != "":
+                    contents.append(__.has('name', TextP.containing(f[0])))
+
+                # component type
+                if f[1] != "":
+                    contents.append(
+                        __.both(RelationRevisionAllowedType.category).has(
+                            'name', 
+                            f[1]
+                        )
+                    )
+
+                if len(contents) > 0:
+                    ands.append(__.and_(*contents))
+
+            if len(ands) > 0:
+                traversal = traversal.or_(*ands)
+
+   
         # How to order the component types.
         if order_by == 'name':
             traversal = traversal.order().by('name', direction) \
@@ -877,22 +906,49 @@ class ComponentRevision(Vertex):
 
 
     @classmethod
-    def get_count(cls, name_substring: str):
-        """Return the count of ComponentRevisions given a substring of the name
-        property.
+    def get_count(cls, filters: list):
+        """Return the count of ComponentRevisions given a list of filters
 
-        :param name_substring: A substring of the name property of the
-        ComponentRevision
-        :type name_substring: str
+        :param filters: A list of 2-tuples of the format (name, ctype)
+        :type order_by: list
 
-        :return: The number of ComponentRevisions that contain 
-        :param name_substring: as a substring in the name property.
+        :return: The number of ComponentRevisions that agree with
+        :param filters:.
         :rtype: int
         """
 
-        return g.V().has('category', ComponentRevision.category) \
-            .has('name', TextP.containing(name_substring)) \
-            .count().next()
+        traversal = g.V().has('category', ComponentRevision.category)
+
+        if filters is not None:
+
+            ands = []
+
+            for f in filters:
+                
+                assert len(f) == 2
+
+                contents = []
+
+                # substring of component revision name
+                if f[0] != "":
+                    contents.append(__.has('name', TextP.containing(f[0])))
+
+                # component type
+                if f[1] != "":
+                    contents.append(
+                        __.both(RelationRevisionAllowedType.category).has(
+                            'name', 
+                            f[1]
+                        )
+                    )
+
+                if len(contents) > 0:
+                    ands.append(__.and_(*contents))
+
+            if len(ands) > 0:
+                traversal = traversal.or_(*ands)
+
+        return traversal.count().next()
 
 
 class Component(Vertex):

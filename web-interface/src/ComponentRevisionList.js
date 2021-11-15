@@ -3,9 +3,10 @@ import React, { useState, useEffect } from 'react';
 import ElementList from './ElementList.js';
 import ElementRangePanel from './ElementRangePanel.js';
 import { 
-    TextField, 
+    Button,
     } 
 from '@material-ui/core';
+import ComponentRevisionFilter from './ComponentRevisionFilter.js';
 
 function ComponentRevisionList() {
     
@@ -28,15 +29,88 @@ function ComponentRevisionList() {
     // must be in the set {'name'}
     const [orderBy, setOrderBy] = useState('name');
 
-    // property to order the component types by
-    // must be in the set {'name'}
-    const [nameSubstring, setNameSubstring] = useState("");
-    
     // how to order the elements
     // 'asc' or 'desc'
     const [orderDirection,
         setOrderDirection] = useState('asc');
 
+    const [component_types, setComponentTypes] = useState([]);
+
+    /* filters stored as 
+        [
+            {
+            name: <str>,
+            component_type: <str>,
+            },
+            ...
+        ]
+    */
+    const [filters, setFilters] = useState([]);
+
+    // add an empty filter to filters
+    const addFilter = () => {
+        setFilters([...filters, {
+            name: "",
+            component_type: "",
+        }])
+    }
+
+    /* 
+    Remove a filter at some index.
+    index is an integer s.t. 0 <= index < filters.length
+    */
+    const removeFilter = (index) => {
+        if (index >= 0 && index < filters.length) {
+            let newFilters = filters.filter((element, i) => index != i);
+            setFilters(newFilters);
+        }
+    }
+
+    /* 
+    Change the filter at index :index: to :newFilter:.
+    index is an integer s.t. 0 <= index < filters.length
+    */
+    const changeFilter = (index, newFilter) => {
+        if (index >= 0 && index < filters.length) {
+            // make a shallow copy of the filters
+            let filters_copy = [...filters];
+
+            // set the element at index to the new filter
+            filters_copy[index] = newFilter;
+
+            // update the state array
+            setFilters(filters_copy);
+        }
+    }
+
+    /*
+    To send the filters to the URL, create a string that contains all the
+    filter information.
+
+    The string is of the format
+    "<name>,<ctype_name>;...;<name>,<ctype_name>"
+
+    */
+    const createFilterString = () => {
+
+        let strSoFar = "";
+
+        if (filters.length > 0) {
+
+            // create the string 
+            for (let f of filters) {
+                strSoFar += `${f.name},${f.component_type};`;
+            }
+
+            // remove the last semicolon.
+            strSoFar = strSoFar.substring(0, strSoFar.length - 1);
+        }
+
+        return strSoFar;
+    }
+
+
+        
     /*
     The function that updates the list of component types when the site is 
     loaded or a change of the component types is requested (upon state change).
@@ -46,18 +120,19 @@ function ComponentRevisionList() {
         setLoaded(false);
 
         // create the URL query string
-        let input = '/api/component_revision_list'
-        input += `?range=${min};${min + range}`
-        input += `&orderBy=${orderBy}`
-        input += `&orderDirection=${orderDirection}`
-        input += `&nameSubstring=${nameSubstring}`
+        let input = '/api/component_revision_list';
+        input += `?range=${min};${min + range}`;
+        input += `&orderBy=${orderBy}`;
+        input += `&orderDirection=${orderDirection}`;
+        if (filters.length > 0) {
+            input += `&filters=${createFilterString()}`;
+        }
 
         // query the URL with flask, and set the input.
         fetch(input).then(
             res => res.json()
         ).then(data => {
             setElements(data.result);
-
             setLoaded(true);
         });
     }, [
@@ -65,26 +140,44 @@ function ComponentRevisionList() {
         range,
         orderBy,
         orderDirection,
-        nameSubstring
+        filters
     ]);
 
     /*
     function to change the component count when filters are updated.
     */
     useEffect(() => {
-
-        fetch(
-            `/api/component_revision_count?nameSubstring=${nameSubstring}`
-            ).then(
+        let input = `/api/component_revision_count`;
+        if (filters.length > 0) {
+            input += `&filters=${createFilterString()}`;
+        }
+        fetch(input).then(
             res => res.json()
         ).then(data => {
             setCount(data.result);
-
             setMin(0);
         });
     }, [
-        nameSubstring
+        filters
     ]);
+
+    /*
+    function to load all of the component types (so they can be used for
+    the filter)
+    */
+    useEffect(() => {
+
+        let input = '/api/component_type_list'
+        input += `?range=1;-1`
+        input += `&orderBy=name`
+        input += `&orderDirection=asc`
+        input += `&nameSubstring=`
+        fetch(input).then(
+            res => res.json()
+        ).then(data => {
+            setComponentTypes(data.result);
+        });
+    }, []);
 
     // the header cells of the table with their ids, labels, and whether you
     // can order by them.
@@ -95,21 +188,21 @@ function ComponentRevisionList() {
             allowOrdering: true,
         },
         {
-            id: 'comments', 
-            label: 'Comments',
-            allowOrdering: false,
-        },
-        {
             id: 'allowed_type', 
             label: 'Allowed Type',
             allowOrdering: true,
         },
+        {
+            id: 'comments', 
+            label: 'Comments',
+            allowOrdering: false,
+        }
     ];
 
     let tableRowContent = elements.map((e) => [
         e.name,
-        e.comments,
-        e.allowed_type.name
+        e.allowed_type.name,
+        e.comments
     ]);
 
     return (
@@ -121,17 +214,32 @@ function ComponentRevisionList() {
                 updateRange={(n) => { setRange(n) }}
                 count={count}
                 rightColumn={
-                    <TextField 
-                        label="Filter by name" 
-                        variant="outlined" 
-                        onChange={
-                            (event) => {
-                                setNameSubstring(event.target.value)
-                            }
-                        }
-                    />
+                    (
+                        <Button
+                            variant="contained"
+                            color="primary"
+                            onClick={addFilter}
+                        >
+                            Add Filter
+                        </Button>
+                    )
                 }
             />
+
+            {
+                filters.map(
+                    (filter, index) => (
+                        <ComponentRevisionFilter
+                            addFilter={() => { }}
+                            removeFilter={removeFilter}
+                            changeFilter={changeFilter}
+                            filter={filter}
+                            index={index}
+                            types={component_types}
+                        />
+                    )
+                )
+            }
 
             <ElementList
                 tableRowContent={tableRowContent}
