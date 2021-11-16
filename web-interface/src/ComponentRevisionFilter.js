@@ -1,56 +1,11 @@
-import { 
-    Paper, 
-    TextField,
-    Select,
-    FormControl,
-    InputLabel,
-    Button
-    } from '@material-ui/core';
-import { makeStyles } from '@material-ui/core/styles';
-import React, { useState, useEffect } from 'react';
+import TextField from '@mui/material/TextField';
+import Select from '@mui/material/Select';
+import FormControl from '@mui/material/FormControl';
+import Button from '@mui/material/Button';
+import Paper from '@mui/material/Paper';
+import Stack from '@mui/material/Stack';
 
 import { Close } from '@material-ui/icons';
-
-// styling for the React elements 
-const useStyles = makeStyles((theme) => ({
-    root: {
-        marginTop: theme.spacing(1),
-        paddingTop: theme.spacing(1),
-        paddingBottom: theme.spacing(1),
-        width: theme.spacing(75),
-        maxWidth: '100%',
-        marginLeft: 'auto',
-        marginRight: 'auto',
-        textAlign: 'center',
-        display: 'grid',
-        alignItems: 'stretch',
-    },
-    text_field: {
-        marginLeft: theme.spacing(2),
-        gridColumnStart: 1,
-    },
-    type_select_form_control: {
-        marginLeft: theme.spacing(2),
-        minWidth: 140,
-        gridColumnStart: 2,
-    },
-    rev_select_form_control: {
-        marginLeft: theme.spacing(2),
-        minWidth: 140,
-        gridColumnStart: 3,
-    },
-    select: {
-    },
-    close_button: {
-        marginTop: 'auto',
-        marginBottom: 'auto',
-        gridColumnStart: 4,
-        marginLeft: theme.spacing(2),
-        marginRight: theme.spacing(2),
-        height: '100%',
-    }
-
-}));
 
 function ComponentRevisionFilter(
         { 
@@ -61,8 +16,6 @@ function ComponentRevisionFilter(
             types
         }
     ) {
-    
-    const classes = useStyles();
 
     // update a specific value of the filter by key
     const filterUpdateKey = (key, val) => {
@@ -95,48 +48,80 @@ function ComponentRevisionFilter(
 
     // render the filter
     return (
-        <Paper className={classes.root}>
-            <TextField 
-                label="Filter by name" 
-                variant="outlined" 
-                className={classes.text_field}
-                onChange={filterUpdateName}
-            />
-            <FormControl 
-                className={classes.type_select_form_control}
-                variant="outlined"
+        <Paper
+            style={{
+                marginTop: '8px',
+                paddingTop: '8px',
+                paddingBottom: '8px',
+                width: '600px',
+                maxWidth: '100%',
+                marginLeft: 'auto',
+                marginRight: 'auto',
+                textAlign: 'center',
+            }}
+        >
+            <Stack direction="row" spacing={2}
+                style={{
+                    display: 'grid',
+                    alignItems: 'stretch',
+                }}
             >
-                <Select
-                    native
-                    labelId={`component-type-select-${index}-label`}
-                    id={`component-type-select-${index}`}
-                    onChange={filterUpdateType}
-                    className={classes.select}
-                    displayEmpty
+            
+                <TextField 
+                    label="Filter by name" 
+                    variant="outlined" 
+                    style={{
+                        marginLeft: "16px",
+                        gridColumnStart: 1,
+                    }}
+                    onChange={filterUpdateName}
+                />
+                <FormControl 
+                    style={{
+                        gridColumnStart: 2,
+                    }}
+                    variant="outlined"
                 >
-                    <option aria-label="None" value={-1} selected>
-                        All types
-                    </option>
-                    {
-                        types.map((t, index) =>
-                            <option 
-                                value={index}
-                            >
-                                {t['name']}
-                            </option>
-                        )
-                    }
-                </Select>
+                    <Select
+                        native
+                        labelId={`component-type-select-${index}-label`}
+                        id={`component-type-select-${index}`}
+                        onChange={filterUpdateType}
+                        displayEmpty
+                    >
+                        <option aria-label="None" value={-1} selected>
+                            All types
+                        </option>
+                        {
+                            types.map((t, index) =>
+                                <option 
+                                    value={index}
+                                >
+                                    {t['name']}
+                                </option>
+                            )
+                        }
+                    </Select>
 
-            </FormControl>
+                </FormControl>
 
-            <Button 
-                color="primary" 
-                className={classes.close_button}
-                onClick={() => removeFilter(index)}
-            >
-                <Close />
-            </Button>
+                <Button 
+                    color="primary" 
+                    style={{
+                        marginTop: 'auto',
+                        marginBottom: 'auto',
+                        gridColumnStart: 3,
+                        marginLeft: '16px',
+                        marginRight: '16px',
+                        height: '100%',
+                    }}
+                    onClick={() => removeFilter(index)}
+                >
+                    <Close />
+                </Button>
+
+            </Stack>
+            
             
         </Paper>
     )

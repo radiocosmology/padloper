@@ -1,0 +1,10 @@
+.Root {
+    margin-top: 8px;
+    padding-top: 8px;
+    padding-bottom: 8px;
+    width: 800px;
+    max-width: 100%;
+    margin-left: auto;
+    margin-right: auto;
+    text-align: center;
+}

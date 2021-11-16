@@ -4,53 +4,14 @@ import {
     Select,
     FormControl,
     InputLabel,
-    Button
-    } from '@material-ui/core';
-import { makeStyles } from '@material-ui/core/styles';
+    Button,
+    Stack
+    } from '@mui/material';
+import { styled } from '@mui/material/styles';
 import React, { useState, useEffect } from 'react';
+import './ElementFilter.js';
 
 import { Close } from '@material-ui/icons';
-
-// styling for the React elements 
-const useStyles = makeStyles((theme) => ({
-    root: {
-        marginTop: theme.spacing(1),
-        paddingTop: theme.spacing(1),
-        paddingBottom: theme.spacing(1),
-        width: theme.spacing(75),
-        maxWidth: '100%',
-        marginLeft: 'auto',
-        marginRight: 'auto',
-        textAlign: 'center',
-        display: 'grid',
-        alignItems: 'stretch',
-    },
-    text_field: {
-        marginLeft: theme.spacing(2),
-        gridColumnStart: 1,
-    },
-    type_select_form_control: {
-        marginLeft: theme.spacing(2),
-        minWidth: 140,
-        gridColumnStart: 2,
-    },
-    rev_select_form_control: {
-        marginLeft: theme.spacing(2),
-        minWidth: 140,
-        gridColumnStart: 3,
-    },
-    select: {
-    },
-    close_button: {
-        marginTop: 'auto',
-        marginBottom: 'auto',
-        gridColumnStart: 4,
-        marginLeft: theme.spacing(2),
-        marginRight: theme.spacing(2),
-        height: '100%',
-    }
-
-}));
 
 function ElementFilter(
         { addFilter, 
@@ -61,8 +22,6 @@ function ElementFilter(
             types_and_revisions
         }
     ) {
-    
-    const classes = useStyles();
 
     // the list of revisions for this specific element filter panel.
     const [revisions, setRevisions] = useState([]);
@@ -107,75 +66,105 @@ function ElementFilter(
 
     // render the filter
     return (
-        <Paper className={classes.root}>
-            <TextField 
-                label="Filter by name" 
-                variant="outlined" 
-                className={classes.text_field}
-                onChange={filterUpdateName}
-            />
-            <FormControl 
-                className={classes.type_select_form_control}
-                variant="outlined"
-            >
-                <Select
-                    native
-                    labelId={`component-type-select-${index}-label`}
-                    id={`component-type-select-${index}`}
-                    onChange={filterUpdateType}
-                    className={classes.select}
-                    displayEmpty
+        <Paper
+            style={{
+                marginTop: '8px',
+                paddingTop: '8px',
+                paddingBottom: '8px',
+                width: '600px',
+                maxWidth: '100%',
+                marginLeft: 'auto',
+                marginRight: 'auto',
+                textAlign: 'center',
+                display: 'grid',
+                alignItems: 'stretch',
+            }}
+        >
+            <Stack direction="row" spacing={2}>
+                <TextField 
+                    label="Filter by name" 
+                    variant="outlined" 
+                    style={{
+                        gridColumnStart: 1,
+                        marginLeft: '16px',
+                    }}
+                    onChange={filterUpdateName}
+                />
+                <FormControl 
+                    className="SelectDropdown"
+                    style={{
+                        gridColumnStart: 2,
+                    }}
+                    variant="outlined"
                 >
-                    <option aria-label="None" value={-1} selected>
-                        All types
-                    </option>
-                    {
-                        types_and_revisions.map((t, index) =>
-                            <option 
-                                value={index}
-                            >
-                                {t['name']}
-                            </option>
-                        )
-                    }
-                </Select>
-
-            </FormControl>
-
-            <FormControl 
-                className={classes.rev_select_form_control}
-                variant="outlined"
-            >
-                <Select
-                    native
-                    labelId={`component-revision-select-${index}-label`}
-                    id={`component-revision-select-${index}`}
-                    onChange={filterUpdateRevision}
-                    className={classes.select}
-                    disabled={revisions.length == 0}
-                >
-                    <option aria-label="None" value={""}>
-                        {(revisions.length == 0) ? 
-                            "Select a type" 
-                            : "All revisions"
+                    <Select
+                        native
+                        labelId={`component-type-select-${index}-label`}
+                        id={`component-type-select-${index}`}
+                        onChange={filterUpdateType}
+                        displayEmpty
+                    >
+                        <option aria-label="None" value={-1} selected>
+                            All types
+                        </option>
+                        {
+                            types_and_revisions.map((t, index) =>
+                                <option 
+                                    value={index}
+                                >
+                                    {t['name']}
+                                </option>
+                            )
                         }
-                    </option>
-                    {
-                        revisions.map((name) =>
-                            <option value={name}>{name}</option>
-                        )
-                    }
-                </Select>
+                    </Select>
 
-            </FormControl>
+                </FormControl>
 
-            <Button 
-                color="primary" 
-                className={classes.close_button}
-                onClick={() => removeFilter(index)}
-            >
-                <Close />
-            </Button>
+                <FormControl
+                    className="SelectDropdown" 
+                    style={{
+                        gridColumnStart: 3,
+                    }}
+                    variant="outlined"
+                >
+                    <Select
+                        native
+                        labelId={`component-revision-select-${index}-label`}
+                        id={`component-revision-select-${index}`}
+                        onChange={filterUpdateRevision}
+                        disabled={revisions.length == 0}
+                    >
+                        <option aria-label="None" value={""}>
+                            {(revisions.length == 0) ? 
+                                "Select a type" 
+                                : "All revisions"
+                            }
+                        </option>
+                        {
+                            revisions.map((name) =>
+                                <option value={name}>{name}</option>
+                            )
+                        }
+                    </Select>
+
+                </FormControl>
+
+                <Button 
+                    color="primary" 
+                    style={{
+                        marginTop: 'auto',
+                        marginBottom: 'auto',
+                        gridColumnStart: 4,
+                        marginLeft: '16px',
+                        marginRight: '16px',
+                        height: '100%',
+                    }}
+                    onClick={() => removeFilter(index)}
+                >
+                    <Close />
+                </Button>
+            </Stack>
+            
             
         </Paper>
     )

@@ -6,59 +6,10 @@ import {
     Select, 
     MenuItem, 
     Divider } 
-    from '@material-ui/core';
-
-import { makeStyles } from '@material-ui/core/styles';
+from '@mui/material';
+import './ElementRangePanel.css';
 
 import { ArrowForward, ArrowBack, Autorenew } from '@material-ui/icons';
-
-
-// styling for the React elements
-const useStyles = makeStyles((theme) => ({
-    root: {
-        marginTop: theme.spacing(2),
-        paddingTop: theme.spacing(1),
-        paddingBottom: theme.spacing(1),
-        flexGrow: 1,
-        marginBottom: theme.spacing(1),
-        textAlign: 'center',
-        display: 'grid',
-        justifyContent: 'space-between',
-        rowGap: theme.spacing(1),
-        width: theme.spacing(75),
-        maxWidth: '100%',
-        margin: 'auto',
-    },
-    num_display_wrapper: {
-        gridRow: '1',
-        gridColumn: '1',
-        margin: 'auto',
-        paddingTop: theme.spacing(1),
-    },
-    range_select: {
-        marginRight: theme.spacing(1),
-        marginLeft: theme.spacing(1),
-    },
-    change_range_button: {
-        marginRight: theme.spacing(1),
-        marginLeft: theme.spacing(1),
-        padding: theme.spacing(2),
-    },
-    range_wrapper: {
-        gridRow: '2',
-        gridColumn: '1 / 2',
-        margin: 'auto',
-    },
-    right_column_wrapper: {
-        gridRow: '1 / 3',
-        gridColumn: '2',
-        marginLeft: theme.spacing(2),
-        marginRight: theme.spacing(2),
-        marginTop: 'auto',
-        marginBottom: 'auto',
-    },
-    
-}));
 
 function ElementRangePanel(
         { 
@@ -70,8 +21,6 @@ function ElementRangePanel(
             rightColumn,
         }
     ) {
-
-    const classes = useStyles();
 
     // function to call when the component range is changed. is changed.
     const handleRangeChange = (event) => {
@@ -114,14 +63,36 @@ function ElementRangePanel(
 
     // return the range panel.
     return (
-        <Paper className={classes.root}>
-            <div component="span" className={classes.num_display_wrapper}>
+        <Paper
+            style={{
+                marginTop: '16px',
+                paddingTop: '8px',
+                paddingBottom: '8px',
+                flexGrow: 1,
+                marginBottom: '8px',
+                textAlign: 'center',
+                display: 'grid',
+                justifyContent: 'space-between',
+                rowGap: '8px',
+                width: '600px',
+                maxWidth: '100%',
+                margin: 'auto',
+            }}
+        >
+            <div className="NumDisplayWrapper" 
+                style={{
+                    paddingTop: '8px',
+                }}>
                 {numDisplayText}
             </div>
-            <div className={classes.range_wrapper}>
+            <div className="RangeWrapper">
                 <Button 
                     color="primary" 
-                    className={classes.change_range_button}
+                    style={{
+                        marginRight: '8px',
+                        marginLeft: '8px',
+                        padding: '16px',
+                    }}
                     onClick={() => {
                         changeMin(min, updateMin, range, count, false)
                     }}
@@ -136,7 +107,10 @@ function ElementRangePanel(
                     id="range-select"
                     value={range}
                     onChange={handleRangeChange}
-                    className={classes.range_select}
+                    style={{
+                        marginRight: '8px',
+                        marginLeft: '8px',
+                    }}
                     displayEmpty 
                 >
                     <MenuItem value={10}>10</MenuItem>
@@ -148,7 +122,11 @@ function ElementRangePanel(
 
                 <Button 
                     color="primary" 
-                    className={classes.change_range_button}
+                    style={{
+                        marginRight: '8px',
+                        marginLeft: '8px',
+                        padding: '16px',
+                    }}
                     onClick={() => {
                         changeMin(min, updateMin, range, count, true)
                     }}
@@ -158,7 +136,11 @@ function ElementRangePanel(
                 </Button>
             </div>
 
-            <div className={classes.right_column_wrapper}>
+            <div className="RightColumnWrapper"
+                style={{
+                    marginLeft: '16px',
+                    marginRight: '16px',
+                }}>
                 {rightColumn}
             </div>
         </Paper>

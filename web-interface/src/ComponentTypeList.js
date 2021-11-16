@@ -5,7 +5,7 @@ import ElementRangePanel from './ElementRangePanel.js';
 import { 
     TextField, 
     } 
-from '@material-ui/core';
+from '@mui/material';
 
 function ComponentTypeList() {
     

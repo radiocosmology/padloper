@@ -1,5 +1,4 @@
 import React, { useState, useEffect } from 'react';
-import { makeStyles } from '@material-ui/core/styles';
 import './App.css';
 
 import ComponentList from './ComponentList.js';
@@ -15,20 +14,7 @@ import {
   Link
 } from "react-router-dom";
 
-// styling for the React elements 
-const useStyles = makeStyles((theme) => ({
-  title: {
-    flexGrow: 1,
-  },
-}));
-
-
-
 function App() {
-
-  // load the styles
-  const classes = useStyles();
-
 
   // return the necessary JSX.
   return (

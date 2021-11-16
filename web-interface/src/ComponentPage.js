@@ -1,31 +1,30 @@
 import React, { useState, useEffect } from 'react';
-import { makeStyles } from '@material-ui/core/styles';
-import { 
-    Paper, 
-} from '@material-ui/core';
+import Paper from '@mui/material/Paper';
+import Stack from '@mui/material/Stack';
+import ThemeProvider from '@mui/material/styles/ThemeProvider';
+import createTheme from '@mui/material/styles/createTheme';
+import styled from '@mui/material/styles/styled';
+import './ComponentPage.css';
 
 import {
     useParams
 } from "react-router-dom";
 
-// styling for the React elements 
-const useStyles = makeStyles((theme) => ({
-    root: {
-        marginTop: theme.spacing(1),
-        paddingTop: theme.spacing(1),
-        paddingBottom: theme.spacing(1),
-        width: theme.spacing(100),
-        maxWidth: '100%',
-        marginLeft: 'auto',
-        marginRight: 'auto',
-        textAlign: 'center',
-    },
+const ComponentNameWrapper = styled(Paper)(({ theme }) => ({
+    backgroundColor: theme.palette.primary.main,
+    color: theme.palette.common.white,
+    margin: 'auto',
+    marginLeft: theme.spacing(1),
+    marginRight: theme.spacing(1),
+    width: '300px',
+    height: '200px',
+    fontSize: '300%',
+    lineHeight: '200px',
 }));
 
+const theme = createTheme();
+
 function ComponentPage() {
-
-    const classes = useStyles();
-
     let { name } = useParams();
 
     // the list of components in objects representation
@@ -35,7 +34,6 @@ function ComponentPage() {
         fetch(`/api/components_name/${name}`).then(
             res => res.json()
         ).then(data => {
-            console.log(data.result);
             setComponent(data.result);
         });
     }, []);
@@ -48,19 +46,29 @@ function ComponentPage() {
 
     if (component) {
         content = (
-            <>
-                <h3>
-                    {component.name}
-                </h3>
-                <h4>
-                    {component.type.name}
-                </h4>
-            </>
+            <ThemeProvider theme={theme}>
+                <Stack direction="row" spacing={2}>
+                    <ComponentNameWrapper>
+                        {component.name}
+                    </ComponentNameWrapper>
+                    <div>
+                        <h2>
+                            {component.type.name}
+                        </h2>
+                        <h2>
+                            {component.revision.name}
+                        </h2>
+                    </div>
+                </Stack>
+
+                PUT STUFF HERE
+
+            </ThemeProvider>
         )
     }
 
     return (
-        <Paper className={classes.root}>
+        <Paper className="Root">
             {content}
         </Paper>
     )

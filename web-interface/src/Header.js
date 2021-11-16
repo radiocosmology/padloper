@@ -1,50 +1,53 @@
-import { Button, AppBar, Toolbar, IconButton, Typography } from '@material-ui/core';
-
-import { makeStyles } from '@material-ui/core/styles';
-
+import { Button, AppBar, Toolbar, IconButton, Typography } from '@mui/material';
+import './Header.css';
 import { BrowserRouter as Router, Link } from "react-router-dom";
-
-// styling for the React elements 
-const useStyles = makeStyles((theme) => ({
-    title: {
-      flexGrow: 1,
-    },
-    button: {
-        marginLeft: theme.spacing(2),
-        textDecoration: "none"
-    },
-    buttonLink: {
-        textDecoration: "none",
-        color: "white",
-    },
-}));
 
 function Header() {
 
-    // load the styles
-    const classes = useStyles();
-
     return (
-        <AppBar position="static">
+        <AppBar 
+            position="static"
+            style={{
+                marginBottom: '16px',
+            }}>
           <Toolbar>
-            <Typography variant="h6" className={classes.title}>
+            <Typography 
+            variant="h6"
+            style={{
+                flexGrow: 1,
+            }}>
               HIRAX Layout DB
             </Typography>
 
-            <Link to={`/list/component`} className={classes.buttonLink}>
-                <Button variant="outlined" color="inherit" className={classes.button}>
+            <Link 
+                to={`/list/component`}
+                className="StyledLink"
+            >
+                <Button 
+                    variant="outlined" 
+                    color="inherit" 
+                    className="StyledButton"
+                >
                     Components
                 </Button>
             </Link>
             
-            <Link to={`/list/component-types`} className={classes.buttonLink}>
-                <Button variant="outlined" color="inherit" className={classes.button}>
+            <Link to={`/list/component-types`} className="StyledLink">
+                <Button 
+                    variant="outlined" 
+                    color="inherit"
+                    className="StyledButton"
+                >
                     Component Types
                 </Button>
             </Link>
 
-            <Link to={`/list/component-revisions`} className={classes.buttonLink}>
-                <Button variant="outlined" color="inherit" className={classes.button}>
+            <Link to={`/list/component-revisions`} className="StyledLink">
+                <Button 
+                    variant="outlined" 
+                    color="inherit"
+                    className="StyledButton"
+                >
                     Component Revisions
                 </Button>
             </Link>

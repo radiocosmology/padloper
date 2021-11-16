@@ -5,7 +5,7 @@ import ElementRangePanel from './ElementRangePanel.js';
 import { 
     Button,
     } 
-from '@material-ui/core';
+from '@mui/material';
 import ComponentRevisionFilter from './ComponentRevisionFilter.js';
 
 function ComponentRevisionList() {

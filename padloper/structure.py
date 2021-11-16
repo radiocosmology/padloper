@@ -1682,11 +1682,14 @@ class Component(Vertex):
         """
 
         c = Component.from_db(name)
-
+        
         return {
             'name': c.name,
             'type': {
                 'name': c.component_type.name,
+            },
+            'revision': {
+                'name': c.revision.name if c.revision is not None else ''
             }
         }
 

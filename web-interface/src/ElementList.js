@@ -2,33 +2,7 @@ import { Paper, Box, Table, TableBody, TableRow,
     TableHead, TableCell, TableContainer, 
     CircularProgress,
     TableSortLabel
-} from '@material-ui/core';
-import { makeStyles } from '@material-ui/core/styles';
-import { Link } from "react-router-dom";
-
-// styling for the react elements.
-const useStyles = makeStyles((theme) => ({
-    table: {
-        marginTop: theme.spacing(1),
-        width: theme.spacing(75),
-        maxWidth: '100%',
-        marginLeft: 'auto',
-        marginRight: 'auto',
-        textAlign: 'center',
-    },
-    progressWrapper: {
-        textAlign: 'center',
-    },
-    progress: {
-        paddingTop: theme.spacing(2),
-        paddingBottom: theme.spacing(2),
-    },
-    noElementsText: {
-        padding: theme.spacing(2),
-        textAlign: 'center',
-    }
-}));
-
+} from '@mui/material';
 
 function ElementList(
     { 
@@ -41,8 +15,6 @@ function ElementList(
         setOrderDirection
         }
     ) {
-    
-    const classes = useStyles();
 
     // function to call when clicking on a table header to change sort.
     // property is the name of the property that you are changing the order of.
@@ -59,8 +31,18 @@ function ElementList(
     // initial contents of the table IF the element list is not loaded
     let content = (
         <TableRow>  
-            <TableCell colSpan={3} className={classes.progressWrapper}>
-                <CircularProgress className={classes.progress} />
+            <TableCell 
+                colSpan={3} 
+                style={{
+                    textAlign: 'center',
+                }}
+            >
+                <CircularProgress 
+                    style={{
+                        paddingTop: 2,
+                        paddingBottom: 2,
+                    }}
+                />
             </TableCell>
         </TableRow>
     );
@@ -71,7 +53,13 @@ function ElementList(
         if (tableRowContent.length == 0) {
             content = (
                 <TableRow>
-                    <TableCell colSpan={3} className={classes.noElementsText}>
+                    <TableCell 
+                        colSpan={3} 
+                        style={{
+                            padding: '16px',
+                            textAlign: 'center',
+                        }}
+                    >
                         No objects found :(
                     </TableCell>
                 </TableRow>
@@ -101,8 +89,20 @@ function ElementList(
 
     // return the table along with the content
     return (
-        <TableContainer component={Paper} className={classes.table}>
-            <Table className={classes.table} size="small">
+        <TableContainer 
+            component={Paper}
+            style={{
+                marginTop: '8px',
+                width: '600px',
+                maxWidth: '100%',
+                marginLeft: 'auto',
+                marginRight: 'auto',
+                textAlign: 'center',
+            }} 
+        >
+            <Table 
+                size="small"
+            >
                 <TableHead>
                     <TableRow>
                         {

@@ -4,11 +4,7 @@ import ElementList from './ElementList.js';
 import ElementRangePanel from './ElementRangePanel.js';
 import ElementFilter from './ElementFilter.js';
 import { Link } from "react-router-dom";
-
-import { 
-    Button, 
-    } 
-    from '@material-ui/core';
+import Button from '@mui/material/Button';
 
 function ComponentList() {
 
@@ -203,8 +199,6 @@ function ComponentList() {
             allowOrdering: true,
         },
     ];
-
-    // 
     let tableRowContent = components.map((c) => [
         <Link to={`/component/${c.name}`}>
             {c.name}
