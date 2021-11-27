@@ -1086,7 +1086,7 @@ class Component(Vertex):
             raise ComponentNotAddedError
 
         if not property_type.added_to_db():
-            raise ComponentTypeNotAddedError
+            raise PropertyTypeNotAddedError
 
         # list of property vertices of this property type 
         # and active at this time
@@ -1106,6 +1106,46 @@ class Component(Vertex):
         assert len(vs) == 1
         
         return Property.from_id(vs[0].id)    
+
+
+    def get_all_properties(self):
+        """Return all properties, along with their edges of this component as
+        a tuple of the form (Property, RelationProperty)
+
+        :rtype: tuple[Property, RelationProperty]
+        """
+
+        if not self.added_to_db():
+            raise ComponentNotAddedError
+
+        # list of property vertices of this property type 
+        # and active at this time
+        query = g.V(self.id).bothE(RelationProperty.category) \
+            .as_('e').valueMap().as_('edge_props') \
+            .select('e').otherV().id().as_('vertex_id') \
+            .select('edge_props', 'vertex_id').toList()
+
+        # Build up the result of format (property vertex, relation)
+        result = []
+
+        for q in query:
+            prop = Property.from_id(q['vertex_id'])
+            edge = RelationProperty(
+                inVertex=prop,
+                outVertex=self,
+                start_time=q['edge_props']['start_time'],
+                start_uid=q['edge_props']['start_uid'],
+                start_edit_time=q['edge_props']['start_edit_time'],
+                start_comments=q['edge_props']['start_comments'],
+                end_time=q['edge_props']['end_time'],
+                end_uid=q['edge_props']['end_uid'],
+                end_edit_time=q['edge_props']['end_edit_time'],
+                end_comments=q['edge_props']['end_comments'],
+            )
+            result.append((prop, edge))
+
+        return result 
+
 
     def add_property(
         self, property, time: int, 
@@ -1670,19 +1710,42 @@ class Component(Vertex):
 
         return traversal.count().next()
 
+
     @classmethod
     def get_as_dict(cls, name: str):
-        """Return a dictionary representation of this Componenet.
+        """Return a dictionary representation of this Component at time
+        :param time:.
 
         :param name: The name attribute of the Component
         :type name: str
+
+        :param time: The time to check the component at.
+        :type time: int
 
         :return: A dictionary representation of this Components's attributes.
         :rtype: dict
         """
 
         c = Component.from_db(name)
-        
+
+        prop_dicts = []
+
+        for (prop, rel) in c.get_all_properties():
+            prop_dicts.append({
+                'values': prop.values,
+                'type': {
+                    'name': prop.property_type.name
+                },
+                'start_time': rel.start_time,
+                'end_time': rel.end_time,
+                'start_uid': rel.start_uid,
+                'end_uid': rel.end_uid,
+                'start_edit_time': rel.start_edit_time,
+                'end_edit_time': rel.end_edit_time,
+                'start_comments': rel.start_comments,
+                'end_comments': rel.end_comments
+            })
+
         return {
             'name': c.name,
             'type': {
@@ -1690,7 +1753,8 @@ class Component(Vertex):
             },
             'revision': {
                 'name': c.revision.name if c.revision is not None else ''
-            }
+            },
+            'properties': prop_dicts
         }
 
 
@@ -1885,8 +1949,6 @@ class Property(Vertex):
 
         if len(values) != property_type.n_values:
 
-            # TODO: RAISE A CUSTOM ERROR!
-
             raise PropertyWrongNValuesError
 
         for val in values:
@@ -1935,14 +1997,19 @@ class Property(Vertex):
 
             values, ptype_id = d['values'], d['ptype_id']
 
+            if type(values) is not list:
+                values = [values]
+
             Vertex._cache_vertex(
                 Property(
                     values=values, 
-                    property_type=ComponentType.from_id(ptype_id)
+                    property_type=PropertyType.from_id(ptype_id),
+                    id=id
                 )
             )
 
         return _vertex_cache[id]
+
 
 
 class FlagType(Vertex):

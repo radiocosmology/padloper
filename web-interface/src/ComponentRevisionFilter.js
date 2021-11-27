@@ -5,7 +5,7 @@ import Button from '@mui/material/Button';
 import Paper from '@mui/material/Paper';
 import Stack from '@mui/material/Stack';
 
-import { Close } from '@material-ui/icons';
+import Close from '@mui/icons-material/Close';
 
 function ComponentRevisionFilter(
         { 
@@ -121,8 +121,6 @@ function ComponentRevisionFilter(
                 </Button>
 
             </Stack>
-            
-            
         </Paper>
     )
 }

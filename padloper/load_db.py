@@ -1,17 +1,36 @@
 from structure import *
 
-from random import randrange, sample
+from random import randrange, sample, randint
+
+from time import time
 
 if __name__ == "__main__":
 
     types_count = 10
 
-    revisions_per_type_count = 50
+    property_types_count = 3
 
-    components_per_revision_count = 20
+    revisions_per_type_count = 5
+
+    components_per_revision_count = 10
 
     for i in range(types_count):
         t = ComponentType(name=f"TYPE-{i}", comments=f"{i}th type")
+
+        ptypes = []
+
+        for k in range(property_types_count):
+            pt = PropertyType(
+                name=f"PTYPE-{i}-{k}", 
+                units="u", 
+                allowed_regex=".*", 
+                n_values=1, 
+                allowed_types=[t]
+            )
+
+            pt.add()
+            
+            ptypes.append(pt)
 
         rev_numbers = sample(
             range(1, 100), 
@@ -35,3 +54,11 @@ if __name__ == "__main__":
                     revision=r
                 )
                 c.add()
+
+                for l in range(property_types_count):
+                    p = Property(
+                        values=[str(randint(0, 10))],
+                        property_type=ptypes[l]
+                    )
+                    c.add_property(p, time=int(time()), uid="Anatoly")
+                    

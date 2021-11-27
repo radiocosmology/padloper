@@ -11,7 +11,7 @@ import { styled } from '@mui/material/styles';
 import React, { useState, useEffect } from 'react';
 import './ElementFilter.js';
 
-import { Close } from '@material-ui/icons';
+import Close from '@mui/icons-material/Close';
 
 function ElementFilter(
         { addFilter, 

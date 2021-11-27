@@ -6,6 +6,7 @@ from flask import Flask, request
 from flask.scaffold import F
 
 from markupsafe import escape
+from time import time
 
 
 # see https://stackoverflow.com/a/27876800
@@ -48,6 +49,8 @@ def get_component_by_name(name):
     return {
         'result': Component.get_as_dict(str(escape(name)))
     }
+
+
 
 @app.route("/api/component_list")
 def get_component_list():

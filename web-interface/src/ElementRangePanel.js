@@ -9,7 +9,7 @@ import {
 from '@mui/material';
 import './ElementRangePanel.css';
 
-import { ArrowForward, ArrowBack, Autorenew } from '@material-ui/icons';
+import { ArrowForward, ArrowBack, Autorenew } from '@mui/icons-material';
 
 function ElementRangePanel(
         { 

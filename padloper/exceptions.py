@@ -81,6 +81,13 @@ class PropertyTypeZeroAllowedTypesError(Error):
     pass
 
 
+class PropertyTypeNotAddedError(Error):
+    """
+    Exception raised when a property type has not been added to the serverside.
+    """
+    pass
+
+
 class PropertyNotAddedError(Error):
     """
     Exception raised when trying to access a property when its allowed
