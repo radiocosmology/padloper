@@ -4,6 +4,10 @@ import { Paper, Box, Table, TableBody, TableRow,
     TableSortLabel
 } from '@mui/material';
 
+import { 
+    emDashIfEmpty 
+} from './utility/utility.js';
+
 function ElementList(
     { 
         tableRowContent, 
@@ -76,7 +80,7 @@ function ElementList(
                                     <TableCell 
                                         align={(index == 0) ? "left" : "right"}
                                     >
-                                        {(c == null) ? "--" : c}
+                                        {emDashIfEmpty(c)}
                                     </TableCell>
                                 ))
                             }

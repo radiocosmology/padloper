@@ -1,12 +1,6 @@
 import React, { useState, useEffect } from 'react';
 import Paper from '@mui/material/Paper';
 import Stack from '@mui/material/Stack';
-import Table from '@mui/material/Table';
-import TableBody from '@mui/material/TableBody';
-import TableRow from '@mui/material/TableRow';
-import TableHead from '@mui/material/TableHead';
-import TableCell from '@mui/material/TableCell';
-import TableContainer from '@mui/material/TableContainer';
 import Divider from '@mui/material/Divider';
 import MuiAccordion from '@mui/material/Accordion';
 import MuiAccordionSummary from '@mui/material/AccordionSummary';
@@ -19,9 +13,14 @@ import PersonIcon from '@mui/icons-material/Person';
 import CommentIcon from '@mui/icons-material/Comment';
 
 import ThemeProvider from '@mui/material/styles/ThemeProvider';
-
 import createTheme from '@mui/material/styles/createTheme';
 import styled from '@mui/material/styles/styled';
+
+import ComponentEvent from './ComponentEvent.js';
+
+import { unixTimeToString } from './utility/utility.js';
+
+import { Link } from "react-router-dom";
 
 import {
     useParams
@@ -41,8 +40,9 @@ const ComponentNameWrapper = styled(Paper)(({ theme }) => ({
     backgroundColor: theme.palette.primary.main,
     color: theme.palette.common.white,
     margin: 'auto',
-    marginLeft: theme.spacing(1),
+    marginLeft: 0,
     marginRight: theme.spacing(1),
+    marginBottom: theme.spacing(1),
     width: '300px',
     height: '200px',
     fontSize: '300%',
@@ -109,42 +109,7 @@ const EntryAccordionDetails = styled(AccordionDetails)(({ theme }) => ({
     backgroundColor: 'rgba(0, 0, 0, .015)',
 }));
 
-const EntryRowLabel = styled((props) => (
-    <Paper 
-        elevation={0}
-        {...props}
-    />
-))(({ theme }) => ({
-    backgroundColor: 'rgba(0, 0, 0, .05)',
-    width: '80px',
-    marginRight: theme.spacing(4),
-}));
-
 const theme = createTheme();
-
-
-// helper functions
-
-// takes UNIX time in seconds
-function unixToString(UNIX_timestamp, includeTime){
-    let a = new Date(UNIX_timestamp * 1000);
-    let months = [
-        'Jan','Feb','Mar','Apr','May','Jun','Jul',
-        'Aug','Sep','Oct','Nov','Dec'
-    ];
-    let year = a.getFullYear();
-    let month = months[a.getMonth()];
-    let date = a.getDate();
-    let hour = a.getHours();
-    let min = a.getMinutes();
-    let sec = a.getSeconds();
-
-    let time = `${date} ${month} ${year}`;
-    if (includeTime) {
-        time += `, ${hour}:${min}:${sec}`;
-    }
-    return time;
-}
 
 function ComponentPage() {
     let { name } = useParams();
@@ -156,9 +121,15 @@ function ComponentPage() {
         fetch(`/api/components_name/${name}`).then(
             res => res.json()
         ).then(data => {
+            data.result.properties.sort(
+                (a, b) => parseFloat(a.start_time) - parseFloat(b.start_time)
+            );
+            data.result.connections.sort(
+                (a, b) => parseFloat(a.start_time) - parseFloat(b.start_time)
+            );
             setComponent(data.result);
         });
-    }, []);
+    }, [name]);
 
     let content = (
         <>
@@ -176,15 +147,15 @@ function ComponentPage() {
                             <Stack spacing={1} direction="row">
                                 <EventIcon fontSize="small" />
                                 <div>
-                                    {unixToString(prop.start_time, false)} 
+                                    {unixTimeToString(prop.start_time, false)} 
                                 </div>
                                 {prop.end_time <= Number.MAX_SAFE_INTEGER ? (
                                     <>
+                                        <div>-</div> 
                                         <div>
-                                            -
-                                        </div> 
-                                        <div>
-                                            {unixToString(prop.end_time, false)}
+                                            {unixTimeToString(
+                                                prop.end_time, false
+                                            )}
                                         </div> 
                                     </>
                                 ) : ''}
@@ -204,88 +175,97 @@ function ComponentPage() {
                         </EntryAccordionSummary>
                         <EntryAccordionDetails>
                             <Stack spacing={1}>
-                                <Stack direction='row' spacing={1}>
+                                <ComponentEvent
+                                    name="Start"
+                                    time={prop.start_time}
+                                    uid={prop.start_uid}
+                                    edit_time={prop.start_edit_time}
+                                    comments={prop.start_comments}
+                                    theme={theme} />
 
-                                    <EntryRowLabel>Start</EntryRowLabel>
-
-                                    <AccessTimeIcon fontSize="small"/>
-                                    <div>
-                                        {unixToString(prop.start_time, true)}
-                                    </div>
-
-                                    <PersonIcon 
-                                        fontSize="small"
-                                        style={{
-                                            marginLeft:theme.spacing(3),
-                                        }}
-                                    />
-                                    <div>
-                                        {prop.start_uid} ({unixToString(
-                                            prop.start_edit_time, false)
-                                        })
-                                    </div>
-
-                                    <CommentIcon 
-                                        fontSize="small"
-                                        style={{
-                                            marginLeft:theme.spacing(3),
-                                        }}
-                                    />
-                                    <div>
-                                        {prop.start_comments == '' ? '—' :
-                                        prop.start_comments}
-                                    </div>
-
-
-                                </Stack>
-
-                                <Stack direction='row' spacing={1}>
-
-                                    <EntryRowLabel>End</EntryRowLabel>
-
-                                    <AccessTimeIcon fontSize="small"/>
-                                    <div>
-                                        {
-                                            prop.end_time <= 
-                                            Number.MAX_SAFE_INTEGER ? 
-                                            unixToString(prop.end_time, true) :
-                                            '—'
-                                        }
-                                    </div>
-
-                                    <PersonIcon 
-                                        fontSize="small"
-                                        style={{
-                                            marginLeft:theme.spacing(3),
-                                        }}
-                                    />
-                                    <div>
-                                        {
-                                            prop.end_uid == '' ? '—' :
-                                            `${prop.end_uid} (${unixToString(
-                                                prop.end_edit_time, false)})`
-                                        }
-                                    </div>
-
-                                    <CommentIcon 
-                                        fontSize="small"
-                                        style={{
-                                            marginLeft: theme.spacing(3),
-                                        }}
-                                    />
-                                    <div>
-                                        {prop.end_comments == '' ? '—' :
-                                        prop.end_comments}
-                                    </div>
-
-
-                                </Stack>
+                                {
+                                    prop.end_time <= 
+                                    Number.MAX_SAFE_INTEGER ?
+                                    <ComponentEvent
+                                        name="End"
+                                        time={prop.end_time}
+                                        uid={prop.end_uid}
+                                        edit_time={prop.end_edit_time}
+                                        comments={prop.end_comments}
+                                        theme={theme} />
+                                    : ""
+                                }
                             </Stack>
                         </EntryAccordionDetails>
                     </EntryAccordion>
                 ))}
             </Stack>
-            
+        )
+
+        let connections_content = (
+            <Stack spacing={1}>
+                {component.connections.map((conn) => (
+                    <EntryAccordion>
+                        <EntryAccordionSummary>
+                            <Stack spacing={1} direction="row">
+                                <EventIcon fontSize="small" />
+                                <div>
+                                    {unixTimeToString(conn.start_time, false)} 
+                                </div>
+                                {conn.end_time <= Number.MAX_SAFE_INTEGER ? (
+                                    <>
+                                        <div>—</div> 
+                                        <div>
+                                            {unixTimeToString(
+                                                conn.end_time, false
+                                            )}
+                                        </div> 
+                                    </>
+                                ) : ''}
+                                <strong
+                                    style={{
+                                        marginLeft: theme.spacing(4)
+                                    }}
+                                >
+                                    {
+                                        <Link to={`/component/${name}`}>
+                                            {name}
+                                        </Link>
+                                    } — {
+                                        <Link to={`/component/${conn.name}`}>
+                                        {conn.name}
+                                    </Link>}
+                                </strong>
+                            </Stack>
+                        
+                        </EntryAccordionSummary>
+                        <EntryAccordionDetails>
+                            <Stack spacing={1}>
+                                <ComponentEvent
+                                    name="Start"
+                                    time={conn.start_time}
+                                    uid={conn.start_uid}
+                                    edit_time={conn.start_edit_time}
+                                    comments={conn.start_comments}
+                                    theme={theme} />
+
+                                {
+                                    conn.end_time <= 
+                                    Number.MAX_SAFE_INTEGER ?
+                                    <ComponentEvent
+                                        name="End"
+                                        time={conn.end_time}
+                                        uid={conn.end_uid}
+                                        edit_time={conn.end_edit_time}
+                                        comments={conn.end_comments}
+                                        theme={theme} />
+                                    : ""
+                                }
+                            </Stack>
+                        </EntryAccordionDetails>
+                    </EntryAccordion>
+                ))}
+            </Stack>
         )
 
         content = (
@@ -314,6 +294,19 @@ function ComponentPage() {
                     </AccordionSummary>
                     <AccordionDetails>
                         {properties_content}
+                    </AccordionDetails>
+                </Accordion>
+
+                <Accordion
+                    style={{
+                        marginTop: theme.spacing(1)
+                    }}
+                >
+                    <AccordionSummary>
+                        Connections
+                    </AccordionSummary>
+                    <AccordionDetails>
+                        {connections_content}
                     </AccordionDetails>
                 </Accordion>
 

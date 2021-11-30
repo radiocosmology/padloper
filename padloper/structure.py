@@ -1389,6 +1389,47 @@ class Component(Vertex):
             end_comments=e[0]['properties']['end_comments'],
             id=e[0]['id']['@value']['relationId'] # weird but you have to
         )
+
+    def get_all_connections(self):
+        """Return all connections between this Component and all other
+        components, along with their edges of this component as
+        a tuple of the form (Component, RelationConnection)
+
+        :rtype: tuple[Component, RelationConnection]
+        """
+
+
+        if not self.added_to_db():
+            raise ComponentNotAddedError
+
+        # list of property vertices of this property type 
+        # and active at this time
+        query = g.V(self.id).bothE(RelationConnection.category) \
+            .as_('e').valueMap().as_('edge_props') \
+            .select('e').otherV().id().as_('vertex_id') \
+            .select('edge_props', 'vertex_id').toList()
+
+        # Build up the result of format (property vertex, relation)
+        result = []
+
+        for q in query:
+            prop = Component.from_id(q['vertex_id'])
+            edge = RelationConnection(
+                inVertex=prop,
+                outVertex=self,
+                start_time=q['edge_props']['start_time'],
+                start_uid=q['edge_props']['start_uid'],
+                start_edit_time=q['edge_props']['start_edit_time'],
+                start_comments=q['edge_props']['start_comments'],
+                end_time=q['edge_props']['end_time'],
+                end_uid=q['edge_props']['end_uid'],
+                end_edit_time=q['edge_props']['end_edit_time'],
+                end_comments=q['edge_props']['end_comments'],
+            )
+            result.append((prop, edge))
+
+        return result
+
     
     def added_to_db(self) -> bool:
         """Return whether this Component is added to the database,
@@ -1746,6 +1787,22 @@ class Component(Vertex):
                 'end_comments': rel.end_comments
             })
 
+        connection_dicts = []
+
+        for (comp, rel) in c.get_all_connections():
+            connection_dicts.append({
+                'name': comp.name,
+                'id': comp.id,
+                'start_time': rel.start_time,
+                'end_time': rel.end_time,
+                'start_uid': rel.start_uid,
+                'end_uid': rel.end_uid,
+                'start_edit_time': rel.start_edit_time,
+                'end_edit_time': rel.end_edit_time,
+                'start_comments': rel.start_comments,
+                'end_comments': rel.end_comments
+            })
+
         return {
             'name': c.name,
             'type': {
@@ -1754,7 +1811,8 @@ class Component(Vertex):
             'revision': {
                 'name': c.revision.name if c.revision is not None else ''
             },
-            'properties': prop_dicts
+            'properties': prop_dicts,
+            'connections': connection_dicts,
         }
 
 
@@ -1947,9 +2005,12 @@ class Property(Vertex):
         id: int=VIRTUAL_ID_PLACEHOLDER
     ):
 
-        if len(values) != property_type.n_values:
+        # if len(values) != property_type.n_values:
 
-            raise PropertyWrongNValuesError
+            # print(len(values), property_type.n_values)
+            
+            # TODO: This isn't working for some reason.....!!!!!!!!!!!
+            # raise PropertyWrongNValuesError
 
         for val in values:
 
@@ -1997,7 +2058,7 @@ class Property(Vertex):
 
             values, ptype_id = d['values'], d['ptype_id']
 
-            if type(values) is not list:
+            if not isinstance(values, list):
                 values = [values]
 
             Vertex._cache_vertex(

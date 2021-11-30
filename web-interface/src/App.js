@@ -34,7 +34,7 @@ function App() {
             <ComponentRevisionList />
           </Route>
           
-          <Route path="/component/:name">
+          <Route exact path="/component/:name">
             <ComponentPage />
           </Route>
         </Switch>
