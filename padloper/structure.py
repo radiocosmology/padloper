@@ -586,7 +586,7 @@ class ComponentRevision(Vertex):
     allowed_type: ComponentType
 
     def __new__(
-        cls, name: str, comments: str, allowed_type: ComponentType,
+        cls, name: str, allowed_type: ComponentType, comments: str="",
         id: int=VIRTUAL_ID_PLACEHOLDER
     ):
         """
@@ -616,7 +616,7 @@ class ComponentRevision(Vertex):
             return object.__new__(cls)
 
     def __init__(
-        self, name: str, comments: str, allowed_type: ComponentType,
+        self, name: str, allowed_type: ComponentType, comments: str="",
         id: int=VIRTUAL_ID_PLACEHOLDER
         ):
         """
@@ -2053,7 +2053,7 @@ class Property(Vertex):
         if id not in _vertex_cache:
             
             d = g.V(id).project('values', 'ptype_id') \
-                .by(__.values('values')) \
+                .by(__.properties('values').value().fold()) \
                 .by(__.both(RelationPropertyType.category).id()).next()
 
             values, ptype_id = d['values'], d['ptype_id']

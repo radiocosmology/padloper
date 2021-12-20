@@ -2,15 +2,14 @@ import React, { useState, useEffect } from 'react';
 import Paper from '@mui/material/Paper';
 import Stack from '@mui/material/Stack';
 import Divider from '@mui/material/Divider';
+import Button from '@mui/material/Button';
 import MuiAccordion from '@mui/material/Accordion';
 import MuiAccordionSummary from '@mui/material/AccordionSummary';
 import MuiAccordionDetails from '@mui/material/AccordionDetails';
 
 import ExpandMoreIcon from '@mui/icons-material/ExpandMore';
 import EventIcon from '@mui/icons-material/Event';
-import AccessTimeIcon from '@mui/icons-material/AccessTime';
-import PersonIcon from '@mui/icons-material/Person';
-import CommentIcon from '@mui/icons-material/Comment';
+import AddIcon from '@mui/icons-material/Add';
 
 import ThemeProvider from '@mui/material/styles/ThemeProvider';
 import createTheme from '@mui/material/styles/createTheme';
@@ -90,6 +89,7 @@ const AccordionSummary = styled((props) => (
     '& .MuiAccordionSummary-content': {
       marginLeft: theme.spacing(1),
     },
+    lineHeight: '100%',
 }));
 
 const EntryAccordionSummary = styled(AccordionSummary)(({ theme }) => ({
@@ -288,9 +288,17 @@ function ComponentPage() {
                     style={{
                         marginTop: theme.spacing(1)
                     }}
+                    expanded={true}
                 >
                     <AccordionSummary>
                         Properties   
+                        <Button 
+                            variant="outlined"
+                            style={{
+                                marginRight: theme.spacing(1),  
+                            }}>
+                            <AddIcon />
+                        </Button>
                     </AccordionSummary>
                     <AccordionDetails>
                         {properties_content}
@@ -301,9 +309,13 @@ function ComponentPage() {
                     style={{
                         marginTop: theme.spacing(1)
                     }}
+                    expanded={true}
                 >
                     <AccordionSummary>
                         Connections
+                        <Button variant="outlined">
+                            <AddIcon />
+                        </Button>
                     </AccordionSummary>
                     <AccordionDetails>
                         {connections_content}
