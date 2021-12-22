@@ -131,7 +131,10 @@ class Vertex(Element):
 
             v = traversal.next()
 
-            self._set_id(v.id())
+            # this is NOT the id of a Vertex instance, 
+            # but rather the id of the GremlinPython vertex returned 
+            # by the traversal.
+            self._set_id(v.id)
 
             Vertex._cache_vertex(self)
 
@@ -302,7 +305,7 @@ class ComponentType(Vertex):
         
         :param comments: The comments attached to the component type, 
         defaults to ""
-        :str comments: str  
+        :type comments: str  
 
         :param id: The serverside ID of the ComponentType, 
         defaults to VIRTUAL_ID_PLACEHOLDER
@@ -2165,13 +2168,52 @@ class FlagType(Vertex):
     name: str
     comments: str
 
-    def __init__(
-        self, name: str, comments: str, id: int=VIRTUAL_ID_PLACEHOLDER
+
+    def __new__(
+        cls, name: str, comments: str="", id: int=VIRTUAL_ID_PLACEHOLDER
     ):
+        """
+        Return a FlagType instance given the desired attributes.
+
+        :param name: The name of the flag type
+        :type name: str
+
+        :param comments: The comments attached to this flag type, defaults to ""
+        :type comments: str
+
+        :param id: The serverside ID of the FlagType,
+        defaults to VIRTUAL_ID_PLACEHOLDER
+        :type id: int, optional
+        """
+
+        if id is not VIRTUAL_ID_PLACEHOLDER and id in _vertex_cache:
+            return _vertex_cache[id]
+
+        else:
+            return object.__new__(cls)
+
+
+    def __init__(
+        self, name: str, comments: str="", id: int=VIRTUAL_ID_PLACEHOLDER
+    ):  
+        """Initialize a FlagType instance given the desired attributes.
+
+        :param name: The name of the flag type
+        :type name: str
+
+        :param comments: The comments attached to this flag type, defaults to ""
+        :type comments: str
+
+        :param id: The serverside ID of the FlagType,
+        defaults to VIRTUAL_ID_PLACEHOLDER
+        :type id: int, optional
+        """
+
         self.name = name
         self.comments = comments
 
         Vertex.__init__(self, id=id)
+
 
     def add(self):
         """Add this FlagType to the database.
