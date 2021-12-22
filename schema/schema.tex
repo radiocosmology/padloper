@@ -1,4 +1,4 @@
-\documentclass[12pt]{article}
+\documentclass[10pt]{article}
 
 \usepackage[T1]{fontenc}
 \usepackage[margin=0.5in]{geometry}
@@ -32,15 +32,15 @@
 
     
 \begin{tikzpicture}[
-    rect_node/.style={rectangle, draw=black, fill=white, very thick, minimum size=1cm, align=left, inner sep = 2mm, font=\footnotesize},
-    duplicate_rect_node/.style={rectangle, draw=black, dashed, very thick, minimum size=1cm, align=center, inner sep=2mm, font=\footnotesize},
-    edge_style/.style={draw=black, ultra thick, align=center, font=\scriptsize}
+    rect_node/.style={rectangle, draw=black, fill=white, very thick, minimum size=1cm, align=left, inner sep = 1.5mm, font=\small},
+    duplicate_rect_node/.style={rectangle, draw=black, dashed, very thick, minimum size=1cm, align=center, inner sep=2mm, font=\small},
+    edge_style/.style={draw=black, ultra thick, align=center, font=\footnotesize}
 ]
     
 
     \node[rect_node] (main_component) at (6, 0) {
         \color{red} ``component'' \\
-        \color{blue} ``name'': \color{black} str
+        \color{blue} ``name'': \color{black} str (unique)
     };
 
     \node[rect_node] (property) at (12, 0) {
@@ -50,7 +50,7 @@
 
     \node[rect_node] (property_type) at (12, 4) {
         \color{red} ``property_type'' \\
-        \color{blue} ``name'': \color{black} str \\ 
+        \color{blue} ``name'': \color{black} str (unique) \\ 
         \color{blue} ``units'': \color{black} str \\ 
         \color{blue} ``allowed_regex'': \color{black} str \\ 
         \color{blue} ``n_values'': \color{black} int \\ 
@@ -59,13 +59,13 @@
 
     \node [rect_node] (component_type) at (4, 4) {
         \color{red} ``component_type'' \\
-        \color{blue} ``name'': \color{black} str \\ 
+        \color{blue} ``name'': \color{black} str (unique) \\ 
         \color{blue} ``comments'': \color{black} str
     };
 
     \node [rect_node] (component_revision) at (0, 0) {
         \color{red} ``component_revision'' \\
-        \color{blue} ``name'': \color{black} str \\
+        \color{blue} ``name'': \color{black} str (unique) \\
         \color{blue} ``comments'': \color{black} str
     };
 
@@ -85,7 +85,7 @@
 
     \node [rect_node] (flag_type) at (12, -5.5) {
         \color{red} ``flag_type'' \\
-        \color{blue} ``name'': \color{black} str \\
+        \color{blue} ``name'': \color{black} str (unique) \\
         \color{blue} ``comments'': \color{black} str
     };
 
