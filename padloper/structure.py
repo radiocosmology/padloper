@@ -35,7 +35,7 @@ class Element:
     element is not in the actual graph and only exists clienside.
     """
 
-    id: int
+    _id: int
 
     def __init__(self, id: int):
         """
@@ -45,19 +45,22 @@ class Element:
         :type id: int
         """
 
-        self.set_id(id)
+        self._set_id(id)
 
+    def _set_id(self, id: int):
+        """Set the _id attribute of this Element to :param id:.
 
-    def set_id(self, id: int):
-        """Set the ID of the element.
-
-        NOTE: This function need not exist.
-
-        :param id: What to set the identifier to.
+        :param id: ID of the element.
         :type id: int
         """
 
-        self.id = id
+        self._id = id
+
+    def id(self):
+        """Return the ID of the element.
+        """
+
+        return self._id
  
     
     def added_to_db(self) -> bool:
@@ -70,7 +73,7 @@ class Element:
 
         # TODO: do an actual query to determine whether this is added to DB.
 
-        return self.id != VIRTUAL_ID_PLACEHOLDER
+        return self._id != VIRTUAL_ID_PLACEHOLDER
 
 
 class Vertex(Element):
@@ -128,7 +131,7 @@ class Vertex(Element):
 
             v = traversal.next()
 
-            self.set_id(v.id)
+            self._set_id(v.id())
 
             Vertex._cache_vertex(self)
 
@@ -146,8 +149,8 @@ class Vertex(Element):
         # TODO: do an actual query to determine whether this is added to DB.
 
         return (
-            self.id != VIRTUAL_ID_PLACEHOLDER or \
-                g.V(self.id).count().next() > 0
+            self.id() != VIRTUAL_ID_PLACEHOLDER or \
+                g.V(self.id()).count().next() > 0
         )
 
 
@@ -158,7 +161,7 @@ class Vertex(Element):
         :rtype: bool
         """
 
-        return self.id in _vertex_cache
+        return self.id() in _vertex_cache
 
 
     @classmethod
@@ -170,7 +173,7 @@ class Vertex(Element):
         an implementation error with the caching.
         """
 
-        if vertex.id not in _vertex_cache:
+        if vertex.id() not in _vertex_cache:
 
             if not vertex.added_to_db():
                     
@@ -178,9 +181,9 @@ class Vertex(Element):
                     
                 return
 
-            _vertex_cache[vertex.id] = vertex
+            _vertex_cache[vertex.id()] = vertex
 
-        return _vertex_cache[vertex.id]
+        return _vertex_cache[vertex.id()]
 
 
 class Edge(Element):
@@ -243,8 +246,8 @@ class Edge(Element):
             raise EdgeAlreadyAddedError
 
         else:
-            traversal = g.V(self.outVertex.id).addE(self.category) \
-                        .to(__.V(self.inVertex.id)) \
+            traversal = g.V(self.outVertex.id()).addE(self.category) \
+                        .to(__.V(self.inVertex.id())) \
                         .property('category', self.category)
 
             for key in attributes:
@@ -252,7 +255,7 @@ class Edge(Element):
 
             e = traversal.next()
 
-            self.id = e.id
+            self._set_id(e.id())
 
 
     def added_to_db(self) -> bool:
@@ -267,8 +270,8 @@ class Edge(Element):
         # TODO: do an actual query to determine whether this is added to DB.
 
         return (
-            self.id != VIRTUAL_ID_PLACEHOLDER or \
-                g.E(self.id).count().next() > 0
+            self.id() != VIRTUAL_ID_PLACEHOLDER or \
+                g.E(self.id()).count().next() > 0
         )
 
 
@@ -359,7 +362,7 @@ class ComponentType(Vertex):
         """
 
         return (
-            self.id != VIRTUAL_ID_PLACEHOLDER or (
+            self.id() != VIRTUAL_ID_PLACEHOLDER or (
                 g.V().has('category', ComponentType.category) \
                     .has('name', self.name).count().next() > 0
             )
@@ -670,9 +673,9 @@ class ComponentRevision(Vertex):
         """
 
         return (
-            self.id != VIRTUAL_ID_PLACEHOLDER or (
+            self.id() != VIRTUAL_ID_PLACEHOLDER or (
                 self.allowed_type.added_to_db() and \
-                g.V(self.allowed_type.id) \
+                g.V(self.allowed_type.id()) \
                 .both(RelationRevisionAllowedType.category) \
                     .has('name', self.name).count().next() > 0
             )
@@ -730,7 +733,7 @@ class ComponentRevision(Vertex):
 
         if allowed_type.added_to_db():
 
-            d =  g.V(allowed_type.id) \
+            d =  g.V(allowed_type.id()) \
                 .both(RelationRevisionAllowedType.category).has('name', name) \
                 .as_('v').valueMap().as_('attrs').select('v').id().as_('id') \
                 .select('attrs', 'id').next()
@@ -1035,7 +1038,7 @@ class Component(Vertex):
 
         return f'Component of name "{self.name}", \
             type "{self.component_type.name}", \
-            {revision_text}, id {self.id}'
+            {revision_text}, id {self.id()}'
 
     def add(self):
         """Add this Component to the serverside.
@@ -1090,7 +1093,7 @@ class Component(Vertex):
 
         # list of property vertices of this property type 
         # and active at this time
-        vs = g.V(self.id).bothE(RelationProperty.category) \
+        vs = g.V(self.id()).bothE(RelationProperty.category) \
             .has('start_time', P.lte(time)) \
             .has('end_time', P.gt(time)).otherV().as_('v') \
             .both(RelationPropertyType.category) \
@@ -1105,7 +1108,7 @@ class Component(Vertex):
 
         assert len(vs) == 1
         
-        return Property.from_id(vs[0].id)    
+        return Property.from_id(vs[0].id())    
 
 
     def get_all_properties(self):
@@ -1120,7 +1123,7 @@ class Component(Vertex):
 
         # list of property vertices of this property type 
         # and active at this time
-        query = g.V(self.id).bothE(RelationProperty.category) \
+        query = g.V(self.id()).bothE(RelationProperty.category) \
             .as_('e').valueMap().as_('edge_props') \
             .select('e').otherV().id().as_('vertex_id') \
             .select('edge_props', 'vertex_id').toList()
@@ -1237,8 +1240,8 @@ class Component(Vertex):
 
             raise PropertyNotAddedError
 
-        g.V(property.id).bothE(RelationProperty.category).as_('e').otherV() \
-            .hasId(self.id).select('e') \
+        g.V(property.id()).bothE(RelationProperty.category).as_('e').otherV() \
+            .hasId(self.id()).select('e') \
             .has('end_time', EXISTING_RELATION_END_PLACEHOLDER) \
             .property('end_time', time).property('end_uid', uid) \
             .property('end_edit_time', edit_time) \
@@ -1365,11 +1368,11 @@ class Component(Vertex):
         if not component.added_to_db():
             raise ComponentNotAddedError
 
-        e = g.V(self.id).bothE(RelationConnection.category) \
+        e = g.V(self.id()).bothE(RelationConnection.category) \
             .has('start_time', P.lte(time)) \
             .has('end_time', P.gt(time)) \
             .as_('e').otherV() \
-            .hasId(component.id).select('e') \
+            .hasId(component.id()).select('e') \
             .project('properties', 'id').by(__.valueMap()).by(__.id()).toList()
 
         if len(e) == 0:
@@ -1404,7 +1407,7 @@ class Component(Vertex):
 
         # list of property vertices of this property type 
         # and active at this time
-        query = g.V(self.id).bothE(RelationConnection.category) \
+        query = g.V(self.id()).bothE(RelationConnection.category) \
             .as_('e').valueMap().as_('edge_props') \
             .select('e').otherV().id().as_('vertex_id') \
             .select('edge_props', 'vertex_id').toList()
@@ -1441,7 +1444,7 @@ class Component(Vertex):
         """
 
         return (
-            self.id != VIRTUAL_ID_PLACEHOLDER or (
+            self.id() != VIRTUAL_ID_PLACEHOLDER or (
                 g.V() \
                 .has('category', Component.category) \
                     .has('name', self.name).count().next() > 0
@@ -1792,7 +1795,7 @@ class Component(Vertex):
         for (comp, rel) in c.get_all_connections():
             connection_dicts.append({
                 'name': comp.name,
-                'id': comp.id,
+                'id': comp.id(),
                 'start_time': rel.start_time,
                 'end_time': rel.end_time,
                 'start_uid': rel.start_uid,
@@ -1897,7 +1900,7 @@ class PropertyType(Vertex):
         """
 
         return (
-            self.id != VIRTUAL_ID_PLACEHOLDER or (
+            self.id() != VIRTUAL_ID_PLACEHOLDER or (
                 g.V().has('category', PropertyType.category) \
                     .has('name', self.name).count().next() == 1
             )
@@ -2115,7 +2118,7 @@ class FlagType(Vertex):
         """
 
         return (
-            self.id != VIRTUAL_ID_PLACEHOLDER or (
+            self.id() != VIRTUAL_ID_PLACEHOLDER or (
                 g.V().has('category', FlagType.category) \
                     .has('name', self.name).count().next() == 1
             )
@@ -2428,7 +2431,7 @@ class RelationConnection(Edge):
         self.end_edit_time = end_edit_time
         self.end_comments = end_comments
 
-        g.E(self.id).property('end_time', end_time) \
+        g.E(self.id()).property('end_time', end_time) \
             .property('end_uid', end_uid) \
             .property('end_edit_time', end_edit_time) \
             .property('end_comments', end_comments).iterate()        
