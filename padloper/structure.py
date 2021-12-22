@@ -295,8 +295,7 @@ class ComponentType(Vertex):
         cls, name: str, comments: str="", id: int=VIRTUAL_ID_PLACEHOLDER
     ):
         """
-        Return a ComponentType instance given the desired name, comments, 
-        and id.
+        Return a ComponentType instance given the desired attributes.
 
         :param name: The name of the component type. 
         :type name: str
@@ -1544,7 +1543,7 @@ class Component(Vertex):
         range: tuple, 
         order_by: str,
         order_direction: str,
-        filters: list):
+        filters: list=[]):
         """
         Return a list of Components based in the range :param range:,
         based on the filters in :param filters:, and order them based on 
@@ -1844,11 +1843,85 @@ class PropertyType(Vertex):
     comments: str
     allowed_types: List[ComponentType]
 
+    def __new__(
+        cls, name: str, units: str, allowed_regex: str,
+        n_values: int, allowed_types: List[ComponentType], comments: str="", 
+        id: int=VIRTUAL_ID_PLACEHOLDER
+    ):
+        """
+        Return a PropertyType instance given the desired attributes.
+
+        :param name: The name of the property type. 
+        :type name: str
+
+        :param units: The units which the values of the properties belonging
+        to this type are to be in. 
+        :type units: str
+        
+        :param allowed_regex: The regular expression that the values of the
+        properties of this property type must adhere to. 
+        :type allowed_regex: str
+
+        :param n_values: The number of values that the properties of this
+        property type must have. 
+        :type n_values: int
+
+        :param allowed_types: The component types that may have properties
+        of this property type.
+        :type allowed_types: List[ComponentType]
+
+        :param comments: The comments attached to the property type, 
+        defaults to ""
+        :str comments: str  
+
+        :param id: The serverside ID of the PropertyType, 
+        defaults to VIRTUAL_ID_PLACEHOLDER
+        :type id: int, optional
+        """
+
+        if id is not VIRTUAL_ID_PLACEHOLDER and id in _vertex_cache:
+            return _vertex_cache[id]
+
+        else:
+            return object.__new__(cls)
+
+
     def __init__(
         self, name: str, units: str, allowed_regex: str,
         n_values: int, allowed_types: List[ComponentType], comments: str="", 
         id: int=VIRTUAL_ID_PLACEHOLDER
     ):
+        """
+        Initialize a PropertyType instance given the desired attributes.
+
+        :param name: The name of the property type. 
+        :type name: str
+
+        :param units: The units which the values of the properties belonging
+        to this type are to be in. 
+        :type units: str
+        
+        :param allowed_regex: The regular expression that the values of the
+        properties of this property type must adhere to. 
+        :type allowed_regex: str
+
+        :param n_values: The number of values that the properties of this
+        property type must have. 
+        :type n_values: int
+
+        :param allowed_types: The component types that may have properties
+        of this property type.
+        :type allowed_types: List[ComponentType]
+
+        :param comments: The comments attached to the property type, 
+        defaults to ""
+        :str comments: str  
+
+        :param id: The serverside ID of the PropertyType, 
+        defaults to VIRTUAL_ID_PLACEHOLDER
+        :type id: int, optional
+        """
+
         self.name = name
         self.units = units
         self.allowed_regex = allowed_regex
@@ -1866,6 +1939,10 @@ class PropertyType(Vertex):
     def add(self):
         """Add this PropertyType to the serverside.
         """
+
+        # If already added, raise an error!
+        if self.added_to_db():
+            raise VertexAlreadyAddedError
 
         attributes = {
             'name': self.name,
@@ -1902,7 +1979,7 @@ class PropertyType(Vertex):
         return (
             self.id() != VIRTUAL_ID_PLACEHOLDER or (
                 g.V().has('category', PropertyType.category) \
-                    .has('name', self.name).count().next() == 1
+                    .has('name', self.name).count().next() > 0
             )
         )
 
