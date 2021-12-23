@@ -2,7 +2,7 @@ from structure import *
 
 t = ComponentType(name="CTYPE-1")
 r = ComponentRevision(name="CREV", allowed_type=t)
-c = Component(name="COMP-1", component_type=t, revision=r)
+c = Component(name="COMP-1", type=t, revision=r)
 
 pt = PropertyType(
     name="PTYPE-1", units="m", 

@@ -81,9 +81,9 @@ def get_component_list():
             {
                 'name': c.name, 
                 'id': c.id,
-                'component_type': {
-                    'name': c.component_type.name,
-                    'comments': c.component_type.comments,
+                'type': {
+                    'name': c.type.name,
+                    'comments': c.type.comments,
                 },
                 'revision': {
                     'name': c.revision.name if c.revision is not None else None,

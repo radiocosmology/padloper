@@ -24,7 +24,7 @@ function ComponentList() {
     const [components_loaded, setComponentsLoaded] = useState(false);
 
     // property to order the components by.
-    // must be in the set {'name', 'component_type', 'revision'}
+    // must be in the set {'name', 'type', 'revision'}
     const [components_orderBy, setComponentsOrderBy] = useState('name');
 
     /*
@@ -51,7 +51,7 @@ function ComponentList() {
     [
     {
     name: <str>,
-    component_type: <str>,
+    type: <str>,
     revision: <str>
     }
     ]
@@ -62,7 +62,7 @@ function ComponentList() {
     const addFilter = () => {
         setFilters([...filters, {
             name: "",
-            component_type: "",
+            type: "",
             revision: ""
         }])
     }
@@ -111,7 +111,7 @@ function ComponentList() {
 
             // create the string 
             for (let f of filters) {
-                strSoFar += `${f.name},${f.component_type},${f.revision};`;
+                strSoFar += `${f.name},${f.type},${f.revision};`;
             }
 
             // remove the last semicolon.
@@ -189,7 +189,7 @@ function ComponentList() {
             allowOrdering: true,
         },
         {
-            id: 'component_type', 
+            id: 'type', 
             label: 'Type',
             allowOrdering: true,
         },

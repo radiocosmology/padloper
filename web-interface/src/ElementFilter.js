@@ -43,7 +43,7 @@ function ElementFilter(
         if (event.target.value != -1) {
 
             filterUpdateKey(
-                'component_type', 
+                'type', 
                 types_and_revisions[event.target.value]['name']
             );
 
@@ -51,7 +51,7 @@ function ElementFilter(
         }
         else {
             filterUpdateKey(
-                'component_type', 
+                'type', 
                 ''
             );
             setRevisions([]);

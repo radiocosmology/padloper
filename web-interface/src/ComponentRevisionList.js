@@ -40,7 +40,7 @@ function ComponentRevisionList() {
         [
             {
             name: <str>,
-            component_type: <str>,
+            type: <str>,
             },
             ...
         ]
@@ -51,7 +51,7 @@ function ComponentRevisionList() {
     const addFilter = () => {
         setFilters([...filters, {
             name: "",
-            component_type: "",
+            type: "",
         }])
     }
 
@@ -99,7 +99,7 @@ function ComponentRevisionList() {
 
             // create the string 
             for (let f of filters) {
-                strSoFar += `${f.name},${f.component_type};`;
+                strSoFar += `${f.name},${f.type};`;
             }
 
             // remove the last semicolon.

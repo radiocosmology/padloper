@@ -34,13 +34,13 @@ function ComponentRevisionFilter(
         if (event.target.value != -1) {
 
             filterUpdateKey(
-                'component_type', 
+                'type', 
                 types[event.target.value]['name']
             );
         }
         else {
             filterUpdateKey(
-                'component_type', 
+                'type', 
                 ''
             );
         }

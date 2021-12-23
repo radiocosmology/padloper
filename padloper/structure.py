@@ -963,7 +963,7 @@ class Component(Vertex):
     ComponentRevision.
 
     :ivar name: The name of the component
-    :ivar component_type: The ComponentType instance representing the 
+    :ivar type: The ComponentType instance representing the 
     type of the component.
     :ivar revision: Optional ComponentRevision instance representing the
     revision of the component.
@@ -974,11 +974,11 @@ class Component(Vertex):
     category: str = "component"
 
     name: str
-    component_type: ComponentType
+    type: ComponentType
     revision: ComponentRevision = None
 
     def __new__(
-        cls, name: str, component_type: ComponentType, 
+        cls, name: str, type: ComponentType, 
         revision: ComponentRevision=None,
         id: int=VIRTUAL_ID_PLACEHOLDER
     ):
@@ -989,8 +989,8 @@ class Component(Vertex):
         :param name: The name of the Component.
         :type name: str
         
-        :param component_type: The component type of the Component.
-        :type component_type: ComponentType
+        :param type: The component type of the Component.
+        :type type: ComponentType
 
         :param revision: The ComponentRevision instance representing the 
         revision of the Component.
@@ -1009,7 +1009,7 @@ class Component(Vertex):
 
 
     def __init__(
-        self, name: str, component_type: ComponentType, 
+        self, name: str, type: ComponentType, 
         revision: ComponentRevision=None,
         id: int=VIRTUAL_ID_PLACEHOLDER
         ):
@@ -1024,7 +1024,7 @@ class Component(Vertex):
         """
 
         self.name = name
-        self.component_type = component_type
+        self.type = type
         self.revision = revision
 
         Vertex.__init__(self, id=id)
@@ -1039,7 +1039,7 @@ class Component(Vertex):
             revision_text = 'revision "{self.revision.name}"'
 
         return f'Component of name "{self.name}", \
-            type "{self.component_type.name}", \
+            type "{self.type.name}", \
             {revision_text}, id {self.id()}'
 
     def add(self):
@@ -1066,11 +1066,11 @@ class Component(Vertex):
 
             rev_edge._add()
 
-        if not self.component_type.added_to_db():
-            self.component_type.add()
+        if not self.type.added_to_db():
+            self.type.add()
 
         type_edge = RelationComponentType(
-            inVertex=self.component_type,
+            inVertex=self.type,
             outVertex=self
         )
 
@@ -1494,7 +1494,7 @@ class Component(Vertex):
             Component(
                 name=name,  
                 id=id,
-                component_type=_vertex_cache[type_id],
+                type=_vertex_cache[type_id],
                 revision=crev
             )
         )
@@ -1556,7 +1556,7 @@ class Component(Vertex):
         :type range: tuple[int, int]
 
         :param order_by: What to order the components by. Must be in
-        {'name', 'component_type', 'revision'}
+        {'name', 'type', 'revision'}
         :type order_by: str
 
         :param order_direction: Order the components by ascending or descending?
@@ -1572,7 +1572,7 @@ class Component(Vertex):
 
         assert order_direction in {'asc', 'desc'}
 
-        assert order_by in {'name', 'component_type', 'revision'}
+        assert order_by in {'name', 'type', 'revision'}
 
         # if order_direction is not asc or desc, it will just sort by asc.
         # Keep like this if removing the assert above only in production.
@@ -1642,7 +1642,7 @@ class Component(Vertex):
                     Order.asc
                 )
 
-        elif order_by == 'component_type':
+        elif order_by == 'type':
             traversal = traversal.order() \
                 .by(
                     __.both(RelationComponentType.category).values('name'), 
@@ -1811,7 +1811,7 @@ class Component(Vertex):
         return {
             'name': c.name,
             'type': {
-                'name': c.component_type.name,
+                'name': c.type.name,
             },
             'revision': {
                 'name': c.revision.name if c.revision is not None else ''
