@@ -1110,7 +1110,7 @@ class Component(Vertex):
 
         assert len(vs) == 1
         
-        return Property.from_id(vs[0].id())    
+        return Property.from_id(vs[0].id)    
 
 
     def get_all_properties(self):
@@ -1152,7 +1152,7 @@ class Component(Vertex):
         return result 
 
 
-    def add_property(
+    def set_property(
         self, property, time: int, 
         uid: str, edit_time:int=int(time.time()),
         comments=""
@@ -1185,7 +1185,7 @@ class Component(Vertex):
 
             else:
                 # end that property.
-                self._remove_property(p, time, uid, edit_time, comments)
+                self.unset_property(p, time, uid, edit_time, comments)
         
         prop_copy = Property(
             values=property.values,
@@ -1208,7 +1208,7 @@ class Component(Vertex):
         return prop_copy
 
 
-    def _remove_property(
+    def unset_property(
         self, property, time: int, uid: str,
         edit_time: int=int(time.time()), comments=""
     ):
