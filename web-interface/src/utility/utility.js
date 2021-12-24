@@ -21,5 +21,5 @@ export function unixTimeToString(UNIX_timestamp, includeTime){
 
 // takes a string, returns "—" if the string is equal to "".
 export function emDashIfEmpty(str) {
-    return (str == '' || str == null ? '—' : str);
+    return (str === '' || str == null ? '—' : str);
 }

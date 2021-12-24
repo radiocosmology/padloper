@@ -12,20 +12,20 @@ function ComponentList() {
     const [components, setComponents] = useState([]);
 
     // the first component index to show
-    const [component_min, setComponentMin] = useState(0);
+    const [min, setMin] = useState(0);
 
     // how many components there are
-    const [component_count, setComponentCount] = useState(0);
+    const [count, setCount] = useState(0);
 
     // the number of components to show
-    const [component_range, setComponentRange] = useState(100);
+    const [range, setRange] = useState(100);
 
     // whether the components are loaded or not
-    const [components_loaded, setComponentsLoaded] = useState(false);
+    const [loaded, setLoaded] = useState(false);
 
     // property to order the components by.
     // must be in the set {'name', 'type', 'revision'}
-    const [components_orderBy, setComponentsOrderBy] = useState('name');
+    const [orderBy, setOrderBy] = useState('name');
 
     /*
     stores component types as
@@ -40,12 +40,12 @@ function ComponentList() {
         }
     ]
     */
-    const [component_types_and_revisions,
-        setComponentTypesAndRevisions] = useState([]);
+    const [types_and_revisions,
+        setTypesAndRevisions] = useState([]);
 
     // 'asc' or 'desc'
-    const [components_orderDirection,
-        setComponentsOrderDirection] = useState('asc');
+    const [orderDirection,
+        setOrderDirection] = useState('asc');
 
     /* filters stored as 
     [
@@ -73,7 +73,7 @@ function ComponentList() {
     */
     const removeFilter = (index) => {
         if (index >= 0 && index < filters.length) {
-            let newFilters = filters.filter((element, i) => index != i);
+            let newFilters = filters.filter((element, i) => index !== i);
             setFilters(newFilters);
         }
     }
@@ -125,32 +125,34 @@ function ComponentList() {
     The function that updates the list of components when the site is loaded
     or a change of the components is requested (upon state change).
     */
-    useEffect(async () => {
+    useEffect(() => {
+        async function fetchData() {
+            setLoaded(false);
 
-        setComponentsLoaded(false);
-
-        // create the URL query string
-        let input = '/api/component_list'
-        input += `?range=${component_min};${component_min + component_range}`
-        input += `&orderBy=${components_orderBy}`
-        input += `&orderDirection=${components_orderDirection}`
-        if (filters.length > 0) {
-            input += `&filters=${createFilterString()}`;
+            // create the URL query string
+            let input = '/api/component_list'
+            input += `?range=${min};${min + range}`
+            input += `&orderBy=${orderBy}`
+            input += `&orderDirection=${orderDirection}`
+            if (filters.length > 0) {
+                input += `&filters=${createFilterString()}`;
+            }
+    
+            // query the URL with flask, and set the input.
+            fetch(input).then(
+                res => res.json()
+            ).then(data => {
+                setComponents(data.result);
+    
+                setLoaded(true);
+            });
         }
-
-        // query the URL with flask, and set the input.
-        fetch(input).then(
-            res => res.json()
-        ).then(data => {
-            setComponents(data.result);
-
-            setComponentsLoaded(true);
-        });
+        fetchData();
     }, [
-        component_min,
-        component_range,
-        components_orderBy,
-        components_orderDirection,
+        min,
+        range,
+        orderBy,
+        orderDirection,
         filters
     ]
     );
@@ -163,9 +165,9 @@ function ComponentList() {
         fetch(`/api/component_count?filters=${createFilterString()}`).then(
             res => res.json()
         ).then(data => {
-            setComponentCount(data.result);
+            setCount(data.result);
 
-            setComponentMin(0);
+            setMin(0);
         });
     }, [filters]);
 
@@ -176,7 +178,7 @@ function ComponentList() {
         fetch("/api/component_types_and_revisions").then(
             res => res.json()
         ).then(data => {
-            setComponentTypesAndRevisions(data.result);
+            setTypesAndRevisions(data.result);
         });
     }, []);
 
@@ -210,11 +212,11 @@ function ComponentList() {
     return (
         <>
             <ElementRangePanel
-                min={component_min}
-                updateMin={(n) => { setComponentMin(n) }}
-                range={component_range}
-                updateRange={(n) => { setComponentRange(n) }}
-                count={component_count}
+                min={min}
+                updateMin={(n) => { setMin(n) }}
+                range={range}
+                updateRange={(n) => { setRange(n) }}
+                count={count}
                 rightColumn={
                     (
                         <Button
@@ -237,7 +239,7 @@ function ComponentList() {
                             changeFilter={changeFilter}
                             filter={filter}
                             index={index}
-                            types_and_revisions={component_types_and_revisions}
+                            types_and_revisions={types_and_revisions}
                         />
                     )
                 )
@@ -245,11 +247,11 @@ function ComponentList() {
 
             <ElementList
                 tableRowContent={tableRowContent}
-                loaded={components_loaded}
-                orderBy={components_orderBy}
-                direction={components_orderDirection}
-                setOrderBy={setComponentsOrderBy}
-                setOrderDirection={setComponentsOrderDirection}
+                loaded={loaded}
+                orderBy={orderBy}
+                direction={orderDirection}
+                setOrderBy={setOrderBy}
+                setOrderDirection={setOrderDirection}
                 tableHeadCells={tableHeadCells}
             />
         </>

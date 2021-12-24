@@ -1,7 +1,6 @@
 import React, { useState, useEffect } from 'react';
 import Paper from '@mui/material/Paper';
 import Stack from '@mui/material/Stack';
-import Divider from '@mui/material/Divider';
 import Button from '@mui/material/Button';
 import MuiAccordion from '@mui/material/Accordion';
 import MuiAccordionSummary from '@mui/material/AccordionSummary';
@@ -46,10 +45,6 @@ const ComponentNameWrapper = styled(Paper)(({ theme }) => ({
     height: '200px',
     fontSize: '300%',
     lineHeight: '200px',
-}));
-
-const MarginDivider = styled(Divider)(({ theme }) => ({
-    marginTop: theme.spacing(1),
 }));
 
 const Accordion = styled((props) => (

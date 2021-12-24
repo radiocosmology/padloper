@@ -1,4 +1,4 @@
-import { Paper, Box, Table, TableBody, TableRow, 
+import { Paper, Table, TableBody, TableRow, 
     TableHead, TableCell, TableContainer, 
     CircularProgress,
     TableSortLabel
@@ -54,7 +54,7 @@ function ElementList(
     // if the elements are loaded, update the contents of the table.
     if (loaded) {
 
-        if (tableRowContent.length == 0) {
+        if (tableRowContent.length === 0) {
             content = (
                 <TableRow>
                     <TableCell 
@@ -78,7 +78,7 @@ function ElementList(
                             {
                                 row.map((c, index) => (
                                     <TableCell 
-                                        align={(index == 0) ? "left" : "right"}
+                                        align={(index === 0) ? "left" : "right"}
                                     >
                                         {emDashIfEmpty(c)}
                                     </TableCell>
@@ -113,7 +113,7 @@ function ElementList(
                             tableHeadCells.map((headCell, index) => (
                                 <TableCell
                                     key={headCell.id}
-                                    align={(index == 0) ? 'left' : 'right'}
+                                    align={(index === 0) ? 'left' : 'right'}
                                 >
                                     {
                                         (headCell.allowOrdering) ? (

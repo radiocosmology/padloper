@@ -1,6 +1,6 @@
-import { Button, AppBar, Toolbar, IconButton, Typography } from '@mui/material';
+import { Button, AppBar, Toolbar, Typography } from '@mui/material';
 import './Header.css';
-import { BrowserRouter as Router, Link } from "react-router-dom";
+import { Link } from "react-router-dom";
 
 function Header() {
 

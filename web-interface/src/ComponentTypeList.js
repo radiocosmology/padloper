@@ -41,24 +41,26 @@ function ComponentTypeList() {
     The function that updates the list of component types when the site is 
     loaded or a change of the component types is requested (upon state change).
     */
-    useEffect(async () => {
+    useEffect(() => {
+        async function fetchData() {
+            setLoaded(false);
 
-        setLoaded(false);
+            // create the URL query string
+            let input = '/api/component_type_list'
+            input += `?range=${min};${min + range}`
+            input += `&orderBy=${orderBy}`
+            input += `&orderDirection=${orderDirection}`
+            input += `&nameSubstring=${nameSubstring}`
 
-        // create the URL query string
-        let input = '/api/component_type_list'
-        input += `?range=${min};${min + range}`
-        input += `&orderBy=${orderBy}`
-        input += `&orderDirection=${orderDirection}`
-        input += `&nameSubstring=${nameSubstring}`
-
-        // query the URL with flask, and set the input.
-        fetch(input).then(
-            res => res.json()
-        ).then(data => {
-            setElements(data.result);
-            setLoaded(true);
-        });
+            // query the URL with flask, and set the input.
+            fetch(input).then(
+                res => res.json()
+            ).then(data => {
+                setElements(data.result);
+                setLoaded(true);
+            });
+        }
+        fetchData();
     }, [
         min,
         range,

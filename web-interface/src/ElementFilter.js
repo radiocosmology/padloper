@@ -3,12 +3,10 @@ import {
     TextField,
     Select,
     FormControl,
-    InputLabel,
     Button,
     Stack
     } from '@mui/material';
-import { styled } from '@mui/material/styles';
-import React, { useState, useEffect } from 'react';
+import React, { useState } from 'react';
 import './ElementFilter.js';
 
 import Close from '@mui/icons-material/Close';
@@ -40,7 +38,7 @@ function ElementFilter(
 
     // update the type key of the filter with the value from the select field.
     const filterUpdateType = (event) => {
-        if (event.target.value != -1) {
+        if (event.target.value !== -1) {
 
             filterUpdateKey(
                 'type', 
@@ -132,10 +130,10 @@ function ElementFilter(
                         labelId={`component-revision-select-${index}-label`}
                         id={`component-revision-select-${index}`}
                         onChange={filterUpdateRevision}
-                        disabled={revisions.length == 0}
+                        disabled={revisions.length === 0}
                     >
                         <option aria-label="None" value={""}>
-                            {(revisions.length == 0) ? 
+                            {(revisions.length === 0) ? 
                                 "Select a type" 
                                 : "All revisions"
                             }

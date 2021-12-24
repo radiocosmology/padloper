@@ -61,7 +61,7 @@ function ComponentRevisionList() {
     */
     const removeFilter = (index) => {
         if (index >= 0 && index < filters.length) {
-            let newFilters = filters.filter((element, i) => index != i);
+            let newFilters = filters.filter((element, i) => index !== i);
             setFilters(newFilters);
         }
     }
@@ -115,26 +115,28 @@ function ComponentRevisionList() {
     The function that updates the list of component types when the site is 
     loaded or a change of the component types is requested (upon state change).
     */
-    useEffect(async () => {
+    useEffect(() => {
+        async function fetchData() {
+            setLoaded(false);
 
-        setLoaded(false);
+            // create the URL query string
+            let input = '/api/component_revision_list';
+            input += `?range=${min};${min + range}`;
+            input += `&orderBy=${orderBy}`;
+            input += `&orderDirection=${orderDirection}`;
+            if (filters.length > 0) {
+                input += `&filters=${createFilterString()}`;
+            }
 
-        // create the URL query string
-        let input = '/api/component_revision_list';
-        input += `?range=${min};${min + range}`;
-        input += `&orderBy=${orderBy}`;
-        input += `&orderDirection=${orderDirection}`;
-        if (filters.length > 0) {
-            input += `&filters=${createFilterString()}`;
+            // query the URL with flask, and set the input.
+            fetch(input).then(
+                res => res.json()
+            ).then(data => {
+                setElements(data.result);
+                setLoaded(true);
+            });
         }
-
-        // query the URL with flask, and set the input.
-        fetch(input).then(
-            res => res.json()
-        ).then(data => {
-            setElements(data.result);
-            setLoaded(true);
-        });
+        fetchData();
     }, [
         min,
         range,

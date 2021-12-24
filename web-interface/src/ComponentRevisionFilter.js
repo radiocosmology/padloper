@@ -31,7 +31,7 @@ function ComponentRevisionFilter(
 
     // update the type key of the filter with the value from the select field.
     const filterUpdateType = (event) => {
-        if (event.target.value != -1) {
+        if (event.target.value !== -1) {
 
             filterUpdateKey(
                 'type', 

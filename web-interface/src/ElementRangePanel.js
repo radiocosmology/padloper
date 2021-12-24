@@ -1,15 +1,12 @@
-import React, { useState, useEffect } from 'react';
 import { 
     Paper, 
     Button, 
-    Box, 
     Select, 
-    MenuItem, 
-    Divider } 
+    MenuItem } 
 from '@mui/material';
 import './ElementRangePanel.css';
 
-import { ArrowForward, ArrowBack, Autorenew } from '@mui/icons-material';
+import { ArrowForward, ArrowBack } from '@mui/icons-material';
 
 function ElementRangePanel(
         { 
@@ -57,7 +54,7 @@ function ElementRangePanel(
     }
 
     let numDisplayText = `Viewing ${min+1}-${max} out of ${count}`
-    if (count == 0) {
+    if (count === 0) {
         numDisplayText = "No objects found";
     }
 
