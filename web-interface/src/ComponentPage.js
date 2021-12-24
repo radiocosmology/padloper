@@ -23,6 +23,7 @@ import { Link } from "react-router-dom";
 import {
     useParams
 } from "react-router-dom";
+import { Typography } from '@mui/material';
 
 const Root = styled(Paper)(({ theme }) => ({
     marginTop: theme.spacing(1),
@@ -72,19 +73,22 @@ const AccordionSummary = styled((props) => (
         expandIcon={
             <ExpandMoreIcon 
                 sx={{
-                    color: "rgba(0,0,0, 0.4)"
+                    color: "rgba(0,0,0, 0.4)",
+                    padding: "4px",
                 }}
+                onClick={props.expandOnClick}
             />
         }
       {...props}
     />
-  ))(({ theme }) => ({
+))(({ theme }) => ({
     backgroundColor: 'rgba(0, 0, 0, .06)',
     flexDirection: 'row-reverse',
     '& .MuiAccordionSummary-content': {
       marginLeft: theme.spacing(1),
     },
     lineHeight: '100%',
+    display: 'flex',
 }));
 
 const EntryAccordionSummary = styled(AccordionSummary)(({ theme }) => ({
@@ -104,6 +108,21 @@ const EntryAccordionDetails = styled(AccordionDetails)(({ theme }) => ({
     backgroundColor: 'rgba(0, 0, 0, .015)',
 }));
 
+const AddButton = styled((props) => (
+    <Button 
+        variant="outlined"
+        size="small"
+        style={{
+            margin: '-4px',
+        }}
+    >
+        <AddIcon />
+    </Button>
+))(({ theme }) => ({
+    flex: 1,
+    marginTop: -2 * theme.spacing(2),
+}));
+
 const theme = createTheme();
 
 function ComponentPage() {
@@ -111,6 +130,21 @@ function ComponentPage() {
 
     // the list of components in objects representation
     const [component, setComponent] = useState(undefined);
+
+    const [
+        open_properties_accordion, setOpenPropertiesAccordion
+    ] = useState(true);
+    const [
+        open_connections_accordion, setOpenConnectionsAccordion
+    ] = useState(true);
+
+    const toggleOpenPropertiesAccordion = () => {
+        setOpenPropertiesAccordion(!open_properties_accordion);
+    }
+
+    const toggleOpenConnectionsAccordion = () => {
+        setOpenConnectionsAccordion(!open_connections_accordion);
+    }
 
     useEffect(() => {
         fetch(`/api/components_name/${name}`).then(
@@ -283,17 +317,19 @@ function ComponentPage() {
                     style={{
                         marginTop: theme.spacing(1)
                     }}
-                    expanded={true}
+                    expanded={open_properties_accordion}
                 >
-                    <AccordionSummary>
-                        Properties   
-                        <Button 
-                            variant="outlined"
-                            style={{
-                                marginRight: theme.spacing(1),  
-                            }}>
-                            <AddIcon />
-                        </Button>
+                    <AccordionSummary
+                        expandOnClick={toggleOpenPropertiesAccordion}
+                    >
+                        
+                        <Typography style={{ flex: 1 }} align='left'>
+                            Properties
+                        </Typography>
+                           
+
+                        <AddButton />
+
                     </AccordionSummary>
                     <AccordionDetails>
                         {properties_content}
@@ -304,13 +340,17 @@ function ComponentPage() {
                     style={{
                         marginTop: theme.spacing(1)
                     }}
-                    expanded={true}
+                    expanded={open_connections_accordion}
                 >
-                    <AccordionSummary>
-                        Connections
-                        <Button variant="outlined">
-                            <AddIcon />
-                        </Button>
+                    <AccordionSummary
+                        expandOnClick={toggleOpenConnectionsAccordion}
+                    >
+                        <Typography style={{ flex: 1 }} align='left'>
+                            Connections
+                        </Typography>
+
+                        <AddButton />
+                    
                     </AccordionSummary>
                     <AccordionDetails>
                         {connections_content}
