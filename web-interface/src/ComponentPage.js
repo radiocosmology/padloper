@@ -15,7 +15,7 @@ import createTheme from '@mui/material/styles/createTheme';
 import styled from '@mui/material/styles/styled';
 
 import ComponentEvent from './ComponentEvent.js';
-import ComponentEventAddPanel from './ComponentEventAddPanel.js';
+import ComponentPropertyAddPanel from './ComponentPropertyAddPanel.js';
 
 import { unixTimeToString } from './utility/utility.js';
 
@@ -173,7 +173,7 @@ function ComponentPage() {
     if (component) {
 
         let properties_add_panel_content = (open_properties_add_panel) ? (
-            <ComponentEventAddPanel 
+            <ComponentPropertyAddPanel 
                 theme={theme} 
                 onClose={() => setOpenPropertiesAddPanel(false)}
             />
