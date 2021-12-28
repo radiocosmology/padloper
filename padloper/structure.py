@@ -5,6 +5,8 @@ Contains methods for storing clientside interface information.
 """
 import time, re
 
+import warnings
+
 from gremlin_python.process.traversal import Order, P, TextP
 from graph_connection import g
 from gremlin_python.process.graph_traversal import __   
@@ -258,7 +260,7 @@ class Edge(Element):
 
             e = traversal.next()
 
-            self._set_id(e.id())
+            self._set_id(e.id)
 
 
     def added_to_db(self) -> bool:
@@ -2068,6 +2070,92 @@ class PropertyType(Vertex):
             )
 
         return _vertex_cache[id]
+
+
+    @classmethod
+    def get_list(cls, 
+        range: tuple, 
+        order_by: str,
+        order_direction: str,
+        filters: list=[]):
+        """
+        Return a list of PropertyTypes based in the range :param range:,
+        based on the filters in :param filters:, and order them based on 
+        :param order_by: in the direction :param order_direction:.
+
+        :param range: The range of PropertyTypes to query
+        :type range: tuple[int, int]
+
+        :param order_by: What to order the property types by. Must be in
+        {'name'}
+        :type order_by: str
+
+        :param order_direction: Order the property types by 
+        ascending or descending?
+        Must be in {'asc', 'desc'}
+        :type order_by: str
+
+        :param filters: A list of 1-tuples of the format (name)
+        :type order_by: list
+        
+        :return: A list of PropertyType instances.
+        :rtype: list[PropertyType]
+        """
+
+        assert order_direction in {'asc', 'desc'}
+
+        assert order_by in {'name'}
+
+        # if order_direction is not asc or desc, it will just sort by asc.
+        # Keep like this if removing the assert above only in production.
+        if order_direction == 'desc':
+            direction = Order.desc
+        else:
+            direction = Order.asc
+
+        traversal = g.V().has('category', PropertyType.category)
+
+        # FILTERS
+
+        if filters is not None:
+
+            ands = []
+
+            for f in filters:
+                
+                assert len(f) == 1
+
+                contents = []
+
+                # substring of property type name
+                if f[0] != "":
+                    contents.append(__.has('name', TextP.containing(f[0])))
+
+                if len(contents) > 0:
+                    ands.append(__.and_(*contents))
+
+            if len(ands) > 0:
+                traversal = traversal.or_(*ands)
+
+        if order_by == "name":
+            traversal = traversal.order() \
+                .by('name', direction)
+
+        pts = traversal.range(range[0], range[1]) \
+            .project('id') \
+            .by(__.id()) \
+            .toList()
+
+        property_types = []
+
+        for d in pts:
+            id = d['id']
+
+            property_types.append(
+                PropertyType.from_id(id)
+            )
+        
+        return property_types
 
 
 class Property(Vertex):

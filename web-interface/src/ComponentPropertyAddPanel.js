@@ -6,6 +6,8 @@ import TextField from '@mui/material/TextField';
 
 import CloseIcon from '@mui/icons-material/Close';
 
+import ComponentPropertyAutocomplete from './ComponentPropertyAutocomplete.js';
+
 import ThemeProvider from '@mui/material/styles/ThemeProvider';
 import styled from '@mui/material/styles/styled';
 import { Typography } from '@mui/material';
@@ -58,16 +60,11 @@ function ComponentPropertyAddPanel(
 
                 <Grid container spacing={2} justifyContent="space-around">
                     <Grid item>
-                        <TextField 
-                            id="outlined-basic" 
-                            label="Property Type" 
-                            variant="outlined" 
-                        />
+                        <ComponentPropertyAutocomplete />
                     </Grid>
 
                     <Grid item>
                         <TextField 
-                            id="outlined-basic" 
                             label="User" 
                             variant="outlined" 
                         />
@@ -85,6 +82,13 @@ function ComponentPropertyAddPanel(
                     />
                     </Grid>
                 </Grid>
+
+                <TextField
+                    id="outlined-multiline-static"
+                    label="Comments"
+                    multiline
+                    rows={2}
+                />
 
                 <Box 
                     style={{

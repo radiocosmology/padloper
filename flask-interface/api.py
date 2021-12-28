@@ -80,7 +80,7 @@ def get_component_list():
         'result': [
             {
                 'name': c.name, 
-                'id': c.id,
+                'id': c.id(),
                 'type': {
                     'name': c.type.name,
                     'comments': c.type.comments,
@@ -139,7 +139,7 @@ def get_component_type_list():
         'result': [
             {
                 'name': c.name, 
-                'id': c.id,
+                'id': c.id(),
                 'comments': c.comments
             }   
             for c in component_types
@@ -183,7 +183,7 @@ def get_component_revision_list():
         'result': [
             {
                 'name': c.name, 
-                'id': c.id,
+                'id': c.id(),
                 'comments': c.comments,
                 'allowed_type': {
                     'name': c.allowed_type.name,
@@ -204,3 +204,42 @@ def get_component_revision_count():
     return {
         'result': ComponentRevision.get_count(filters=filter_tuples)
         }
+
+@app.route("/api/property_type_list")
+def get_property_type_list():
+    list_range = escape(request.args.get('range'))
+    order_by = escape(request.args.get('orderBy'))
+    order_direction = escape(request.args.get('orderDirection'))
+
+    filters = request.args.get('filters')
+
+    filter_tuples = read_filters(filters)
+
+    range_bounds = tuple(map(int, list_range.split(';')))
+
+    # A bunch of assertions to make sure everything is as intended.
+    assert len(range_bounds) == 2
+    assert order_direction in {'asc', 'desc'}
+
+    # query to padloper
+    property_types = PropertyType.get_list(
+        range=range_bounds, 
+        order_by=order_by,
+        order_direction=order_direction,
+        filters=filter_tuples,
+    )
+
+    return {
+        'result': [
+            {
+                'name': pt.name, 
+                'id': pt.id(),
+                'units': pt.units,
+                'allowed_regex': pt.allowed_regex,
+                'n_values': pt.n_values,
+                'allowed_types': [ t.name for t in pt.allowed_types ],
+                'comments': pt.comments,
+            }   
+            for pt in property_types
+        ] 
+    }
