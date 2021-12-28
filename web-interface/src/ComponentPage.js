@@ -15,6 +15,7 @@ import createTheme from '@mui/material/styles/createTheme';
 import styled from '@mui/material/styles/styled';
 
 import ComponentEvent from './ComponentEvent.js';
+import ComponentEventAddPanel from './ComponentEventAddPanel.js';
 
 import { unixTimeToString } from './utility/utility.js';
 
@@ -115,11 +116,11 @@ const AddButton = styled((props) => (
         style={{
             margin: '-4px',
         }}
+        {...props}
     >
         <AddIcon />
     </Button>
 ))(({ theme }) => ({
-    flex: 1,
     marginTop: -2 * theme.spacing(2),
 }));
 
@@ -137,6 +138,9 @@ function ComponentPage() {
     const [
         open_connections_accordion, setOpenConnectionsAccordion
     ] = useState(true);
+    const [
+        open_properties_add_panel, setOpenPropertiesAddPanel
+    ] = useState(false);
 
     const toggleOpenPropertiesAccordion = () => {
         setOpenPropertiesAccordion(!open_properties_accordion);
@@ -167,6 +171,13 @@ function ComponentPage() {
     )
 
     if (component) {
+
+        let properties_add_panel_content = (open_properties_add_panel) ? (
+            <ComponentEventAddPanel 
+                theme={theme} 
+                onClose={() => setOpenPropertiesAddPanel(false)}
+            />
+        ) : <></>;
 
         let properties_content = (
             <Stack spacing={1}>
@@ -328,10 +339,16 @@ function ComponentPage() {
                         </Typography>
                            
 
-                        <AddButton />
+                        <AddButton 
+                            onClick={
+                                () => {setOpenPropertiesAddPanel(true)}
+                            }
+                        />
 
                     </AccordionSummary>
                     <AccordionDetails>
+                        {properties_add_panel_content}
+                        
                         {properties_content}
                     </AccordionDetails>
                 </Accordion>

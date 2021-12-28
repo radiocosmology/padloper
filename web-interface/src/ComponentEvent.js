@@ -47,7 +47,7 @@ function ComponentEvent(
                 <PersonIcon 
                     fontSize="small"
                     style={{
-                        marginLeft:theme.spacing(3),
+                        marginLeft: theme.spacing(3),
                     }}
                 />
                 <div>
