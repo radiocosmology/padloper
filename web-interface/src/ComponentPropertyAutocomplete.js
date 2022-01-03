@@ -3,7 +3,11 @@ import Autocomplete from '@mui/material/Autocomplete';
 import CircularProgress from '@mui/material/CircularProgress';
 import TextField from '@mui/material/TextField';
 
-export default function ComponentPropertyAutocomplete() {
+export default function ComponentPropertyAutocomplete(
+    {
+        onSelect,
+    }
+) {
     const [open, setOpen] = useState(false);
     const [options, setOptions] = useState([]);
     
@@ -26,7 +30,7 @@ export default function ComponentPropertyAutocomplete() {
             input += `?range=0;100`;
             input += `&orderBy=name`
             input += `&orderDirection=asc`;
-            input += `&filters=${entered_string}`;
+            input += `&nameSubstring=${entered_string}`;
     
             // query the URL with flask, and set the input.
             fetch(input).then(
@@ -48,7 +52,7 @@ export default function ComponentPropertyAutocomplete() {
     return (
         <Autocomplete
         id="property-autocomplete"
-        sx={{ width: 300 }}
+        sx={{ width: 200 }}
         open={open}
         onOpen={() => {
             setOpen(true);
@@ -57,10 +61,14 @@ export default function ComponentPropertyAutocomplete() {
             setOpen(false);
         }}
         options={options}
+        isOptionEqualToValue={(option, value) => option.name === value.name}
         getOptionLabel={(option) => option.name}
+        onInputChange={(option, value, details) => setEnteredString(value)}
+        onChange={(event, value, reason, details) => onSelect(value)}
         loading={loading}
         renderInput={(params) => (
-            <TextField
+            <TextField  
+            variant="filled"
             {...params}
             label="Property Type"
             InputProps={{

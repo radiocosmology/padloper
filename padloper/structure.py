@@ -9,7 +9,7 @@ import warnings
 
 from gremlin_python.process.traversal import Order, P, TextP
 from graph_connection import g
-from gremlin_python.process.graph_traversal import __   
+from gremlin_python.process.graph_traversal import __, constant   
 
 from exceptions import *
 
@@ -490,8 +490,9 @@ class ComponentType(Vertex):
         ):
         """
         Return a list of ComponentTypes based in the range :param range:,
-        based on the filters in :param filters:, and order them based on 
-        :param order_by: in the direction :param order_direction:.
+        based on the name substring in :param name_substring:, 
+        and order them based on :param order_by: 
+        in the direction :param order_direction:.
 
         :param range: The range of ComponentTypes to query. If the second
         coordinate is -1, then the range is (range[1], inf)
@@ -2077,11 +2078,12 @@ class PropertyType(Vertex):
         range: tuple, 
         order_by: str,
         order_direction: str,
-        filters: list=[]):
+        name_substring: str=""):
         """
         Return a list of PropertyTypes based in the range :param range:,
-        based on the filters in :param filters:, and order them based on 
-        :param order_by: in the direction :param order_direction:.
+        based on the name substring in :param name_substring:, 
+        and order them based on 
+         :param order_by: in the direction :param order_direction:.
 
         :param range: The range of PropertyTypes to query
         :type range: tuple[int, int]
@@ -2095,8 +2097,9 @@ class PropertyType(Vertex):
         Must be in {'asc', 'desc'}
         :type order_by: str
 
-        :param filters: A list of 1-tuples of the format (name)
-        :type order_by: list
+        :param name_substring: What substring of the name property of the
+        component type to filter by.
+        :type name_substring: str
         
         :return: A list of PropertyType instances.
         :rtype: list[PropertyType]
@@ -2113,43 +2116,23 @@ class PropertyType(Vertex):
         else:
             direction = Order.asc
 
-        traversal = g.V().has('category', PropertyType.category)
+        traversal = g.V().has('category', PropertyType.category) \
+            .has('name', TextP.containing(name_substring))
 
-        # FILTERS
-
-        if filters is not None:
-
-            ands = []
-
-            for f in filters:
-                
-                assert len(f) == 1
-
-                contents = []
-
-                # substring of property type name
-                if f[0] != "":
-                    contents.append(__.has('name', TextP.containing(f[0])))
-
-                if len(contents) > 0:
-                    ands.append(__.and_(*contents))
-
-            if len(ands) > 0:
-                traversal = traversal.or_(*ands)
-
+        # https://groups.google.com/g/gremlin-users/c/FKbxWKG-YxA/m/kO1hc0BDCwAJ
         if order_by == "name":
-            traversal = traversal.order() \
-                .by('name', direction)
+            traversal = traversal.order().by(
+                __.coalesce(__.values('name'), constant("")), 
+                direction
+            )
 
-        pts = traversal.range(range[0], range[1]) \
-            .project('id') \
-            .by(__.id()) \
-            .toList()
+        ids = traversal.range(range[0], range[1]).id().toList()
+
+
 
         property_types = []
 
-        for d in pts:
-            id = d['id']
+        for id in ids:
 
             property_types.append(
                 PropertyType.from_id(id)

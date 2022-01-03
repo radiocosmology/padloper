@@ -210,10 +210,7 @@ def get_property_type_list():
     list_range = escape(request.args.get('range'))
     order_by = escape(request.args.get('orderBy'))
     order_direction = escape(request.args.get('orderDirection'))
-
-    filters = request.args.get('filters')
-
-    filter_tuples = read_filters(filters)
+    name_substring = escape(request.args.get('nameSubstring'))
 
     range_bounds = tuple(map(int, list_range.split(';')))
 
@@ -226,7 +223,7 @@ def get_property_type_list():
         range=range_bounds, 
         order_by=order_by,
         order_direction=order_direction,
-        filters=filter_tuples,
+        name_substring=name_substring
     )
 
     return {

@@ -12,8 +12,8 @@ pt = PropertyType(
 
 pt.add()
 
-p = Property(values=['1', '2', '3'], property_type=pt)
+# p = Property(values=['1', '2', '3'], property_type=pt)
 
 c.add()
 
-c.set_property(property=p, time=123, uid="Anatoly")
+# c.set_property(property=p, time=123, uid="Anatoly")

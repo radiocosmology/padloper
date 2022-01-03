@@ -1,10 +1,14 @@
+import React, { useState, useEffect } from 'react';
+
 import Paper from '@mui/material/Paper';
 import Button from '@mui/material/Button';
 import Box from '@mui/material/Box';
 import Grid from '@mui/material/Grid';
-import TextField from '@mui/material/TextField';
+import MuiTextField from '@mui/material/TextField';
+import InputAdornment from '@mui/material/InputAdornment';
 
 import CloseIcon from '@mui/icons-material/Close';
+import PersonIcon from '@mui/icons-material/Person';
 
 import ComponentPropertyAutocomplete from './ComponentPropertyAutocomplete.js';
 
@@ -22,6 +26,14 @@ const Panel = styled((props) => (
     backgroundColor: 'rgb(240, 240, 255)',
     marginBottom: theme.spacing(2),
     padding: theme.spacing(2),
+}));
+
+const TextField = styled((props) => (
+    <MuiTextField 
+        variant="filled"
+        {...props}
+    />
+))(({ theme }) => ({
 }));
 
 const CloseButton = styled((props) => (
@@ -46,12 +58,30 @@ function ComponentPropertyAddPanel(
         onClose
     }
 ) {
+
+    const [selectedOption, setSelectedOption] = useState(null);
+
+
+
     return (
         <ThemeProvider theme={theme}>
             <Panel>
 
-                <Grid container spacing={2} justifyContent="space-between">
-                    <Grid item>Set a property</Grid>
+                <Grid 
+                    container 
+                    spacing={2} 
+                    justifyContent="space-between"
+                    style={{
+                        marginBottom: theme.spacing(2),
+                    }}
+                >
+                    <Grid item>
+                        <Typography style={{
+                            color: 'rgba(0,0,0,0.7)',
+                        }}>
+                            Set a property
+                        </Typography>
+                    </Grid>
 
                     <Grid item>
                         <CloseButton onClick={onClose} align="right" />
@@ -60,43 +90,60 @@ function ComponentPropertyAddPanel(
 
                 <Grid container spacing={2} justifyContent="space-around">
                     <Grid item>
-                        <ComponentPropertyAutocomplete />
+                        <ComponentPropertyAutocomplete 
+                            onSelect={setSelectedOption} 
+                        />
                     </Grid>
 
                     <Grid item>
                         <TextField 
                             label="User" 
-                            variant="outlined" 
+                            sx={{ width: 150 }}
                         />
                     </Grid>
 
                     <Grid item>
-                    <TextField
-                        id="datetime-local"
-                        label="Time"
-                        type="datetime-local"
-                        sx={{ width: 250 }}
-                        InputLabelProps={{
-                            shrink: true,
-                        }}
-                    />
+                        <TextField
+                            id="datetime-local"
+                            label="Time"
+                            type="datetime-local"
+                            sx={{ width: 200 }}
+                            InputLabelProps={{
+                                shrink: true,
+                            }}
+                            size="large"
+                        />
                     </Grid>
+
+                    <Grid item>
+                        <TextField
+                            id="outlined-multiline-static"
+                            label="Comments"
+                            multiline
+                            sx={{ width: 300 }}
+                        />
+                    </Grid>
+
                 </Grid>
 
-                <TextField
-                    id="outlined-multiline-static"
-                    label="Comments"
-                    multiline
-                    rows={2}
-                />
+                <Grid>
+
+                </Grid>
+
 
                 <Box 
                     style={{
-                        textAlign: 'right',
+                        textAlign: "right",
                         marginTop: theme.spacing(2),
                     }}
                 >
-                    <Button variant="contained">Add</Button>
+                    <Button 
+                        variant="contained" 
+                        size="large"
+                        disableElevation
+                    >
+                        Add
+                    </Button>
                 </Box>
             </Panel>
         </ThemeProvider>
