@@ -61,7 +61,41 @@ function ComponentPropertyAddPanel(
 
     const [selectedOption, setSelectedOption] = useState(null);
 
+    const [textFieldValues, setTextFieldValues] = useState([]);
 
+    function selectOption(option) {
+        setSelectedOption(option);
+
+        if (option !== null && option.n_values) {
+            // make an empty array of size n_values and fill it 
+            // with empty strings
+            setTextFieldValues(Array(option.n_values).fill(""));
+        }
+
+    }
+
+
+    // https://stackoverflow.com/a/49502115
+    function setTextFieldValue(value, index) {
+        // make a shallow copy of the filters
+        let valuesCopy = [...textFieldValues];
+
+        // set the element at index to the new filter
+        valuesCopy[index] = value;
+
+        // update the state array
+        setTextFieldValues(valuesCopy);
+    }
+
+    function verifyRegex(value) {
+        // this ideally should never be called but...
+        if (selectedOption === null) {
+            return false;
+        }
+        else {
+            return value.match(selectedOption.allowed_regex);
+        }
+    }
 
     return (
         <ThemeProvider theme={theme}>
@@ -91,7 +125,7 @@ function ComponentPropertyAddPanel(
                 <Grid container spacing={2} justifyContent="space-around">
                     <Grid item>
                         <ComponentPropertyAutocomplete 
-                            onSelect={setSelectedOption} 
+                            onSelect={selectOption} 
                         />
                     </Grid>
 
@@ -126,8 +160,53 @@ function ComponentPropertyAddPanel(
 
                 </Grid>
 
-                <Grid>
+                {
+                    (selectedOption !== null && selectedOption.allowed_regex) ?
+                    (<Typography style={{
+                        marginTop: theme.spacing(2),
+                        color: 'rgba(0,0,0,0.6)',
+                    }}>
+                        {`Entered values must match 
+                        regular expression 
+                        ${selectedOption.allowed_regex}`}
+                    </Typography>) : ""
+                }
 
+                <Grid 
+                    container 
+                    spacing={2} 
+                    justifyContent="center"
+                    style={{
+                        marginTop: theme.spacing(1),
+                    }}>
+                    {(selectedOption !== null) ?
+                    (
+                        [...Array(selectedOption.n_values)].map((el, index) => ( 
+                            <Grid item>
+                                <TextField 
+                                    required
+                                    error={!verifyRegex(textFieldValues[index])}
+                                    helperText={
+                                        verifyRegex(textFieldValues[index]) ? ""
+                                        : `Value does not match 
+                                        ${selectedOption.allowed_regex}`
+                                    }
+                                    onChange={
+                                        (ev) => {
+                                            setTextFieldValue(
+                                                ev.target.value, 
+                                                index
+                                            )
+                                        }
+                                    }
+                                    label={`Value ${index + 1}`}
+                                />
+                            </Grid>) 
+                        )
+                    )
+                    : ""
+
+                    }
                 </Grid>
 
 
