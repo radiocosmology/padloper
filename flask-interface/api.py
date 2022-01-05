@@ -35,11 +35,6 @@ def read_filters(filters):
     else:
         return None
 
-
-@app.route("/api/")
-def hello_world():
-    return "Hello, World!"
-
 @app.route("/api/components_id/<id>")
 def get_component_by_id(id):
     return str(Component.from_id(escape(id)))
@@ -194,6 +189,7 @@ def get_component_revision_list():
         ] 
     }
 
+
 @app.route("/api/component_revision_count")
 def get_component_revision_count():
     
@@ -204,6 +200,7 @@ def get_component_revision_count():
     return {
         'result': ComponentRevision.get_count(filters=filter_tuples)
         }
+
 
 @app.route("/api/property_type_list")
 def get_property_type_list():
@@ -240,3 +237,35 @@ def get_property_type_list():
             for pt in property_types
         ] 
     }
+
+
+@app.route("/api/component_set_property")
+def set_component_property():
+
+    val_name = escape(request.args.get('name'))
+    val_property_type = escape(request.args.get('propertyType'))
+    val_time = int(escape(request.args.get('time')))
+    val_uid = escape(request.args.get('uid'))
+    val_comments = escape(request.args.get('comments'))
+    val_value_count = int(escape(request.args.get('valueCount')))
+    val_values = escape(request.args.get('values'))
+
+    values = val_values.split(';')
+
+    # if this is false, then you put a semicolon in a value name!!!
+    assert len(values) == val_value_count
+
+    property_type = PropertyType.from_db(val_property_type)
+
+    component = Component.from_db(val_name)
+
+    property = Property(values=values, property_type=property_type)
+
+    component.set_property(
+        property=property, 
+        time=val_time, 
+        uid=val_uid, 
+        comments=val_comments
+    )
+
+    return {'result': True}

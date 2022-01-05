@@ -23,3 +23,14 @@ export function unixTimeToString(UNIX_timestamp, includeTime){
 export function emDashIfEmpty(str) {
     return (str === '' || str == null ? '—' : str);
 }
+
+// return whether value satisfies the regular expression regex
+export function verifyRegex(value, regex) {
+    // this ideally should never be called but...
+    if (!regex || typeof value !== 'string') {
+        return false;
+    }
+    else {
+        return value.match(regex);
+    }
+}

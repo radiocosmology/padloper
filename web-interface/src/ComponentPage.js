@@ -36,7 +36,12 @@ const Root = styled(Paper)(({ theme }) => ({
     textAlign: 'center',
 }));
 
-const ComponentNameWrapper = styled(Paper)(({ theme }) => ({
+const ComponentNameWrapper = styled((props) => (
+    <Paper
+        elevation={1} 
+        {...props}
+    />
+))(({ theme }) => ({
     backgroundColor: theme.palette.primary.main,
     color: theme.palette.common.white,
     margin: 'auto',
@@ -150,6 +155,34 @@ function ComponentPage() {
         setOpenConnectionsAccordion(!open_connections_accordion);
     }
 
+    const [reloadBool, setReloadBool] = useState(false);
+
+    function toggleReload() {
+        setReloadBool(!reloadBool);
+    }
+
+    async function setProperty(propertyType, time, uid, comments, values) {
+        let input = `/api/component_set_property`;
+        input += `?name=${name}`;
+        input += `&propertyType=${propertyType}`;
+        input += `&time=${time}`;
+        input += `&uid=${uid}`;
+        input += `&comments=${comments}`;
+        input += `&valueCount=${values.length}`;
+        input += `&values=`;
+        for (let val of values) {
+            input += `${val};`;
+        }
+        input = input.substring(0, input.length - 1);
+
+        fetch(input).then(
+            res => res.json()
+        ).then(data => {
+            setOpenPropertiesAddPanel(false);
+            toggleReload();
+        });
+    }
+
     useEffect(() => {
         fetch(`/api/components_name/${name}`).then(
             res => res.json()
@@ -162,7 +195,7 @@ function ComponentPage() {
             );
             setComponent(data.result);
         });
-    }, [name]);
+    }, [name, reloadBool]);
 
     let content = (
         <>
@@ -176,6 +209,7 @@ function ComponentPage() {
             <ComponentPropertyAddPanel 
                 theme={theme} 
                 onClose={() => setOpenPropertiesAddPanel(false)}
+                onSet={setProperty}
             />
         ) : <></>;
 
