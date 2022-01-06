@@ -16,6 +16,7 @@ import styled from '@mui/material/styles/styled';
 
 import ComponentEvent from './ComponentEvent.js';
 import ComponentPropertyAddPanel from './ComponentPropertyAddPanel.js';
+import ComponentConnectionAddPanel from './ComponentConnectionAddPanel.js';
 
 import { unixTimeToString } from './utility/utility.js';
 
@@ -146,6 +147,9 @@ function ComponentPage() {
     const [
         open_properties_add_panel, setOpenPropertiesAddPanel
     ] = useState(false);
+    const [
+        open_connections_add_panel, setOpenConnectionsAddPanel
+    ] = useState(false);
 
     const toggleOpenPropertiesAccordion = () => {
         setOpenPropertiesAccordion(!open_properties_accordion);
@@ -180,6 +184,27 @@ function ComponentPage() {
         ).then(data => {
             setOpenPropertiesAddPanel(false);
             toggleReload();
+        });
+    }
+
+    async function addConnection(otherName, time, uid, comments) {
+        let input = `/api/component_add_connection`;
+        input += `?name1=${name}`;
+        input += `&name2=${otherName}`;
+        input += `&time=${time}`;
+        input += `&uid=${uid}`;
+        input += `&comments=${comments}`;
+
+        fetch(input).then(
+            res => res.json()
+        ).then(data => {
+            if (data.result) {
+                setOpenConnectionsAddPanel(false);
+                toggleReload();
+            }
+            else {
+                
+            }
         });
     }
 
@@ -275,6 +300,14 @@ function ComponentPage() {
                 ))}
             </Stack>
         )
+
+        let connections_add_panel_content = (open_connections_add_panel) ? (
+            <ComponentConnectionAddPanel 
+                theme={theme} 
+                onClose={() => setOpenConnectionsAddPanel(false)}
+                onSet={addConnection}
+            />
+        ) : <></>;
 
         let connections_content = (
             <Stack spacing={1}>
@@ -400,10 +433,16 @@ function ComponentPage() {
                             Connections
                         </Typography>
 
-                        <AddButton />
+                        <AddButton 
+                            onClick={
+                                () => {setOpenConnectionsAddPanel(true)}
+                            }
+                        />
                     
                     </AccordionSummary>
                     <AccordionDetails>
+                        {connections_add_panel_content}
+
                         {connections_content}
                     </AccordionDetails>
                 </Accordion>

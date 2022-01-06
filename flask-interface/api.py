@@ -269,3 +269,27 @@ def set_component_property():
     )
 
     return {'result': True}
+
+
+
+@app.route("/api/component_add_connection")
+def add_component_connection():
+
+    val_name1 = escape(request.args.get('name1'))
+    val_name2 = escape(request.args.get('name2'))
+    val_time = int(escape(request.args.get('time')))
+    val_uid = escape(request.args.get('uid'))
+    val_comments = escape(request.args.get('comments'))
+
+    c1, c2 = Component.from_db(val_name1), Component.from_db(val_name2)
+
+    already_connected = False
+
+    try:
+        c1.connect(
+            component=c2, time=val_time, uid=val_uid, comments=val_comments
+        )
+    except ComponentsAlreadyConnectedError:
+        already_connected = True
+
+    return {'result': not already_connected}
