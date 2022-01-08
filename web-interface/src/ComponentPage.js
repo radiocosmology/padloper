@@ -202,9 +202,7 @@ function ComponentPage() {
                 setOpenConnectionsAddPanel(false);
                 toggleReload();
             }
-            else {
-                
-            }
+            return data.result;
         });
     }
 

@@ -9,6 +9,7 @@ import MuiTextField from '@mui/material/TextField';
 import InputAdornment from '@mui/material/InputAdornment';
 
 import CloseIcon from '@mui/icons-material/Close';
+import ErrorIcon from '@mui/icons-material/Error';
 import PersonIcon from '@mui/icons-material/Person';
 
 import ComponentPropertyAutocomplete from './ComponentPropertyAutocomplete.js';
@@ -75,6 +76,8 @@ function ComponentConnectionAddPanel(
     const [comments, setComments] = useState("");
 
     const [loading, setLoading] = useState(false);
+
+    const [errorMessage, setErrorMessage] = useState("");
 
     function regexCheck(value) {
         if (!selectedOption) {
@@ -160,6 +163,32 @@ function ComponentConnectionAddPanel(
 
                 </Grid>
 
+                {errorMessage !== "" ? 
+                    <Grid 
+                        container 
+                        style={{
+                            marginTop: theme.spacing(1),
+                        }}
+                        spacing={1}
+                        justifyContent="center"
+                    >
+                        <Grid item>
+                            <ErrorIcon sx={{color: 'red'}} />
+                        </Grid>
+                        <Grid item>
+                            <Typography
+                                style={{
+                                    color: 'rgb(255,0,0)',
+                                }}
+                            >
+                                {errorMessage}
+                            </Typography>
+                        </Grid>
+                    </Grid> : <></>
+                }
+
+                
+
                 <Box 
                     style={{
                         textAlign: "right",
@@ -177,8 +206,23 @@ function ComponentConnectionAddPanel(
                         }
                         onClick={
                             () => {
+                                setErrorMessage("");
                                 setLoading(true);
-                                onSet(selectedOption.name, time, uid, comments);
+                                onSet(
+                                    selectedOption.name, 
+                                    time, 
+                                    uid, 
+                                    comments
+                                ).then(
+                                    successful => {
+                                        if (!successful) {
+                                            setLoading(false);
+                                            setErrorMessage(`This component is 
+                                            already connected to 
+                                            ${selectedOption.name}.`);
+                                        }
+                                    }
+                                )
                             }
                         }
                     >
