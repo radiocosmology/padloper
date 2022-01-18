@@ -119,7 +119,9 @@ class Vertex(Element):
 
         # If already added.
         if self.added_to_db():
-            raise VertexAlreadyAddedError
+            raise VertexAlreadyAddedError(
+                f"Vertex already exists in the database."
+            )
         
         else:
 
@@ -355,7 +357,10 @@ class ComponentType(Vertex):
 
         # If already added.
         if self.added_to_db():
-            raise VertexAlreadyAddedError
+            raise VertexAlreadyAddedError(
+                f"ComponentType with name {self.name} " +
+                "already exists in the database."
+                )
 
         attributes = {
             'name': self.name,
@@ -652,12 +657,16 @@ class ComponentRevision(Vertex):
         Vertex.__init__(self, id=id)
 
     def add(self):
-        """Add this ComponentType vertex to the serverside.
+        """Add this ComponentRevision vertex to the serverside.
         """
 
         # If already added.
         if self.added_to_db():
-            raise VertexAlreadyAddedError
+            raise VertexAlreadyAddedError(
+                f"ComponentRevision with name {self.name} " +
+                f"and allowed type {self.allowed_type} " +
+                "already exists in the database."
+                )
 
         attributes = {
             'name': self.name,
@@ -1062,7 +1071,10 @@ class Component(Vertex):
         """
 
         if self.added_to_db():
-            raise VertexAlreadyAddedError
+            raise VertexAlreadyAddedError(
+                f"Component with name {self.name} " +
+                "already exists in the database."
+                )
 
         attributes = {
             'name': self.name
@@ -1982,7 +1994,10 @@ class PropertyType(Vertex):
 
         # If already added, raise an error!
         if self.added_to_db():
-            raise VertexAlreadyAddedError
+            raise VertexAlreadyAddedError(
+                f"PropertyType with name {self.name} " +
+                "already exists in the database."
+                )
 
         attributes = {
             'name': self.name,
