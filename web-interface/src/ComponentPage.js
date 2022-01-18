@@ -2,6 +2,7 @@ import React, { useState, useEffect } from 'react';
 import Paper from '@mui/material/Paper';
 import Stack from '@mui/material/Stack';
 import Button from '@mui/material/Button';
+import Grid from '@mui/material/Grid';
 import MuiAccordion from '@mui/material/Accordion';
 import MuiAccordionSummary from '@mui/material/AccordionSummary';
 import MuiAccordionDetails from '@mui/material/AccordionDetails';
@@ -14,11 +15,10 @@ import ThemeProvider from '@mui/material/styles/ThemeProvider';
 import createTheme from '@mui/material/styles/createTheme';
 import styled from '@mui/material/styles/styled';
 
+import Timestamp from './Timestamp.js';
 import ComponentEvent from './ComponentEvent.js';
 import ComponentPropertyAddPanel from './ComponentPropertyAddPanel.js';
 import ComponentConnectionAddPanel from './ComponentConnectionAddPanel.js';
-
-import { unixTimeToString } from './utility/utility.js';
 
 import { Link } from "react-router-dom";
 
@@ -49,7 +49,7 @@ const ComponentNameWrapper = styled((props) => (
     marginLeft: 0,
     marginRight: theme.spacing(1),
     marginBottom: theme.spacing(1),
-    width: '300px',
+    width: '450px',
     height: '200px',
     fontSize: '300%',
     lineHeight: '200px',
@@ -130,7 +130,14 @@ const AddButton = styled((props) => (
     marginTop: -2 * theme.spacing(2),
 }));
 
-const theme = createTheme();
+const theme = createTheme({
+    typography: {
+        body2: {
+            fontWeight: 800,
+            fontSize: 16,
+        },
+    }
+});
 
 function ComponentPage() {
     let { name } = useParams();
@@ -243,30 +250,21 @@ function ComponentPage() {
                         <EntryAccordionSummary>
                             <Stack spacing={1} direction="row">
                                 <EventIcon fontSize="small" />
-                                <div>
-                                    {unixTimeToString(prop.start_time, false)} 
-                                </div>
+                                <Timestamp unixTime={prop.start_time} />
                                 {prop.end_time <= Number.MAX_SAFE_INTEGER ? (
                                     <>
                                         <div>-</div> 
-                                        <div>
-                                            {unixTimeToString(
-                                                prop.end_time, false
-                                            )}
-                                        </div> 
+                                        <Timestamp unixTime={prop.end_time} />
                                     </>
                                 ) : ''}
-                                <strong
+                                <Typography
+                                    variant="body2"
                                     style={{
                                         marginLeft: theme.spacing(4)
                                     }}
                                 >
-                                    {prop.type.name}
-                                </strong>
-                                <div>
-                                    =
-                                </div>
-                                <strong>{prop.values}</strong>
+                                    {prop.type.name} = {prop.values}
+                                </Typography>
                             </Stack>
                         
                         </EntryAccordionSummary>
@@ -314,20 +312,15 @@ function ComponentPage() {
                         <EntryAccordionSummary>
                             <Stack spacing={1} direction="row">
                                 <EventIcon fontSize="small" />
-                                <div>
-                                    {unixTimeToString(conn.start_time, false)} 
-                                </div>
+                                <Timestamp unixTime={conn.start_time} />
                                 {conn.end_time <= Number.MAX_SAFE_INTEGER ? (
                                     <>
                                         <div>—</div> 
-                                        <div>
-                                            {unixTimeToString(
-                                                conn.end_time, false
-                                            )}
-                                        </div> 
+                                        <Timestamp unixTime={conn.end_time} />
                                     </>
                                 ) : ''}
-                                <strong
+                                <Typography
+                                    variant="body2"
                                     style={{
                                         marginLeft: theme.spacing(4)
                                     }}
@@ -340,7 +333,7 @@ function ComponentPage() {
                                         <Link to={`/component/${conn.name}`}>
                                         {conn.name}
                                     </Link>}
-                                </strong>
+                                </Typography>
                             </Stack>
                         
                         </EntryAccordionSummary>
@@ -379,14 +372,39 @@ function ComponentPage() {
                     <ComponentNameWrapper>
                         {component.name}
                     </ComponentNameWrapper>
-                    <div>
-                        <h2>
-                            {component.type.name}
-                        </h2>
-                        <h2>
-                            {component.revision.name}
-                        </h2>
-                    </div>
+                    <Grid container spacing={2} justifyContent="space-around">
+                        <Grid item>
+                            <Stack spacing={-0.1}>
+                                <Typography color={'rgb(128,128,128)'}>
+                                    Component type
+                                </Typography>
+                                <Typography variant="h5">
+                                    {component.type.name}
+                                </Typography>
+                            </Stack>
+                        </Grid>
+                        <Grid item>
+                            <Stack spacing={-0.1}>
+                                <Typography color={'rgb(128,128,128)'}>
+                                    Component revision
+                                </Typography>
+                                <Typography variant="h5">
+                                    {component.revision.name}
+                                </Typography>
+                            </Stack>
+                        </Grid>
+                        <Grid item>
+                            <Stack spacing={-0.1}>
+                                <Typography color={'rgb(128,128,128)'}>
+                                    Date added
+                                </Typography>
+                                <Timestamp 
+                                    unixTime={component.time_added} 
+                                    variant="h5"
+                                />
+                            </Stack>
+                        </Grid>
+                    </Grid>
                 </Stack>
 
                 <Accordion

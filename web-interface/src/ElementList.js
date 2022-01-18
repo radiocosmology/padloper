@@ -1,7 +1,8 @@
 import { Paper, Table, TableBody, TableRow, 
     TableHead, TableCell, TableContainer, 
     CircularProgress,
-    TableSortLabel
+    TableSortLabel,
+    Typography,
 } from '@mui/material';
 
 import { 
@@ -64,7 +65,11 @@ function ElementList(
                             textAlign: 'center',
                         }}
                     >
-                        No objects found :(
+                        <Typography style={{
+                            color: 'grey',
+                        }}>
+                            No objects found.
+                        </Typography>
                     </TableCell>
                 </TableRow>
             )

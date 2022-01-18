@@ -143,7 +143,6 @@ function ComponentList() {
                 res => res.json()
             ).then(data => {
                 setComponents(data.result);
-    
                 setLoaded(true);
             });
         }
@@ -201,11 +200,12 @@ function ComponentList() {
             allowOrdering: true,
         },
     ];
-    let tableRowContent = components.map((c) => [
+
+    let tableRowContent = components.map(c => [
         <Link to={`/component/${c.name}`}>
             {c.name}
         </Link>,
-        c.component_type.name,
+        c.type.name,
         c.revision.name,
     ]);
 

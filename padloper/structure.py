@@ -83,9 +83,11 @@ class Vertex(Element):
     The representation of a vertex. Can contain attributes.
 
     :ivar category: The category of the Vertex.
+    :ivar time_added: When this vertex was added to the database (UNIX time).
     """
 
     category: str 
+    time_added: int
 
 
     def __init__(self, id: int):
@@ -120,7 +122,12 @@ class Vertex(Element):
             raise VertexAlreadyAddedError
         
         else:
-            traversal = g.addV().property('category', self.category)
+
+            # set time added to now.
+            self.time_added = int(time.time())
+
+            traversal = g.addV().property('category', self.category) \
+                                .property('time_added', self.time_added)
 
             for key in attributes:
 
@@ -139,6 +146,8 @@ class Vertex(Element):
             self._set_id(v.id)
 
             Vertex._cache_vertex(self)
+
+            
 
     
     def added_to_db(self) -> bool:
@@ -983,7 +992,8 @@ class Component(Vertex):
     def __new__(
         cls, name: str, type: ComponentType, 
         revision: ComponentRevision=None,
-        id: int=VIRTUAL_ID_PLACEHOLDER
+        id: int=VIRTUAL_ID_PLACEHOLDER,
+        time_added: int=-1
     ):
         """
         Return a Component instance given the desired name, component type,
@@ -1014,7 +1024,8 @@ class Component(Vertex):
     def __init__(
         self, name: str, type: ComponentType, 
         revision: ComponentRevision=None,
-        id: int=VIRTUAL_ID_PLACEHOLDER
+        id: int=VIRTUAL_ID_PLACEHOLDER,
+        time_added: int=-1
         ):
         """
         Initialize the Component vertex.
@@ -1029,6 +1040,7 @@ class Component(Vertex):
         self.name = name
         self.type = type
         self.revision = revision
+        self.time_added = time_added
 
         Vertex.__init__(self, id=id)
 
@@ -1458,7 +1470,7 @@ class Component(Vertex):
 
 
     @classmethod
-    def _attrs_to_component(self, name, id, type_id, rev_ids):
+    def _attrs_to_component(self, name, id, type_id, rev_ids, time_added):
         """Given the name ID of the component :param id: and the ID of the 
         component type :param type_id: and a list of the IDs of the
         component revision vertices :param rev_ids:, 
@@ -1472,6 +1484,8 @@ class Component(Vertex):
         :type type_id: int
         :param rev_ids: A list of IDs of component revision vertices serverside
         :type rev_ids: list
+        :param time_added: UNIX timestamp of when the Component was added to DB.
+        :type time_added: int
         :return: A Component instance corresponding to :param id:, connected
         to the correct ComponentType and ComponentRevision.
         :rtype: Component
@@ -1498,7 +1512,8 @@ class Component(Vertex):
                 name=name,  
                 id=id,
                 type=_vertex_cache[type_id],
-                revision=crev
+                revision=crev,
+                time_added=time_added
             )
         )
 
@@ -1514,13 +1529,21 @@ class Component(Vertex):
         """
 
         d = g.V().has('category', Component.category).has('name', name) \
-            .project('id', 'type_id', 'rev_ids') \
+            .project('id', 'type_id', 'rev_ids', 'time_added') \
             .by(__.id()).by(__.both(RelationComponentType.category).id()) \
-            .by(__.both(RelationRevision.category).id().fold()).next()
+            .by(__.both(RelationRevision.category).id().fold()) \
+            .by(__.values('time_added')).next()
  
-        id, type_id, rev_ids = d['id'], d['type_id'], d['rev_ids']
+        id, type_id, rev_ids, time_added = \
+            d['id'], d['type_id'], d['rev_ids'], d['time_added']
 
-        return Component._attrs_to_component(name, id, type_id, rev_ids)
+        return Component._attrs_to_component(
+            name, 
+            id, 
+            type_id, 
+            rev_ids, 
+            time_added
+        )
 
     @classmethod
     def from_id(cls, id: int):
@@ -1532,14 +1555,22 @@ class Component(Vertex):
         """
         if id not in _vertex_cache:
 
-            d = g.V(id).project('name', 'type_id', 'rev_ids') \
+            d = g.V(id).project('name', 'type_id', 'rev_ids', 'time_added') \
                 .by(__.values('name')) \
                 .by(__.both(RelationComponentType.category).id()) \
-                .by(__.both(RelationRevision.category).id().fold()).next()
+                .by(__.both(RelationRevision.category).id().fold()) \
+                .by(__.values('time_added')).next()
     
-            name, type_id, rev_ids = d['name'], d['type_id'], d['rev_ids']
+            name, type_id, rev_ids, time_added = \
+                d['name'], d['type_id'], d['rev_ids'], d['time_added']
 
-            return Component._attrs_to_component(name, id, type_id, rev_ids)
+            return Component._attrs_to_component(
+                name, 
+                id, 
+                type_id, 
+                rev_ids,
+                time_added
+            )
 
         else:
             return _vertex_cache[id]
@@ -1676,25 +1707,27 @@ class Component(Vertex):
                 )
 
         cs = traversal.range(range[0], range[1]) \
-            .project('id', 'name', 'type_id', 'rev_ids') \
+            .project('id', 'name', 'type_id', 'rev_ids', 'time_added') \
             .by(__.id()) \
             .by(__.values('name')) \
             .by(__.both(RelationComponentType.category).id()) \
             .by(__.both(RelationRevision.category).id().fold()) \
+            .by(__.values('time_added')) \
             .toList()
 
         components = []
 
         for d in cs:
-            id, name, type_id, rev_ids = d['id'], d['name'], \
-                d['type_id'], d['rev_ids']
+            id, name, type_id, rev_ids, time_added = d['id'], d['name'], \
+                d['type_id'], d['rev_ids'], d['time_added']
 
             components.append(
                 Component._attrs_to_component(
                     id=id, 
                     name=name, 
                     type_id=type_id,
-                    rev_ids=rev_ids
+                    rev_ids=rev_ids,
+                    time_added=time_added
                 )
             )
         
@@ -1819,6 +1852,7 @@ class Component(Vertex):
             'revision': {
                 'name': c.revision.name if c.revision is not None else ''
             },
+            'time_added': c.time_added,
             'properties': prop_dicts,
             'connections': connection_dicts,
         }

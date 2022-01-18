@@ -9,12 +9,12 @@ export function unixTimeToString(UNIX_timestamp, includeTime){
     let month = months[a.getMonth()];
     let date = a.getDate();
     let hour = a.getHours();
-    let min = a.getMinutes();
-    let sec = a.getSeconds();
+    let min = "0" + a.getMinutes();
+    let sec = "0" + a.getSeconds();
 
     let time = `${date} ${month} ${year}`;
     if (includeTime) {
-        time += `, ${hour}:${min}:${sec}`;
+        time += `, ${hour}:${min.slice(-2)}:${sec.slice(-2)}`;
     }
     return time;
 }
