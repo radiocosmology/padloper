@@ -259,7 +259,9 @@ class Edge(Element):
             self.outVertex.add()
 
         if self.added_to_db():
-            raise EdgeAlreadyAddedError
+            raise EdgeAlreadyAddedError(
+                f"Edge already exists in the database."
+            )
 
         else:
             traversal = g.V(self.outVertex.id()).addE(self.category) \
@@ -775,9 +777,11 @@ class ComponentRevision(Vertex):
             return _vertex_cache[id]
 
         else:
-            # TODO: RAISE CUSTOM ERROR!
-
-            raise ComponentTypeNotAddedError
+            raise ComponentTypeNotAddedError(
+                f"Allowed type {allowed_type.name} of " +
+                f"proposed component revision {name} has not yet been added " +
+                "to the database."
+            )
 
     @classmethod
     def from_id(cls, id: int):
@@ -1115,10 +1119,15 @@ class Component(Vertex):
         """
 
         if not self.added_to_db():
-            raise ComponentNotAddedError
+            raise ComponentNotAddedError(
+                f"Component {self.name} has not yet been added to the database."
+            )
 
         if not property_type.added_to_db():
-            raise PropertyTypeNotAddedError
+            raise PropertyTypeNotAddedError(
+                f"Property type {property_type.name} of component {self.name} "+
+                "has not yet been added to the database."
+            )
 
         # list of property vertices of this property type 
         # and active at this time
@@ -1148,7 +1157,9 @@ class Component(Vertex):
         """
 
         if not self.added_to_db():
-            raise ComponentNotAddedError
+            raise ComponentNotAddedError(
+                f"Component {self.name} has not yet been added to the database."
+            )
 
         # list of property vertices of this property type 
         # and active at this time
@@ -1207,8 +1218,11 @@ class Component(Vertex):
         if p is not None:
             
             if p.values == property.values:
-                # RAISE CUSTOM ERROR SAYING THAT PROPERTY IS ALREADY ADDED
-                raise PropertyIsSameError
+                raise PropertyIsSameError(
+                    "An identical property of type " +
+                    f"{property.property_type.name} for component {self.name} "+
+                    f"is already set with values {property.values}."
+                )
 
             else:
                 # end that property.
@@ -1260,14 +1274,16 @@ class Component(Vertex):
         """
         
         if not self.added_to_db():
-            # RAISE ERROR, YOU SHOULD BE ADDED TO DB
-            
-            raise ComponentNotAddedError
+            raise ComponentNotAddedError(
+                f"Component {self.name} has not yet been added to the database."
+            )
 
         if not property.added_to_db():
-            # RAISE ERROR, PROPERTY SHOULD BE ADDED TO DB. 
-
-            raise PropertyNotAddedError
+            raise PropertyNotAddedError(
+                f"Property of component {self.name} " +
+                f"of values {property.values} being unset " +
+                "has not been added to the database."
+            )
 
         g.V(property.id()).bothE(RelationProperty.category).as_('e').otherV() \
             .hasId(self.id()).select('e') \
@@ -1301,10 +1317,15 @@ class Component(Vertex):
         # Done for troubleshooting (so you know which component is not added?)
 
         if not self.added_to_db():
-            raise ComponentNotAddedError
+            raise ComponentNotAddedError(
+                f"Component {self.name} has not yet been added to the database."
+            )
 
         if not component.added_to_db():
-            raise ComponentNotAddedError
+            raise ComponentNotAddedError(
+                f"Component {component.name} has not yet " +
+                "been added to the database."
+            )
 
 
         current_connection = self.get_connection(
@@ -1315,7 +1336,10 @@ class Component(Vertex):
         if current_connection is not None:
             
             # Already connected!
-            raise ComponentsAlreadyConnectedError
+            raise ComponentsAlreadyConnectedError(
+                f"Components {self.name} and {component.name} " +
+                "are already connected."
+            )
 
         else:
             current_connection = RelationConnection(
@@ -1354,10 +1378,15 @@ class Component(Vertex):
         # Done for troubleshooting (so you know which component is not added?)
 
         if not self.added_to_db():
-            raise ComponentNotAddedError
+            raise ComponentNotAddedError(
+                f"Component {self.name} has not yet been added to the database."
+            )
 
         if not component.added_to_db():
-            raise ComponentNotAddedError
+            raise ComponentNotAddedError(
+                f"Component {component.name} has not yet " +
+                "been added to the database."
+            )
 
 
         current_connection = self.get_connection(
@@ -1368,7 +1397,10 @@ class Component(Vertex):
         if current_connection is None:
             
             # Not connected yet!
-            raise ComponentsAlreadyDisconnectedError
+            raise ComponentsAlreadyDisconnectedError(
+                f"Components {self.name} and {component.name} " +
+                "are already disconnected."
+            )
 
         else:
             current_connection._end_connection(
@@ -1392,10 +1424,15 @@ class Component(Vertex):
 
         # Done for troubleshooting (so you know which component is not added?)
         if not self.added_to_db():
-            raise ComponentNotAddedError
+            raise ComponentNotAddedError(
+                f"Component {self.name} has not yet been added to the database."
+            )
 
         if not component.added_to_db():
-            raise ComponentNotAddedError
+            raise ComponentNotAddedError(
+                f"Component {component.name} has not yet " +
+                "been added to the database."
+            )
 
         e = g.V(self.id()).bothE(RelationConnection.category) \
             .has('start_time', P.lte(time)) \
@@ -1432,7 +1469,9 @@ class Component(Vertex):
 
 
         if not self.added_to_db():
-            raise ComponentNotAddedError
+            raise ComponentNotAddedError(
+                f"Component {self.name} has not yet been added to the database."
+            )
 
         # list of property vertices of this property type 
         # and active at this time
@@ -1510,9 +1549,9 @@ class Component(Vertex):
         crev = None
 
         if len(rev_ids) > 1:
-
-            # raise an error because THIS SHOULD NOT HAPPEN!!!
-            raise ValueError
+            raise ValueError(
+                f"More than one component revision exists for component {name}."
+            )
 
         if len(rev_ids) == 1:
             crev = Vertex._cache_vertex(
@@ -1982,9 +2021,9 @@ class PropertyType(Vertex):
         self.allowed_types = allowed_types
 
         if len(self.allowed_types) == 0:
-            
-            # TODO: raise a custom error
-            raise PropertyTypeZeroAllowedTypesError
+            raise PropertyTypeZeroAllowedTypesError(
+                f"No allowed types were specified for property type {name}."
+            )
 
         Vertex.__init__(self, id=id)
 
@@ -2219,7 +2258,11 @@ class Property(Vertex):
 
             # If the value does not match the property type's regex
             if not bool(re.fullmatch(property_type.allowed_regex, val)):
-                raise PropertyNotMatchRegexError
+                raise PropertyNotMatchRegexError(
+                    f"Property with values {values} of type " +
+                    f"{property_type.name} does not match regex " +
+                    f"{property_type.allowed_regex} for value {val}."
+                )
 
         self.values = values
         self.property_type = property_type
@@ -2663,7 +2706,10 @@ class RelationConnection(Edge):
         if not self.added_to_db():
 
             # Edge not added to DB!
-            raise EdgeNotAddedError
+            raise EdgeNotAddedError(
+                f"Connection between {self.inVertex} and {self.outVertex} " +
+                "does not exist in the database."
+            )
 
         self.end_time = end_time
         self.end_uid = end_uid
