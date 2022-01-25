@@ -1294,8 +1294,10 @@ class Component(Vertex):
 
 
     def connect(
-        self, component, time: int, 
-        uid: str, edit_time: int=int(time.time()), comments=""
+        self, component, time: int, uid: str, 
+        end_time: int=EXISTING_RELATION_END_PLACEHOLDER,
+        edit_time: int=int(time.time()), comments="",
+        force_connection: bool=False
         ):
         """Given another Component :param component:,
         connect the two components.
@@ -1307,14 +1309,22 @@ class Component(Vertex):
         :type time: int
         :param uid: The ID of the user that connected the components
         :type uid: str
+        :param end_time: The time at which these components were disconnected
+        (real time), defaults to EXISTING_RELATION_END_PLACEHOLDER
+        :type time: int, optional
         :param edit_time: The time at which the user made the change,
         defaults to int(time.time())
         :type edit_time: int, optional
         :param comments: Comments to add with the connection, defaults to ""
         :type comments: str, optional
+        :param force_connection: If a connection is being added at a time
+        before an existing active connection, give it an end time as well,
+        defaults to False
+        :type force_connection: bool, optional
         """
 
-        # Done for troubleshooting (so you know which component is not added?)
+        end_edit_time = EXISTING_RELATION_END_EDIT_PLACEHOLDER
+        end_uid = ""
 
         if not self.added_to_db():
             raise ComponentNotAddedError(
@@ -1346,16 +1356,43 @@ class Component(Vertex):
             )
 
         else:
+
+            existing_connections = self.get_all_connections_with(
+                component=component, 
+                from_time=time
+            )
+
+            if len(existing_connections) > 0:
+                if force_connection:
+                    end_time = existing_connections[0].start_time
+                    end_edit_time = edit_time
+                    end_uid = uid
+                else:
+                    raise ComponentsConnectBeforeExistingConnectionError(
+                        "Trying to connect components " +
+                        f"{self.name} and {component.name} " +
+                        "before an existing connection; set 'force_connection' " 
+                        +"parameter to True to bypass."
+                    )
+
             current_connection = RelationConnection(
                 inVertex=self,
                 outVertex=component,
                 start_time=time,
+                end_time=end_time,
                 start_uid=uid,
+                end_uid=end_uid,
                 start_edit_time=edit_time,
+                end_edit_time=end_edit_time,
                 start_comments=comments
             )
 
             current_connection.add()
+
+        
+
+
+
 
 
     def disconnect(
@@ -1413,6 +1450,62 @@ class Component(Vertex):
                 end_edit_time=edit_time,
                 end_comments=comments
             )
+
+
+    def get_all_connections_with(
+        self, component, from_time: int=-1, 
+        to_time: int=EXISTING_RELATION_END_PLACEHOLDER
+    ):
+        """
+        Given two components, return all edges that connected them between time
+        :param from_time: and to time :param to_time:.
+
+        :param component: The other component to check the connections with.
+        :type component: Component
+        :param from_time: Lower bound for time range to consider connections, 
+        defaults to -1
+        :type from_time: int, optional
+        :param to_time: Upper bound for time range to consider connections, 
+        defaults to EXISTING_RELATION_END_PLACEHOLDER
+        :type from_time: int, optional
+        """
+
+        # Done for troubleshooting (so you know which component is not added?)
+        if not self.added_to_db():
+            raise ComponentNotAddedError(
+                f"Component {self.name} has not yet been added to the database."
+            )
+
+        if not component.added_to_db():
+            raise ComponentNotAddedError(
+                f"Component {component.name} has not yet " +
+                "been added to the database."
+            )
+
+        edges = g.V(self.id()).bothE(RelationConnection.category)
+
+        if to_time < EXISTING_RELATION_END_PLACEHOLDER:
+            edges = edges.has('start_time', P.lt(to_time))
+        
+        edges = edges.has('end_time', P.gt(from_time)) \
+            .as_('e').otherV() \
+            .hasId(component.id()).select('e') \
+            .order().by(__.values('start_time'), Order.asc) \
+            .project('properties', 'id').by(__.valueMap()).by(__.id()).toList()
+
+        return [RelationConnection(
+            inVertex=self, outVertex=component,
+            start_time=e['properties']['start_time'],
+            start_uid=e['properties']['start_uid'],
+            start_edit_time=e['properties']['start_edit_time'],
+            start_comments=e['properties']['start_comments'],
+            end_time=e['properties']['end_time'],
+            end_uid=e['properties']['end_uid'],
+            end_edit_time=e['properties']['end_edit_time'],
+            end_comments=e['properties']['end_comments'],
+            id=e['id']['@value']['relationId'] # weird but you have to
+        ) for e in edges]
+
 
     def get_connection(
         self, component, time: int

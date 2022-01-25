@@ -219,7 +219,8 @@ function ComponentConnectionAddPanel(
                                             setLoading(false);
                                             setErrorMessage(`This component is 
                                             already connected to 
-                                            ${selectedOption.name}.`);
+                                            ${selectedOption.name} 
+                                            at this time.`);
                                         }
                                     }
                                 )

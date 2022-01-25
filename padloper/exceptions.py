@@ -72,6 +72,13 @@ class ComponentsAlreadyDisconnectedError(Error):
     """
     pass
 
+class ComponentsConnectBeforeExistingConnectionError(Error):
+    """
+    Exception raised when trying to connect two components before another
+    existing connection.
+    """
+    pass
+
 class ComponentConnectToSelfError(Error):
     """
     Exception raised when trying to connect a component to itself.
