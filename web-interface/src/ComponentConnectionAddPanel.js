@@ -12,8 +12,6 @@ import CloseIcon from '@mui/icons-material/Close';
 import ErrorIcon from '@mui/icons-material/Error';
 import PersonIcon from '@mui/icons-material/Person';
 
-import ComponentPropertyAutocomplete from './ComponentPropertyAutocomplete.js';
-
 import ThemeProvider from '@mui/material/styles/ThemeProvider';
 import styled from '@mui/material/styles/styled';
 import { Typography } from '@mui/material';
@@ -61,7 +59,8 @@ function ComponentConnectionAddPanel(
     {
         theme,
         onClose,
-        onSet
+        onSet,
+        name
     }
 ) {
 
@@ -119,6 +118,7 @@ function ComponentConnectionAddPanel(
                     <Grid item>
                         <ComponentConnectionAutocomplete 
                             onSelect={selectOption} 
+                            name={name}
                         />
                     </Grid>
 

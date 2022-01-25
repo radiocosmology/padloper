@@ -72,6 +72,12 @@ class ComponentsAlreadyDisconnectedError(Error):
     """
     pass
 
+class ComponentConnectToSelfError(Error):
+    """
+    Exception raised when trying to connect a component to itself.
+    """
+    pass
+
 
 class PropertyTypeZeroAllowedTypesError(Error):
     """

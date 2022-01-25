@@ -302,6 +302,7 @@ function ComponentPage() {
                 theme={theme} 
                 onClose={() => setOpenConnectionsAddPanel(false)}
                 onSet={addConnection}
+                name={name}
             />
         ) : <></>;
 

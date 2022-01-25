@@ -1327,6 +1327,10 @@ class Component(Vertex):
                 "been added to the database."
             )
 
+        if self.name == component.name:
+            raise ComponentConnectToSelfError(
+                f"Trying to connect component {self.name} to itself."
+            )
 
         current_connection = self.get_connection(
             component=component, 

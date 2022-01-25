@@ -6,8 +6,11 @@ import TextField from '@mui/material/TextField';
 export default function ComponentConnectionAutocomplete(
     {
         onSelect,
+        name,
     }
 ) {
+    // note that the "name" attribute should be an ignored name when
+    // listing the components.
     const [open, setOpen] = useState(false);
     const [options, setOptions] = useState([]);
     
@@ -36,8 +39,15 @@ export default function ComponentConnectionAutocomplete(
             fetch(input).then(
                 res => res.json()
             ).then(data => {
+                // get rid of the element with the same name as "name" parameter
+                let index = data.result.findIndex(
+                    (option) => option.name === name
+                );
+                if (index > -1) {
+                    data.result.splice(index, 1);
+                }
                 setOptions(data.result);
-    
+
                 setLoading(false);
             });
         }
