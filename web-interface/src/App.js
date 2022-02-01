@@ -4,6 +4,7 @@ import ComponentList from './ComponentList.js';
 import ComponentTypeList from './ComponentTypeList.js';
 import ComponentRevisionList from './ComponentRevisionList.js';
 import ComponentPage from './ComponentPage.js';
+import ComponentConnectionVisualizer from './ComponentConnectionVisualizer.js';
 import Header from './Header.js';
 
 import {
@@ -11,6 +12,7 @@ import {
   Switch,
   Route,
 } from "react-router-dom";
+
 
 function App() {
 
@@ -30,6 +32,9 @@ function App() {
           </Route>
           <Route exact={true} path="/list/component-revisions">
             <ComponentRevisionList />
+          </Route>
+          <Route exact={true} path="/component-connections">
+            <ComponentConnectionVisualizer />
           </Route>
           
           <Route exact path="/component/:name">

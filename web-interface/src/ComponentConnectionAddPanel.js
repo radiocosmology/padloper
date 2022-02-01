@@ -17,7 +17,7 @@ import styled from '@mui/material/styles/styled';
 import { Typography } from '@mui/material';
 import { verifyRegex } from './utility/utility.js';
 import { SettingsSuggestRounded } from '@mui/icons-material';
-import ComponentConnectionAutocomplete from './ComponentConnectionAutocomplete.js';
+import ComponentAutocomplete from './ComponentAutocomplete.js';
 
 const Panel = styled((props) => (
     <Paper 
@@ -116,9 +116,9 @@ function ComponentConnectionAddPanel(
 
                 <Grid container spacing={2} justifyContent="space-around">
                     <Grid item>
-                        <ComponentConnectionAutocomplete 
+                        <ComponentAutocomplete 
                             onSelect={selectOption} 
-                            name={name}
+                            excludeName={name}
                         />
                     </Grid>
 

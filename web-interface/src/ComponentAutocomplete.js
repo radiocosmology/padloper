@@ -3,13 +3,13 @@ import Autocomplete from '@mui/material/Autocomplete';
 import CircularProgress from '@mui/material/CircularProgress';
 import TextField from '@mui/material/TextField';
 
-export default function ComponentConnectionAutocomplete(
+export default function ComponentAutocomplete(
     {
         onSelect,
-        name,
+        excludeName,
     }
 ) {
-    // note that the "name" attribute should be an ignored name when
+    // note that the "excludeName" attribute should be an ignored name when
     // listing the components.
     const [open, setOpen] = useState(false);
     const [options, setOptions] = useState([]);
@@ -39,9 +39,10 @@ export default function ComponentConnectionAutocomplete(
             fetch(input).then(
                 res => res.json()
             ).then(data => {
-                // get rid of the element with the same name as "name" parameter
+                // get rid of the element with the same name 
+                // as "excludeName" parameter
                 let index = data.result.findIndex(
-                    (option) => option.name === name
+                    (option) => option.name === excludeName
                 );
                 if (index > -1) {
                     data.result.splice(index, 1);

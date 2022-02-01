@@ -1390,11 +1390,6 @@ class Component(Vertex):
             current_connection.add()
 
         
-
-
-
-
-
     def disconnect(
         self, component, time: int, uid: str, 
         edit_time: int=int(time.time()), comments=""
@@ -1555,6 +1550,7 @@ class Component(Vertex):
             end_comments=e[0]['properties']['end_comments'],
             id=e[0]['id']['@value']['relationId'] # weird but you have to
         )
+
 
     def get_all_connections(self):
         """Return all connections between this Component and all other
