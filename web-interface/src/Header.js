@@ -52,6 +52,16 @@ function Header() {
                 </Button>
             </Link>
 
+            <Link to={`/component-connections`} className="StyledLink">
+                <Button 
+                    variant="outlined" 
+                    color="inherit"
+                    className="StyledButton"
+                >
+                    Component Connections
+                </Button>
+            </Link>
+
           </Toolbar>
         </AppBar>
     )

@@ -1,5 +1,6 @@
 import React from 'react';
-import ReactFlow, { Controls, Background } from 'react-flow-renderer';
+import ReactFlow, { 
+    Controls, Background, Handle, Position } from 'react-flow-renderer';
 import styled from '@mui/material/styles/styled';
 import createTheme from '@mui/material/styles/createTheme';
 import { Link } from "react-router-dom";
@@ -10,8 +11,10 @@ import Button from '@mui/material/Button';
 import Grid from '@mui/material/Grid';
 import TextField from '@mui/material/TextField';
 import Stack from '@mui/material/Stack';
+import Fab from '@mui/material/Fab';
 
 import UnfoldMoreIcon from '@mui/icons-material/UnfoldMore';
+import DragHandleRoundedIcon from '@mui/icons-material/DragHandleRounded';
 
 import ComponentAutocomplete from './ComponentAutocomplete.js';
 import { ThemeProvider } from '@emotion/react';
@@ -72,6 +75,43 @@ const VisualizerPanel = styled((props) => (
     maxWidth: '100%',
 }));
 
+const ComponentNodeWrapper = styled((props) => (
+    <Paper 
+        variant="outlined"
+        {...props}
+    />
+))(({ theme }) => ({
+    background: 'white',
+    borderColor: '#777777',
+    borderWidth: '2px',
+    width: '160px',
+    height: '50px',
+    textAlign: 'center',
+}));
+
+const ComponentNodeDragHandle = styled((props) => (
+    <Button
+        className="drag-handle"
+        disableRipple="true"
+        variant="outlined"
+        size="small"
+        style={{
+            maxWidth: '25px',
+            minWidth: '25px',
+            maxHeight: '22px',
+            minHeight: '22px',
+            position: 'absolute',
+            top: '-11px',
+            left: 'calc(50% - 12.5px)',
+            background: 'white',
+            borderWidth: '2px',
+        }}>
+        <DragHandleRoundedIcon />
+    </Button>
+))(({ theme }) => ({
+
+}));
+
 const ExpandConnectionsButton = styled((props) => (
     <Button 
         style={{
@@ -88,32 +128,39 @@ const ExpandConnectionsButton = styled((props) => (
 }));
 
 
-function ComponentNode({name}) {
+function ComponentNode({ data }) {
     return (
         <ThemeProvider theme={theme}>
-            <Grid 
-                container
-                justifyContent="center"
-                alignItems="center"
-            >
-                <Grid item xs={9}>
-                    <Typography
-                        variant="body2"
-                    >
-                        <TextLink to={`/component/${name}`}>
-                            {name}
-                        </TextLink>
-                    </Typography>
+            <ComponentNodeWrapper>
+                <ComponentNodeDragHandle />
+                <Grid
+                    container
+                    justifyContent="center"
+                    alignItems="center"
+                    style={{
+                        height: '100%'
+                    }}
+                >
+                    <Grid item xs={9}>
+                        <Typography
+                            variant="body2"
+                        >
+                            <div>{data.label}</div>
+                        </Typography>
+                    </Grid>
+                    <Grid item>
+                        <ExpandConnectionsButton />
+                    </Grid>
                 </Grid>
-                <Grid item>
-                    <ExpandConnectionsButton />
-                </Grid>
-            </Grid>
-
+            </ComponentNodeWrapper>
         </ThemeProvider>
 
     )
 } 
+
+const nodeTypes = {
+    component: ComponentNode,
+};
 
 export default function ComponentConnectionVisualizer() {
 
@@ -121,31 +168,21 @@ export default function ComponentConnectionVisualizer() {
         {
             id: '1',
             connectable: false,
-            data: { label: (
-                <ComponentNode
-                    name={"COMP-2"}
-                />
-            ) },
+            type: 'component',
+            dragHandle: '.drag-handle',
+            data: { label: "COMP-2" },
             position: { x: 250, y: 25 },
         },
         // default node
         {
             id: '2',
             // you can also pass a React component as a label
-            data: { label: (
-                <ComponentNode
-                    name={"COMP-1"}
-                />
-            ) },
+            data: { label: "COMP-1" },
             position: { x: 100, y: 125 },
         },
         {
             id: '3',
-            data: { label: (
-                <ComponentNode
-                    name={"COMP-3"}
-                />
-            ) },
+            data: { label: "COMP-3" },
             position: { x: 250, y: 250 },
         },
         // animated edge
@@ -202,6 +239,7 @@ export default function ComponentConnectionVisualizer() {
                     <ReactFlow 
                         elements={elements}
                         nodesConnectable={false}
+                        nodeTypes={nodeTypes}
                     >
                         <Background
                             variant="dots"
