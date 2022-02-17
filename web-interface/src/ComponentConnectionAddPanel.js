@@ -205,7 +205,7 @@ function ComponentConnectionAddPanel(
                             time === defaultTime    
                         }
                         onClick={
-                            () => {
+                            async () => {
                                 setErrorMessage("");
                                 setLoading(true);
                                 onSet(
@@ -215,9 +215,9 @@ function ComponentConnectionAddPanel(
                                     comments
                                 ).then(
                                     successful => {
-                                        if (!successful) {
+                                        if (successful === false) {
                                             setLoading(false);
-                                            setErrorMessage(`This component is 
+                                            setErrorMessage(`${name} is 
                                             already connected to 
                                             ${selectedOption.name} 
                                             at this time.`);

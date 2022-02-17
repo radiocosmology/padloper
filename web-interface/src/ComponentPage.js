@@ -202,15 +202,18 @@ function ComponentPage() {
         input += `&uid=${uid}`;
         input += `&comments=${comments}`;
 
-        fetch(input).then(
-            res => res.json()
-        ).then(data => {
-            if (data.result) {
-                setOpenConnectionsAddPanel(false);
-                toggleReload();
-            }
-            return data.result;
+        return new Promise((resolve, reject) => {
+            fetch(input).then(
+                res => res.json()
+            ).then(data => {
+                if (data.result) {
+                    setOpenConnectionsAddPanel(false);
+                    toggleReload();
+                }
+                resolve(data.result);
+            });
         });
+
     }
 
     useEffect(() => {
