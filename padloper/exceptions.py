@@ -79,6 +79,13 @@ class ComponentsConnectBeforeExistingConnectionError(Error):
     """
     pass
 
+class ComponentsOverlappingConnectionError(Error):
+    """
+    Exception raised when trying to connect two components at overlapping times
+    with another connection of the two components.
+    """
+    pass
+
 class ComponentConnectToSelfError(Error):
     """
     Exception raised when trying to connect a component to itself.

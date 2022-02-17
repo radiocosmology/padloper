@@ -1364,6 +1364,14 @@ class Component(Vertex):
 
             if len(existing_connections) > 0:
                 if force_connection:
+                    if end_time != EXISTING_RELATION_END_PLACEHOLDER:
+                        raise ComponentsOverlappingConnectionError(
+                            "Trying to connect components " +
+                            f"{self.name} and {component.name} " +
+                            "before an existing connection but with a " +
+                            "specified end time; " +
+                            "replace the connection instead."
+                        )
                     end_time = existing_connections[0].start_time
                     end_edit_time = edit_time
                     end_uid = uid
