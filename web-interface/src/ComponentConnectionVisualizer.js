@@ -1,4 +1,4 @@
-import React from 'react';
+import React, { useState, useEffect, useRef } from 'react';
 import ReactFlow, { 
     Controls, Background, Handle, Position } from 'react-flow-renderer';
 import styled from '@mui/material/styles/styled';
@@ -18,6 +18,8 @@ import DragHandleRoundedIcon from '@mui/icons-material/DragHandleRounded';
 
 import ComponentAutocomplete from './ComponentAutocomplete.js';
 import { ThemeProvider } from '@emotion/react';
+
+import { unixTimeToISOString } from './utility/utility.js';
 
 const theme = createTheme({
     typography: {
@@ -61,6 +63,7 @@ const OptionsPanel = styled((props) => (
     maxWidth: '100%',
     textAlign: 'center',
     marginTop: theme.spacing(2),
+    paddingTop: theme.spacing(2),
     paddingBottom: theme.spacing(2),
 }));
 
@@ -92,7 +95,7 @@ const ComponentNodeWrapper = styled((props) => (
 const ComponentNodeDragHandle = styled((props) => (
     <Button
         className="drag-handle"
-        disableRipple="true"
+        disableRipple
         variant="outlined"
         size="small"
         style={{
@@ -127,68 +130,166 @@ const ExpandConnectionsButton = styled((props) => (
 ))(({ theme }) => ({
 }));
 
-
-function ComponentNode({ data }) {
-    return (
-        <ThemeProvider theme={theme}>
-            <ComponentNodeWrapper>
-                <ComponentNodeDragHandle />
-                <Grid
-                    container
-                    justifyContent="center"
-                    alignItems="center"
-                    style={{
-                        height: '100%'
-                    }}
-                >
-                    <Grid item xs={9}>
-                        <Typography
-                            variant="body2"
-                        >
-                            <div>{data.label}</div>
-                        </Typography>
-                    </Grid>
-                    <Grid item>
-                        <ExpandConnectionsButton />
-                    </Grid>
-                </Grid>
-            </ComponentNodeWrapper>
-        </ThemeProvider>
-
-    )
-} 
-
-const nodeTypes = {
-    component: ComponentNode,
-};
-
 export default function ComponentConnectionVisualizer() {
 
-    const elements = [
-        {
-            id: '1',
+    const [elements, setElements] = useState([]);
+
+    const elementIds = useRef({});
+
+    const [component, setComponent] = useState(undefined);
+
+    const enteredTime = useRef(Math.floor(Date.now()));
+    const time = useRef(Math.floor(Date.now() / 1000));
+
+    function addElementId(id) {
+        elementIds.current[id] = true;
+    }
+
+    function addComponent(name, x, y) {
+
+        // catch it
+        if (elementIds.current[name]) {
+            return;
+        }
+
+        let newElement = {
+            id: name,
             connectable: false,
             type: 'component',
             dragHandle: '.drag-handle',
-            data: { label: "COMP-2" },
-            position: { x: 250, y: 25 },
-        },
-        // default node
-        {
-            id: '2',
-            // you can also pass a React component as a label
-            data: { label: "COMP-1" },
-            position: { x: 100, y: 125 },
-        },
-        {
-            id: '3',
-            data: { label: "COMP-3" },
-            position: { x: 250, y: 250 },
-        },
-        // animated edge
-        { id: 'e1-2', source: '1', target: '2', animated: true },
-        { id: 'e2-3', source: '2', target: '3' },
-    ];
+            data: { name: name },
+            position: { x: x, y: y },
+        }
+        
+        addElementId(name);
+        setElements((els) => els.concat(newElement));
+    }
+
+    const addEdge = (id, source, target) => {
+
+        // catch it
+        // TODO, MAKE THIS MORE EFFICIENT (dictionary lookup!!!)
+        if (elementIds.current[id]) {
+            return;
+        }
+
+        let newElement = {
+            id: id,
+            source: source,
+            target: target,
+            style: {
+                stroke: '#555555',
+                strokeWidth: 1,
+            }
+        }
+        addElementId(id);
+        setElements((nodes) => nodes.concat(newElement));
+    }
+
+    const removeElement = (id) => {
+        let index = elements.findIndex(
+            (els) => els.id === id
+        );
+        if (index > -1) {
+            setElements((els) => els.splice(index, 1));
+        }
+        elementIds.current[id] = false;
+    }
+
+    const removeAllElements = () => {
+        setElements([]);
+        elementIds.current = {};
+    }
+
+    const visualizeComponent = () => {
+        if (component === undefined) {
+            return;
+        }
+
+        removeAllElements();
+
+        time.current = Math.floor(enteredTime.current / 1000);
+
+        console.log(time.current);
+
+        addComponent(component.name, 0, 0);
+    }
+
+    function ComponentNode({ data }) {
+        return (
+            <ThemeProvider theme={theme}>
+                <Handle 
+                    type="target" 
+                    position="top"
+                    style={{background: 'none', border: 'none'}}
+                />
+                <Handle 
+                    type="source" 
+                    position="bottom"
+                    style={{
+                        background: 'none', 
+                        border: 'none',
+                        top: '88%',
+                    }}
+                />
+                <ComponentNodeWrapper>
+                    <ComponentNodeDragHandle />
+                    <Grid
+                        container
+                        justifyContent="center"
+                        alignItems="center"
+                        style={{
+                            height: '100%'
+                        }}
+                    >
+                        <Grid item xs={9}>
+                            <Typography
+                                variant="body2"
+                            >
+                                <Link to={`/component/${data.name}`}>
+                                    {data.name}
+                                </Link>
+                            </Typography>
+                        </Grid>
+                        <Grid item>
+                            <ExpandConnectionsButton 
+                                onClick={() => expandConnections(
+                                    data.name, time.current)}
+                            />
+                        </Grid>
+                    </Grid>
+                </ComponentNodeWrapper>
+            </ThemeProvider>
+    
+        )
+    } 
+
+    const expandConnections = async (name, time) => {
+
+        console.log(time);
+
+        let input = `/api/get_all_connections_at_time`;
+        input += `?name=${name}`;
+        input += `&time=${time}`;
+
+        fetch(input).then(
+            res => res.json()
+        ).then(data => {
+
+            for (const edge of data.result) {
+
+                let otherName = (name === edge.inVertexName) ? 
+                    edge.outVertexName : edge.inVertexName;
+
+                addComponent(otherName, 0, 0);
+                addEdge(
+                    edge.id, 
+                    edge.outVertexName, 
+                    edge.inVertexName
+                );
+            }
+        });
+    }
 
     return (
         <Grid 
@@ -201,36 +302,44 @@ export default function ComponentConnectionVisualizer() {
 
             <Grid item>
                 <OptionsPanel>
-                    <Grid container
+                    <Stack
                         direction="row"
                         justifyContent="center"
-                        alignItems="flex-end"
-                        spacing={2}
+                        alignItems="center"
+                        spacing={4}
                     >
-                        <Grid item>
-                            <ComponentAutocomplete 
-                                onSelect={() => {}} 
-                            />
-                        </Grid>
-                        <Grid item>
-                            <TextField
-                                required
-                                id="datetime-local"
-                                label="Time"
-                                type="datetime-local"
-                                sx={{ width: 240 }}
-                                InputLabelProps={{
-                                    shrink: true,
-                                }}
-                                size="large"
-                                onChange={(event) => {
-                                    let date = new Date(event.target.value);
-                                    //setTime(Math.round(date.getTime() / 1000));
-                                }}
-                            />
-                        </Grid>
+                        <ComponentAutocomplete 
+                            onSelect={setComponent} 
+                        />
+                        <TextField
+                            required
+                            id="datetime-local"
+                            label="Time"
+                            type="datetime-local"
+                            defaultValue={
+                                unixTimeToISOString(enteredTime.current)
+                            }
+                            sx={{ width: 240 }}
+                            InputLabelProps={{
+                                shrink: true,
+                            }}
+                            size="large"
+                            onChange={(event) => {
+                                let date = new Date(event.target.value);
+                                enteredTime.current = Math.round(
+                                    date.getTime()
+                                    );
+                            }}
+                        />
+                        <Button 
+                            variant="contained"
+                            onClick={visualizeComponent}
+                            disabled={component === undefined}
+                        >
+                            Visualize
+                        </Button>
                         
-                    </Grid>
+                    </Stack>
                 </OptionsPanel>
             </Grid>
 
@@ -239,7 +348,7 @@ export default function ComponentConnectionVisualizer() {
                     <ReactFlow 
                         elements={elements}
                         nodesConnectable={false}
-                        nodeTypes={nodeTypes}
+                        nodeTypes={{component: ComponentNode}}
                     >
                         <Background
                             variant="dots"

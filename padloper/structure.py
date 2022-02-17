@@ -1447,6 +1447,57 @@ class Component(Vertex):
             )
 
 
+    def get_all_connections_at_time(
+        self, time: int
+    ):
+        """
+        Given a component, return all connections between this Component and 
+        all other components.
+
+        :param time: Time to check connections at. 
+        :type from_time: int, optional
+
+        :rtype: list[RelationConnection]
+        """
+
+        if not self.added_to_db():
+            raise ComponentNotAddedError(
+                f"Component {self.name} has not yet been added to the database."
+            )
+
+        # list of property vertices of this property type 
+        # and active at this time
+        query = g.V(self.id()).bothE(RelationConnection.category) \
+            .has('start_time', P.lte(time)) \
+            .has('end_time', P.gt(time)) \
+            .as_('e').valueMap().as_('edge_props') \
+            .select('e').otherV().id().as_('vertex_id') \
+            .select('e').id().as_('edge_id') \
+            .select('edge_props', 'vertex_id', 'edge_id').toList()
+
+        # Build up the result of format (property vertex, relation)
+        result = []
+
+        for q in query:
+            c = Component.from_id(q['vertex_id'])
+            edge = RelationConnection(
+                inVertex=c,
+                outVertex=self,
+                start_time=q['edge_props']['start_time'],
+                start_uid=q['edge_props']['start_uid'],
+                start_edit_time=q['edge_props']['start_edit_time'],
+                start_comments=q['edge_props']['start_comments'],
+                end_time=q['edge_props']['end_time'],
+                end_uid=q['edge_props']['end_uid'],
+                end_edit_time=q['edge_props']['end_edit_time'],
+                end_comments=q['edge_props']['end_comments'],
+                id=q['edge_id']['@value']['relationId'] # weird but you have to
+            )
+            result.append(edge)
+
+        return result
+
+
     def get_all_connections_with(
         self, component, from_time: int=-1, 
         to_time: int=EXISTING_RELATION_END_PLACEHOLDER

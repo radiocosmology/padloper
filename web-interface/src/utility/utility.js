@@ -19,6 +19,11 @@ export function unixTimeToString(UNIX_timestamp, includeTime){
     return time;
 }
 
+export function unixTimeToISOString(time) {
+    let date = new Date(time);
+    return date.toISOString().substring(0,16); // For minute precision
+}
+
 // takes a string, returns "—" if the string is equal to "".
 export function emDashIfEmpty(str) {
     return (str === '' || str == null ? '—' : str);

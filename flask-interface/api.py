@@ -293,3 +293,25 @@ def add_component_connection():
         already_connected = True
 
     return {'result': not already_connected}
+
+
+@app.route("/api/get_all_connections_at_time")
+def get_all_connections_at_time():
+
+    val_name = escape(request.args.get('name'))
+    val_time = int(escape(request.args.get('time')))
+
+    c = Component.from_db(val_name)
+
+    connections = c.get_all_connections_at_time(val_time)
+
+    return {
+        'result': [
+            {
+                'inVertexName': conn.inVertex.name,
+                'outVertexName': conn.outVertex.name,
+                'id': conn.id(),
+            }   
+            for conn in connections
+        ] 
+    }
