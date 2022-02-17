@@ -1213,11 +1213,14 @@ class Component(Vertex):
         :type comments: str, optional
         """
 
-        p = self.get_property(property.property_type, time)
+        current_property = self.get_property(
+            property_type=property.property_type, 
+            time=time
+        )
 
-        if p is not None:
+        if current_property is not None:
             
-            if p.values == property.values:
+            if current_property.values == property.values:
                 raise PropertyIsSameError(
                     "An identical property of type " +
                     f"{property.property_type.name} for component {self.name} "+
@@ -1226,7 +1229,13 @@ class Component(Vertex):
 
             else:
                 # end that property.
-                self.unset_property(p, time, uid, edit_time, comments)
+                self.unset_property(
+                    property=current_property, 
+                    time=time, 
+                    uid=uid, 
+                    edit_time=edit_time, 
+                    comments=comments
+                )
         
         prop_copy = Property(
             values=property.values,
