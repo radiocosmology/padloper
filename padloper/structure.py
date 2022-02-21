@@ -1190,10 +1190,70 @@ class Component(Vertex):
         return result 
 
 
+    def get_all_properties_of_type(
+        self, property_type,
+        from_time: int=-1, 
+        to_time: int=EXISTING_RELATION_END_PLACEHOLDER
+    ):
+        """
+        Given a property type, return all edges that connected them between time
+        :param from_time: and to time :param to_time: as a list.
+
+        :param property_type: The property type of the desired properties
+        to consider.
+        :type component: PropertyType
+        :param from_time: Lower bound for time range to consider properties, 
+        defaults to -1
+        :type from_time: int, optional
+        :param to_time: Upper bound for time range to consider properties, 
+        defaults to EXISTING_RELATION_END_PLACEHOLDER
+        :type to_time: int, optional
+
+        :rtype: list[RelationProperty]
+        """
+
+        if not self.added_to_db():
+            raise ComponentNotAddedError(
+                f"Component {self.name} has not yet been added to the database."
+            )
+
+        if not property_type.added_to_db():
+            raise PropertyTypeNotAddedError(
+                f"Property type {property_type.name} of component {self.name} "+
+                "has not yet been added to the database."
+            )
+
+        edges = g.V(self.id()).bothE(RelationProperty.category)
+
+        if to_time < EXISTING_RELATION_END_PLACEHOLDER:
+            edges = edges.has('start_time', P.lt(to_time))
+
+        edges = edges.has('end_time', P.gt(from_time)) \
+            .as_('e').otherV().as_('v') \
+            .both(RelationPropertyType.category) \
+            .has('name', property_type.name) \
+            .select('e').order().by(__.values('start_time'), Order.asc) \
+            .project('properties', 'id').by(__.valueMap()).by(__.id()).toList()
+
+        return [RelationProperty(
+            inVertex=self, outVertex=property_type,
+            start_time=e['properties']['start_time'],
+            start_uid=e['properties']['start_uid'],
+            start_edit_time=e['properties']['start_edit_time'],
+            start_comments=e['properties']['start_comments'],
+            end_time=e['properties']['end_time'],
+            end_uid=e['properties']['end_uid'],
+            end_edit_time=e['properties']['end_edit_time'],
+            end_comments=e['properties']['end_comments'],
+            id=e['id']['@value']['relationId'] # weird but you have to
+        ) for e in edges]
+
+
     def set_property(
         self, property, time: int, 
-        uid: str, edit_time:int=int(time.time()),
-        comments=""
+        uid: str, end_time: int=EXISTING_RELATION_END_PLACEHOLDER,
+        edit_time:int=int(time.time()), comments="",
+        force_property: bool=False
     ):
         """
         Given a property :param property:, MAKE A VIRTUAL COPY of it,
@@ -1206,12 +1266,23 @@ class Component(Vertex):
         :type time: int
         :param uid: The ID of the user that added the property
         :type uid: str
+        :param end_time: The time at which the property was unset
+        (real time), defaults to EXISTING_RELATION_END_PLACEHOLDER
+        :type time: int, optional
         :param edit_time: The time at which the user made the change,
         defaults to int(time.time())
         :type edit_time: int, optional
         :param comments: Comments to add with property change, defaults to ""
         :type comments: str, optional
         """
+
+        end_edit_time = EXISTING_RELATION_END_EDIT_PLACEHOLDER
+        end_uid = ""
+
+        if not self.added_to_db():
+            raise ComponentNotAddedError(
+                f"Component {self.name} has not yet been added to the database."
+            )
 
         current_property = self.get_property(
             property_type=property.property_type, 
@@ -1237,6 +1308,38 @@ class Component(Vertex):
                     comments=comments
                 )
         
+        else:
+            
+            existing_properties = self.get_all_properties_of_type(
+                property_type = property.property_type,
+                from_time=time
+            )
+
+            if len(existing_properties) > 0:
+                if force_property:
+                    if end_time != EXISTING_RELATION_END_PLACEHOLDER:
+                        raise ComponentPropertiesOverlappingError(
+                            "Trying to set property of type " +
+                            f"{property.property_type.name} for component " +
+                            f"{self.name} " +
+                            "before an existing property of the same type " +
+                            "but with a specified end time; " +
+                            "replace the property instead."
+                        )
+
+                    else:
+                        end_time = existing_properties[0].start_time
+                        end_edit_time = edit_time
+                        end_uid = uid
+                else:
+                    raise ComponentSetPropertyBeforeExistingPropertyError(
+                        "Trying to set property of type " +
+                        f"{property.property_type.name} for component " +
+                        f"{self.name} " +
+                        "before an existing property of the same type; " + 
+                        "set 'force_property' parameter to True to bypass."
+                    )
+        
         prop_copy = Property(
             values=property.values,
             property_type=property.property_type
@@ -1248,8 +1351,11 @@ class Component(Vertex):
             inVertex=prop_copy,
             outVertex=self,
             start_time=time,
+            end_time=end_time,
             start_uid=uid,
+            end_uid=end_uid,
             start_edit_time=edit_time,
+            end_edit_time=end_edit_time,
             start_comments=comments
         )
 
@@ -1381,9 +1487,11 @@ class Component(Vertex):
                             "specified end time; " +
                             "replace the connection instead."
                         )
-                    end_time = existing_connections[0].start_time
-                    end_edit_time = edit_time
-                    end_uid = uid
+
+                    else:
+                        end_time = existing_connections[0].start_time
+                        end_edit_time = edit_time
+                        end_uid = uid
                 else:
                     raise ComponentsConnectBeforeExistingConnectionError(
                         "Trying to connect components " +
@@ -1521,7 +1629,7 @@ class Component(Vertex):
     ):
         """
         Given two components, return all edges that connected them between time
-        :param from_time: and to time :param to_time:.
+        :param from_time: and to time :param to_time: as a list.
 
         :param component: The other component to check the connections with.
         :type component: Component
@@ -1530,7 +1638,9 @@ class Component(Vertex):
         :type from_time: int, optional
         :param to_time: Upper bound for time range to consider connections, 
         defaults to EXISTING_RELATION_END_PLACEHOLDER
-        :type from_time: int, optional
+        :type to_time: int, optional
+
+        :rtype: list[RelationConnection]
         """
 
         # Done for troubleshooting (so you know which component is not added?)

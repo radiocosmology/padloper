@@ -65,12 +65,14 @@ class ComponentsAlreadyConnectedError(Error):
     """
     pass
 
+
 class ComponentsAlreadyDisconnectedError(Error):
     """
     Exception raised when trying to disconnect two components when they are
     already disconnected.
     """
     pass
+
 
 class ComponentsConnectBeforeExistingConnectionError(Error):
     """
@@ -79,6 +81,7 @@ class ComponentsConnectBeforeExistingConnectionError(Error):
     """
     pass
 
+
 class ComponentsOverlappingConnectionError(Error):
     """
     Exception raised when trying to connect two components at overlapping times
@@ -86,9 +89,26 @@ class ComponentsOverlappingConnectionError(Error):
     """
     pass
 
+
 class ComponentConnectToSelfError(Error):
     """
     Exception raised when trying to connect a component to itself.
+    """
+    pass
+
+
+class ComponentPropertiesOverlappingError(Error):
+    """
+    Exception raised when trying to set a property for a component 
+    at overlapping times with another property of the same type.
+    """
+    pass
+
+
+class ComponentSetPropertyBeforeExistingPropertyError(Error):
+    """
+    Exception raised when trying to set a property for a component
+    before another existing property of the same type.
     """
     pass
 
