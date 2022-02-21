@@ -7,6 +7,8 @@ import ComponentPage from './ComponentPage.js';
 import ComponentConnectionVisualizer from './ComponentConnectionVisualizer.js';
 import Header from './Header.js';
 
+import { ReactFlowProvider } from 'react-flow-renderer';
+
 import {
   BrowserRouter as Router,
   Switch,
@@ -34,7 +36,9 @@ function App() {
             <ComponentRevisionList />
           </Route>
           <Route exact={true} path="/component-connections">
-            <ComponentConnectionVisualizer />
+            <ReactFlowProvider>
+              <ComponentConnectionVisualizer />
+            </ReactFlowProvider>
           </Route>
           
           <Route exact path="/component/:name">

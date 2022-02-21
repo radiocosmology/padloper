@@ -1,9 +1,13 @@
-import React, { useState, useEffect, useRef } from 'react';
+import React, { useState, useEffect, useRef, useCallback } from 'react';
 import ReactFlow, { 
-    Controls, Background, Handle, Position } from 'react-flow-renderer';
+    Controls, Background, Handle, Position, ControlButton, isNode,
+    useZoomPanHelper
+} from 'react-flow-renderer';
 import styled from '@mui/material/styles/styled';
 import createTheme from '@mui/material/styles/createTheme';
 import { Link } from "react-router-dom";
+
+import dagre from 'dagre';
 
 import Paper from '@mui/material/Paper';
 import Typography from '@mui/material/Typography';
@@ -13,8 +17,10 @@ import TextField from '@mui/material/TextField';
 import Stack from '@mui/material/Stack';
 import Fab from '@mui/material/Fab';
 
+
 import UnfoldMoreIcon from '@mui/icons-material/UnfoldMore';
 import DragHandleRoundedIcon from '@mui/icons-material/DragHandleRounded';
+import SortIcon from '@mui/icons-material/Sort';
 
 import ComponentAutocomplete from './ComponentAutocomplete.js';
 import { ThemeProvider } from '@emotion/react';
@@ -130,6 +136,52 @@ const ExpandConnectionsButton = styled((props) => (
 ))(({ theme }) => ({
 }));
 
+// dagre layouting
+const dagreGraph = new dagre.graphlib.Graph();
+dagreGraph.setDefaultEdgeLabel(() => ({}));
+
+const getLayoutedElements = (elements) => {
+    // https://reactflow.dev/examples/layouting/
+
+    const direction = 'TB';
+
+    // TODO: Probably don't hardcode this.
+    const nodeWidth = 160, nodeHeight = 50;
+
+    dagreGraph.setGraph({ rankdir: direction });
+  
+    elements.forEach((el) => {
+      if (isNode(el)) {
+        dagreGraph.setNode(el.id, { width: nodeWidth, height: nodeHeight });
+      } else {
+        dagreGraph.setEdge(el.source, el.target);
+      }
+    });
+  
+    dagre.layout(dagreGraph);
+  
+    return elements.map((el) => {
+      if (isNode(el)) {
+        const nodeWithPosition = dagreGraph.node(el.id);
+        el.targetPosition = 'top';
+        el.sourcePosition = 'bottom';
+  
+        // unfortunately we need this little hack to pass a slightly different 
+        // position to notify react flow about the change. 
+        // Moreover we are shifting the dagre node position 
+        // (anchor=center center) to the top left so it matches the 
+        // react flow node anchor point (top left).
+        el.position = {
+          x: nodeWithPosition.x - nodeWidth / 2 + Math.random() / 1000,
+          y: nodeWithPosition.y - nodeHeight / 2,
+        };
+      }
+  
+      return el;
+    });
+};
+
+
 export default function ComponentConnectionVisualizer() {
 
     const [elements, setElements] = useState([]);
@@ -141,11 +193,14 @@ export default function ComponentConnectionVisualizer() {
     const enteredTime = useRef(Math.floor(Date.now()));
     const time = useRef(Math.floor(Date.now() / 1000));
 
+
+    const [reactFlowInstance, setReactFlowInstance] = useState(null);
+
     function addElementId(id) {
         elementIds.current[id] = true;
     }
 
-    function addComponent(name, x, y) {
+    async function addComponent(name, x, y) {
 
         // catch it
         if (elementIds.current[name]) {
@@ -201,7 +256,7 @@ export default function ComponentConnectionVisualizer() {
         elementIds.current = {};
     }
 
-    const visualizeComponent = () => {
+    const visualizeComponent = async () => {
         if (component === undefined) {
             return;
         }
@@ -210,10 +265,17 @@ export default function ComponentConnectionVisualizer() {
 
         time.current = Math.floor(enteredTime.current / 1000);
 
-        console.log(time.current);
-
         addComponent(component.name, 0, 0);
+
     }
+
+    const onLayout = useCallback(
+        () => {
+          const layoutedElements = getLayoutedElements(elements);
+          setElements(layoutedElements);
+        },
+        [elements]
+    );
 
     function ComponentNode({ data }) {
         return (
@@ -355,7 +417,13 @@ export default function ComponentConnectionVisualizer() {
                             gap={12}
                             size={0.5}
                         />
-                        <Controls />
+                        <Controls>
+                            <ControlButton 
+                                onClick={() => {onLayout()}}
+                            >
+                                <SortIcon />
+                            </ControlButton>
+                        </Controls>
                     </ReactFlow>
                 </VisualizerPanel>
             </Grid>
