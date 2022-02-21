@@ -1,9 +1,13 @@
-import { Button, AppBar, Toolbar, Typography } from '@mui/material';
+import { 
+    Button, AppBar, Toolbar, Typography, Stack
+} from '@mui/material';
 import './Header.css';
-import { Link } from "react-router-dom";
+
+import HeaderMenuButton from './HeaderMenuButton.js';
 
 function Header() {
 
+    
     return (
         <AppBar 
             position="static"
@@ -19,48 +23,37 @@ function Header() {
               HIRAX Layout DB
             </Typography>
 
-            <Link 
-                to={`/list/component`}
-                className="StyledLink"
-            >
-                <Button 
-                    variant="outlined" 
-                    color="inherit" 
-                    className="StyledButton"
-                >
-                    Components
-                </Button>
-            </Link>
-            
-            <Link to={`/list/component-types`} className="StyledLink">
-                <Button 
-                    variant="outlined" 
-                    color="inherit"
-                    className="StyledButton"
-                >
-                    Component Types
-                </Button>
-            </Link>
+            <Stack direction="row" spacing={3}>
 
-            <Link to={`/list/component-revisions`} className="StyledLink">
-                <Button 
-                    variant="outlined" 
-                    color="inherit"
-                    className="StyledButton"
-                >
-                    Component Revisions
-                </Button>
-            </Link>
+                <HeaderMenuButton
+                    name={"Lists"}
+                    links={[
+                        {
+                            name: 'Components', 
+                            link: `/list/component`
+                        },
+                        {
+                            name: 'Component Types', 
+                            link: `/list/component-types`
+                        },
+                        {
+                            name: 'Component Revisions', 
+                            link: `/list/component-revisions`
+                        },
+                    ]}
+                />
 
-            <Link to={`/component-connections`} className="StyledLink">
-                <Button 
-                    variant="outlined" 
-                    color="inherit"
-                    className="StyledButton"
-                >
-                    Component Connections
-                </Button>
-            </Link>
+                <HeaderMenuButton
+                    name={"Visualizations"}
+                    links={[
+                        {
+                            name: 'Component Connections', 
+                            link: `/component-connections`
+                        },
+                    ]}
+                />
+
+            </Stack>
 
           </Toolbar>
         </AppBar>
