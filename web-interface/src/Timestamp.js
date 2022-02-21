@@ -1,4 +1,5 @@
 import Tooltip from '@mui/material/Tooltip';
+import Stack from '@mui/material/Stack';
 import Typography from '@mui/material/Typography';
 
 import { 
@@ -14,7 +15,20 @@ export default function Timestamp(
 
     return (
         <Tooltip 
-            title={unixTimeToString(unixTime, true)}
+            title={
+                <>
+                    <Stack spacing={0.35} style={{
+                        textAlign: 'center',
+                    }}>
+                        <div>
+                            {unixTimeToString(unixTime, true)}
+                        </div>
+                        <div>
+                            Unix: {unixTime}
+                        </div>
+                    </Stack>
+                </>
+            }
             disableFocusListener 
             disableTouchListener
             arrow
@@ -22,6 +36,9 @@ export default function Timestamp(
             <Typography {...props}>
                 {unixTimeToString(unixTime, false)}
             </Typography>
+            
+            
+            
         </Tooltip>
     )
 }
