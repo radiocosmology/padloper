@@ -7,7 +7,6 @@ import HeaderMenuButton from './HeaderMenuButton.js';
 
 function Header() {
 
-    
     return (
         <AppBar 
             position="static"

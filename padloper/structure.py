@@ -546,8 +546,15 @@ class ComponentType(Vertex):
             direction = Order.asc
 
         # How to order the component types.
+        # This coalesce thing is done to prevent "property does not exist" error
+        # not sure why it happens as the 'name' property will ALWAYS exist...
+        # but maybe the traversal somehow catches other vertices not of this
+        # type...
         if order_by == 'name':
-            traversal = traversal.order().by('name', direction)
+            traversal = traversal.order().by(
+                __.coalesce(__.values('name'), constant("")),
+                direction
+            ) 
 
         # Component type query to DB
         cts = traversal.range(range[0], range[1]) \
