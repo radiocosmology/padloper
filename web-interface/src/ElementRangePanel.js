@@ -16,6 +16,7 @@ function ElementRangePanel(
             updateRange, 
             count, 
             rightColumn,
+            width,
         }
     ) {
 
@@ -58,6 +59,8 @@ function ElementRangePanel(
         numDisplayText = "No objects found";
     }
 
+    let paperWidth = (width) ? width : '600px';
+
     // return the range panel.
     return (
         <Paper
@@ -71,7 +74,7 @@ function ElementRangePanel(
                 display: 'grid',
                 justifyContent: 'space-between',
                 rowGap: '8px',
-                width: '600px',
+                width: paperWidth,
                 maxWidth: '100%',
                 margin: 'auto',
             }}

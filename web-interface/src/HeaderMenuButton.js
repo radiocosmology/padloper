@@ -20,8 +20,6 @@ export default function HeaderMenuButton({name, links}) {
         setAnchorEl(null);
     };
 
-    console.log(links);
-
     return (
         <div>
             <Button

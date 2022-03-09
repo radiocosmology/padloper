@@ -39,6 +39,10 @@ function Header() {
                             name: 'Component Revisions', 
                             link: `/list/component-revisions`
                         },
+                        {
+                            name: 'Property Types', 
+                            link: `/list/property-types`
+                        },
                     ]}
                 />
 

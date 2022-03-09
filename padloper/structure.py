@@ -2357,6 +2357,61 @@ class PropertyType(Vertex):
 
 
     @classmethod
+    def _attrs_to_property_type(
+            cls, 
+            name: str, units: str, allowed_regex: str,
+            n_values: int, allowed_types: List[ComponentType], comments: str="",
+            id: int=VIRTUAL_ID_PLACEHOLDER
+        ):
+        """Given the id and attributes of a PropertyType, see if one
+        exists in the cache. If so, return the cached PropertyType.
+        Otherwise, create a new one, cache it, and return it.
+
+        :param name: The name of the property type. 
+        :type name: str
+
+        :param units: The units which the values of the properties belonging
+        to this type are to be in. 
+        :type units: str
+        
+        :param allowed_regex: The regular expression that the values of the
+        properties of this property type must adhere to. 
+        :type allowed_regex: str
+
+        :param n_values: The number of values that the properties of this
+        property type must have. 
+        :type n_values: int
+
+        :param allowed_types: The component types that may have properties
+        of this property type.
+        :type allowed_types: List[ComponentType]
+
+        :param comments: The comments attached to the property type, 
+        defaults to ""
+        :str comments: str  
+
+        :param id: The serverside ID of the PropertyType, 
+        defaults to VIRTUAL_ID_PLACEHOLDER
+        :type id: int, optional
+        """
+
+        if id not in _vertex_cache:
+            Vertex._cache_vertex(
+                PropertyType(
+                    name=name,
+                    units=units,
+                    allowed_regex=allowed_regex,
+                    n_values=n_values,
+                    allowed_types=allowed_types,
+                    comments=comments,
+                    id=id
+                )
+            )
+        
+        return _vertex_cache[id]
+
+
+    @classmethod
     def from_db(cls, name: str):
         """Query the database and return a PropertyType instance based on
         name :param name:.
@@ -2400,13 +2455,13 @@ class PropertyType(Vertex):
 
     @classmethod
     def from_id(cls, id: int):
-        """Query the database and return a ComponentRevision instance based on
+        """Query the database and return a PropertyType instance based on
         the ID.
 
-        :param id: The serverside ID of the ComponentRevision vertex.
+        :param id: The serverside ID of the PropertyType vertex.
         :type id: int
-        :return: Return a ComponentRevision from that ID.
-        :rtype: ComponentRevision
+        :return: Return a PropertyType from that ID.
+        :rtype: PropertyType
         """
 
         if id not in _vertex_cache:
@@ -2444,37 +2499,38 @@ class PropertyType(Vertex):
         range: tuple, 
         order_by: str,
         order_direction: str,
-        name_substring: str=""):
+        filters: list=[]):
         """
-        Return a list of PropertyTypes based in the range :param range:,
-        based on the name substring in :param name_substring:, 
-        and order them based on 
-         :param order_by: in the direction :param order_direction:.
+        Return a list of PropertyTypes in the range :param range:,
+        based on the filters in :param filters:,
+        and order them based on  :param order_by: in the direction 
+        :param order_direction:.
 
         :param range: The range of PropertyTypes to query
         :type range: tuple[int, int]
 
-        :param order_by: What to order the property types by. Must be in
-        {'name'}
+        :param order_by: What to order the PropertyTypes by. Must be in
+        {'name', 'allowed_type'}
         :type order_by: str
 
-        :param order_direction: Order the property types by 
+        :param order_direction: Order the PropertyTypes by 
         ascending or descending?
         Must be in {'asc', 'desc'}
         :type order_by: str
 
-        :param name_substring: What substring of the name property of the
-        component type to filter by.
-        :type name_substring: str
+        :param filters: A list of 2-tuples of the format (name, ctype)
+        :type order_by: list
         
         :return: A list of PropertyType instances.
         :rtype: list[PropertyType]
         """
-
+        
         assert order_direction in {'asc', 'desc'}
 
-        assert order_by in {'name'}
+        assert order_by in {'name', 'allowed_type'}
 
+        traversal = g.V().has('category', PropertyType.category)
+        
         # if order_direction is not asc or desc, it will just sort by asc.
         # Keep like this if removing the assert above only in production.
         if order_direction == 'desc':
@@ -2482,29 +2538,110 @@ class PropertyType(Vertex):
         else:
             direction = Order.asc
 
-        traversal = g.V().has('category', PropertyType.category) \
-            .has('name', TextP.containing(name_substring))
+        if filters is not None:
 
-        # https://groups.google.com/g/gremlin-users/c/FKbxWKG-YxA/m/kO1hc0BDCwAJ
-        if order_by == "name":
+            ands = []
+
+            for f in filters:
+                
+                assert len(f) == 2
+
+                contents = []
+
+                # substring of property type name
+                if f[0] != "":
+                    contents.append(__.has('name', TextP.containing(f[0])))
+
+                # component type
+                if f[1] != "":
+                    contents.append(
+                        __.both(RelationPropertyAllowedType.category).has(
+                            'name', 
+                            f[1]
+                        )
+                    )
+
+                if len(contents) > 0:
+                    ands.append(__.and_(*contents))
+
+            if len(ands) > 0:
+                traversal = traversal.or_(*ands)
+
+        # How to order the property types.
+        if order_by == 'name':
+            traversal = traversal.order().by('name', direction) \
+                .by(
+                    __.both(
+                        RelationPropertyAllowedType.category
+                    ).values('name'),
+                    Order.asc
+                )
+        elif order_by == 'allowed_type':
             traversal = traversal.order().by(
-                __.coalesce(__.values('name'), constant("")), 
-                direction
-            )
+                    __.both(
+                        RelationPropertyAllowedType.category
+                    ).values('name'),
+                    direction
+                ).by('name', Order.asc)
 
-        ids = traversal.range(range[0], range[1]).id().toList()
-
-
+        # Component type query to DB
+        pts = traversal.range(range[0], range[1]) \
+            .project('id', 'attrs', 'type_ids') \
+            .by(__.id()) \
+            .by(__.valueMap()) \
+            .by(__.both(RelationPropertyAllowedType.category).id().fold()) \
+            .toList()
 
         property_types = []
 
-        for id in ids:
+        for entry in pts:
+            id, ctype_ids, attrs = entry['id'], entry['type_ids'], \
+                entry['attrs']
+
+            ctypes = []
+
+            for ctype_id in ctype_ids:
+                ctypes.append(ComponentType.from_id(ctype_id))
 
             property_types.append(
-                PropertyType.from_id(id)
+                PropertyType._attrs_to_property_type(
+                    id=id, 
+                    name=attrs['name'][0],
+                    units=attrs['units'][0],
+                    allowed_regex=attrs['allowed_regex'][0],
+                    n_values=attrs['n_values'][0],
+                    comments=attrs['comments'][0],
+                    allowed_types=ctypes,
+                )
             )
         
         return property_types
+
+        
+
+        # traversal = g.V().has('category', PropertyType.category) \
+        #     .has('name', TextP.containing(name_substring))
+
+        # # https://groups.google.com/g/gremlin-users/c/FKbxWKG-YxA/m/kO1hc0BDCwAJ
+        # if order_by == "name":
+        #     traversal = traversal.order().by(
+        #         __.coalesce(__.values('name'), constant("")), 
+        #         direction
+        #     )
+
+        # ids = traversal.range(range[0], range[1]).id().toList()
+
+
+
+        # property_types = []
+
+        # for id in ids:
+
+        #     property_types.append(
+        #         PropertyType.from_id(id)
+        #     )
+        
+        # return property_types
 
 
 class Property(Vertex):

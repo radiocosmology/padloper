@@ -7,13 +7,14 @@ import Stack from '@mui/material/Stack';
 
 import Close from '@mui/icons-material/Close';
 
-function ComponentRevisionFilter(
+export default function PropertyTypeFilter(
         { 
             removeFilter, 
             changeFilter, 
             index, 
             filter, 
-            types
+            types,
+            width
         }
     ) {
 
@@ -32,7 +33,6 @@ function ComponentRevisionFilter(
     // update the type key of the filter with the value from the select field.
     const filterUpdateType = (event) => {
         if (event.target.value != -1) {
-
             filterUpdateKey(
                 'type', 
                 types[event.target.value]['name']
@@ -46,6 +46,8 @@ function ComponentRevisionFilter(
         }
     }
 
+    let paperWidth = (width) ? width : '600px';
+
     // render the filter
     return (
         <Paper
@@ -53,7 +55,7 @@ function ComponentRevisionFilter(
                 marginTop: '8px',
                 paddingTop: '8px',
                 paddingBottom: '8px',
-                width: '600px',
+                width: paperWidth,
                 maxWidth: '100%',
                 marginLeft: 'auto',
                 marginRight: 'auto',
@@ -124,5 +126,3 @@ function ComponentRevisionFilter(
         </Paper>
     )
 }
-
-export default ComponentRevisionFilter;

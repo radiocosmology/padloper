@@ -17,7 +17,8 @@ function ElementList(
         orderBy, 
         direction, 
         setOrderBy, 
-        setOrderDirection
+        setOrderDirection,
+        width
         }
     ) {
 
@@ -59,7 +60,7 @@ function ElementList(
             content = (
                 <TableRow>
                     <TableCell 
-                        colSpan={3} 
+                        colSpan={10} 
                         style={{
                             padding: '16px',
                             textAlign: 'center',
@@ -84,6 +85,9 @@ function ElementList(
                                 row.map((c, index) => (
                                     <TableCell 
                                         align={(index === 0) ? "left" : "right"}
+                                        style={{
+                                            wordWrap: 'break-word',
+                                        }}
                                     >
                                         {emDashIfEmpty(c)}
                                     </TableCell>
@@ -96,13 +100,15 @@ function ElementList(
         }
     }
 
+    let tableWidth = (width) ? width : '600px';
+
     // return the table along with the content
     return (
         <TableContainer 
             component={Paper}
             style={{
                 marginTop: '8px',
-                width: '600px',
+                width: tableWidth,
                 maxWidth: '100%',
                 marginLeft: 'auto',
                 marginRight: 'auto',

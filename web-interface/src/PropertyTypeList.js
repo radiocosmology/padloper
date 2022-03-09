@@ -4,13 +4,12 @@ import ElementList from './ElementList.js';
 import ElementRangePanel from './ElementRangePanel.js';
 import { 
     Button,
-    } 
-from '@mui/material';
-import ComponentRevisionFilter from './ComponentRevisionFilter.js';
+} from '@mui/material';
+import PropertyTypeFilter from './PropertyTypeFilter.js';
 
-function ComponentRevisionList() {
-    
-    // the list of component types in objects representation
+export default function PropertyTypeList() {
+
+    // the list of property types in objects representation
     const [elements, setElements] = useState([]);
 
     // the first index to show
@@ -26,7 +25,7 @@ function ComponentRevisionList() {
     const [loaded, setLoaded] = useState(false);
 
     // property to order the component types by
-    // must be in the set {'name'}
+    // must be in the set {'name, units, allowed_regex, n_values'}
     const [orderBy, setOrderBy] = useState('name');
 
     // how to order the elements
@@ -40,7 +39,7 @@ function ComponentRevisionList() {
         [
             {
             name: <str>,
-            type: <str>,
+            types: <str>,
             },
             ...
         ]
@@ -109,18 +108,16 @@ function ComponentRevisionList() {
         return strSoFar;
     }
 
-
-        
     /*
-    The function that updates the list of component types when the site is 
-    loaded or a change of the component types is requested (upon state change).
+    The function that updates the list of property types when the site is 
+    loaded or a change of the property types is requested (upon state change).
     */
     useEffect(() => {
         async function fetchData() {
             setLoaded(false);
 
             // create the URL query string
-            let input = '/api/component_revision_list';
+            let input = '/api/property_type_list';
             input += `?range=${min};${min + range}`;
             input += `&orderBy=${orderBy}`;
             input += `&orderDirection=${orderDirection}`;
@@ -146,10 +143,10 @@ function ComponentRevisionList() {
     ]);
 
     /*
-    function to change the component type count when filters are updated.
+    function to change the property type count when filters are updated.
     */
     useEffect(() => {
-        let input = `/api/component_revision_count`;
+        let input = `/api/property_type_count`;
         if (filters.length > 0) {
             input += `&filters=${createFilterString()}`;
         }
@@ -177,6 +174,7 @@ function ComponentRevisionList() {
         fetch(input).then(
             res => res.json()
         ).then(data => {
+            console.log(data.result);
             setComponentTypes(data.result);
         });
     }, []);
@@ -186,13 +184,28 @@ function ComponentRevisionList() {
     const tableHeadCells = [
         {
             id: 'name', 
-            label: 'Component Revision',
+            label: 'Property Type',
             allowOrdering: true,
         },
         {
             id: 'allowed_type', 
-            label: 'Allowed Type',
+            label: 'Allowed Types',
             allowOrdering: true,
+        },
+        {
+            id: 'units', 
+            label: 'Units',
+            allowOrdering: false,
+        },
+        {
+            id: 'allowed_regex', 
+            label: 'Allowed Regex',
+            allowOrdering: false,
+        },
+        {
+            id: 'n_values', 
+            label: '# of Values',
+            allowOrdering: false,
         },
         {
             id: 'comments', 
@@ -203,13 +216,17 @@ function ComponentRevisionList() {
 
     let tableRowContent = elements.map((e) => [
         e.name,
-        e.allowed_type.name,
+        e.allowed_types.sort().join(', '),
+        e.units,
+        e.allowed_regex,
+        e.n_values,
         e.comments
     ]);
 
     return (
         <>
             <ElementRangePanel
+                width="800px"
                 min={min}
                 updateMin={(n) => { setMin(n) }}
                 range={range}
@@ -231,7 +248,8 @@ function ComponentRevisionList() {
             {
                 filters.map(
                     (filter, index) => (
-                        <ComponentRevisionFilter
+                        <PropertyTypeFilter
+                            width="700px"
                             addFilter={() => { }}
                             removeFilter={removeFilter}
                             changeFilter={changeFilter}
@@ -244,6 +262,7 @@ function ComponentRevisionList() {
             }
 
             <ElementList
+                width="800px"
                 tableRowContent={tableRowContent}
                 loaded={loaded}
                 orderBy={orderBy}
@@ -256,5 +275,3 @@ function ComponentRevisionList() {
 
     )
 }
-
-export default ComponentRevisionList;

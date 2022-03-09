@@ -232,6 +232,7 @@ export default function ComponentConnectionVisualizer() {
             id: id,
             source: source,
             target: target,
+            type: 'smoothstep',
             style: {
                 stroke: '#555555',
                 strokeWidth: 1,
