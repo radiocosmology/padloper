@@ -5,7 +5,7 @@ import ReactFlow, {
 } from 'react-flow-renderer';
 import styled from '@mui/material/styles/styled';
 import createTheme from '@mui/material/styles/createTheme';
-import { Link } from "react-router-dom";
+import { Link, useSearchParams } from "react-router-dom";
 
 import dagre from 'dagre';
 
@@ -15,7 +15,9 @@ import Button from '@mui/material/Button';
 import Grid from '@mui/material/Grid';
 import TextField from '@mui/material/TextField';
 import Stack from '@mui/material/Stack';
-import Fab from '@mui/material/Fab';
+import OutlinedInput from '@mui/material/OutlinedInput';
+import FormControl from '@mui/material/FormControl';
+import InputLabel from '@mui/material/InputLabel';
 
 
 import UnfoldMoreIcon from '@mui/icons-material/UnfoldMore';
@@ -140,13 +142,13 @@ const ExpandConnectionsButton = styled((props) => (
 const dagreGraph = new dagre.graphlib.Graph();
 dagreGraph.setDefaultEdgeLabel(() => ({}));
 
+// TODO: Probably don't hardcode this.
+const nodeWidth = 160, nodeHeight = 50;
+
 const getLayoutedElements = (elements) => {
     // https://reactflow.dev/examples/layouting/
 
     const direction = 'TB';
-
-    // TODO: Probably don't hardcode this.
-    const nodeWidth = 160, nodeHeight = 50;
 
     dagreGraph.setGraph({ rankdir: direction });
   
@@ -184,17 +186,32 @@ const getLayoutedElements = (elements) => {
 
 export default function ComponentConnectionVisualizer() {
 
+    // https://reactrouter.com/docs/en/v6/api#usesearchparams
+    const [searchParams, setSearchParams] = useSearchParams();
+
     const [elements, setElements] = useState([]);
 
     const elementIds = useRef({});
 
     const [component, setComponent] = useState(undefined);
 
+    // actual depth
+    const [depth, setDepth] = useState(0);
+
+    // value that the depth-input will show
+    const [depthInputValue, setDepthInputValue] = useState(0);
+
+    const toggleLayoutBoolRef = useRef(false);
+    const [toggleLayoutBool, setToggleLayoutBool] = useState(false);
+    const toggleLayout = () => {
+        toggleLayoutBoolRef.current = !toggleLayoutBoolRef.current; 
+        setToggleLayoutBool(toggleLayoutBoolRef.current) 
+    };
+
     const enteredTime = useRef(Math.floor(Date.now()));
     const time = useRef(Math.floor(Date.now() / 1000));
 
-
-    const [reactFlowInstance, setReactFlowInstance] = useState(null);
+    const defaultPosition = {x: 500, y: 270};
 
     function addElementId(id) {
         elementIds.current[id] = true;
@@ -204,7 +221,7 @@ export default function ComponentConnectionVisualizer() {
 
         // catch it
         if (elementIds.current[name]) {
-            return;
+            return false;
         }
 
         let newElement = {
@@ -218,6 +235,8 @@ export default function ComponentConnectionVisualizer() {
         
         addElementId(name);
         setElements((els) => els.concat(newElement));
+
+        return true;
     }
 
     const addEdge = (id, source, target) => {
@@ -266,17 +285,69 @@ export default function ComponentConnectionVisualizer() {
 
         time.current = Math.floor(enteredTime.current / 1000);
 
-        addComponent(component.name, 0, 0);
+        addComponent(
+            component.name, 
+            defaultPosition.x - nodeWidth / 2, 
+            defaultPosition.y - nodeHeight / 2
+        );
+
+        // depth will be decremented by 1 each time, like BFS.
+
+        // this will act as a quasi-queue 
+        let queue = [];
+
+        // this will store names that are visited already.
+        let visited = {};
+
+        // the index of the element at the front of the queue,
+        // to be incremented each time you "dequeue"
+        let queueFrontIndex = 0;
+
+        queue.push({name: component.name, currDepth: 0});
+
+        if (depth == 0) {
+            return;
+        }
+
+        // funny BFS
+        while (queueFrontIndex < queue.length) {
+
+            // so you don't add nodes that you've already visited
+            visited[queue[queueFrontIndex].name] = true;
+
+            let newComponents = await expandConnections(
+                queue[queueFrontIndex].name, 
+                time.current
+            );
+
+            if (queue[queueFrontIndex].currDepth + 1 < depth) {
+                for (let compName of newComponents) {
+                    if (!visited[compName]) {
+                        queue.push({
+                            name: compName, 
+                            currDepth: queue[queueFrontIndex].currDepth + 1
+                        })
+                    }
+                }
+            }
+            queueFrontIndex++;
+
+            toggleLayout();
+        }
 
     }
 
     const onLayout = useCallback(
         () => {
-          const layoutedElements = getLayoutedElements(elements);
-          setElements(layoutedElements);
+            const layoutedElements = getLayoutedElements(elements);
+            setElements(layoutedElements);
         },
         [elements]
     );
+
+    useEffect(() => {
+        onLayout();
+    }, [toggleLayoutBool]);
 
     function ComponentNode({ data }) {
         return (
@@ -327,31 +398,40 @@ export default function ComponentConnectionVisualizer() {
         )
     } 
 
-    const expandConnections = async (name, time) => {
-
-        console.log(time);
+    async function expandConnections(name, time) {
 
         let input = `/api/get_all_connections_at_time`;
         input += `?name=${name}`;
         input += `&time=${time}`;
 
-        fetch(input).then(
-            res => res.json()
-        ).then(data => {
+        let componentsAdded = [];
 
-            for (const edge of data.result) {
-
-                let otherName = (name === edge.inVertexName) ? 
-                    edge.outVertexName : edge.inVertexName;
-
-                addComponent(otherName, 0, 0);
-                addEdge(
-                    edge.id, 
-                    edge.outVertexName, 
-                    edge.inVertexName
-                );
+        return new Promise(
+            resolve => {
+                fetch(input).then(
+                    res => res.json()
+                ).then(data => {
+                    for (const edge of data.result) {
+        
+                        let otherName = (name === edge.inVertexName) ? 
+                            edge.outVertexName : edge.inVertexName;
+        
+                        let added = addComponent(otherName, 0, 0);
+                        addEdge(
+                            edge.id, 
+                            edge.outVertexName, 
+                            edge.inVertexName
+                        );
+        
+                        if (added) {
+                            componentsAdded.push(otherName);
+                        }
+                    }
+                    resolve(componentsAdded);
+                });
             }
-        });
+        )
+        
     }
 
     return (
@@ -394,6 +474,49 @@ export default function ComponentConnectionVisualizer() {
                                     );
                             }}
                         />
+
+                        <FormControl>
+                            <InputLabel htmlFor="depth-input">
+                                Depth
+                            </InputLabel>
+                            <OutlinedInput 
+                                id="depth-input"
+                                type="number"
+                                label="Depth"
+                                defaultValue={depthInputValue}
+                                value={depthInputValue}
+                                sx={{ width: 130 }}
+                                onChange={(e) => {
+                                    const val = e.target.value;
+                                    if (!val) {
+                                        setDepthInputValue("");
+                                        setDepth(0);
+                                    }
+                                    else {
+                                        const parsedInt = parseInt(val);
+
+                                        let newDepth = (parsedInt <= 100) ?
+                                            parsedInt : 100;
+                                        if (newDepth < 0) {
+                                            newDepth = -newDepth;
+                                        }
+
+                                        setDepth(newDepth);
+                                        setDepthInputValue(newDepth);
+                                    }
+
+                                    return null;
+                                }}
+                                onBlur={(e) => {
+                                    if (depthInputValue === "") {
+                                        setDepth(0);
+                                        setDepthInputValue(0);
+                                    }
+                                }}
+                            />
+                        </FormControl>
+                        
+
                         <Button 
                             variant="contained"
                             onClick={visualizeComponent}
