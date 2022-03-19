@@ -4,8 +4,6 @@ import {
 } from '@mui/material';
 import { Link } from "react-router-dom";
 
-import './Header.css';
-
 // pretty much ripped from https://mui.com/components/menus/
 
 export default function HeaderMenuButton({name, links}) {
@@ -30,7 +28,6 @@ export default function HeaderMenuButton({name, links}) {
                 onClick={handleClick}
                 variant="outlined" 
                 color="inherit" 
-                className="StyledButton"
             >
                 {name}
             </Button>
@@ -47,16 +44,14 @@ export default function HeaderMenuButton({name, links}) {
                     links.map((el) => (
                         <Link 
                             to={el.link}
-                            className="StyledLink"
                             style={{
                                 color: 'black',
                                 margin: 0,
+                                textDecoration: 'none',
                             }}
                         >
                             <MenuItem onClick={handleClose}>
-                                
                                     {el.name}
-                                
                             </MenuItem>
                         </Link>
                     ))

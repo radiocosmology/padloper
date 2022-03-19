@@ -1,5 +1,3 @@
-import './App.css';
-
 import ComponentList from './ComponentList.js';
 import ComponentTypeList from './ComponentTypeList.js';
 import ComponentRevisionList from './ComponentRevisionList.js';

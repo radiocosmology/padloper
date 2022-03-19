@@ -1,7 +1,6 @@
 import { 
     Button, AppBar, Toolbar, Typography, Stack
 } from '@mui/material';
-import './Header.css';
 
 import HeaderMenuButton from './HeaderMenuButton.js';
 

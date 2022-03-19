@@ -89,7 +89,6 @@ function ElementFilter(
                     onChange={filterUpdateName}
                 />
                 <FormControl 
-                    className="SelectDropdown"
                     style={{
                         gridColumnStart: 2,
                     }}

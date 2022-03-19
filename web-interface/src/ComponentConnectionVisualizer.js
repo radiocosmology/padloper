@@ -189,6 +189,8 @@ export default function ComponentConnectionVisualizer() {
     // https://reactrouter.com/docs/en/v6/api#usesearchparams
     const [searchParams, setSearchParams] = useSearchParams();
 
+    // console.log(searchParams.get("edges"));
+
     const [elements, setElements] = useState([]);
 
     const elementIds = useRef({});

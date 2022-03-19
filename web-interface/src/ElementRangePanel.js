@@ -4,7 +4,6 @@ import {
     Select, 
     MenuItem } 
 from '@mui/material';
-import './ElementRangePanel.css';
 
 import { ArrowForward, ArrowBack } from '@mui/icons-material';
 
@@ -79,13 +78,21 @@ function ElementRangePanel(
                 margin: 'auto',
             }}
         >
-            <div className="NumDisplayWrapper" 
+            <div
                 style={{
                     paddingTop: '8px',
+                    gridRow: 1,
+                    gridColumn: 1,
+                    margin: 'auto'
                 }}>
                 {numDisplayText}
             </div>
-            <div className="RangeWrapper">
+            <div
+                style={{
+                    gridRow: 2,
+                    gridColumn: '1 / 2',
+                    margin: 'auto', 
+                }}>
                 <Button 
                     color="primary" 
                     style={{
@@ -136,10 +143,14 @@ function ElementRangePanel(
                 </Button>
             </div>
 
-            <div className="RightColumnWrapper"
+            <div
                 style={{
                     marginLeft: '16px',
                     marginRight: '16px',
+                    gridRow: '1 / 3',
+                    gridColumn: 2,
+                    marginTop: 'auto',
+                    marginBottom: 'auto'
                 }}>
                 {rightColumn}
             </div>
