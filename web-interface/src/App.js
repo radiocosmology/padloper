@@ -14,18 +14,30 @@ import {
   Route,
 } from "react-router-dom";
 
-
+/**
+ * The main page where the header and site contents are rendered,
+ * depending on the URL's path and parameters.
+ */
 function App() {
 
-  // return the necessary JSX.
+  /**
+   * Using React Router for the multi-page functionality. If the path of the
+   * URL matches one of the paths below, it will display its corresponding
+   * component, giving the multi-page behaviour.
+   */
   return (
     <div className="App">
-      <Router>
 
+
+      <Router>
         <Header />
 
         <Routes>
 
+          {/**
+           * the exact parameter assures that this page will only be shown
+           * if the path is matched exactly.
+          */}
           <Route 
             exact={true} 
             path="/list/component"
@@ -52,6 +64,13 @@ function App() {
             } 
           />
           
+          {
+            /**
+             * A ReactFlowProvider is wrapped around the visualizer to
+             * give it access to the React Flow hooks:
+             * https://reactflow.dev/docs/api/react-flow-provider/
+             */
+          }
           <Route 
             exact={true} 
             path="/component-connections" 
@@ -62,6 +81,10 @@ function App() {
             } 
           />
           
+          {/*
+            :name denotes a URL parameter, so /component/COMP-1 will load
+            the component page for COMP-1.
+          */}
           <Route exact path="/component/:name" element={<ComponentPage />} />
 
         </Routes>

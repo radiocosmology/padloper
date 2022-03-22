@@ -14,6 +14,9 @@ import {
 } from './utility/utility.js';
 import { Typography } from '@mui/material';
 
+/**
+ * Styling for the background behind an event entry label
+ */
 const EntryRowLabel = styled((props) => (
     <Paper 
         elevation={0}
@@ -25,7 +28,16 @@ const EntryRowLabel = styled((props) => (
     marginRight: theme.spacing(4),
 }));
 
-
+/**
+ * A MUI component representing a single event for a component.
+ * @param {string} name - the name of the event
+ * @param {int} time - the Unix time of the event (when it actually happened)
+ * @param {string} uid - the ID of the user that made the event
+ * @param {int} edit_time - the Unix time of when the event was edited
+ * @param {string} comments - The comments associated with the event
+ * @param {object} theme - The MUI Theme object to inherit a theme 
+ * @returns 
+ */
 function ComponentEvent(
     {
         name,
@@ -58,9 +70,6 @@ function ComponentEvent(
                 <Stack direction="row" spacing={0}>
                     (<Timestamp unixTime={time} />)
                 </Stack>
-                
-                    
-                
 
                 <CommentIcon 
                     fontSize="small"

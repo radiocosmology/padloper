@@ -27,6 +27,9 @@ import {
 } from "react-router-dom";
 import { Typography } from '@mui/material';
 
+/**
+ * A styled Paper component that represents the root for the component page.
+ */
 const Root = styled(Paper)(({ theme }) => ({
     marginTop: theme.spacing(1),
     padding: theme.spacing(1),
@@ -37,6 +40,10 @@ const Root = styled(Paper)(({ theme }) => ({
     textAlign: 'center',
 }));
 
+/**
+ * A styled Paper component that wraps around the cool big name 
+ * of the component.
+ */
 const ComponentNameWrapper = styled((props) => (
     <Paper
         elevation={1} 
@@ -55,6 +62,9 @@ const ComponentNameWrapper = styled((props) => (
     lineHeight: '200px',
 }));
 
+/**
+ * A styling for an MUI Accordion component.
+ */
 const Accordion = styled((props) => (
     <MuiAccordion 
         disableGutters 
@@ -66,6 +76,9 @@ const Accordion = styled((props) => (
     borderBottom: `1px solid ${theme.palette.divider}`,
 }));
 
+/**
+ * An even more styled Accordion component.
+ */
 const EntryAccordion = styled((props) => (
     <Accordion 
         defaultExpanded={false}
@@ -75,6 +88,9 @@ const EntryAccordion = styled((props) => (
     borderBottom: `0`,
 }));
 
+/**
+ * A styled MUI AccordionSummary component
+ */
 const AccordionSummary = styled((props) => (
     <MuiAccordionSummary
         expandIcon={
@@ -115,6 +131,9 @@ const EntryAccordionDetails = styled(AccordionDetails)(({ theme }) => ({
     backgroundColor: 'rgba(0, 0, 0, .015)',
 }));
 
+/**
+ * A MUI component representing a button for adding a component.
+ */
 const AddButton = styled((props) => (
     <Button 
         variant="outlined"
@@ -130,6 +149,10 @@ const AddButton = styled((props) => (
     marginTop: -2 * theme.spacing(2),
 }));
 
+/**
+ * Custom MUI theme, see 
+ * https://mui.com/customization/theming/#theme-configuration-variables
+ */
 const theme = createTheme({
     typography: {
         body2: {
@@ -139,7 +162,11 @@ const theme = createTheme({
     }
 });
 
+/**
+ * A MUI component representing a component page.
+ */
 function ComponentPage() {
+    // the name of the component to look at, which is fed through the URL
     let { name } = useParams();
 
     // the list of components in objects representation
@@ -158,21 +185,36 @@ function ComponentPage() {
         open_connections_add_panel, setOpenConnectionsAddPanel
     ] = useState(false);
 
+    // toggle the properties accordion.
     const toggleOpenPropertiesAccordion = () => {
         setOpenPropertiesAccordion(!open_properties_accordion);
     }
 
+    // toggle the connections accordion.
     const toggleOpenConnectionsAccordion = () => {
         setOpenConnectionsAccordion(!open_connections_accordion);
     }
 
+    /**
+     * variable and toggle for reloading the page. 
+     * When toggled, reload everything
+     */
     const [reloadBool, setReloadBool] = useState(false);
-
     function toggleReload() {
         setReloadBool(!reloadBool);
     }
 
+    /**
+     * Set a property for the component.
+     * @param {string} propertyType - the name of the property tyoe
+     * @param {int} time - the time at which to add the property 
+     * @param {string} uid - the ID of the user that is adding the property
+     * @param {string} comments - the comments associated with the property 
+     * @param {Array} values - an array connecting the values of the property. 
+     */
     async function setProperty(propertyType, time, uid, comments, values) {
+
+        // build up the string to query the API
         let input = `/api/component_set_property`;
         input += `?name=${name}`;
         input += `&propertyType=${propertyType}`;
@@ -194,7 +236,18 @@ function ComponentPage() {
         });
     }
 
+    /**
+     * Add a connection to another component.
+     * @param {string} otherName - the name of the other component 
+     * for the connection
+     * @param {int} time - the time to make the connection at 
+     * @param {string} uid - the ID of the user that is making the connection 
+     * @param {string} comments - the comments associated with the connection 
+     * @returns 
+     */
     async function addConnection(otherName, time, uid, comments) {
+        
+        // build up the string to query the API
         let input = `/api/component_add_connection`;
         input += `?name1=${name}`;
         input += `&name2=${otherName}`;
@@ -216,6 +269,11 @@ function ComponentPage() {
 
     }
 
+    /**
+     * When the name of the component is changed or the page is to be reloaded,
+     * reload the page, query the API to query the component again,
+     * and sort all the properties and connections by their start time.
+     */
     useEffect(() => {
         fetch(`/api/components_name/${name}`).then(
             res => res.json()
@@ -230,12 +288,19 @@ function ComponentPage() {
         });
     }, [name, reloadBool]);
 
+    /**
+     * Default value for the content.
+     */
     let content = (
         <>
             Loading...
         </>
     )
 
+    /**
+     * When the component is loaded, create the properties and connections
+     * accordions.
+     */
     if (component) {
 
         let properties_add_panel_content = (open_properties_add_panel) ? (
@@ -471,6 +536,7 @@ function ComponentPage() {
         )
     }
 
+    // return all the good stuff
     return (
         <Root>
             {content}

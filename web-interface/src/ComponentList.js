@@ -6,6 +6,9 @@ import ElementFilter from './ElementFilter.js';
 import { Link } from "react-router-dom";
 import Button from '@mui/material/Button';
 
+/**
+ * A MUI component that represents a list of components.
+ */
 function ComponentList() {
 
     // the list of components in objects representation
@@ -201,6 +204,7 @@ function ComponentList() {
         },
     ];
 
+    // What to display in each row.
     let tableRowContent = components.map(c => [
         <Link to={`/component/${c.name}`}>
             {c.name}

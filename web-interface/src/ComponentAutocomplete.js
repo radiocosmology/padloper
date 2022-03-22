@@ -3,6 +3,14 @@ import Autocomplete from '@mui/material/Autocomplete';
 import CircularProgress from '@mui/material/CircularProgress';
 import TextField from '@mui/material/TextField';
 
+/**
+ * An Autocomplete component that queries the component list in the DB and gives
+ * a text field with possible values to select in the dropdown.
+ * 
+ * @param {function(string)} onSelect - function to call when value is selected.
+ * @param {string} excludeName - what name, if any, to select from the dropdown.
+ */
+    
 export default function ComponentAutocomplete(
     {
         onSelect,
@@ -11,17 +19,18 @@ export default function ComponentAutocomplete(
 ) {
     // note that the "excludeName" attribute should be an ignored name when
     // listing the components.
+
+    // whether the autocomplete is open
     const [open, setOpen] = useState(false);
+
+    // list of options to pick from
     const [options, setOptions] = useState([]);
     
     // what is contained inside the text field
     const [entered_string, setEnteredString] = useState(""); 
 
+    // whether the list of options is currently loading the list of components
     const [loading, setLoading] = useState(open && options.length === 0);
-
-    useEffect(() => {
-        
-    }, [open]);
 
     useEffect(() => {
 
@@ -30,7 +39,7 @@ export default function ComponentAutocomplete(
 
             // create the URL query string
             let input = '/api/component_list';
-            input += `?range=0;100`;
+            input += `?range=0;100`; // get the first 100, don't want too much
             input += `&orderBy=name`
             input += `&orderDirection=asc`;
             input += `&filters=${entered_string},,`; // double comma needed
@@ -60,6 +69,10 @@ export default function ComponentAutocomplete(
         }
     }, [entered_string, open]);
 
+    /**
+     * basically copied from 
+     * https://mui.com/components/autocomplete/#asynchronous-requests
+     */
     return (
         <Autocomplete
         id="component-autocomplete"

@@ -19,6 +19,12 @@ import { verifyRegex } from './utility/utility.js';
 import { SettingsSuggestRounded } from '@mui/icons-material';
 import ComponentAutocomplete from './ComponentAutocomplete.js';
 
+/**
+ * A styled "panel" component, used as the background for the panel.
+ * 
+ * See https://mui.com/system/styled/ for details on how to make 
+ * styled components.
+ */
 const Panel = styled((props) => (
     <Paper 
         elevation={0}
@@ -31,6 +37,10 @@ const Panel = styled((props) => (
     padding: theme.spacing(2),
 }));
 
+/**
+ * Just a renaming of a filled text field (so no need to type variant="filled"
+ * each time)
+ */
 const TextField = styled((props) => (
     <MuiTextField 
         variant="filled"
@@ -39,6 +49,9 @@ const TextField = styled((props) => (
 ))(({ theme }) => ({
 }));
 
+/**
+ * Close button used in the panel
+ */
 const CloseButton = styled((props) => (
     <Button 
         style={{
@@ -54,7 +67,22 @@ const CloseButton = styled((props) => (
 ))(({ theme }) => ({
 }));
 
-
+/**
+ * The MUI component which represents a panel through which connections are
+ * added between components.
+ * 
+ * @param {object} theme - A MUI theme object, see 
+ * https://mui.com/material-ui/customization/theming/
+ * @param {function} onClose - function to call when the close button is pressed
+ * @param {function(string, int, string, string)} onSet - function to call when 
+ * setting a component connection. The parameters are of the form:
+ * onSet(otherName, time, uid, comments), where otherName is the name of the
+ * OTHER component you are connecting this one to, time is the Unix time when
+ * the connection is being mdae, uid is the ID of the user making the
+ * connection, and comments are the comments associated with the connection.
+ * @param {string} name - the name of the component you are connecting another
+ * component to.
+ */
 function ComponentConnectionAddPanel(
     {
         theme,
@@ -64,31 +92,34 @@ function ComponentConnectionAddPanel(
     }
 ) {
 
+    // what the "selected" other component is
     const [selectedOption, setSelectedOption] = useState(null);
 
+    // the ID of the user making the connection
     const [uid, setUid] = useState("");
 
+    // default time to make the connection
     const defaultTime = 1;
 
+    // time to make the connection
     const [time, setTime] = useState(defaultTime);
 
+    // comments associated with the connection
     const [comments, setComments] = useState("");
 
+    // whether the panel is loading: usually happens after the "Connect" button
+    // is made, waiting for a response.
     const [loading, setLoading] = useState(false);
 
+    // the body of an error message to display, if any.
     const [errorMessage, setErrorMessage] = useState("");
 
-    function regexCheck(value) {
-        if (!selectedOption) {
-            return false;
-        }
-        return verifyRegex(value, selectedOption.allowed_regex);
-    }
-
+    // function to select an option. I'm not even sure why I have this...
     function selectOption(option) {
         setSelectedOption(option);
     }
 
+    // return the MUI component.
     return (
         <ThemeProvider theme={theme}>
             <Panel>
@@ -227,6 +258,10 @@ function ComponentConnectionAddPanel(
                             }
                         }
                     >
+                        {/**
+                         * so when the panel is loading, the button
+                         * is spinning.
+                         */}
                         {loading ? 
                         <CircularProgress
                             size={24}
