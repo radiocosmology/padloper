@@ -4,6 +4,10 @@ import {
 
 import HeaderMenuButton from './HeaderMenuButton.js';
 
+/**
+ * MUI Component that returns the header that is seen at the top of the web
+ * interface, containing links to all pages.
+ */
 function Header() {
 
     return (
@@ -23,6 +27,8 @@ function Header() {
 
             <Stack direction="row" spacing={3}>
 
+                {/*Pass in the names of the links along with their paths*/}
+                
                 <HeaderMenuButton
                     name={"Lists"}
                     links={[

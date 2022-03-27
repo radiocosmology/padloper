@@ -2,7 +2,7 @@ import React, { useState, useEffect } from 'react';
 
 import ElementList from './ElementList.js';
 import ElementRangePanel from './ElementRangePanel.js';
-import ElementFilter from './ElementFilter.js';
+import ComponentFilter from './ComponentFilter.js';
 import { Link } from "react-router-dom";
 import Button from '@mui/material/Button';
 
@@ -237,7 +237,7 @@ function ComponentList() {
             {
                 filters.map(
                     (filter, index) => (
-                        <ElementFilter
+                        <ComponentFilter
                             addFilter={() => { }}
                             removeFilter={removeFilter}
                             changeFilter={changeFilter}

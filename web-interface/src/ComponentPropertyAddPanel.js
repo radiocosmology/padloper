@@ -19,6 +19,12 @@ import { Typography } from '@mui/material';
 import { verifyRegex } from './utility/utility.js';
 import { SettingsSuggestRounded } from '@mui/icons-material';
 
+/**
+ * A styled "panel" component, used as the background for the panel.
+ * 
+ * See https://mui.com/system/styled/ for details on how to make 
+ * styled components.
+ */
 const Panel = styled((props) => (
     <Paper 
         elevation={0}
@@ -31,6 +37,10 @@ const Panel = styled((props) => (
     padding: theme.spacing(2),
 }));
 
+/**
+ * Just a renaming of a filled text field (so no need to type variant="filled"
+ * each time)
+ */
 const TextField = styled((props) => (
     <MuiTextField 
         variant="filled"
@@ -39,6 +49,9 @@ const TextField = styled((props) => (
 ))(({ theme }) => ({
 }));
 
+/**
+ * Close button used in the panel
+ */
 const CloseButton = styled((props) => (
     <Button 
         style={{
@@ -55,6 +68,21 @@ const CloseButton = styled((props) => (
 }));
 
 
+/**
+ * The MUI component which represents a panel through which properties are
+ * added to components.
+ * 
+ * @param {object} theme - A MUI theme object, see 
+ * https://mui.com/material-ui/customization/theming/
+ * @param {function} onClose - function to call when the close button is pressed
+ * @param {function(string, int, string, string, Array)} onSet - function to 
+ * call when setting a component connection.
+ * {string} propertyType - the name of the property tyoe
+ * {int} time - the time at which to add the property 
+ * {string} uid - the ID of the user that is adding the property
+ * {string} comments - the comments associated with the property 
+ * {Array} values - an array connecting the values of the property. 
+ */
 function ComponentPropertyAddPanel(
     {
         theme,
@@ -63,24 +91,46 @@ function ComponentPropertyAddPanel(
     }
 ) {
 
+    // what the "selected" property type is
     const [selectedOption, setSelectedOption] = useState(null);
 
+    // an array of the values of the properties entered in the text fields
     const [textFieldValues, setTextFieldValues] = useState([]);
 
+    /**
+     * An array storing the regex matches for each text field. That is, if
+     * text field i's value matches the regex needed for the property value,
+     * then textFieldAccepted[i] will evaluate to true when treated as
+     * a Boolean.
+     */
     const [textFieldAccepted, setTextFieldAccepted] = useState([]);
 
+    // Whether all the values in each textfield are accepted.
     const [allValuesAccepted, setAllValuesAccepted] = useState(false);
 
+    // the ID of the user setting the property
     const [uid, setUid] = useState("");
 
+    // the default time to set the property
     const defaultTime = 1;
 
+    // time to set the property (NOT the edit time)
     const [time, setTime] = useState(defaultTime);
 
+    // the comments associated with setting the property
     const [comments, setComments] = useState("");
 
+    // whether the panel is loading: usually happens after the "Connect" button
+    // is made, waiting for a response from the DB.
     const [loading, setLoading] = useState(false);
 
+
+    /**
+     * Check whether a value matches the selected property type's regex.
+     * Return false if there is no property type that has been selected.
+     * @param {string} value - the value that will be checked 
+     * @returns true if value matches the regex, false otherwise.
+     */
     function regexCheck(value) {
         if (!selectedOption) {
             return false;
@@ -88,7 +138,14 @@ function ComponentPropertyAddPanel(
         return verifyRegex(value, selectedOption.allowed_regex);
     }
 
+
+    /**
+     * Select a property type.
+     * @param {object} option - the object representing the property type,
+     * pulled from the DB. 
+     */
     function selectOption(option) {
+        
         setSelectedOption(option);
 
         if (option !== null && option.n_values) {
@@ -96,6 +153,7 @@ function ComponentPropertyAddPanel(
             // with empty strings
             setTextFieldValues(Array(option.n_values).fill(""));
 
+            // create the textFieldAccepted array.
             let acceptedSoFar = [];
             for (let i = 0; i < option.n_values; i++) {
                 acceptedSoFar.push(verifyRegex("", option.allowed_regex));
@@ -105,7 +163,17 @@ function ComponentPropertyAddPanel(
 
     }
 
-    // https://stackoverflow.com/a/49502115
+    /**
+     * Set a value at a specific index of the text field array. This must be
+     * done like this because the array is stored in a React state (whoever is
+     * reading this, maybe change it to use useRef instead? This doesn't really
+     * need to be in a state...)
+     * 
+     * See https://stackoverflow.com/a/49502115
+     * 
+     * @param {*} value - The new value
+     * @param {int} index - the index of where to change the value
+     */
     function setTextFieldValue(value, index) {
 
         // make a shallow copy of the filters
@@ -121,6 +189,10 @@ function ComponentPropertyAddPanel(
         setTextFieldAccepted(acceptedCopy);
     }
 
+    /**
+     * Return true if all the text field values match the regex, 
+     * false otherwise.
+     */
     function checkAllValuesAccepted() {
         for (let a of textFieldAccepted) {
             if (!a) {
@@ -130,6 +202,11 @@ function ComponentPropertyAddPanel(
         return true;
     }
 
+    /**
+     * If a text field value changed its accepted state (if it went from
+     * accepted to unaccepted, or vice versa), update the "all values accepted"
+     * variable.
+     */
     useEffect(() => {
         setAllValuesAccepted(checkAllValuesAccepted());
     }, [textFieldAccepted]);
@@ -209,6 +286,10 @@ function ComponentPropertyAddPanel(
                 </Grid>
 
                 {
+                    {/* 
+                        If a property type has been selected and not all 
+                        text field values match the regex, spit out an error.
+                    */}
                     (selectedOption !== null && !allValuesAccepted) ?
                     (<Typography style={{
                         marginTop: theme.spacing(2),

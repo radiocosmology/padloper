@@ -108,7 +108,7 @@ function ComponentConnectionAddPanel(
     const [comments, setComments] = useState("");
 
     // whether the panel is loading: usually happens after the "Connect" button
-    // is made, waiting for a response.
+    // is made, waiting for a response from the DB.
     const [loading, setLoading] = useState(false);
 
     // the body of an error message to display, if any.

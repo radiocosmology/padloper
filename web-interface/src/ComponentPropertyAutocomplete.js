@@ -3,25 +3,35 @@ import Autocomplete from '@mui/material/Autocomplete';
 import CircularProgress from '@mui/material/CircularProgress';
 import TextField from '@mui/material/TextField';
 
+/**
+ * An Autocomplete component that queries the component property list in the DB 
+ * and gives a text field with possible values to select in the dropdown.
+ * 
+ * @param {function(string)} onSelect - function to call when value is selected.
+ */
 export default function ComponentPropertyAutocomplete(
     {
         onSelect,
     }
 ) {
+
+    // whether the autocomplete is open
     const [open, setOpen] = useState(false);
+
+    // list of options to pick from
     const [options, setOptions] = useState([]);
     
     // what is contained inside the text field
     const [entered_string, setEnteredString] = useState(""); 
 
+    // whether the list of options is currently loading the list of components
     const [loading, setLoading] = useState(open && options.length === 0);
 
+    /**
+     * When the entered string is changed or the autocomplete has been opened,
+     * query the list.
+     */
     useEffect(() => {
-        
-    }, [open]);
-
-    useEffect(() => {
-
         async function fetchData() {
             setLoading(true);
 
@@ -49,6 +59,10 @@ export default function ComponentPropertyAutocomplete(
         }
     }, [entered_string, open]);
 
+    /**
+     * basically copied from 
+     * https://mui.com/components/autocomplete/#asynchronous-requests
+     */
     return (
         <Autocomplete
         id="property-autocomplete"

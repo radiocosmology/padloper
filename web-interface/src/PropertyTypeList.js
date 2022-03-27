@@ -7,6 +7,9 @@ import {
 } from '@mui/material';
 import PropertyTypeFilter from './PropertyTypeFilter.js';
 
+/**
+ * A MUI component that renders a list of property types.
+ */
 export default function PropertyTypeList() {
 
     // the list of property types in objects representation
@@ -46,7 +49,9 @@ export default function PropertyTypeList() {
     */
     const [filters, setFilters] = useState([]);
 
-    // add an empty filter to filters
+    /**
+     * add an empty filter to filters
+     */ 
     const addFilter = () => {
         setFilters([...filters, {
             name: "",
@@ -54,10 +59,11 @@ export default function PropertyTypeList() {
         }])
     }
 
-    /* 
-    Remove a filter at some index.
-    index is an integer s.t. 0 <= index < filters.length
-    */
+   /**
+     * Remove a filter at some index.
+     * @param {int} index - index of the new filter to be removed.
+     * 0 <= index < filters.length
+     */
     const removeFilter = (index) => {
         if (index >= 0 && index < filters.length) {
             let newFilters = filters.filter((element, i) => index !== i);
@@ -65,10 +71,11 @@ export default function PropertyTypeList() {
         }
     }
 
-    /* 
-    Change the filter at index :index: to :newFilter:.
-    index is an integer s.t. 0 <= index < filters.length
-    */
+    /**
+     * Change the filter at index :index: to :newFilter:.
+     * @param {int} index - index of the new filter to be changed
+     * 0 <= index < filters.length
+     **/
     const changeFilter = (index, newFilter) => {
         if (index >= 0 && index < filters.length) {
             // make a shallow copy of the filters
@@ -82,13 +89,13 @@ export default function PropertyTypeList() {
         }
     }
 
-    /*
-    To send the filters to the URL, create a string that contains all the
-    filter information.
-
-    The string is of the format
-    "<name>,<ctype_name>;...;<name>,<ctype_name>"
-
+   /**
+    * To send the filters to the URL, create a string that contains all the
+    * filter information.
+    * 
+    * The string is of the format
+    * "<name>,<ctype_name>;...;<name>,<ctype_name>"
+    * @returns Return a string containing all of the filter information
     */
     const createFilterString = () => {
 
@@ -108,9 +115,10 @@ export default function PropertyTypeList() {
         return strSoFar;
     }
 
-    /*
-    The function that updates the list of property types when the site is 
-    loaded or a change of the property types is requested (upon state change).
+   /**
+    * The function that updates the list of property types when the site is 
+    * loaded or a change of the property types is requested 
+    * (upon state change).
     */
     useEffect(() => {
         async function fetchData() {
@@ -142,9 +150,9 @@ export default function PropertyTypeList() {
         filters
     ]);
 
-    /*
-    function to change the property type count when filters are updated.
-    */
+    /**
+     * Change the property type count when filters are updated.
+     */
     useEffect(() => {
         let input = `/api/property_type_count`;
         if (filters.length > 0) {
@@ -160,10 +168,13 @@ export default function PropertyTypeList() {
         filters
     ]);
 
-    /*
-    function to load all of the component types (so they can be used for
-    the filter)
-    */
+    /**
+     * Load all of the component types (so they can be used for the filter)
+     * 
+     * TODO: THIS IS GARBAGE, WILL BE REALLY REALLY SLOW WHEN YOU HAVE A LOT
+     * OF COMPONENT TYPES. INSTEAD, MAKE A COMPONENT TYPE AUTOCOMPLETE AND
+     * THEN USE THEM IN THE FILTERS INSTEAD OF THIS PILE OF TRASH.
+     */
     useEffect(() => {
 
         let input = '/api/component_type_list'
@@ -214,6 +225,15 @@ export default function PropertyTypeList() {
         }
     ];
 
+    /**
+     * the rows of the table. We are only putting:
+     * - the name,
+     * - a list of the property type's allowed types,
+     * - the units,
+     * - the allowed regex for the property type,
+     * - the number of values a property must have, and
+     * - the comments associated with the property type.
+     */
     let tableRowContent = elements.map((e) => [
         e.name,
         e.allowed_types.sort().join(', '),

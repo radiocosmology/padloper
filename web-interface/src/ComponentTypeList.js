@@ -7,6 +7,9 @@ import {
     } 
 from '@mui/material';
 
+/**
+ * A MUI component that renders a list of component types.
+ */
 function ComponentTypeList() {
     
     // the list of component types in objects representation
@@ -69,9 +72,9 @@ function ComponentTypeList() {
         nameSubstring
     ]);
 
-    /*
-    function to change the component count when filters are updated.
-    */
+    /**
+     * function to change the component count when filters are updated.
+     */
     useEffect(() => {
 
         fetch(`/api/component_type_count?nameSubstring=${nameSubstring}`).then(
@@ -85,8 +88,10 @@ function ComponentTypeList() {
         nameSubstring
     ]);
 
-    // the header cells of the table with their ids, labels, and whether you
-    // can order by them.
+    /**
+     * The header cells of the table with their ids, labels, and whether you
+     * can order by them.
+     */
     const tableHeadCells = [
         {
             id: 'name', 
@@ -99,7 +104,9 @@ function ComponentTypeList() {
             allowOrdering: false,
         },
     ];
-
+    /**
+     * the rows of the table. We are only putting the name and the comments.
+     */
     let tableRowContent = elements.map((e) => [
         e.name,
         e.comments,

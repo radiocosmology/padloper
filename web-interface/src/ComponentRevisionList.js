@@ -8,6 +8,9 @@ import {
 from '@mui/material';
 import ComponentRevisionFilter from './ComponentRevisionFilter.js';
 
+/**
+ * A MUI component that renders a list of component revisions.
+ */
 function ComponentRevisionList() {
     
     // the list of component types in objects representation
@@ -34,6 +37,8 @@ function ComponentRevisionList() {
     const [orderDirection,
         setOrderDirection] = useState('asc');
 
+    // the list of component types
+    // TODO: DON'T DO IT LIKE THIS, MAKE A COMPONENT TYPE AUTOCOMPLETE INSTEAD!!
     const [component_types, setComponentTypes] = useState([]);
 
     /* filters stored as 
@@ -47,7 +52,9 @@ function ComponentRevisionList() {
     */
     const [filters, setFilters] = useState([]);
 
-    // add an empty filter to filters
+    /**
+     * add an empty filter to filters
+     */ 
     const addFilter = () => {
         setFilters([...filters, {
             name: "",
@@ -55,10 +62,11 @@ function ComponentRevisionList() {
         }])
     }
 
-    /* 
-    Remove a filter at some index.
-    index is an integer s.t. 0 <= index < filters.length
-    */
+    /**
+     * Remove a filter at some index.
+     * @param {int} index - index of the new filter to be removed.
+     * 0 <= index < filters.length
+     */
     const removeFilter = (index) => {
         if (index >= 0 && index < filters.length) {
             let newFilters = filters.filter((element, i) => index !== i);
@@ -66,10 +74,11 @@ function ComponentRevisionList() {
         }
     }
 
-    /* 
-    Change the filter at index :index: to :newFilter:.
-    index is an integer s.t. 0 <= index < filters.length
-    */
+    /**
+     * Change the filter at index :index: to :newFilter:.
+     * @param {int} index - index of the new filter to be changed
+     * 0 <= index < filters.length
+     **/
     const changeFilter = (index, newFilter) => {
         if (index >= 0 && index < filters.length) {
             // make a shallow copy of the filters
@@ -82,14 +91,14 @@ function ComponentRevisionList() {
             setFilters(filters_copy);
         }
     }
-
-    /*
-    To send the filters to the URL, create a string that contains all the
-    filter information.
-
-    The string is of the format
-    "<name>,<ctype_name>;...;<name>,<ctype_name>"
-
+    
+   /**
+    * To send the filters to the URL, create a string that contains all the
+    * filter information.
+    * 
+    * The string is of the format
+    * "<name>,<ctype_name>;...;<name>,<ctype_name>"
+    * @returns Return a string containing all of the filter information
     */
     const createFilterString = () => {
 
@@ -111,9 +120,10 @@ function ComponentRevisionList() {
 
 
         
-    /*
-    The function that updates the list of component types when the site is 
-    loaded or a change of the component types is requested (upon state change).
+   /**
+    * The function that updates the list of component types when the site is 
+    * loaded or a change of the component types is requested 
+    * (upon state change).
     */
     useEffect(() => {
         async function fetchData() {
@@ -145,9 +155,9 @@ function ComponentRevisionList() {
         filters
     ]);
 
-    /*
-    function to change the component type count when filters are updated.
-    */
+    /**
+     * Change the component type count when filters are updated.
+     */
     useEffect(() => {
         let input = `/api/component_revision_count`;
         if (filters.length > 0) {
@@ -163,10 +173,13 @@ function ComponentRevisionList() {
         filters
     ]);
 
-    /*
-    function to load all of the component types (so they can be used for
-    the filter)
-    */
+    /**
+     * Load all of the component types (so they can be used for the filter)
+     * 
+     * TODO: THIS IS GARBAGE, WILL BE REALLY REALLY SLOW WHEN YOU HAVE A LOT
+     * OF COMPONENT TYPES. INSTEAD, MAKE A COMPONENT TYPE AUTOCOMPLETE AND
+     * THEN USE THEM IN THE FILTERS INSTEAD OF THIS PILE OF TRASH.
+     */
     useEffect(() => {
 
         let input = '/api/component_type_list'
@@ -201,6 +214,10 @@ function ComponentRevisionList() {
         }
     ];
 
+    /**
+     * the rows of the table. We are only putting the name, allowed type of the
+     * revision, and the comments.
+     */
     let tableRowContent = elements.map((e) => [
         e.name,
         e.allowed_type.name,
