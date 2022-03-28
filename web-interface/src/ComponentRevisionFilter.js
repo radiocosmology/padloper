@@ -16,9 +16,10 @@ import Close from '@mui/icons-material/Close';
  * filter is changed.
  * @param {int} index - the index of the filter 
  * (in an exterior list of filters).
- * @param {object} filter - the associated filter object (containing the name and type)
- * @param {Array} types - the list of types to choose from (TODO: turn this into an 
- * autocomplete instead................)
+ * @param {object} filter - the associated filter object (containing the name 
+ * and type)
+ * @param {Array} types - the list of types to choose from (TODO: turn this 
+ * into an autocomplete instead................)
  */
 function ComponentRevisionFilter(
         { 

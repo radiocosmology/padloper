@@ -73,8 +73,6 @@ class Element:
         :rtype: bool
         """
 
-        # TODO: do an actual query to determine whether this is added to DB.
-
         return self._id != VIRTUAL_ID_PLACEHOLDER
 
 
@@ -161,8 +159,6 @@ class Vertex(Element):
         :return: True if element is added to database, False otherwise.
         :rtype: bool
         """
-
-        # TODO: do an actual query to determine whether this is added to DB.
 
         return (
             self.id() != VIRTUAL_ID_PLACEHOLDER or \
@@ -284,8 +280,6 @@ class Edge(Element):
         :return: True if element is added to database, False otherwise.
         :rtype: bool
         """
-
-        # TODO: do an actual query to determine whether this is added to DB.
 
         return (
             self.id() != VIRTUAL_ID_PLACEHOLDER or \
@@ -1000,7 +994,6 @@ class Component(Vertex):
     :ivar revision: Optional ComponentRevision instance representing the
     revision of the component.
 
-    # TODO: Figure out how to represent properties along with timestamps.
     """
 
     category: str = "component"
@@ -2065,9 +2058,6 @@ class Component(Vertex):
     @classmethod
     def get_count(cls, filters: str):
         """Return the count of components given a list of filters.
-
-        # TODO: make a helper function for putting in the filters into 
-        the traversal.
 
         :param filters: A list of 3-tuples of the format (name, ctype, revision)
         :type order_by: list
