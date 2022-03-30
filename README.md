@@ -118,9 +118,14 @@ Otherwise, head to the [Maven repository for Netty](https://mvnrepository.com/ar
 
 To install Flask, run the following command:
 ```
-pip install Flask python-dotenv
+pip install -Iv Flask==2.0.1 
+pip install -Iv python-dotenv==0.19.0
 ```
-This will install `Flask` and `python-dotenv`, which will read the `.flaskenv` file in the flask-interface folder to configure the Flask server.
+This will install `Flask` version 2.0.1 and `python-dotenv` version 0.19.0 (see the TODOs, updating these will make Flask not work), which will read the `.flaskenv` file in the flask-interface folder to configure the Flask server.
+
+## Setting up React
+
+In `web-interface`, run `npm install` to install all dependencies. However, `react-scripts` must be set to version `4.0.3` (see the TODOs). 
 
 ## More Setup
 
