@@ -2135,7 +2135,8 @@ class Component(Vertex):
             prop_dicts.append({
                 'values': prop.values,
                 'type': {
-                    'name': prop.property_type.name
+                    'name': prop.property_type.name,
+                    'units': prop.property_type.units
                 },
                 'start_time': rel.start_time,
                 'end_time': rel.end_time,

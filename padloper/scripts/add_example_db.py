@@ -31,7 +31,7 @@ ANT.add()
 DPF = ComponentType(name="DPF", comments="Dual polarization feed")
 DPF.add()
 
-BLN = ComponentType(name="BLN", comments="Balun")
+BLN = ComponentType(name="BLN", comments="Active Balun")
 BLN.add()
 
 RFT = ComponentType(name="RFT", comments="RFoF transmitter")
@@ -46,33 +46,49 @@ RFR.add()
 ADC = ComponentType(name="ADC", comments="Analog to Digital Converter")
 ADC.add()
 
-COR = ComponentType(name="COR", comments="Correlator")
+COR = ComponentType(name="COR", comments="Correlator Input")
 COR.add()
+
+# property types
+
+pt = PropertyType(name="position", units="m", \
+    allowed_regex="^\d*[.]?\d*$", n_values=3, \
+    allowed_types=[ANT, DPF, BLN, RFT, OPF, RFR, ADC, COR])
+pt.add()
+
 
 # revisions
 
-ANT_A = ComponentRevision(name="A", allowed_type=ANT, comments="ANT revision")
+ANT_A = ComponentRevision(name="A", allowed_type=ANT, \
+    comments="This is the first Antenna revision")
 ANT_A.add()
 
-DPF_A = ComponentRevision(name="A", allowed_type=DPF, comments="DPF revision")
+DPF_A = ComponentRevision(name="A", allowed_type=DPF, \
+    comments="This is the first Dual polarization feed revision")
 DPF_A.add()
 
-BLN_A = ComponentRevision(name="A", allowed_type=BLN, comments="BLN revision")
+BLN_A = ComponentRevision(name="A", allowed_type=BLN, \
+    comments="This is the first Active Balun revision")
 BLN_A.add()
 
-RFT_A = ComponentRevision(name="A", allowed_type=RFT, comments="RFT revision")
+RFT_A = ComponentRevision(name="A", allowed_type=RFT, \
+    comments="This is the first RFoF transmitter revision")
 RFT_A.add()
 
-OPF_A = ComponentRevision(name="A", allowed_type=OPF, comments="OPF revision")
+OPF_A = ComponentRevision(name="A", allowed_type=OPF, \
+    comments="This is the first Optical Fiber revision")
 OPF_A.add()
 
-RFR_A = ComponentRevision(name="A", allowed_type=RFR, comments="RFR revision")
+RFR_A = ComponentRevision(name="A", allowed_type=RFR, \
+    comments="This is the first RFoF receiver revision")
 RFR_A.add()
 
-ADC_A = ComponentRevision(name="A", allowed_type=ADC, comments="ADC revision")
+ADC_A = ComponentRevision(name="A", allowed_type=ADC, \
+    comments="This is the first Analog to Digital Converter revision")
 ADC_A.add()
 
-COR_A = ComponentRevision(name="A", allowed_type=COR, comments="COR revision")
+COR_A = ComponentRevision(name="A", allowed_type=COR, \
+    comments="This is the first Correlator Input revision")
 COR_A.add()
 
 # components

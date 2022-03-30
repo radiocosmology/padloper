@@ -331,7 +331,14 @@ function ComponentPage() {
                                         marginLeft: theme.spacing(4)
                                     }}
                                 >
-                                    {prop.type.name} = {prop.values}
+                                    {prop.type.name} = { '[ ' +
+                                        prop.values.map(
+                                            el => el + ` ${
+                                            (prop.type.units === undefined) ? 
+                                                '' : prop.type.units
+                                            }`
+                                        ).join(", ") + ' ]'
+                                    }
                                 </Typography>
                             </Stack>
                         

@@ -284,12 +284,11 @@ function ComponentPropertyAddPanel(
                     </Grid>
 
                 </Grid>
-
+                {/* 
+                    If a property type has been selected and not all 
+                    text field values match the regex, spit out an error.
+                */}
                 {
-                    {/* 
-                        If a property type has been selected and not all 
-                        text field values match the regex, spit out an error.
-                    */}
                     (selectedOption !== null && !allValuesAccepted) ?
                     (<Typography style={{
                         marginTop: theme.spacing(2),
