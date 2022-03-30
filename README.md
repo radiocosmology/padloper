@@ -131,27 +131,4 @@ In `web-interface`, run `npm install` to install all dependencies. However, `rea
 
 ### RECOMMENDED: Set up indexing
 
-To make certain queries faster, it is recommended that graph indexes are added. Follow the [JanusGraph documentation](https://docs.janusgraph.org/index-management/index-performance/#mixed-index) for more details. To add a composite index (extremely efficient for equality checks), first we connect to **a fresh installation** of the Gremlin server through the Gremlin console. Then, we perform the following queries to create a composite index for a "name" String vertex property and a mixed index for the "start" and "end" Long edge properties.
-```
-mgmt = graph.openManagement()
-
-name = mgmt.makePropertyKey('name').dataType(String.class).make()
-
-start = mgmt.makePropertyKey('start').dataType(Long.class).make()
-
-end = mgmt.makePropertyKey('end').dataType(Long.class).make()
-
-mgmt.buildIndex('byNameComposite', Vertex.class).addKey(name).buildCompositeIndex()
-
-mgmt.buildIndex('startAndEndMixed', Edge.class).addKey(start).addKey(end).buildMixedIndex("search")
-
-mgmt.commit()
-
-mgmt = graph.openManagement()
-
-mgmt.updateIndex(mgmt.getGraphIndex("byNameComposite"), SchemaAction.REINDEX).get()
-
-mgmt.updateIndex(mgmt.getGraphIndex("startAndEndMixed"), SchemaAction.REINDEX).get()
-
-mgmt.commit()
-```
+To make certain queries faster, it is recommended that graph indexes are added. Follow the [JanusGraph documentation](https://docs.janusgraph.org/index-management/index-performance/#mixed-index) for more details. To add a composite index (extremely efficient for equality checks), first we connect to **a fresh installation** of the Gremlin server through the Gremlin console. Then, perform the queries in `index_setup.txt`.
