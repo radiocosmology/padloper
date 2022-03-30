@@ -114,6 +114,14 @@ If your Netty version is newer than 4.1.46, this section may be skipped.
 
 Otherwise, head to the [Maven repository for Netty](https://mvnrepository.com/artifact/io.netty) and download the latest (stable) versions for `netty-all`, `netty-common`, `netty-buffer`, `netty-codec`, `netty-handler`, `netty-resolver`, and `netty-transport`, and replace the old .jar files in `lib/` with these new files.
 
+## Installing Flask
+
+To install Flask, run the following command:
+```
+pip install Flask python-dotenv
+```
+This will install `Flask` and `python-dotenv`, which will read the `.flaskenv` file in the flask-interface folder to configure the Flask server.
+
 ## More Setup
 
 ### RECOMMENDED: Set up indexing
