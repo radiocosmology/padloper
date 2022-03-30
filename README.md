@@ -4,7 +4,7 @@ A repository containing Python interface for accessing the HIRAX Layout DB, as w
 
 ## How to start everything up
 
-Assuming that JanusGraph is installed and configured (see section below), we can start the JanusGraph server, followed by the Flask server, and then the React server for testing.
+Assuming that JanusGraph, Flask, and React are installed and configured (see sections below), we can start the JanusGraph server, followed by the Flask server, and then the React server for testing.
 
 To start the JanusGraph server, do
 ```
