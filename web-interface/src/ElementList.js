@@ -105,11 +105,14 @@ function ElementList(
         else {
             content = (
                 <>
-                    {tableRowContent.map((row) => (
-                        <TableRow>
+                    {tableRowContent.map((row,index) => (
+                        <TableRow
+                        key={index}
+                        >
                             {
                                 row.map((c, index) => (
                                     <TableCell 
+                                        key={index}
                                         align={(index === 0) ? "left" : "right"}
                                         style={{
                                             wordWrap: 'break-word',

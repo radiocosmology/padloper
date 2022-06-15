@@ -124,6 +124,7 @@ export default function PropertyTypeFilter(
                         {
                             types.map((t, index) =>
                                 <option 
+                                key={index}
                                     value={index}
                                 >
                                     {t['name']}

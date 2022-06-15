@@ -1,0 +1,72 @@
+\documentclass[10pt]{article}
+
+\usepackage[T1]{fontenc}
+\usepackage[margin=0.5in]{geometry}
+\usepackage{amssymb}
+\usepackage{listings}
+\usepackage{xcolor}
+\usepackage{graphicx}
+\usepackage{float}
+\usepackage{hyperref}
+\usepackage{enumitem}
+\usepackage{bm}
+\usepackage{amsmath}
+\usepackage{amsthm}
+\usepackage{tikz}
+\usepackage{charter}
+\usepackage[charter, cal=cmcal]{mathdesign}
+\newtheorem{theorem}{Theorem}
+\newtheorem{definition}{Definition}
+\newcommand{\subtitle}[1]{\posttitle{\par\end{center}\begin{center}\large#1\end{center}\vskip0.5em}}
+\setlength\parindent{0pt}
+
+\catcode`\_=12
+
+\begin{document}
+
+\begin{center}
+    \textbf{HIRAX Layout User Schema}
+\end{center}
+
+\begin{center}
+\begin{tikzpicture}[
+    rect_node/.style={rectangle, draw=black, fill=white, very thick, minimum size=1cm, align=left, inner sep = 1.5mm, font=\small},
+    duplicate_rect_node/.style={rectangle, draw=black, dashed, very thick, minimum size=1cm, align=center, inner sep=2mm, font=\small},
+    edge_style/.style={draw=black, ->,ultra thick, align=center, font=\footnotesize}
+]
+    \node[rect_node] (main_user) at (6, 0) {
+        \color{red} ``user'' \\
+        \color{blue} ``uname'': \color{black} str (unique) \\
+        \color{blue} ``pwd_hash'': \color{black} str \\
+        \color{blue} ``institution'': \color{black} str 
+    };
+
+    \node [rect_node] (user_group) at (6, -5.5) {
+        \color{red} ``user_group'' \\
+        \color{blue} ``name'': \color{black} str (unique) \\
+        \color{blue} ``comments'': \color{black} str 
+    };
+    
+    \node [rect_node] (permission) at (14,-5.5) {
+        \color{red} ``permission'' \\
+        \color{blue} ``name'': \color{black} str (unique) \\
+        \color{blue} ``comments'': \color{black} str 
+    };
+    %%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%
+
+    \draw[edge_style] (main_user) -- (user_group) node[midway, anchor=center, left, yshift=-10] {
+        \color{red} ``rel_user_allowed_group'' \\ 
+        \color{black} ($\geq$ 1 per \color{red} ``user'' \color{black})
+    };
+    
+    \draw[edge_style] (user_group) -- (permission) node[midway,anchor=center,left,xshift=50,yshift=10] {
+        \color{red} ``rel_group_allowed_permission'' \\
+        \color{black} ($\geq$ 1 per \color{red} ``user_group'' \color{black})
+    };
+
+\end{tikzpicture}
+
+\end{center}
+
+
+\end{document}

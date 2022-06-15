@@ -17,11 +17,11 @@ import CircularProgress from '@mui/material/CircularProgress';
 import axios from 'axios'
 
 /**
- * A MUI component that renders a list of component types.
+ * A MUI component that renders a list of flag types.
  */
-function ComponentTypeList() {
+function FlagTypeList() {
     
-    // the list of component types in objects representation
+    // the list of flag types in objects representation
     const [elements, setElements] = useState([]);
 
     // the first index to show
@@ -36,11 +36,11 @@ function ComponentTypeList() {
     // whether the elements are loaded or not
     const [loaded, setLoaded] = useState(false);
 
-    // property to order the component types by
+    // property to order the flag types by
     // must be in the set {'name'}
     const [orderBy, setOrderBy] = useState('name');
 
-    // property to order the component types by
+    // property to order the flag types by
     // must be in the set {'name'}
     const [nameSubstring, setNameSubstring] = useState("");
     
@@ -57,15 +57,15 @@ function ComponentTypeList() {
 
 
     /*
-    The function that updates the list of component types when the site is 
-    loaded or a change of the component types is requested (upon state change).
+    The function that updates the list of flag types when the site is 
+    loaded or a change of the flag types is requested (upon state change).
     */
     useEffect(() => {
         async function fetchData() {
             setLoaded(false);
 
             // create the URL query string
-            let input = '/api/component_type_list'
+            let input = '/api/flag_type_list'
             input += `?range=${min};${min + range}`
             input += `&orderBy=${orderBy}`
             input += `&orderDirection=${orderDirection}`
@@ -90,11 +90,11 @@ function ComponentTypeList() {
     ]);
 
     /**
-     * function to change the component count when filters are updated.
+     * function to change the flag count when filters are updated.
      */
     useEffect(() => {
 
-        fetch(`/api/component_type_count?nameSubstring=${nameSubstring}`).then(
+        fetch(`/api/flag_type_count?nameSubstring=${nameSubstring}`).then(
             res => res.json()
         ).then(data => {
             setCount(data.result);
@@ -113,7 +113,7 @@ function ComponentTypeList() {
     const tableHeadCells = [
         {
             id: 'name', 
-            label: 'Component Type',
+            label: 'Flag Type',
             allowOrdering: true,
         },
         {
@@ -130,9 +130,9 @@ function ComponentTypeList() {
         e.comments,
     ]);
 
-    const ComponentTypeAddButton = () => {
+    const FlagTypeAddButton = () => {
 
-  const [open, setOpen] = React.useState(false);
+  const [open, setOpen] = useState(false);
   const [name,setName] = useState('')
   const [comment,setComment] = useState('')
   const [isError,setIsError] = useState(false)
@@ -151,14 +151,13 @@ function ComponentTypeList() {
   const handleSubmit = (e) => {
     e.preventDefault() // To preserve the state once the form is submitted.
 
-    // Empty component Type cannot be submitted.
+    // Empty flag Type cannot be submitted.
     if(name){ 
-    let input = `/api/set_component_type`;
+    let input = `/api/set_flag_type`;
     input += `?name=${name}`;
     input += `&comments=${comment}`;
     axios.post(input).then((response)=>{
-        
-                toggleReload() //To reload the page once the form has been submitted.
+        toggleReload() //To reload the page once the form has been submitted.
     })
     } else {
       setIsError(true)
@@ -167,16 +166,16 @@ function ComponentTypeList() {
 
   return (
     <div>
-        <Button variant="contained" onClick={handleClickOpen}>Add Component Type</Button>
+        <Button variant="contained" onClick={handleClickOpen}>Add Flag Type</Button>
       <Dialog open={open} onClose={handleClose}>
-        <DialogTitle>Add Component Type</DialogTitle>
+        <DialogTitle>Add Flag Type</DialogTitle>
         <DialogContent>
           <TextField
             error={isError}
             autoFocus
             margin="dense"
             id="name"
-            label="Component Type"
+            label="Flag Type"
             type='text'
             fullWidth
             variant="standard"
@@ -229,7 +228,7 @@ function ComponentTypeList() {
                     />   
                 }
                 rightColumn2= {
-                    <ComponentTypeAddButton/>
+                    <FlagTypeAddButton/>
                 }
                 
             />
@@ -247,4 +246,4 @@ function ComponentTypeList() {
     )
 }
 
-export default ComponentTypeList;
+export default FlagTypeList;

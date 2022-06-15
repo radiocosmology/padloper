@@ -128,6 +128,7 @@ function ComponentRevisionFilter(
                             types.map((t, index) =>
                                 <option 
                                     value={index}
+                                    key={index}
                                 >
                                     {t['name']}
                                 </option>

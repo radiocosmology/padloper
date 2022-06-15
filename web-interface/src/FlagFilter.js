@@ -1,41 +1,36 @@
-import { 
-    Paper, 
-    TextField,
-    Select,
-    FormControl,
-    Button,
-    Stack
-    } from '@mui/material';
-import React, { useState } from 'react';
-import './ComponentFilter.js';
+import TextField from '@mui/material/TextField';
+import Select from '@mui/material/Select';
+import FormControl from '@mui/material/FormControl';
+import Button from '@mui/material/Button';
+import Paper from '@mui/material/Paper';
+import Stack from '@mui/material/Stack';
 
 import Close from '@mui/icons-material/Close';
 
 /**
- * A MUI component that represents a filter object which allows to choose a
- * name for the component, a component type, and a revision. 
- * These are used in the ComponentList.
+ * 
  * @param {function} removeFilter - function to call when the filter is removed.
  * @param {function(int, object)} changeFilter - function to call when the 
  * filter is changed.
  * @param {int} index - the index of the filter 
  * (in an exterior list of filters).
- * @param {object} - the associated filter object (containing the name and type)
- * @param {types} - the list of types and revisions to choose from 
- * (TODO: turn this into an autocomplete instead................)
+ * @param {object} filter - the associated filter object (containing the name, flag type and flag severity)
+ * @param {Array} types - the list of types to choose from (TODO: turn this 
+ * @param {Array} severities - the list of severities to choose from (TODO: turn this 
+ * into an autocomplete instead................)
+ * @param {int} width - the width of the filter panel
  */
-function ComponentFilter(
-        {
+export default function FlagFilter(
+        { 
             removeFilter, 
             changeFilter, 
             index, 
             filter, 
-            types_and_revisions
+            types,
+            severities,
+            width
         }
     ) {
-
-    // the list of revisions for this specific element filter panel.
-    const [revisions, setRevisions] = useState([]);
 
     /**
      * Update the filter with a new key/value pair.
@@ -48,6 +43,7 @@ function ComponentFilter(
         changeFilter(index, filterCopy);
     }
 
+    
     /**
      * Update the name key of the filter with the value from the input field.
      * @param {object} event - the event associated with the 
@@ -63,33 +59,41 @@ function ComponentFilter(
      * change of the TextField.
      */
     const filterUpdateType = (event) => {
-        if (event.target.value !== -1) {
-
+        if (event.target.value != -1) {
             filterUpdateKey(
                 'type', 
-                types_and_revisions[event.target.value]['name']
+                types[event.target.value]['name']
             );
-
-            setRevisions(types_and_revisions[event.target.value]['revisions'])
         }
         else {
             filterUpdateKey(
                 'type', 
                 ''
             );
-            setRevisions([]);
         }
     }
-
-     /**
-     * Update the revision key of the filter with the 
-     * value from the input field.
+    /**
+     * Update the severity key of the filter with the value from the select field.
      * @param {object} event - the event associated with the 
      * change of the TextField.
      */
-    const filterUpdateRevision = (event) => {
-        filterUpdateKey('revision', event.target.value);
+    const filterUpdateSeverity = (event) => {
+        if (event.target.value != -1) {
+            filterUpdateKey(
+                'severity', 
+                severities[event.target.value]['value']
+            );
+        }
+        else {
+            filterUpdateKey(
+                'severity', 
+                ''
+            );
+        }
     }
+
+    // set the width of the filter's panel, set to 600px by default.
+    let paperWidth = (width) ? width : '600px';
 
     // render the filter
     return (
@@ -98,22 +102,26 @@ function ComponentFilter(
                 marginTop: '8px',
                 paddingTop: '8px',
                 paddingBottom: '8px',
-                width: '600px',
+                width: paperWidth,
                 maxWidth: '100%',
                 marginLeft: 'auto',
                 marginRight: 'auto',
                 textAlign: 'center',
-                display: 'grid',
-                alignItems: 'stretch',
             }}
         >
-            <Stack direction="row" spacing={2}>
+            <Stack direction="row" spacing={2}
+                style={{
+                    display: 'grid',
+                    alignItems: 'stretch',
+                }}
+            >
+            
                 <TextField 
                     label="Filter by name" 
                     variant="outlined" 
                     style={{
+                        marginLeft: "16px",
                         gridColumnStart: 1,
-                        marginLeft: '16px',
                     }}
                     onChange={filterUpdateName}
                 />
@@ -125,8 +133,8 @@ function ComponentFilter(
                 >
                     <Select
                         native
-                        labelId={`component-type-select-${index}-label`}
-                        id={`component-type-select-${index}`}
+                        labelId={`flag-type-select-${index}-label`}
+                        id={`flag-type-select-${index}`}
                         onChange={filterUpdateType}
                         displayEmpty
                     >
@@ -134,7 +142,7 @@ function ComponentFilter(
                             All types
                         </option>
                         {
-                            types_and_revisions.map((t, index) =>
+                            types.map((t, index) =>
                                 <option 
                                     value={index}
                                     key={index}
@@ -146,9 +154,7 @@ function ComponentFilter(
                     </Select>
 
                 </FormControl>
-
-                <FormControl
-                    className="SelectDropdown" 
+                <FormControl 
                     style={{
                         gridColumnStart: 3,
                     }}
@@ -156,32 +162,37 @@ function ComponentFilter(
                 >
                     <Select
                         native
-                        labelId={`component-revision-select-${index}-label`}
-                        id={`component-revision-select-${index}`}
-                        onChange={filterUpdateRevision}
-                        disabled={revisions.length === 0}
+                        labelId={`flag-severity-select-${index}-label`}
+                        id={`flag-severity-select-${index}`}
+                        onChange={filterUpdateSeverity}
+                        displayEmpty
                     >
-                        <option aria-label="None" value={""}>
-                            {(revisions.length === 0) ? 
-                                "Select a type" 
-                                : "All revisions"
-                            }
+                        <option aria-label="None" value={-1} selected>
+                            All Severities
                         </option>
                         {
-                            revisions.map((name) =>
-                                <option value={name}>{name}</option>
+                            severities.map((s, index) =>
+                                <option 
+                                    value={index}
+                                    key={index}
+                                >
+                                    {s['value']}
+                                </option>
                             )
                         }
                     </Select>
 
                 </FormControl>
 
+                <FormControl style={{
+                        gridColumnStart: 4,
+                    }}>
                 <Button 
                     color="primary" 
                     style={{
                         marginTop: 'auto',
                         marginBottom: 'auto',
-                        gridColumnStart: 4,
+                        gridColumnStart: 3,
                         marginLeft: '16px',
                         marginRight: '16px',
                         height: '100%',
@@ -190,11 +201,10 @@ function ComponentFilter(
                 >
                     <Close />
                 </Button>
+                </FormControl>
+
+
             </Stack>
-            
-            
         </Paper>
     )
 }
-
-export default ComponentFilter;

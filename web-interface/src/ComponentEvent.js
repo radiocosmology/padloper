@@ -50,13 +50,13 @@ function ComponentEvent(
 ) {
     return (
         <ThemeProvider theme={theme}>
-            <Stack direction='row' spacing={1}>
+            <Stack 
+            direction='row' spacing={1}>
                 <EntryRowLabel>{name}</EntryRowLabel>
 
                 <AccessTimeIcon fontSize="small"/>
 
                 <Timestamp unixTime={time} />
-
 
                 <PersonIcon 
                     fontSize="small"

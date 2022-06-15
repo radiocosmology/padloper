@@ -2,7 +2,7 @@ import React, { useState, useEffect } from 'react';
 
 import ElementList from './ElementList.js';
 import ElementRangePanel from './ElementRangePanel.js';
-import PropertyTypeFilter from './PropertyTypeFilter.js';
+import FlagFilter from './FlagFilter.js';
 import Button from '@mui/material/Button'
 import CircularProgress from '@mui/material/CircularProgress';
 import TextField from '@mui/material/TextField';
@@ -10,23 +10,23 @@ import Dialog from '@mui/material/Dialog';
 import DialogActions from '@mui/material/DialogActions';
 import DialogContent from '@mui/material/DialogContent';
 import DialogTitle from '@mui/material/DialogTitle';
-import Box from '@mui/material/Box';
 import InputLabel from '@mui/material/InputLabel';
 import MenuItem from '@mui/material/MenuItem';
 import FormControl from '@mui/material/FormControl';
 import Select from '@mui/material/Select';
-import { useTheme } from '@mui/material/styles';
-import OutlinedInput from '@mui/material/OutlinedInput';
-import Chip from '@mui/material/Chip';
 import axios from 'axios'
 import FormHelperText from '@mui/material/FormHelperText';
+import Timestamp from './Timestamp.js';
+import OutlinedInput from '@mui/material/OutlinedInput';
+import Checkbox from '@mui/material/Checkbox';
+import ListItemText from '@mui/material/ListItemText';
 
 /**
- * A MUI component that renders a list of property types.
+ * A MUI component that renders a list of flags.
  */
-export default function PropertyTypeList() {
+export default function FlagList() {
 
-    // the list of property types in objects representation
+    // the list of flag in objects representation
     const [elements, setElements] = useState([]);
 
     // the first index to show
@@ -41,8 +41,8 @@ export default function PropertyTypeList() {
     // whether the elements are loaded or not
     const [loaded, setLoaded] = useState(false);
 
-    // property to order the component types by
-    // must be in the set {'name, units, allowed_regex, n_values'}
+    // property to order the flag types by
+    // must be in the set {'name, start_time, end_time'}
     const [orderBy, setOrderBy] = useState('name');
 
     // how to order the elements
@@ -50,13 +50,18 @@ export default function PropertyTypeList() {
     const [orderDirection,
         setOrderDirection] = useState('asc');
 
-    const [componentTypes, setComponentTypes] = useState([]);
+    const [flag_types, setFlagTypes] = useState([]);
+    const [flag_severities, setFlagSeverities] = useState([]);
+    const [flag_components, setComponents] = useState([{
+        name : 'Global'
+    }]);
 
     /* filters stored as 
         [
             {
             name: <str>,
             types: <str>,
+            severities: <int>
             },
             ...
         ]
@@ -70,6 +75,7 @@ export default function PropertyTypeList() {
         setFilters([...filters, {
             name: "",
             type: "",
+            severity: ""
         }])
     }
 
@@ -108,7 +114,7 @@ export default function PropertyTypeList() {
     * filter information.
     * 
     * The string is of the format
-    * "<name>,<ctype_name>;...;<name>,<ctype_name>"
+    * "<name>,<ftype_name>,<fseverity_value>;...;<name>,<ftype_name>,<fseverity_value>"
     * @returns Return a string containing all of the filter information
     */
     const createFilterString = () => {
@@ -119,7 +125,7 @@ export default function PropertyTypeList() {
 
             // create the string 
             for (let f of filters) {
-                strSoFar += `${f.name},${f.type};`;
+                strSoFar += `${f.name},${f.type},${f.severity};`;
             }
 
             // remove the last semicolon.
@@ -134,8 +140,8 @@ export default function PropertyTypeList() {
         setReloadBool(!reloadBool);
     }
    /**
-    * The function that updates the list of property types when the site is 
-    * loaded or a change of the property types is requested 
+    * The function that updates the list of flags when the site is 
+    * loaded or a change of the flags is requested 
     * (upon state change).
     */
     useEffect(() => {
@@ -143,7 +149,7 @@ export default function PropertyTypeList() {
             setLoaded(false);
 
             // create the URL query string
-            let input = '/api/property_type_list';
+            let input = '/api/flag_list';
             input += `?range=${min};${min + range}`;
             input += `&orderBy=${orderBy}`;
             input += `&orderDirection=${orderDirection}`;
@@ -170,10 +176,10 @@ export default function PropertyTypeList() {
     ]);
 
     /**
-     * Change the property type count when filters are updated.
+     * Change the flag count when filters are updated.
      */
     useEffect(() => {
-        let input = `/api/property_type_count`;
+        let input = `/api/flag_count`;
         if (filters.length > 0) {
             input += `?filters=${createFilterString()}`;
         }
@@ -189,15 +195,15 @@ export default function PropertyTypeList() {
     ]);
 
     /**
-     * Load all of the component types (so they can be used for the filter)
+     * Load all of the flag types (so they can be used for the filter)
      * 
      * TODO: THIS IS GARBAGE, WILL BE REALLY REALLY SLOW WHEN YOU HAVE A LOT
-     * OF COMPONENT TYPES. INSTEAD, MAKE A COMPONENT TYPE AUTOCOMPLETE AND
+     * OF FLAG TYPES. INSTEAD, MAKE A FLAG TYPE AUTOCOMPLETE AND
      * THEN USE THEM IN THE FILTERS INSTEAD OF THIS PILE OF TRASH.
      */
     useEffect(() => {
 
-        let input = '/api/component_type_list'
+        let input = '/api/flag_type_list'
         input += `?range=0;-1`
         input += `&orderBy=name`
         input += `&orderDirection=asc`
@@ -205,7 +211,45 @@ export default function PropertyTypeList() {
         fetch(input).then(
             res => res.json()
         ).then(data => {
-            setComponentTypes(data.result);
+            setFlagTypes(data.result);
+        });
+    }, []);
+
+    /**
+     * Load all of the flag severities (so they can be used for the filter)
+     * 
+     * TODO: THIS IS GARBAGE, WILL BE REALLY REALLY SLOW WHEN YOU HAVE A LOT
+     * OF FLAG SEVERITIES. INSTEAD, MAKE A FLAG SEVERITY AUTOCOMPLETE AND
+     * THEN USE THEM IN THE FILTERS INSTEAD OF THIS PILE OF TRASH.
+     */
+    useEffect(() => {
+
+        let input = '/api/flag_severity_list'
+        input += `?range=0;-1`
+        input += `&orderBy=value`
+        input += `&orderDirection=asc`
+        fetch(input).then(
+            res => res.json()
+        ).then(data => {
+            setFlagSeverities(data.result);
+        });
+    }, []);
+
+    /**
+     * Load all of the components (so they can be used for the filter)
+     **/
+    useEffect(() => {
+
+        let input = '/api/component_list'
+        input += `?range=0;-1`
+        input += `&orderBy=name`
+        input += `&orderDirection=asc`
+        fetch(input).then(
+            res => res.json()
+        ).then(data => {
+            setComponents((prevState) => {
+                return prevState.concat(data.result)
+            });
         });
     }, []);
 
@@ -214,27 +258,32 @@ export default function PropertyTypeList() {
     const tableHeadCells = [
         {
             id: 'name', 
-            label: 'Property Type',
+            label: 'Flag',
             allowOrdering: true,
         },
         {
-            id: 'allowed_type', 
-            label: 'Allowed Types',
+            id: 'start_time', 
+            label: 'Start Time',
             allowOrdering: true,
         },
         {
-            id: 'units', 
-            label: 'Units',
+            id: 'end_time', 
+            label: 'End Time',
             allowOrdering: false,
         },
         {
-            id: 'allowed_regex', 
-            label: 'Allowed Regex',
+            id: 'Type', 
+            label: 'Flag Type',
             allowOrdering: false,
         },
         {
-            id: 'n_values', 
-            label: '# of Values',
+            id: 'Severity', 
+            label: 'Flag Severity',
+            allowOrdering: false,
+        },
+        {
+            id: 'List_of_Components', 
+            label: 'List Of Components',
             allowOrdering: false,
         },
         {
@@ -247,18 +296,27 @@ export default function PropertyTypeList() {
     /**
      * the rows of the table. We are only putting:
      * - the name,
-     * - a list of the property type's allowed types,
-     * - the units,
-     * - the allowed regex for the property type,
-     * - the number of values a property must have, and
+     * - the start time,
+     * - the end time,
+     * - flag's allowed types,
+     * - flag's allowed severity,
      * - the comments associated with the property type.
      */
     let tableRowContent = elements.map((e) => [
         e.name,
-        e.allowed_types.sort().join(', '),
-        e.units,
-        e.allowed_regex,
-        e.n_values,
+       <Timestamp unixTime={e.start_time}/>,
+       <Timestamp unixTime={e.end_time}/>,
+        e.flag_type.name,
+        e.flag_severity.value,
+        e.flag_components != ''
+        ? 
+        e.flag_components.map((item,index)=>{
+                return (
+                    <li key={index}>{item}</li>
+                )
+        })
+        :
+        'Global',
         e.comments
     ]);
 
@@ -268,58 +326,45 @@ const MenuProps = {
   PaperProps: {
     style: {
       maxHeight: ITEM_HEIGHT * 4.5 + ITEM_PADDING_TOP,
-      width: 300,
+      width: 250,
     },
   },
 };
 
-function getStyles(name, componentTypeName, theme) {
-  return {
-    fontWeight:
-      componentTypeName.indexOf(name) === -1
-        ? theme.typography.fontWeightRegular
-        : theme.typography.fontWeightMedium,
-  };
-}
 
+  const FlagAddButton = ({flagTypes,flagSeverities,flagComponents}) => {
 
-
-  const PropertyTypeAddButton = ({componentTypes}) => {
-
-  const [open, setOpen] = useState(false);
-  const [isError,setIsError] = useState(false)
-  const [componentTypeName, setComponentTypeName] = useState([]);
+    const [open, setOpen] = useState(false);
+    const [isError,setIsError] = useState(false)
   const [property,setProperty] = useState({
     name: '',
-    units:'',
-    allowed_regex:'',
-    values:0,
+    flag_severity:'',
+    flag_type:'',
     comment:''
   })
+  const [startTime,setStartTime] = useState(0)
+  const [endTime,setEndTime] = useState(0)
+  const [componentName,setComponentName] = useState([])
   const [loading, setLoading] = useState(false);
-  const theme = useTheme();
+
+    const handleChange2 = (event) => {
+    const {
+        target: { value },
+    } = event;
+    setComponentName(
+        // On autofill we get a stringified value.
+        typeof value === 'string' ? value.split(',') : value,
+    );
+    };
 
   /*
   Keeps a record of multiple state values.
    */
-  const handleChange2 = (e) =>{
+  const handleChange = (e) =>{
     const name = e.target.name
     const value = e.target.value
     setProperty({...property,[name]:value})
   }
-
-  /*This handleChange function is specifically for storing
-  multiple values of the allowed component types.
-  */
-  const handleChange = (event) => {
-    const {
-      target: { value },
-    } = event;
-    setComponentTypeName(
-      // On autofill we get a stringified value.
-      typeof value === 'string' ? value.split(',') : value,
-    );
-  };
 
   const handleClickOpen = () => {
     setOpen(true);
@@ -334,15 +379,20 @@ function getStyles(name, componentTypeName, theme) {
     setOpen(false);
     setIsError(false)
     setLoading(false)
-    setComponentTypeName([])
+    setStartTime(0)
+    setEndTime(0)
+    setComponentName([])
     setProperty({
     name: '',
-    units:'',
-    allowed_regex:'',
-    values:0,
+    flag_severity:'',
+    flag_type:'',
     comment:''
   })
   };
+
+  const flag_components_global_list = [{
+    name : 'Global'
+  }]
 
   const handleSubmit = (e) => {
     e.preventDefault() // To preserve the state once the form is submitted.
@@ -352,17 +402,17 @@ function getStyles(name, componentTypeName, theme) {
     component type, units, allowed regex or number of values fields in the form
     are left empty.
      */
-    if(property.name && componentTypeName && property.units &&property.allowed_regex && property.values !=0){ 
-    let input = `/api/set_property_type`;
+    if(property.name && startTime && endTime && property.flag_severity && property.flag_type){ 
+    let input = `/api/set_flag`;
     input += `?name=${property.name}`;
-    input += `&type=${componentTypeName.join(';')}`;
-    input += `&units=${property.units}`;
-    input += `&allowed_reg=${property.allowed_regex}`;
-    input += `&values=${property.values}`;
+    input += `&start_time=${startTime}`;
+    input += `&end_time=${endTime}`;
+    input += `&flag_severity=${property.flag_severity}`;
+    input += `&flag_type=${property.flag_type}`;
     input += `&comments=${property.comment}`;
+    input += `&flag_components=${componentName.join(';')}`;
     axios.post(input).then((response)=>{
-      
-          toggleReload() //To reload the page once the form has been submitted.
+            toggleReload() //To reload the page once the form has been submitted.
     })
     } else {
       setIsError(true) 
@@ -371,9 +421,9 @@ function getStyles(name, componentTypeName, theme) {
 
   return (
     <>
-        <Button variant="contained" onClick={handleClickOpen}>Add Property Type</Button>
+        <Button variant="contained" onClick={handleClickOpen}>Add Flag</Button>
       <Dialog open={open} onClose={handleClose}>
-        <DialogTitle>Add Property Type</DialogTitle>
+        <DialogTitle>Add A Flag</DialogTitle>
         <DialogContent>
     <div style={{
         marginTop:'10px',
@@ -384,13 +434,13 @@ function getStyles(name, componentTypeName, theme) {
             autoFocus
             margin="dense"
             id="name"
-            label="Property Type"
+            label="Flag"
             type='text'
             fullWidth
             variant="outlined"
             name = 'name'
             value={property.name}
-            onChange={handleChange2}
+            onChange={handleChange}
             />
     </div>
 
@@ -398,33 +448,23 @@ function getStyles(name, componentTypeName, theme) {
         marginTop:'15px',
         marginBottom:'15px',
     }}>   
-            <FormControl sx={{width: 300}} error = {isError}>
-        <InputLabel id="Allowed Type">Allowed Type</InputLabel>
+        <FormControl sx={{width: 300}} error = {isError}>
+        <InputLabel id="Flag Type">Flag Type</InputLabel>
         <Select
-          labelId="multiple-Allowed-Type-label"
-          id="multiple-Allowed-Type"
-          multiple
-          value={componentTypeName}
+          labelId="Flag-Type-label"
+          id="Flag-Type"
+          value={property.flag_type}
+          name='flag_type'
+          label='Flag Type'
           onChange={handleChange}
-          input={<OutlinedInput id="select-multiple-Allowed-Type" label="Allowed-Type" />}
-          renderValue={(selected) => (
-            <Box sx={{ display: 'flex', flexWrap: 'wrap', gap: 0.5 }}>
-              {selected.map((value) => (
-                <Chip key={value} label={value} />
-              ))}
-            </Box>
-          )}
-          MenuProps={MenuProps}
-        >
-          {componentTypes.map((component) => {
-
+         >
+          {flagTypes.map((item) => {
             return (
               <MenuItem
-              key={component.name}
-              value={component.name}
-              style={getStyles(component.name, componentTypeName, theme)}
+              key={item.name}
+              value={item.name}
               >
-              {component.name}
+              {item.name}
             </MenuItem>
           )}
           )}
@@ -438,61 +478,119 @@ function getStyles(name, componentTypeName, theme) {
       </FormControl>
     </div>
     <div style={{
-        marginTop:'10px',
-    }}>
-          <TextField
-            error={isError}
-            helperText = {isError ? 'Cannot be empty' : ''}
-            autoFocus
-            margin="dense"
-            id="units"
-            label="Units"
-            type='text'
-            fullWidth
-            variant="outlined"
-            name = 'units'
-            value={property.units}
-            onChange={handleChange2}
-            />
+        marginTop:'15px',
+        marginBottom:'15px',
+    }}>   
+        <FormControl sx={{width: 300}} error = {isError}>
+        <InputLabel id="Flag Severity">Flag Severity</InputLabel>
+        <Select
+          labelId="Flag-Severity-label"
+          id="Flag-Severity"
+          value={property.flag_severity}
+          name = 'flag_severity'
+          label='Flag Severity'
+          onChange={handleChange}
+         >
+          {flagSeverities.map((item) => {
+            return (
+              <MenuItem
+              key={item.value}
+              value={item.value}
+              >
+              {item.value}
+            </MenuItem>
+          )}
+          )}
+        </Select>
+        {
+        isError ? 
+        <FormHelperText>Cannot be empty</FormHelperText> 
+        : 
+        ''
+        }
+      </FormControl>
     </div>
+    
+    
     <div style={{
-        marginTop:'10px',
-        marginBottom:'10px'
+        marginTop:'10px'
     }}>
-          <TextField
-            error={isError}
-            helperText = {isError ? 'Cannot be empty' : ''}
-            autoFocus
-            margin="dense"
-            id="Allowed Regex"
-            label="Allowed Regex"
-            type='text'
-            fullWidth
-            variant="outlined"
-            name = 'allowed_regex'
-            value={property.allowed_regex}
-            onChange={handleChange2}
-            />
-    </div>
-    <div style={{
-        marginTop:'20px',
-        marginBottom:'10px'
-    }}>
-          <TextField
-          error={isError}
-          helperText = {isError ? 'Cannot be empty' : ''}
-          id="outlined-number"
-          label="Number of Values"
-          type="number"
-          name = 'values'
-          value={property.values}
+      <FormControl sx={{width: 300}} error = {isError}>
+        <InputLabel id="multiple-checkbox-label">Components</InputLabel> 
+        <Select
+          labelId="multiple-checkbox-label"
+          id="multiple-checkbox"
+          multiple
+          value={componentName}
           onChange={handleChange2}
-          InputLabelProps={{
-            shrink: true,
-          }}
-        />
+          input={<OutlinedInput label="Component" />}
+          renderValue={(selected) => selected.join(', ')}
+          MenuProps={MenuProps}
+        >
+          {componentName == 'Global' 
+          ?
+          flag_components_global_list.map((item,index) => (
+            <MenuItem key={index} value={item.name}>
+              <Checkbox checked={componentName.indexOf(item.name) > -1} />
+              <ListItemText primary={item.name} />
+            </MenuItem>
+          )
+          )
+          :
+           flagComponents.map((item,index) => (
+            <MenuItem key={index} value={item.name}>
+              <Checkbox checked={componentName.indexOf(item.name) > -1} />
+              <ListItemText primary={item.name} />
+            </MenuItem>
+          ))}
+        </Select>
+      </FormControl>
     </div>
 
+    <div style={{
+        marginTop:'10px',
+    }}>
+            <TextField
+            required
+            error={isError}
+            helperText={isError ? 'Cannot be empty' : ''}
+            margin = 'dense'
+            id="start_time"
+            label="start_time"
+            type="datetime-local"
+            sx={{ width: 240 }}
+            InputLabelProps={{
+                shrink: true,
+            }}
+            size="large"
+            onChange={(event) => {
+                let date = new Date(event.target.value);
+                setStartTime(Math.round(date.getTime() / 1000));
+            }}
+                        />
+    </div>
+    <div style={{
+        marginTop:'10px',
+    }}>
+            <TextField
+            required
+            error={isError}
+            helperText={isError ? 'Cannot be empty' : ''}
+            margin = 'dense'
+            id="end_time"
+            label="end_time"
+            type="datetime-local"
+            sx={{ width: 240 }}
+            InputLabelProps={{
+                shrink: true,
+            }}
+            size="large"
+            onChange={(event) => {
+                let date = new Date(event.target.value);
+                setEndTime(Math.round(date.getTime() / 1000));
+            }}
+                        />
+    </div>
     <div style={{
         marginTop:'10px',
         marginBottom:'10px'
@@ -508,7 +606,7 @@ function getStyles(name, componentTypeName, theme) {
             variant="outlined"
             name = 'comment'
             value={property.comment}
-            onChange={handleChange2}
+            onChange={handleChange}
             />
     </div>
         </DialogContent>
@@ -549,14 +647,13 @@ function getStyles(name, componentTypeName, theme) {
                     )
                 }
                 rightColumn2 = {
-                    <PropertyTypeAddButton componentTypes={componentTypes}/>
+                    <FlagAddButton flagTypes={flag_types} flagSeverities={flag_severities} flagComponents={flag_components}/>
                 }
             />
-
             {
                 filters.map(
                     (filter, index) => (
-                        <PropertyTypeFilter
+                        <FlagFilter
                             key={index}
                             width="700px"
                             addFilter={() => { }}
@@ -564,7 +661,8 @@ function getStyles(name, componentTypeName, theme) {
                             changeFilter={changeFilter}
                             filter={filter}
                             index={index}
-                            types={componentTypes}
+                            types={flag_types}
+                            severities = {flag_severities}
                         />
                     )
                 )

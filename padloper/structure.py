@@ -3,19 +3,24 @@ structure.py
 
 Contains methods for storing clientside interface information.
 """
-import time, re
+import time
+import re
+from unicodedata import name
 
 import warnings
+from xmlrpc.client import boolean
+from attr import attr, attributes
 
 from gremlin_python.process.traversal import Order, P, TextP
+from sympy import true
 from graph_connection import g
-from gremlin_python.process.graph_traversal import __, constant   
+from gremlin_python.process.graph_traversal import __, constant
 
 from exceptions import *
 
 from typing import Optional, List
 
-# A placeholder value for the end_time attribute for a 
+# A placeholder value for the end_time attribute for a
 # relation that is still ongoing.
 EXISTING_RELATION_END_PLACEHOLDER = 2**63 - 1
 
@@ -27,6 +32,7 @@ EXISTING_RELATION_END_EDIT_PLACEHOLDER = -1
 VIRTUAL_ID_PLACEHOLDER = -1
 
 _vertex_cache = dict()
+
 
 class Element:
     """
@@ -63,8 +69,7 @@ class Element:
         """
 
         return self._id
- 
-    
+
     def added_to_db(self) -> bool:
         """Return whether this element is added to the database,
         that is, whether the ID is not the virtual ID placeholder.
@@ -84,9 +89,8 @@ class Vertex(Element):
     :ivar time_added: When this vertex was added to the database (UNIX time).
     """
 
-    category: str 
+    category: str
     time_added: int
-
 
     def __init__(self, id: int):
         """
@@ -105,7 +109,6 @@ class Vertex(Element):
 
         Element.__init__(self, id)
 
-    
     def add(self, attributes: dict):
         """
         Add the vertex of category self.category
@@ -120,7 +123,7 @@ class Vertex(Element):
             raise VertexAlreadyAddedError(
                 f"Vertex already exists in the database."
             )
-        
+
         else:
 
             # set time added to now.
@@ -134,22 +137,19 @@ class Vertex(Element):
                 if isinstance(attributes[key], list):
                     for val in attributes[key]:
                         traversal = traversal.property(key, val)
-                
+
                 else:
                     traversal = traversal.property(key, attributes[key])
 
             v = traversal.next()
 
-            # this is NOT the id of a Vertex instance, 
-            # but rather the id of the GremlinPython vertex returned 
+            # this is NOT the id of a Vertex instance,
+            # but rather the id of the GremlinPython vertex returned
             # by the traversal.
             self._set_id(v.id)
 
             Vertex._cache_vertex(self)
 
-            
-
-    
     def added_to_db(self) -> bool:
         """Return whether this vertex is added to the database,
         that is, whether the ID is not the virtual ID placeholder and perform 
@@ -161,10 +161,9 @@ class Vertex(Element):
         """
 
         return (
-            self.id() != VIRTUAL_ID_PLACEHOLDER or \
-                g.V(self.id()).count().next() > 0
+            self.id() != VIRTUAL_ID_PLACEHOLDER or
+            g.V(self.id()).count().next() > 0
         )
-
 
     def _in_vertex_cache(self) -> bool:
         """Return whether this vertex ID is in the vertex cache.
@@ -174,7 +173,6 @@ class Vertex(Element):
         """
 
         return self.id() in _vertex_cache
-
 
     @classmethod
     def _cache_vertex(cls, vertex):
@@ -188,9 +186,9 @@ class Vertex(Element):
         if vertex.id() not in _vertex_cache:
 
             if not vertex.added_to_db():
-                    
+
                 # Do nothing?
-                    
+
                 return
 
             _vertex_cache[vertex.id()] = vertex
@@ -239,7 +237,6 @@ class Edge(Element):
         self.inVertex = inVertex
         self.outVertex = outVertex
 
-    
     def add(self, attributes: dict):
         """Add an edge between two vertices in JanusGraph.
 
@@ -261,8 +258,8 @@ class Edge(Element):
 
         else:
             traversal = g.V(self.outVertex.id()).addE(self.category) \
-                        .to(__.V(self.inVertex.id())) \
-                        .property('category', self.category)
+                .to(__.V(self.inVertex.id())) \
+                .property('category', self.category)
 
             for key in attributes:
                 traversal = traversal.property(key, attributes[key])
@@ -270,7 +267,6 @@ class Edge(Element):
             e = traversal.next()
 
             self._set_id(e.id)
-
 
     def added_to_db(self) -> bool:
         """Return whether this edge is added to the database,
@@ -282,8 +278,8 @@ class Edge(Element):
         """
 
         return (
-            self.id() != VIRTUAL_ID_PLACEHOLDER or \
-                g.E(self.id()).count().next() > 0
+            self.id() != VIRTUAL_ID_PLACEHOLDER or
+            g.E(self.id()).count().next() > 0
         )
 
 
@@ -304,14 +300,14 @@ class ComponentType(Vertex):
     category: str = "component_type"
 
     def __new__(
-        cls, name: str, comments: str="", id: int=VIRTUAL_ID_PLACEHOLDER
+        cls, name: str, comments: str = "", id: int = VIRTUAL_ID_PLACEHOLDER
     ):
         """
         Return a ComponentType instance given the desired attributes.
 
         :param name: The name of the component type. 
         :type name: str
-        
+
         :param comments: The comments attached to the component type, 
         defaults to ""
         :type comments: str  
@@ -327,9 +323,8 @@ class ComponentType(Vertex):
         else:
             return object.__new__(cls)
 
-
     def __init__(
-        self, name: str, comments: str="", id: int=VIRTUAL_ID_PLACEHOLDER
+        self, name: str, comments: str = "", id: int = VIRTUAL_ID_PLACEHOLDER
     ):
         """
         Initialize the ComponentType vertex with a category, name,
@@ -346,7 +341,6 @@ class ComponentType(Vertex):
         self.comments = comments
         Vertex.__init__(self, id=id)
 
-
     def add(self):
         """Add this ComponentType vertex to the serverside.
         """
@@ -356,7 +350,7 @@ class ComponentType(Vertex):
             raise VertexAlreadyAddedError(
                 f"ComponentType with name {self.name} " +
                 "already exists in the database."
-                )
+            )
 
         attributes = {
             'name': self.name,
@@ -377,8 +371,8 @@ class ComponentType(Vertex):
 
         return (
             self.id() != VIRTUAL_ID_PLACEHOLDER or (
-                g.V().has('category', ComponentType.category) \
-                    .has('name', self.name).count().next() > 0
+                g.V().has('category', ComponentType.category)
+                .has('name', self.name).count().next() > 0
             )
         )
 
@@ -394,16 +388,16 @@ class ComponentType(Vertex):
         :rtype: ComponentType
         """
 
-        d =  g.V().has('category', ComponentType.category).has('name', name) \
+        d = g.V().has('category', ComponentType.category).has('name', name) \
             .as_('v').valueMap().as_('props').select('v').id().as_('id') \
             .select('props', 'id').next()
-        
+
         props, id_ = d['props'], d['id']
 
         Vertex._cache_vertex(
             ComponentType(
-                name=name, 
-                comments=props['comments'][0], 
+                name=name,
+                comments=props['comments'][0],
                 id=id_
             )
         )
@@ -412,7 +406,7 @@ class ComponentType(Vertex):
 
     @classmethod
     def from_id(cls, id: int):
-        """Query te database and return a ComponentType instance based on
+        """Query the database and return a ComponentType instance based on
         the ID.
 
         :param id: The serverside ID of the ComponentType vertex.
@@ -427,8 +421,8 @@ class ComponentType(Vertex):
 
             Vertex._cache_vertex(
                 ComponentType(
-                    name=d['name'][0], 
-                    comments=d['comments'][0], 
+                    name=d['name'][0],
+                    comments=d['comments'][0],
                     id=id
                 )
             )
@@ -452,12 +446,12 @@ class ComponentType(Vertex):
         if id not in _vertex_cache:
             Vertex._cache_vertex(
                 ComponentType(
-                    name=name, 
-                    comments=comments, 
+                    name=name,
+                    comments=comments,
                     id=id
                 )
             )
-        
+
         return _vertex_cache[id]
 
     @classmethod
@@ -482,22 +476,21 @@ class ComponentType(Vertex):
             .project('name', 'revisions') \
             .by(__.values('name')) \
             .by(
-                __.both(RelationRevisionAllowedType.category) \
-                    .order().by('name', Order.asc).values('name').fold()
-            ) \
+                __.both(RelationRevisionAllowedType.category)
+            .order().by('name', Order.asc).values('name').fold()
+        ) \
             .toList()
 
         return ts
 
-
     @classmethod
     def get_list(
-        cls, 
-        range: tuple, 
+        cls,
+        range: tuple,
         order_by: str,
-        order_direction: str, 
+        order_direction: str,
         name_substring: str
-        ):
+    ):
         """
         Return a list of ComponentTypes based in the range :param range:,
         based on the name substring in :param name_substring:, 
@@ -512,7 +505,7 @@ class ComponentType(Vertex):
         {'name'}
         :type order_by: str
 
-        :param order_direction: Order the component tyoes by 
+        :param order_direction: Order the component types by 
         ascending or descending?
         Must be in {'asc', 'desc'}
         :type order_by: str
@@ -520,7 +513,7 @@ class ComponentType(Vertex):
         :param name_substring: What substring of the name property of the
         component type to filter by.
         :type name_substring: str
-        
+
         :return: A list of ComponentType instances.
         :rtype: list[ComponentType]
         """
@@ -531,7 +524,7 @@ class ComponentType(Vertex):
 
         traversal = g.V().has('category', ComponentType.category) \
             .has('name', TextP.containing(name_substring))
-        
+
         # if order_direction is not asc or desc, it will just sort by asc.
         # Keep like this if removing the assert above only in production.
         if order_direction == 'desc':
@@ -548,7 +541,7 @@ class ComponentType(Vertex):
             traversal = traversal.order().by(
                 __.coalesce(__.values('name'), constant("")),
                 direction
-            ) 
+            )
 
         # Component type query to DB
         cts = traversal.range(range[0], range[1]) \
@@ -563,17 +556,15 @@ class ComponentType(Vertex):
         for entry in cts:
             id, name, comments = entry['id'], entry['name'], entry['comments']
 
-
             component_types.append(
                 ComponentType._attrs_to_type(
-                    id=id, 
+                    id=id,
                     name=name,
                     comments=comments
                 )
             )
-        
-        return component_types
 
+        return component_types
 
     @classmethod
     def get_count(cls, name_substring: str):
@@ -611,8 +602,8 @@ class ComponentRevision(Vertex):
     allowed_type: ComponentType
 
     def __new__(
-        cls, name: str, allowed_type: ComponentType, comments: str="",
-        id: int=VIRTUAL_ID_PLACEHOLDER
+        cls, name: str, allowed_type: ComponentType, comments: str = "",
+        id: int = VIRTUAL_ID_PLACEHOLDER
     ):
         """
         Return a ComponentRevision instance given the desired name, comments, 
@@ -620,7 +611,7 @@ class ComponentRevision(Vertex):
 
         :param name: The name of the component revision.
         :type name: str
-        
+
         :param comments: The comments attached to the component revision,
         defaults to ""
         :str comments: str  
@@ -641,9 +632,9 @@ class ComponentRevision(Vertex):
             return object.__new__(cls)
 
     def __init__(
-        self, name: str, allowed_type: ComponentType, comments: str="",
-        id: int=VIRTUAL_ID_PLACEHOLDER
-        ):
+        self, name: str, allowed_type: ComponentType, comments: str = "",
+        id: int = VIRTUAL_ID_PLACEHOLDER
+    ):
         """
         Initialize the ComponentRevision vertex.
 
@@ -669,22 +660,22 @@ class ComponentRevision(Vertex):
                 f"ComponentRevision with name {self.name} " +
                 f"and allowed type {self.allowed_type} " +
                 "already exists in the database."
-                )
+            )
 
         attributes = {
             'name': self.name,
             'comments': self.comments
         }
 
-        Vertex.add(self=self, attributes=attributes)     
+        Vertex.add(self=self, attributes=attributes)
 
         if not self.allowed_type.added_to_db():
             self.allowed_type.add()
 
         e = RelationRevisionAllowedType(
-                inVertex=self.allowed_type, 
-                outVertex=self
-            )
+            inVertex=self.allowed_type,
+            outVertex=self
+        )
 
         e.add()
 
@@ -700,22 +691,21 @@ class ComponentRevision(Vertex):
 
         return (
             self.id() != VIRTUAL_ID_PLACEHOLDER or (
-                self.allowed_type.added_to_db() and \
-                g.V(self.allowed_type.id()) \
-                .both(RelationRevisionAllowedType.category) \
-                    .has('name', self.name).count().next() > 0
+                self.allowed_type.added_to_db() and
+                g.V(self.allowed_type.id())
+                .both(RelationRevisionAllowedType.category)
+                .has('name', self.name).count().next() > 0
             )
         )
 
-
     @classmethod
     def _attrs_to_revision(
-            cls, 
-            name: str, 
-            comments: str,
-            allowed_type: ComponentType, 
-            id: int
-        ):
+        cls,
+        name: str,
+        comments: str,
+        allowed_type: ComponentType,
+        id: int
+    ):
         """Given name, comments and id of a ComponentType, see if one
         exists in the cache. If so, return the cached ComponentType.
         Otherwise, create a new one, cache it, and return it.
@@ -737,9 +727,8 @@ class ComponentRevision(Vertex):
                     id=id
                 )
             )
-        
-        return _vertex_cache[id]
 
+        return _vertex_cache[id]
 
     @classmethod
     def from_db(cls, name: str, allowed_type: ComponentType):
@@ -759,17 +748,17 @@ class ComponentRevision(Vertex):
 
         if allowed_type.added_to_db():
 
-            d =  g.V(allowed_type.id()) \
+            d = g.V(allowed_type.id()) \
                 .both(RelationRevisionAllowedType.category).has('name', name) \
                 .as_('v').valueMap().as_('attrs').select('v').id().as_('id') \
                 .select('attrs', 'id').next()
-            
+
             props, id = d['attrs'], d['id']
 
             Vertex._cache_vertex(
                 ComponentRevision(
-                    name=name, 
-                    comments=props['comments'][0], 
+                    name=name,
+                    comments=props['comments'][0],
                     allowed_type=allowed_type,
                     id=id
                 )
@@ -804,8 +793,8 @@ class ComponentRevision(Vertex):
 
             Vertex._cache_vertex(
                 ComponentRevision(
-                    name=d['attrs']['name'][0], 
-                    comments=d['attrs']['comments'][0], 
+                    name=d['attrs']['name'][0],
+                    comments=d['attrs']['comments'][0],
                     allowed_type=t,
                     id=id
                 )
@@ -813,15 +802,14 @@ class ComponentRevision(Vertex):
 
         return _vertex_cache[id]
 
-
     @classmethod
     def get_list(
-        cls, 
-        range: tuple, 
+        cls,
+        range: tuple,
         order_by: str,
-        order_direction: str, 
+        order_direction: str,
         filters: list
-        ):
+    ):
         """
         Return a list of ComponentRevisions in the range :param range:,
         based on the filters in :param filters:,
@@ -842,7 +830,7 @@ class ComponentRevision(Vertex):
 
         :param filters: A list of 2-tuples of the format (name, ctype)
         :type order_by: list
-        
+
         :return: A list of ComponentRevision instances.
         :rtype: list[ComponentType]
         """
@@ -852,7 +840,7 @@ class ComponentRevision(Vertex):
         assert order_by in {'name', 'allowed_type'}
 
         traversal = g.V().has('category', ComponentRevision.category)
-        
+
         # if order_direction is not asc or desc, it will just sort by asc.
         # Keep like this if removing the assert above only in production.
         if order_direction == 'desc':
@@ -865,7 +853,7 @@ class ComponentRevision(Vertex):
             ands = []
 
             for f in filters:
-                
+
                 assert len(f) == 2
 
                 contents = []
@@ -878,7 +866,7 @@ class ComponentRevision(Vertex):
                 if f[1] != "":
                     contents.append(
                         __.both(RelationRevisionAllowedType.category).has(
-                            'name', 
+                            'name',
                             f[1]
                         )
                     )
@@ -889,7 +877,6 @@ class ComponentRevision(Vertex):
             if len(ands) > 0:
                 traversal = traversal.or_(*ands)
 
-   
         # How to order the component types.
         if order_by == 'name':
             traversal = traversal.order().by('name', direction) \
@@ -898,14 +885,14 @@ class ComponentRevision(Vertex):
                         RelationRevisionAllowedType.category
                     ).values('name'),
                     Order.asc
-                )
+            )
         elif order_by == 'allowed_type':
             traversal = traversal.order().by(
-                    __.both(
-                        RelationRevisionAllowedType.category
-                    ).values('name'),
-                    direction
-                ).by('name', Order.asc)
+                __.both(
+                    RelationRevisionAllowedType.category
+                ).values('name'),
+                direction
+            ).by('name', Order.asc)
 
         # Component type query to DB
         cts = traversal.range(range[0], range[1]) \
@@ -926,15 +913,14 @@ class ComponentRevision(Vertex):
 
             component_revisions.append(
                 ComponentRevision._attrs_to_revision(
-                    id=id, 
+                    id=id,
                     name=name,
                     comments=comments,
                     allowed_type=t
                 )
             )
-        
-        return component_revisions
 
+        return component_revisions
 
     @classmethod
     def get_count(cls, filters: list):
@@ -955,7 +941,7 @@ class ComponentRevision(Vertex):
             ands = []
 
             for f in filters:
-                
+
                 assert len(f) == 2
 
                 contents = []
@@ -968,7 +954,7 @@ class ComponentRevision(Vertex):
                 if f[1] != "":
                     contents.append(
                         __.both(RelationRevisionAllowedType.category).has(
-                            'name', 
+                            'name',
                             f[1]
                         )
                     )
@@ -985,8 +971,8 @@ class ComponentRevision(Vertex):
 class Component(Vertex):
     """
     The representation of a component. 
-    Contains a name attribute, ComponentType instance and can contain a
-    ComponentRevision.
+    Contains a name attribute, ComponentType instance, can contain a
+    ComponentRevision and can contain a Flag
 
     :ivar name: The name of the component
     :ivar type: The ComponentType instance representing the 
@@ -1003,10 +989,10 @@ class Component(Vertex):
     revision: ComponentRevision = None
 
     def __new__(
-        cls, name: str, type: ComponentType, 
-        revision: ComponentRevision=None,
-        id: int=VIRTUAL_ID_PLACEHOLDER,
-        time_added: int=-1
+        cls, name: str, type: ComponentType,
+        revision: ComponentRevision = None,
+        id: int = VIRTUAL_ID_PLACEHOLDER,
+        time_added: int = -1
     ):
         """
         Return a Component instance given the desired name, component type,
@@ -1014,7 +1000,7 @@ class Component(Vertex):
 
         :param name: The name of the Component.
         :type name: str
-        
+
         :param type: The component type of the Component.
         :type type: ComponentType
 
@@ -1033,13 +1019,12 @@ class Component(Vertex):
         else:
             return object.__new__(cls)
 
-
     def __init__(
-        self, name: str, type: ComponentType, 
-        revision: ComponentRevision=None,
-        id: int=VIRTUAL_ID_PLACEHOLDER,
-        time_added: int=-1
-        ):
+        self, name: str, type: ComponentType,
+        revision: ComponentRevision = None,
+        id: int = VIRTUAL_ID_PLACEHOLDER,
+        time_added: int = -1
+    ):
         """
         Initialize the Component vertex.
 
@@ -1057,12 +1042,11 @@ class Component(Vertex):
 
         Vertex.__init__(self, id=id)
 
-
     def __str__(self):
 
         if self.revision is None:
             revision_text = "no revision"
-        
+
         else:
             revision_text = 'revision "{self.revision.name}"'
 
@@ -1078,7 +1062,7 @@ class Component(Vertex):
             raise VertexAlreadyAddedError(
                 f"Component with name {self.name} " +
                 "already exists in the database."
-                )
+            )
 
         attributes = {
             'name': self.name
@@ -1107,7 +1091,7 @@ class Component(Vertex):
 
         type_edge.add()
 
-    def get_property(self, property_type, time: int):
+    def get_property(self, property_type, time: int, kind: bool):
         """
         Given a property type, get a property of this component active at time
         :param time:. 
@@ -1116,6 +1100,9 @@ class Component(Vertex):
         :type property_type: PropertyType
         :param time: The time to check the active property at.
         :type time: int
+
+        :param kind: This parameter controls what kind of output is returned contingent on whether the get_property method is being called by set_property method or unset_property method. If it is true, then that means set_property method is calling the get_property method and if it is false, then unset_property method is calling the get_property method.
+        :type kind: boolean
         """
 
         if not self.added_to_db():
@@ -1125,11 +1112,11 @@ class Component(Vertex):
 
         if not property_type.added_to_db():
             raise PropertyTypeNotAddedError(
-                f"Property type {property_type.name} of component {self.name} "+
+                f"Property type {property_type.name} of component {self.name} " +
                 "has not yet been added to the database."
             )
 
-        # list of property vertices of this property type 
+        # list of property vertices of this property type
         # and active at this time
         vs = g.V(self.id()).bothE(RelationProperty.category) \
             .has('start_time', P.lte(time)) \
@@ -1140,14 +1127,18 @@ class Component(Vertex):
 
         # If no such vertices found
         if len(vs) == 0:
-            return None
+            if kind:
+                return None
+            else:
+                raise ComponentPropertyStartTimeExceedsInputtedTime(
+                    f"{self.name} has no property with the given combination of time and property type. Make sure time inputted is later than property start time."
+                )
 
         # There should be only one!
 
         assert len(vs) == 1
-        
-        return Property.from_id(vs[0].id)    
 
+        return Property.from_id(vs[0].id)
 
     def get_all_properties(self):
         """Return all properties, along with their edges of this component as
@@ -1161,7 +1152,7 @@ class Component(Vertex):
                 f"Component {self.name} has not yet been added to the database."
             )
 
-        # list of property vertices of this property type 
+        # list of property vertices of this property type
         # and active at this time
         query = g.V(self.id()).bothE(RelationProperty.category) \
             .as_('e').valueMap().as_('edge_props') \
@@ -1187,13 +1178,12 @@ class Component(Vertex):
             )
             result.append((prop, edge))
 
-        return result 
-
+        return result
 
     def get_all_properties_of_type(
         self, property_type,
-        from_time: int=-1, 
-        to_time: int=EXISTING_RELATION_END_PLACEHOLDER
+        from_time: int = -1,
+        to_time: int = EXISTING_RELATION_END_PLACEHOLDER
     ):
         """
         Given a property type, return all edges that connected them between time
@@ -1219,7 +1209,7 @@ class Component(Vertex):
 
         if not property_type.added_to_db():
             raise PropertyTypeNotAddedError(
-                f"Property type {property_type.name} of component {self.name} "+
+                f"Property type {property_type.name} of component {self.name} " +
                 "has not yet been added to the database."
             )
 
@@ -1245,15 +1235,39 @@ class Component(Vertex):
             end_uid=e['properties']['end_uid'],
             end_edit_time=e['properties']['end_edit_time'],
             end_comments=e['properties']['end_comments'],
-            id=e['id']['@value']['relationId'] # weird but you have to
+            id=e['id']['@value']['relationId']  # weird but you have to
         ) for e in edges]
 
+    def get_all_flags(self):
+        """Return all flags connected to this component of the form (Flag)
+
+        :rtype: [Flag]
+        """
+
+        if not self.added_to_db():
+            raise ComponentNotAddedError(
+                f"Component {self.name} has not yet been added to the database."
+            )
+
+        # list of flag vertices of this flag type and flag severity and active at this time.
+
+        query = g.V(self.id()).bothE(
+            RelationFlagComponent.category).otherV().id().toList()
+
+        # Build up the result of format (flag vertex)
+        result = []
+
+        for q in query:
+            flag = Flag.from_id(q)
+            result.append((flag))
+
+        return result
 
     def set_property(
-        self, property, time: int, 
-        uid: str, end_time: int=EXISTING_RELATION_END_PLACEHOLDER,
-        edit_time:int=int(time.time()), comments="",
-        force_property: bool=False
+        self, property, time: int,
+        uid: str, end_time: int = EXISTING_RELATION_END_PLACEHOLDER,
+        edit_time: int = int(time.time()), comments="",
+        force_property: bool = False
     ):
         """
         Given a property :param property:, MAKE A VIRTUAL COPY of it,
@@ -1285,33 +1299,33 @@ class Component(Vertex):
             )
 
         current_property = self.get_property(
-            property_type=property.property_type, 
-            time=time
+            property_type=property.property_type,
+            time=time, kind=True
         )
 
         if current_property is not None:
-            
+
             if current_property.values == property.values:
                 raise PropertyIsSameError(
                     "An identical property of type " +
-                    f"{property.property_type.name} for component {self.name} "+
+                    f"{property.property_type.name} for component {self.name} " +
                     f"is already set with values {property.values}."
                 )
 
             else:
                 # end that property.
                 self.unset_property(
-                    property=current_property, 
-                    time=time, 
-                    uid=uid, 
-                    edit_time=edit_time, 
+                    property=current_property,
+                    time=time,
+                    uid=uid,
+                    edit_time=edit_time,
                     comments=comments
                 )
-        
+
         else:
-            
+
             existing_properties = self.get_all_properties_of_type(
-                property_type = property.property_type,
+                property_type=property.property_type,
                 from_time=time
             )
 
@@ -1336,10 +1350,10 @@ class Component(Vertex):
                         "Trying to set property of type " +
                         f"{property.property_type.name} for component " +
                         f"{self.name} " +
-                        "before an existing property of the same type; " + 
+                        "before an existing property of the same type; " +
                         "set 'force_property' parameter to True to bypass."
                     )
-        
+
         prop_copy = Property(
             values=property.values,
             property_type=property.property_type
@@ -1363,10 +1377,9 @@ class Component(Vertex):
 
         return prop_copy
 
-
     def unset_property(
         self, property, time: int, uid: str,
-        edit_time: int=int(time.time()), comments=""
+        edit_time: int = int(time.time()), comments=""
     ):
         """
         Given a property that is connected to this component,
@@ -1377,7 +1390,7 @@ class Component(Vertex):
         :param property: The property vertex connected by an edge to the 
         component vertex.
         :type property: Property
-        :param time: The time at which the property was removed (real time)
+        :param time: The time at which the property was removed (real time). This value has to be provided.
         :type time: int
         :param uid: The user that removed the property
         :type uid: str
@@ -1387,7 +1400,7 @@ class Component(Vertex):
         :param comments: Comments about the property removal, defaults to ""
         :type comments: str, optional
         """
-        
+
         if not self.added_to_db():
             raise ComponentNotAddedError(
                 f"Component {self.name} has not yet been added to the database."
@@ -1407,13 +1420,12 @@ class Component(Vertex):
             .property('end_edit_time', edit_time) \
             .property('end_comments', comments).iterate()
 
-
     def connect(
-        self, component, time: int, uid: str, 
-        end_time: int=EXISTING_RELATION_END_PLACEHOLDER,
-        edit_time: int=int(time.time()), comments="",
-        force_connection: bool=False
-        ):
+        self, component, time: int, uid: str,
+        end_time: int = EXISTING_RELATION_END_PLACEHOLDER,
+        edit_time: int = int(time.time()), comments="",
+        force_connection: bool = False
+    ):
         """Given another Component :param component:,
         connect the two components.
 
@@ -1458,12 +1470,12 @@ class Component(Vertex):
             )
 
         current_connection = self.get_connection(
-            component=component, 
+            component=component,
             time=time
         )
 
         if current_connection is not None:
-            
+
             # Already connected!
             raise ComponentsAlreadyConnectedError(
                 f"Components {self.name} and {component.name} " +
@@ -1473,7 +1485,7 @@ class Component(Vertex):
         else:
 
             existing_connections = self.get_all_connections_with(
-                component=component, 
+                component=component,
                 from_time=time
             )
 
@@ -1496,8 +1508,8 @@ class Component(Vertex):
                     raise ComponentsConnectBeforeExistingConnectionError(
                         "Trying to connect components " +
                         f"{self.name} and {component.name} " +
-                        "before an existing connection; set 'force_connection' " 
-                        +"parameter to True to bypass."
+                        "before an existing connection; set 'force_connection' "
+                        + "parameter to True to bypass."
                     )
 
             current_connection = RelationConnection(
@@ -1514,10 +1526,9 @@ class Component(Vertex):
 
             current_connection.add()
 
-        
     def disconnect(
-        self, component, time: int, uid: str, 
-        edit_time: int=int(time.time()), comments=""
+        self, component, time: int, uid: str,
+        edit_time: int = int(time.time()), comments=""
     ):
         """Given another Component :param component:, disconnect the two
         components at time :param time:.
@@ -1549,14 +1560,13 @@ class Component(Vertex):
                 "been added to the database."
             )
 
-
         current_connection = self.get_connection(
-            component=component, 
+            component=component,
             time=time
         )
 
         if current_connection is None:
-            
+
             # Not connected yet!
             raise ComponentsAlreadyDisconnectedError(
                 f"Components {self.name} and {component.name} " +
@@ -1570,7 +1580,6 @@ class Component(Vertex):
                 end_edit_time=edit_time,
                 end_comments=comments
             )
-
 
     def get_all_connections_at_time(
         self, time: int
@@ -1590,7 +1599,7 @@ class Component(Vertex):
                 f"Component {self.name} has not yet been added to the database."
             )
 
-        # list of property vertices of this property type 
+        # list of property vertices of this property type
         # and active at this time
         query = g.V(self.id()).bothE(RelationConnection.category) \
             .has('start_time', P.lte(time)) \
@@ -1616,16 +1625,16 @@ class Component(Vertex):
                 end_uid=q['edge_props']['end_uid'],
                 end_edit_time=q['edge_props']['end_edit_time'],
                 end_comments=q['edge_props']['end_comments'],
-                id=q['edge_id']['@value']['relationId'] # weird but you have to
+                # weird but you have to
+                id=q['edge_id']['@value']['relationId']
             )
             result.append(edge)
 
         return result
 
-
     def get_all_connections_with(
-        self, component, from_time: int=-1, 
-        to_time: int=EXISTING_RELATION_END_PLACEHOLDER
+        self, component, from_time: int = -1,
+        to_time: int = EXISTING_RELATION_END_PLACEHOLDER
     ):
         """
         Given two components, return all edges that connected them between time
@@ -1659,7 +1668,7 @@ class Component(Vertex):
 
         if to_time < EXISTING_RELATION_END_PLACEHOLDER:
             edges = edges.has('start_time', P.lt(to_time))
-        
+
         edges = edges.has('end_time', P.gt(from_time)) \
             .as_('e').otherV() \
             .hasId(component.id()).select('e') \
@@ -1676,9 +1685,8 @@ class Component(Vertex):
             end_uid=e['properties']['end_uid'],
             end_edit_time=e['properties']['end_edit_time'],
             end_comments=e['properties']['end_comments'],
-            id=e['id']['@value']['relationId'] # weird but you have to
+            id=e['id']['@value']['relationId']  # weird but you have to
         ) for e in edges]
-
 
     def get_connection(
         self, component, time: int
@@ -1726,9 +1734,8 @@ class Component(Vertex):
             end_uid=e[0]['properties']['end_uid'],
             end_edit_time=e[0]['properties']['end_edit_time'],
             end_comments=e[0]['properties']['end_comments'],
-            id=e[0]['id']['@value']['relationId'] # weird but you have to
+            id=e[0]['id']['@value']['relationId']  # weird but you have to
         )
-
 
     def get_all_connections(self):
         """Return all connections between this Component and all other
@@ -1738,13 +1745,12 @@ class Component(Vertex):
         :rtype: tuple[Component, RelationConnection]
         """
 
-
         if not self.added_to_db():
             raise ComponentNotAddedError(
                 f"Component {self.name} has not yet been added to the database."
             )
 
-        # list of property vertices of this property type 
+        # list of property vertices of this property type
         # and active at this time
         query = g.V(self.id()).bothE(RelationConnection.category) \
             .as_('e').valueMap().as_('edge_props') \
@@ -1772,7 +1778,6 @@ class Component(Vertex):
 
         return result
 
-    
     def added_to_db(self) -> bool:
         """Return whether this Component is added to the database,
         that is, whether the ID is not the virtual ID placeholder and perform a 
@@ -1784,12 +1789,11 @@ class Component(Vertex):
 
         return (
             self.id() != VIRTUAL_ID_PLACEHOLDER or (
-                g.V() \
-                .has('category', Component.category) \
-                    .has('name', self.name).count().next() > 0
+                g.V()
+                .has('category', Component.category)
+                .has('name', self.name).count().next() > 0
             )
         )
-
 
     @classmethod
     def _attrs_to_component(self, name, id, type_id, rev_ids, time_added):
@@ -1831,7 +1835,7 @@ class Component(Vertex):
 
         Vertex._cache_vertex(
             Component(
-                name=name,  
+                name=name,
                 id=id,
                 type=_vertex_cache[type_id],
                 revision=crev,
@@ -1855,15 +1859,15 @@ class Component(Vertex):
             .by(__.id()).by(__.both(RelationComponentType.category).id()) \
             .by(__.both(RelationRevision.category).id().fold()) \
             .by(__.values('time_added')).next()
- 
+
         id, type_id, rev_ids, time_added = \
             d['id'], d['type_id'], d['rev_ids'], d['time_added']
 
         return Component._attrs_to_component(
-            name, 
-            id, 
-            type_id, 
-            rev_ids, 
+            name,
+            id,
+            type_id,
+            rev_ids,
             time_added
         )
 
@@ -1882,14 +1886,14 @@ class Component(Vertex):
                 .by(__.both(RelationComponentType.category).id()) \
                 .by(__.both(RelationRevision.category).id().fold()) \
                 .by(__.values('time_added')).next()
-    
+
             name, type_id, rev_ids, time_added = \
                 d['name'], d['type_id'], d['rev_ids'], d['time_added']
 
             return Component._attrs_to_component(
-                name, 
-                id, 
-                type_id, 
+                name,
+                id,
+                type_id,
                 rev_ids,
                 time_added
             )
@@ -1898,11 +1902,11 @@ class Component(Vertex):
             return _vertex_cache[id]
 
     @classmethod
-    def get_list(cls, 
-        range: tuple, 
-        order_by: str,
-        order_direction: str,
-        filters: list=[]):
+    def get_list(cls,
+                 range: tuple,
+                 order_by: str,
+                 order_direction: str,
+                 filters: list = []):
         """
         Return a list of Components based in the range :param range:,
         based on the filters in :param filters:, and order them based on 
@@ -1921,7 +1925,7 @@ class Component(Vertex):
 
         :param filters: A list of 3-tuples of the format (name, ctype, revision)
         :type order_by: list
-        
+
         :return: A list of Component instances.
         :rtype: list[Component]
         """
@@ -1946,7 +1950,7 @@ class Component(Vertex):
             ands = []
 
             for f in filters:
-                
+
                 assert len(f) == 3
 
                 contents = []
@@ -1959,17 +1963,17 @@ class Component(Vertex):
                 if f[1] != "":
                     contents.append(
                         __.both(RelationComponentType.category).has(
-                            'name', 
+                            'name',
                             f[1]
                         )
                     )
 
                     # component revision
-                    
+
                     if f[2] != "":
                         contents.append(
                             __.both(RelationRevision.category).has(
-                                'name', 
+                                'name',
                                 f[2]
                             )
                         )
@@ -1980,53 +1984,52 @@ class Component(Vertex):
             if len(ands) > 0:
                 traversal = traversal.or_(*ands)
 
-
         # chr(0x10FFFF) is the "biggest" character in unicode
 
         if order_by == 'revision':
             traversal = traversal.order() \
                 .by(
                     __.coalesce(
-                        __.both(RelationRevision.category).values('name'), 
+                        __.both(RelationRevision.category).values('name'),
                         __.constant(chr(0x10FFFF))
                     ),
                     direction
-                ) \
+            ) \
                 .by('name', Order.asc) \
                 .by(
-                    __.both(RelationComponentType.category).values('name'), 
+                    __.both(RelationComponentType.category).values('name'),
                     Order.asc
-                )
+            )
 
         elif order_by == 'type':
             traversal = traversal.order() \
                 .by(
-                    __.both(RelationComponentType.category).values('name'), 
+                    __.both(RelationComponentType.category).values('name'),
                     direction
-                ) \
+            ) \
                 .by('name', Order.asc) \
                 .by(
                     __.coalesce(
-                        __.both(RelationRevision.category).values('name'), 
+                        __.both(RelationRevision.category).values('name'),
                         __.constant(chr(0x10FFFF))
                     ),
                     Order.asc
-                )
+            )
 
         else:
             traversal = traversal.order() \
                 .by('name', direction) \
                 .by(
-                    __.both(RelationComponentType.category).values('name'), 
+                    __.both(RelationComponentType.category).values('name'),
                     Order.asc
-                ) \
+            ) \
                 .by(
                     __.coalesce(
-                        __.both(RelationRevision.category).values('name'), 
+                        __.both(RelationRevision.category).values('name'),
                         __.constant(chr(0x10FFFF))
                     ),
                     Order.asc,
-                )
+            )
 
         cs = traversal.range(range[0], range[1]) \
             .project('id', 'name', 'type_id', 'rev_ids', 'time_added') \
@@ -2045,14 +2048,14 @@ class Component(Vertex):
 
             components.append(
                 Component._attrs_to_component(
-                    id=id, 
-                    name=name, 
+                    id=id,
+                    name=name,
                     type_id=type_id,
                     rev_ids=rev_ids,
                     time_added=time_added
                 )
             )
-        
+
         return components
 
     @classmethod
@@ -2075,7 +2078,7 @@ class Component(Vertex):
             ands = []
 
             for f in filters:
-                
+
                 assert len(f) == 3
 
                 contents = []
@@ -2088,17 +2091,17 @@ class Component(Vertex):
                 if f[1] != "":
                     contents.append(
                         __.both(RelationComponentType.category).has(
-                            'name', 
+                            'name',
                             f[1]
                         )
                     )
 
                     # component revision
-                    
+
                     if f[2] != "":
                         contents.append(
                             __.both(RelationRevision.category).has(
-                                'name', 
+                                'name',
                                 f[2]
                             )
                         )
@@ -2110,7 +2113,6 @@ class Component(Vertex):
                 traversal = traversal.or_(*ands)
 
         return traversal.count().next()
-
 
     @classmethod
     def get_as_dict(cls, name: str):
@@ -2164,6 +2166,23 @@ class Component(Vertex):
                 'end_comments': rel.end_comments
             })
 
+        flag_dicts = []
+
+        for (flag) in c.get_all_flags():
+            flag_dicts.append({
+                'name': flag.name,
+                'start_time': flag.start_time,
+                'end_time': flag.end_time,
+                'comments': flag.comments,
+                'type': {
+                    'name': flag.flag_type.name,
+                    'comments': flag.flag_type.comments
+                },
+                'severity': {
+                    'value': flag.flag_severity.value
+                }
+            })
+
         return {
             'name': c.name,
             'type': {
@@ -2175,6 +2194,7 @@ class Component(Vertex):
             'time_added': c.time_added,
             'properties': prop_dicts,
             'connections': connection_dicts,
+            'flags': flag_dicts
         }
 
 
@@ -2205,8 +2225,8 @@ class PropertyType(Vertex):
 
     def __new__(
         cls, name: str, units: str, allowed_regex: str,
-        n_values: int, allowed_types: List[ComponentType], comments: str="", 
-        id: int=VIRTUAL_ID_PLACEHOLDER
+        n_values: int, allowed_types: List[ComponentType], comments: str = "",
+        id: int = VIRTUAL_ID_PLACEHOLDER
     ):
         """
         Return a PropertyType instance given the desired attributes.
@@ -2217,7 +2237,7 @@ class PropertyType(Vertex):
         :param units: The units which the values of the properties belonging
         to this type are to be in. 
         :type units: str
-        
+
         :param allowed_regex: The regular expression that the values of the
         properties of this property type must adhere to. 
         :type allowed_regex: str
@@ -2245,11 +2265,10 @@ class PropertyType(Vertex):
         else:
             return object.__new__(cls)
 
-
     def __init__(
         self, name: str, units: str, allowed_regex: str,
-        n_values: int, allowed_types: List[ComponentType], comments: str="", 
-        id: int=VIRTUAL_ID_PLACEHOLDER
+        n_values: int, allowed_types: List[ComponentType], comments: str = "",
+        id: int = VIRTUAL_ID_PLACEHOLDER
     ):
         """
         Initialize a PropertyType instance given the desired attributes.
@@ -2260,7 +2279,7 @@ class PropertyType(Vertex):
         :param units: The units which the values of the properties belonging
         to this type are to be in. 
         :type units: str
-        
+
         :param allowed_regex: The regular expression that the values of the
         properties of this property type must adhere to. 
         :type allowed_regex: str
@@ -2305,7 +2324,7 @@ class PropertyType(Vertex):
             raise VertexAlreadyAddedError(
                 f"PropertyType with name {self.name} " +
                 "already exists in the database."
-                )
+            )
 
         attributes = {
             'name': self.name,
@@ -2329,7 +2348,6 @@ class PropertyType(Vertex):
 
             e.add()
 
-
     def added_to_db(self) -> bool:
         """Return whether this PropertyType is added to the database,
         that is, whether the ID is not the virtual ID placeholder and perform a 
@@ -2341,19 +2359,18 @@ class PropertyType(Vertex):
 
         return (
             self.id() != VIRTUAL_ID_PLACEHOLDER or (
-                g.V().has('category', PropertyType.category) \
-                    .has('name', self.name).count().next() > 0
+                g.V().has('category', PropertyType.category)
+                .has('name', self.name).count().next() > 0
             )
         )
 
-
     @classmethod
     def _attrs_to_property_type(
-            cls, 
-            name: str, units: str, allowed_regex: str,
-            n_values: int, allowed_types: List[ComponentType], comments: str="",
-            id: int=VIRTUAL_ID_PLACEHOLDER
-        ):
+        cls,
+        name: str, units: str, allowed_regex: str,
+        n_values: int, allowed_types: List[ComponentType], comments: str = "",
+        id: int = VIRTUAL_ID_PLACEHOLDER
+    ):
         """Given the id and attributes of a PropertyType, see if one
         exists in the cache. If so, return the cached PropertyType.
         Otherwise, create a new one, cache it, and return it.
@@ -2364,7 +2381,7 @@ class PropertyType(Vertex):
         :param units: The units which the values of the properties belonging
         to this type are to be in. 
         :type units: str
-        
+
         :param allowed_regex: The regular expression that the values of the
         properties of this property type must adhere to. 
         :type allowed_regex: str
@@ -2379,7 +2396,7 @@ class PropertyType(Vertex):
 
         :param comments: The comments attached to the property type, 
         defaults to ""
-        :str comments: str  
+        :type comments: str  
 
         :param id: The serverside ID of the PropertyType, 
         defaults to VIRTUAL_ID_PLACEHOLDER
@@ -2398,9 +2415,8 @@ class PropertyType(Vertex):
                     id=id
                 )
             )
-        
-        return _vertex_cache[id]
 
+        return _vertex_cache[id]
 
     @classmethod
     def from_db(cls, name: str):
@@ -2428,7 +2444,6 @@ class PropertyType(Vertex):
             for ctype_id in ctype_ids:
                 ctypes.append(ComponentType.from_id(ctype_id))
 
-
             Vertex._cache_vertex(
                 PropertyType(
                     name=name,
@@ -2441,7 +2456,6 @@ class PropertyType(Vertex):
                 )
             )
 
-        
         return _vertex_cache[id]
 
     @classmethod
@@ -2484,13 +2498,12 @@ class PropertyType(Vertex):
 
         return _vertex_cache[id]
 
-
     @classmethod
-    def get_list(cls, 
-        range: tuple, 
-        order_by: str,
-        order_direction: str,
-        filters: list=[]):
+    def get_list(cls,
+                 range: tuple,
+                 order_by: str,
+                 order_direction: str,
+                 filters: list = []):
         """
         Return a list of PropertyTypes in the range :param range:,
         based on the filters in :param filters:,
@@ -2511,17 +2524,17 @@ class PropertyType(Vertex):
 
         :param filters: A list of 2-tuples of the format (name, ctype)
         :type order_by: list
-        
+
         :return: A list of PropertyType instances.
         :rtype: list[PropertyType]
         """
-        
+
         assert order_direction in {'asc', 'desc'}
 
         assert order_by in {'name', 'allowed_type'}
 
         traversal = g.V().has('category', PropertyType.category)
-        
+
         # if order_direction is not asc or desc, it will just sort by asc.
         # Keep like this if removing the assert above only in production.
         if order_direction == 'desc':
@@ -2534,7 +2547,7 @@ class PropertyType(Vertex):
             ands = []
 
             for f in filters:
-                
+
                 assert len(f) == 2
 
                 contents = []
@@ -2547,7 +2560,7 @@ class PropertyType(Vertex):
                 if f[1] != "":
                     contents.append(
                         __.both(RelationPropertyAllowedType.category).has(
-                            'name', 
+                            'name',
                             f[1]
                         )
                     )
@@ -2566,14 +2579,14 @@ class PropertyType(Vertex):
                         RelationPropertyAllowedType.category
                     ).values('name'),
                     Order.asc
-                )
+            )
         elif order_by == 'allowed_type':
             traversal = traversal.order().by(
-                    __.both(
-                        RelationPropertyAllowedType.category
-                    ).values('name'),
-                    direction
-                ).by('name', Order.asc)
+                __.both(
+                    RelationPropertyAllowedType.category
+                ).values('name'),
+                direction
+            ).by('name', Order.asc)
 
         # Component type query to DB
         pts = traversal.range(range[0], range[1]) \
@@ -2596,7 +2609,7 @@ class PropertyType(Vertex):
 
             property_types.append(
                 PropertyType._attrs_to_property_type(
-                    id=id, 
+                    id=id,
                     name=attrs['name'][0],
                     units=attrs['units'][0],
                     allowed_regex=attrs['allowed_regex'][0],
@@ -2605,10 +2618,53 @@ class PropertyType(Vertex):
                     allowed_types=ctypes,
                 )
             )
-        
+
         return property_types
 
-        
+    @classmethod
+    def get_count(cls, filters: list):
+        """Return the count of PropertyType given a list of filters
+
+        :param filters: A list of 2-tuples of the format (name, ctype)
+        :type order_by: list
+
+        :return: The number of PropertyType that agree with
+        :param filters:.
+        :rtype: int
+        """
+
+        traversal = g.V().has('category', PropertyType.category)
+
+        if filters is not None:
+
+            ands = []
+
+            for f in filters:
+
+                assert len(f) == 2
+
+                contents = []
+
+                # substring of property type name
+                if f[0] != "":
+                    contents.append(__.has('name', TextP.containing(f[0])))
+
+                # component type
+                if f[1] != "":
+                    contents.append(
+                        __.both(RelationPropertyAllowedType.category).has(
+                            'name',
+                            f[1]
+                        )
+                    )
+
+                if len(contents) > 0:
+                    ands.append(__.and_(*contents))
+
+            if len(ands) > 0:
+                traversal = traversal.or_(*ands)
+
+        return traversal.count().next()
 
         # traversal = g.V().has('category', PropertyType.category) \
         #     .has('name', TextP.containing(name_substring))
@@ -2616,13 +2672,11 @@ class PropertyType(Vertex):
         # # https://groups.google.com/g/gremlin-users/c/FKbxWKG-YxA/m/kO1hc0BDCwAJ
         # if order_by == "name":
         #     traversal = traversal.order().by(
-        #         __.coalesce(__.values('name'), constant("")), 
+        #         __.coalesce(__.values('name'), constant("")),
         #         direction
         #     )
 
         # ids = traversal.range(range[0], range[1]).id().toList()
-
-
 
         # property_types = []
 
@@ -2631,13 +2685,13 @@ class PropertyType(Vertex):
         #     property_types.append(
         #         PropertyType.from_id(id)
         #     )
-        
+
         # return property_types
 
 
 class Property(Vertex):
     """The representation of a property.
-    
+
     :ivar values: The values contained within the property.
     :ivar property_type: The PropertyType instance representing the property
     type of this property.
@@ -2650,15 +2704,15 @@ class Property(Vertex):
 
     def __init__(
         self, values: List[str], property_type: PropertyType,
-        id: int=VIRTUAL_ID_PLACEHOLDER
+        id: int = VIRTUAL_ID_PLACEHOLDER
     ):
 
         # if len(values) != property_type.n_values:
 
-            # print(len(values), property_type.n_values)
-            
-            # TODO: This isn't working for some reason.....!!!!!!!!!!!
-            # raise PropertyWrongNValuesError
+        # print(len(values), property_type.n_values)
+
+        # TODO: This isn't working for some reason.....!!!!!!!!!!!
+        # raise PropertyWrongNValuesError
 
         for val in values:
 
@@ -2703,7 +2757,7 @@ class Property(Vertex):
         """
 
         if id not in _vertex_cache:
-            
+
             d = g.V(id).project('values', 'ptype_id') \
                 .by(__.properties('values').value().fold()) \
                 .by(__.both(RelationPropertyType.category).id()).next()
@@ -2715,14 +2769,13 @@ class Property(Vertex):
 
             Vertex._cache_vertex(
                 Property(
-                    values=values, 
+                    values=values,
                     property_type=PropertyType.from_id(ptype_id),
                     id=id
                 )
             )
 
         return _vertex_cache[id]
-
 
 
 class FlagType(Vertex):
@@ -2737,9 +2790,8 @@ class FlagType(Vertex):
     name: str
     comments: str
 
-
     def __new__(
-        cls, name: str, comments: str="", id: int=VIRTUAL_ID_PLACEHOLDER
+        cls, name: str, comments: str = "", id: int = VIRTUAL_ID_PLACEHOLDER
     ):
         """
         Return a FlagType instance given the desired attributes.
@@ -2761,10 +2813,9 @@ class FlagType(Vertex):
         else:
             return object.__new__(cls)
 
-
     def __init__(
-        self, name: str, comments: str="", id: int=VIRTUAL_ID_PLACEHOLDER
-    ):  
+        self, name: str, comments: str = "", id: int = VIRTUAL_ID_PLACEHOLDER
+    ):
         """Initialize a FlagType instance given the desired attributes.
 
         :param name: The name of the flag type
@@ -2783,10 +2834,16 @@ class FlagType(Vertex):
 
         Vertex.__init__(self, id=id)
 
-
     def add(self):
         """Add this FlagType to the database.
         """
+
+        # If already added.
+        if self.added_to_db():
+            raise VertexAlreadyAddedError(
+                f"FlagType with name {self.name} " +
+                "already exists in the database."
+            )
 
         attributes = {
             'name': self.name,
@@ -2794,7 +2851,6 @@ class FlagType(Vertex):
         }
 
         Vertex.add(self=self, attributes=attributes)
-
 
     def added_to_db(self) -> bool:
         """Return whether this FlagType is added to the database,
@@ -2807,34 +2863,34 @@ class FlagType(Vertex):
 
         return (
             self.id() != VIRTUAL_ID_PLACEHOLDER or (
-                g.V().has('category', FlagType.category) \
-                    .has('name', self.name).count().next() == 1
+                g.V().has('category', FlagType.category)
+                .has('name', self.name).count().next() == 1
             )
         )
-
 
     @classmethod
     def from_db(cls, name: str):
         """Query the database and return a FlagType instance based on
-        component type of name :param name:.
+        flag type of name :param name:.
 
         :param name: The name of the flag type.
         :type name: str
+
         :return: A FlagType instance with the correct name, comments, and 
         ID.
         :rtype: FlagType
         """
 
-        d =  g.V().has('category', FlagType.category).has('name', name) \
+        d = g.V().has('category', FlagType.category).has('name', name) \
             .as_('v').valueMap().as_('props').select('v').id().as_('id') \
             .select('props', 'id').next()
-        
+
         props, id = d['props'], d['id']
 
         Vertex._cache_vertex(
             FlagType(
-                name=name, 
-                comments=props['comments'][0], 
+                name=name,
+                comments=props['comments'][0],
                 id=id
             )
         )
@@ -2848,6 +2904,7 @@ class FlagType(Vertex):
 
         :param id: The serverside ID of the FlagType vertex.
         :type id: int
+
         :return: Return a FlagType from that ID.
         :rtype: FlagType
         """
@@ -2858,13 +2915,354 @@ class FlagType(Vertex):
 
             Vertex._cache_vertex(
                 FlagType(
-                    name=d['name'][0], 
-                    comments=d['comments'][0], 
+                    name=d['name'][0],
+                    comments=d['comments'][0],
                     id=id
                 )
             )
 
         return _vertex_cache[id]
+
+    @classmethod
+    def _attrs_to_type(cls, name: str, comments: str, id: int):
+        """Given name, comments and id of a FlagType, see if one
+        exists in the cache. If so, return the cached FlagType.
+        Otherwise, create a new one, cache it, and return it.
+
+        :param name: The name of the FlagType vertex
+        :type name: str
+        :param comments: Comments associated with the FlagType vertex
+        :type comments: str
+        :param id: The ID of the FlagType vertex.
+        :type id: int
+        """
+
+        if id not in _vertex_cache:
+            Vertex._cache_vertex(
+                FlagType(
+                    name=name,
+                    comments=comments,
+                    id=id
+                )
+            )
+
+        return _vertex_cache[id]
+
+    @classmethod
+    def get_list(
+        cls,
+        range: tuple,
+        order_by: str,
+        order_direction: str,
+        name_substring: str
+    ):
+        """
+        Return a list of FlagTypes based in the range :param range:,
+        based on the name substring in :param name_substring:, 
+        and order them based on :param order_by: 
+        in the direction :param order_direction:.
+
+        :param range: The range of FlagTypes to query. If the second
+        coordinate is -1, then the range is (range[1], inf)
+        :type range: tuple[int, int]
+
+        :param order_by: What to order the flag types by. Must be in
+        {'name'}
+        :type order_by: str
+
+        :param order_direction: Order the flag types by 
+        ascending or descending?
+        Must be in {'asc', 'desc'}
+        :type order_by: str
+
+        :param name_substring: What substring of the name property of the
+        flag type to filter by.
+        :type name_substring: str
+
+        :return: A list of FlagType instances.
+        :rtype: list[FlagType]
+        """
+
+        assert order_direction in {'asc', 'desc'}
+
+        assert order_by in {'name'}
+
+        traversal = g.V().has('category', FlagType.category) \
+            .has('name', TextP.containing(name_substring))
+
+        # if order_direction is not asc or desc, it will just sort by asc.
+        # Keep like this if removing the assert above only in production.
+        if order_direction == 'desc':
+            direction = Order.desc
+        else:
+            direction = Order.asc
+
+        # How to order the flag types.
+        # This coalesce thing is done to prevent "property does not exist" error
+        # not sure why it happens as the 'name' property will ALWAYS exist...
+        # but maybe the traversal somehow catches other vertices not of this
+        # type...
+        if order_by == 'name':
+            traversal = traversal.order().by(
+                __.coalesce(__.values('name'), constant("")),
+                direction
+            )
+
+        # Component type query to DB
+        cts = traversal.range(range[0], range[1]) \
+            .project('id', 'name', 'comments') \
+            .by(__.id()) \
+            .by(__.values('name')) \
+            .by(__.values('comments')) \
+            .toList()
+
+        flag_types = []
+
+        for entry in cts:
+            id, name, comments = entry['id'], entry['name'], entry['comments']
+
+            flag_types.append(
+                FlagType._attrs_to_type(
+                    id=id,
+                    name=name,
+                    comments=comments
+                )
+            )
+
+        return flag_types
+
+    @classmethod
+    def get_count(cls, name_substring: str):
+        """Return the count of FlagTypes given a substring of the name
+        property.
+
+        :param name_substring: A substring of the name property of the
+        FlagType
+        :type name_substring: str
+
+        :return: The number of FlagTypes that contain 
+        :param name_substring: as a substring in the name property.
+        :rtype: int
+        """
+
+        return g.V().has('category', FlagType.category) \
+            .has('name', TextP.containing(name_substring)) \
+            .count().next()
+
+
+class FlagSeverity(Vertex):
+    """
+    The representation of a flag severity.
+
+    :ivar value: The numerical value of the severity.
+    """
+    category: str = "flag_severity"
+
+    value: int
+
+    def __new__(cls, value: int, id: int = VIRTUAL_ID_PLACEHOLDER):
+        """
+        Return a FlagSeverity instance given the desired attribute.
+
+        :param value: The numerical value of the severity.
+        :type value: int
+
+        :param id: The serverside ID of the FlagType,
+        defaults to VIRTUAL_ID_PLACEHOLDER
+        :type id: int, optional
+        """
+
+        if id is not VIRTUAL_ID_PLACEHOLDER and id in _vertex_cache:
+            return _vertex_cache[id]
+
+        else:
+            return object.__new__(cls)
+
+    def __init__(self, value: int, id: int = VIRTUAL_ID_PLACEHOLDER):
+        """
+        Initialize a FlagSeverity instance given the FlagSeverity instance given the desired attributes.
+
+        :param value: The numerical value of the severity.
+        :type value: int
+
+        :param id: The serverside ID of the FlagType,
+        defaults to VIRTUAL_ID_PLACEHOLDER
+        :type id: int, optional
+        """
+
+        self.value = value
+
+        Vertex.__init__(self, id=id)
+
+    def add(self):
+        """Add this FlagSeverity to the database."""
+
+        attributes = {
+            'value': self.value
+        }
+
+        Vertex.add(self=self, attributes=attributes)
+
+    def added_to_db(self) -> bool:
+        """
+        Return whether this FlagSeverity is added to the database, that is, whether the ID is not the virtual ID placeholder and perform a query to the database to determine if the vertex has already been added.
+
+        :return: True if element is added to database, False otherwise.
+        :rtype: bool
+        """
+
+        return (
+            self.id() != VIRTUAL_ID_PLACEHOLDER or (
+                g.V().has('category', FlagSeverity.category).has(
+                    'value', self.value).count().next() == 1
+            )
+        )
+
+    @classmethod
+    def from_db(cls, value: int):
+        """Query the database and return a FlagSeverity instance based on Flag Severity value :param value:.
+
+        :param value: The numerical value of the severity.
+        :type value: int
+
+        :return: A FlagSeverity instance with the correct value and ID.
+        :rtype: FlagSeverity.
+        """
+
+        d = g.V().has('category', FlagSeverity.category).has('value', value).as_(
+            'v').valueMap().as_('props').select('v').id().as_('id').select('props', 'id').next()
+
+        props, id = d['props'], d['id']
+
+        Vertex._cache_vertex(
+            FlagSeverity(
+                value=value,
+                id=id
+            )
+        )
+
+        return _vertex_cache[id]
+
+    @classmethod
+    def from_id(cls, id: int):
+        """Query the database and return a FlagSeverity instance based on the ID.
+
+        :param id: The serverside ID of the FlagSeverity vertex.
+        :type id: int
+
+        :return: Return a FlagSeverity from that ID.
+        :rtype: FlagSeverity
+        """
+
+        if id not in _vertex_cache:
+
+            d = g.V(id).valueMap().next()
+
+            Vertex._cache_vertex(
+                FlagSeverity(
+                    value=d['value'][0],
+                    id=id
+                )
+            )
+
+        return _vertex_cache[id]
+
+    @classmethod
+    def _attrs_to_type(cls, value: int, id: int):
+        """Given value of a FlagSeverity, see if one
+        exists in the cache. If so, return the cached FlagSeverity.
+        Otherwise, create a new one, cache it, and return it.
+
+        :param value: The numerical value of the severity.
+        :type value: int 
+
+        :param id: The ID of the ComponentType vertex.
+        :type id: int
+        """
+
+        if id not in _vertex_cache:
+            Vertex._cache_vertex(
+                FlagSeverity(
+                    value=value,
+                    id=id
+                )
+            )
+
+        return _vertex_cache[id]
+
+    @classmethod
+    def get_list(
+        cls,
+        range: tuple,
+        order_by: str,
+        order_direction: str
+    ):
+        """
+        Return a list of FlagSeverity based in the range :param range:, 
+        and order them based on :param order_by: 
+        in the direction :param order_direction:.
+
+        :param range: The range of FlagSeverity to query. If the second
+        coordinate is -1, then the range is (range[1], inf)
+        :type range: tuple[int, int]
+
+        :param order_by: What to order the flag severities by. Must be in
+        {'value'}
+        :type order_by: str
+
+        :param order_direction: Order the flag severities by 
+        ascending or descending?
+        Must be in {'asc', 'desc'}
+        :type order_by: str
+
+        :return: A list of FlagSeverity instances.
+        :rtype: list[FlagSeverity]
+        """
+
+        assert order_direction in {'asc', 'desc'}
+
+        assert order_by in {'value'}
+
+        traversal = g.V().has('category', FlagSeverity.category) \
+
+
+        # if order_direction is not asc or desc, it will just sort by asc.
+        # Keep like this if removing the assert above only in production.
+        if order_direction == 'desc':
+            direction = Order.desc
+        else:
+            direction = Order.asc
+
+        # How to order the flag severities.
+        # This coalesce thing is done to prevent "property does not exist" error
+        # not sure why it happens as the 'name' property will ALWAYS exist...
+        # but maybe the traversal somehow catches other vertices not of this
+        # type...
+        if order_by == 'value':
+            traversal = traversal.order().by('value', direction
+                                             )
+
+        # flag severity query to DB
+        fs = traversal.range(range[0], range[1]) \
+            .project('id', 'value') \
+            .by(__.id()) \
+            .by(__.values('value')) \
+            .toList()
+
+        flag_severities = []
+
+        for entry in fs:
+            id, value = entry['id'], entry['value']
+
+            flag_severities.append(
+                FlagSeverity._attrs_to_type(
+                    id=id,
+                    value=value,
+
+                )
+            )
+
+        return flag_severities
 
 
 class Flag(Vertex):
@@ -2874,8 +3272,8 @@ class Flag(Vertex):
     :ivar name: The name of the flag.
     :ivar start_time: The start time of the flag.
     :ivar end_time: The end time of the flag.
-    :ivar severity: The severity of the flag.
     :ivar comments: The comments relating to the flag.
+    :ivar flag_severity: The FlagSeverity instance representing the severity of the flag.
     :ivar flag_type: The FlagType instance representing the type of the flag.
     :ivar flag_components: A list of Component instances related to the flag.
     """
@@ -2885,22 +3283,54 @@ class Flag(Vertex):
     name: str
     start_time: int
     end_time: int
-    severity: int
     comments: str
+    flag_severity: FlagSeverity
     flag_type: FlagType
     flag_components: List[Component]
 
+    def __new__(cls, name: str, start_time: int, end_time: int, comments: str, flag_severity: FlagSeverity, flag_type: FlagType, flag_components: List[Component] = [], id: int = VIRTUAL_ID_PLACEHOLDER):
+        """
+        Return a Flag instance given the desired name,start time,end time, comments, flag severity instance, flag type instance, component instance and id.
+
+        :param name: The name of the flag.
+        :type name: str
+
+        :param start_time: The start time of the flag.
+        :type start_time: float
+
+        :param end_time: The end time of the flag.
+        :type end_time: float
+
+        :param flag_severity: The flag severity that indicates the severity of the flag.
+        :type flag_severity: FlagSeverity
+
+        :param flag_type: The flag type that indicates the type of the flag.
+        :type flag_severity: FlagType
+
+        :param flag_components: A list of The flag components that have this flag.
+        :type flag_components: List[Component]
+
+        :param comments: Comments associated with this flag, defaults to ""
+        :type comments: str
+        """
+
+        if id is not VIRTUAL_ID_PLACEHOLDER and id in _vertex_cache:
+            return _vertex_cache[id]
+
+        else:
+            return object.__new__(cls)
+
     def __init__(
         self, name: str, start_time: int, end_time: int,
-        severity: int, flag_type: FlagType,
-        flag_components: List[Component]=[], comments: str="", 
-        id: int=VIRTUAL_ID_PLACEHOLDER
+        flag_severity: FlagSeverity, flag_type: FlagType,
+        flag_components: List[Component] = [], comments: str = "",
+        id: int = VIRTUAL_ID_PLACEHOLDER
     ):
         self.name = name
         self.start_time = start_time
         self.end_time = end_time
-        self.severity = severity
         self.comments = comments
+        self.flag_severity = flag_severity
         self.flag_type = flag_type
         self.flag_components = flag_components
 
@@ -2911,11 +3341,16 @@ class Flag(Vertex):
         Add this Flag instance to the database.
         """
 
+        if self.added_to_db():
+            raise VertexAlreadyAddedError(
+                f"Flag with name {self.name}" +
+                "already exists in the database."
+            )
+
         attributes = {
             'name': self.name,
             'start_time': self.start_time,
             'end_time': self.end_time,
-            'severity': self.severity,
             'comments': self.comments
         }
 
@@ -2931,8 +3366,18 @@ class Flag(Vertex):
 
         e.add()
 
+        if not self.flag_severity.added_to_db():
+            self.flag_severity.add()
+
+        e = RelationFlagSeverity(
+            inVertex=self.flag_severity,
+            outVertex=self
+        )
+
+        e.add()
+
         for c in self.flag_components:
-            
+
             if not c.added_to_db():
                 c.add()
 
@@ -2943,30 +3388,91 @@ class Flag(Vertex):
 
             e.add()
 
+    def added_to_db(self) -> bool:
+        """Return whether this Flag is added to the database,that is, whether the ID is not the virtual ID placeholder and perform a query to the database if the vertex has already been added.
+
+        :return: True if element is added to database, False otherwise.
+        :rtype: bool
+        """
+
+        return (
+            self.id() != VIRTUAL_ID_PLACEHOLDER or (
+                g.V().has('category', Flag.category).has('name', self.name).count().next() > 0
+            )
+        )
+
+    @classmethod
+    def _attrs_to_flag(
+            cls, name: str, start_time: int, end_time: int,
+            flag_severity: FlagSeverity, flag_type: FlagType,
+            flag_components: List[Component] = [], comments: str = "",
+            id: int = VIRTUAL_ID_PLACEHOLDER):
+        """Given the id and attributes of a Flag, see if one exists in the cache. If so, return the cached Flag. Otherwise, create a new one, cache it, and return it.
+
+        :param name: The name of the flag.
+        :type name: str
+
+        :param start_time: The start time of the flag.
+        :type start_time: float
+
+        :param end_time: The end time of the flag.
+        :type end_time: float
+
+        :param flag_severity: The flag severity that indicates the severity of the flag.
+        :type flag_severity: FlagSeverity
+
+        :param flag_type: The flag type that indicates the type of the flag.
+        :type flag_severity: FlagType
+
+        :param flag_components: A list of The flag components that have this flag.
+        :type flag_components: List[Component]
+
+        :param comments: Comments associated with this flag, defaults to ""
+        :type comments: str
+
+        """
+
+        if id not in _vertex_cache:
+            Vertex._cache_vertex(
+                Flag(
+                    name=name,
+                    start_time=start_time,
+                    end_time=end_time,
+                    comments=comments,
+                    flag_severity=flag_severity,
+                    flag_type=flag_type,
+                    flag_components=flag_components,
+                    id=id
+                )
+            )
+
+        return _vertex_cache[id]
+
     @classmethod
     def from_db(cls, name: str):
-        """Quer the database and return a Flag instance based on the name
-        :param name:, connected to the necessary Components and FlagType
-        instances.
+        """Query the database and return a Flag instance based on the name
+        :param name:, connected to the necessary Components, FlagType
+        instances and FlagSeverity instance.
 
         :param name: The name of the Flag instance
         :type name: str
         """
 
-
         d = g.V().has('category', Flag.category).has('name', name) \
-            .project('id', 'attrs', 'type_id', 'component_ids') \
+            .project('id', 'attrs', 'type_id', 'severity_id', 'component_ids') \
             .by(__.id()) \
             .by(__.valueMap()) \
-            .by(__.both(RelationFlagType.category).id()) \
+            .by(__.both(RelationFlagType.category).id()).by(__.both(RelationFlagSeverity.category).id()) \
             .by(__.both(RelationFlagComponent.category).id().fold()).next()
 
-        id, attrs, type_id, component_ids = d['id'], d['attrs'], \
-            d['type_id'], d['component_ids']
+        id, attrs, type_id, severity_id, component_ids = d['id'], d['attrs'], \
+            d['type_id'], d['severity_id'], d['component_ids']
 
         if id not in _vertex_cache:
 
             Vertex._cache_vertex(FlagType.from_id(type_id))
+
+            Vertex._cache_vertex(FlagSeverity.from_id(severity_id))
 
             components = []
 
@@ -2978,10 +3484,712 @@ class Flag(Vertex):
                     name=name,
                     start_time=attrs['start_time'][0],
                     end_time=attrs['end_time'][0],
-                    severity=attrs['severity'][0],
                     comments=attrs['comments'][0],
+                    flag_severity=_vertex_cache[severity_id],
                     flag_type=_vertex_cache[type_id],
                     flag_components=components,
+                    id=id
+                )
+            )
+
+        return _vertex_cache[id]
+
+    @classmethod
+    def from_id(cls, id: int):
+        """Given an ID of a serverside flag vertex, return a Flag instance.
+        """
+
+        if id not in _vertex_cache:
+
+            d = g.V(id).project('attrs', 'fseverity_id', 'ftype_id', 'fcomponent_ids').by(__.valueMap()).by(__.both(RelationFlagSeverity.category).id()).by(
+                __.both(RelationFlagType.category).id()).by(__.both(RelationFlagComponent.category).id().fold()).next()
+
+            # to access attributes from attrs, do attrs[...][0]
+            attrs, fseverity_id, ftype_id, fcomponent_ids = d['attrs'], d[
+                'fseverity_id'], d['ftype_id'], d['fcomponent_ids']
+
+            components = []
+
+            for component_id in fcomponent_ids:
+                components.append(Component.from_id(component_id))
+
+            Vertex._cache_vertex(
+                Flag(
+                    name=attrs['name'][0],
+                    start_time=attrs['start_time'][0],
+                    end_time=attrs['end_time'][0],
+                    comments=attrs['comments'][0],
+                    flag_severity=FlagSeverity.from_id(fseverity_id),
+                    flag_type=FlagType.from_id(ftype_id),
+                    flag_components=components,
+                    id=id
+                )
+            )
+
+        return _vertex_cache[id]
+
+    @classmethod
+    def get_list(cls,
+                 range: tuple,
+                 order_by: str,
+                 order_direction: str,
+                 filters: list = []):
+        """
+        Return a list of Flags in the range :param range:,
+        based on the filters in :param filters:,
+        and order them based on  :param order_by: in the direction 
+        :param order_direction:.
+
+        :param range: The range of Flag to query
+        :type range: tuple[int, int]
+
+        :param order_by: What to order the Flag by. Must be in
+        {'name', 'flag_type','flag_severity'}
+        :type order_by: str
+
+        :param order_direction: Order the Flag by 
+        ascending or descending?
+        Must be in {'asc', 'desc'}
+        :type order_by: str
+
+        :param filters: A list of 3-tuples of the format (name, ftype,fseverity)
+        :type order_by: list
+
+        :return: A list of Flag instances.
+        :rtype: list[Flag]
+        """
+
+        assert order_direction in {'asc', 'desc'}
+
+        assert order_by in {'name', 'flag_type', 'flag_severity'}
+
+        traversal = g.V().has('category', Flag.category)
+
+        # if order_direction is not asc or desc, it will just sort by asc.
+        # Keep like this if removing the assert above only in production.
+        if order_direction == 'desc':
+            direction = Order.desc
+        else:
+            direction = Order.asc
+
+        if filters is not None:
+
+            ands = []
+
+            for f in filters:
+
+                assert len(f) == 3
+
+                contents = []
+
+                # substring of flag name
+                if f[0] != "":
+                    contents.append(__.has('name', TextP.containing(f[0])))
+
+                # flag type
+                if f[1] != "":
+                    contents.append(
+                        __.both(RelationFlagType.category).has(
+                            'name',
+                            f[1]
+                        )
+                    )
+
+                # flag severity
+                if f[2] != "":
+                    contents.append(
+                        __.both(RelationFlagSeverity.category).has(
+                            'value',
+                            f[2]
+                        )
+                    )
+
+                if len(contents) > 0:
+                    ands.append(__.and_(*contents))
+
+            if len(ands) > 0:
+                traversal = traversal.or_(*ands)
+
+        # How to order the flags.
+        if order_by == 'name':
+            traversal = traversal.order().by('name', direction) \
+                .by(
+                    __.both(
+                        RelationFlagType.category
+                    ).values('name'),
+                    Order.asc
+            ).by(
+                __.both(RelationFlagSeverity.category).values(
+                    'value'), Order.asc
+            )
+
+        elif order_by == 'flag_type':
+            traversal = traversal.order().by(
+                __.both(
+                    RelationFlagType.category
+                ).values('name'),
+                direction
+            ).by('name', Order.asc).by(
+                __.both(
+                    RelationFlagSeverity.category
+                ).values('value'), Order.asc
+            )
+
+        elif order_by == 'flag_severity':
+            traversal = traversal.order().by(
+                __.both(
+                    RelationFlagSeverity.category
+                ).values('value'),
+                direction
+            ).by('name', Order.asc).by(
+                __.both(RelationFlagType.category).values('name'), Order.asc
+            )
+
+        # flag query to DB
+        fs = traversal.range(range[0], range[1]) \
+            .project('id', 'attrs', 'ftype_id', 'fseverity_id', 'fcomponent_ids') \
+            .by(__.id()) \
+            .by(__.valueMap()) \
+            .by(__.both(RelationFlagType.category).id()).by(__.both(RelationFlagSeverity.category).id()).by(__.both(RelationFlagComponent.category).id().fold()) \
+            .toList()
+
+        flags = []
+
+        for entry in fs:
+            id, ftype_id, fseverity_id, fcomponent_ids, attrs = entry['id'], entry['ftype_id'], entry['fseverity_id'], entry['fcomponent_ids'], \
+                entry['attrs']
+
+            fcomponents = []
+
+            for fcomponent_id in fcomponent_ids:
+                fcomponents.append(Component.from_id(fcomponent_id))
+
+            flags.append(
+                Flag._attrs_to_flag(
+                    id=id,
+                    name=attrs['name'][0],
+                    start_time=attrs['start_time'][0],
+                    end_time=attrs['end_time'][0],
+                    comments=attrs['comments'][0],
+                    flag_severity=FlagSeverity.from_id(fseverity_id),
+                    flag_type=FlagType.from_id(ftype_id),
+                    flag_components=fcomponents,
+                )
+            )
+
+        return flags
+
+    @classmethod
+    def get_count(cls, filters: str):
+        """Return the count of flags given a list of filters.
+
+        :param filters: A list of 3-tuples of the format (name,ftype,fseverity)
+        :type order_by: list
+
+        :return: The number of flags.
+        :rtype: int
+        """
+        traversal = g.V().has('category', Flag.category)
+
+        # FILTERS
+
+        if filters is not None:
+
+            ands = []
+
+            for f in filters:
+
+                assert len(f) == 3
+
+                contents = []
+
+                # substring of flag name
+                if f[0] != "":
+                    contents.append(__.has('name', TextP.containing(f[0])))
+
+                # flag type
+                if f[1] != "":
+                    contents.append(
+                        __.both(RelationFlagType.category).has(
+                            'name',
+                            f[1]
+                        )
+                    )
+
+                # flag severity
+                if f[2] != "":
+                    contents.append(
+                        __.both(RelationFlagSeverity.category).has(
+                            'value',
+                            f[2]
+                        )
+                    )
+
+                if len(contents) > 0:
+                    ands.append(__.and_(*contents))
+
+            if len(ands) > 0:
+                traversal = traversal.or_(*ands)
+
+        return traversal.count().next()
+
+
+class Permission(Vertex):
+    """ The representation of a permission.
+
+    :ivar name: The name of the permission.
+    :ivar comments: Comments about the permission.
+    """
+
+    category: str = 'permission'
+
+    name: str
+    comments: str
+
+    def __new__(
+            cls, name: str, comments: str = '', id: int = VIRTUAL_ID_PLACEHOLDER):
+        """
+        Return a Permission instance given the desired attributes.
+
+        :param name: The name of the permission.
+        :type name: str
+
+        :param comments: The comments attached to this permission, defaults to ""
+        :type comments: str
+
+        :param id: The serverside ID of the permission, defaults to VIRTUAL_ID_PLACEHOLDER
+        :type id: int, optional
+        """
+
+        if id is not VIRTUAL_ID_PLACEHOLDER and id in _vertex_cache:
+            return _vertex_cache[id]
+
+        else:
+            return object.__new__(cls)
+
+    def __init__(self, name: str, comments: str = " ", id: int = VIRTUAL_ID_PLACEHOLDER):
+        """
+        Initialize a Permission instance given the desired attributes.
+
+        :param name: The name of the permission.
+        :type name: str
+
+        :param comments: The comments attached to this permission, defaults to ""
+        :type comments: str
+
+        :param id: The serverside ID of the permission, defaults to VIRTUAL_ID_PLACEHOLDER
+        :type id: int, optional
+        """
+
+        self.name = name
+        self.comments = comments
+
+        Vertex.__init__(self, id=id)
+
+    def add(self):
+        """Add this permission to the database."""
+
+        # if already added, raise an error!
+        if self.added_to_db():
+            raise VertexAlreadyAddedError(
+                f"Permission with name {self.name}" +
+                "already exists in the database."
+            )
+
+        attributes = {
+            'name': self.name,
+            'comments': self.comments
+        }
+
+        Vertex.add(self=self, attributes=attributes)
+
+    def added_to_db(self) -> bool:
+        """
+        Return whether this Permission is added to the database, that is, whether the ID is not the Virtual ID placeholder and perform a query to the database to determine if the vertex has already been added.
+
+        :return: True if element is added to database, False otherwise.
+        :rtype: bool
+        """
+
+        return (
+            self.id() != VIRTUAL_ID_PLACEHOLDER or (
+                g.V().has('category', Permission.category).has(
+                    'name', self.name).count().next() == 1
+            )
+        )
+
+    @classmethod
+    def from_db(cls, name: str):
+        """Query the database and return a Permission instance based on permission :param name.
+
+        :param name: The name of the permission.
+        :type name: str
+
+        :return: A Permission instance with the correct name, comments, and ID.
+        :rtype: Permission
+        """
+
+        d = g.V().has('category', Permission.category).has('name', name).as_(
+            'v').valueMap().as_('props').select('v').id().as_('id').select('props', 'id').next()
+
+        props, id = d['props'], d['id']
+
+        Vertex._cache_vertex(
+            Permission(
+                name=name,
+                comments=props['comments'][0],
+                id=id
+            )
+        )
+
+        return _vertex_cache[id]
+
+    @classmethod
+    def from_id(cls, id: int):
+        """ Query the database and return a Permission instance based on the ID.
+
+        :param id: The serverside ID of the Permission vertex.
+        :type id: int
+
+        :return: Return a Perimssion from that ID.
+        :rtype: Permission
+        """
+
+        if id not in _vertex_cache:
+            d = g.V(id).valueMap().next()
+
+            Vertex._cache_vertex(
+                Permission(
+                    name=d['name'][0],
+                    comments=d['comments'][0],
+                    id=id
+                )
+            )
+
+        return _vertex_cache[id]
+
+
+class UserGroup(Vertex):
+    """ The representation of a user group.
+
+    :ivar name: The name of the user group.
+    :ivar comments: The comments assocaited with the group.
+    :ivar permission: A list of Perimssion instances associated with this group.
+    """
+
+    category: str = 'user_group'
+
+    name: str
+    comments: str
+    permission: List[Permission]
+
+    def __init__(self, name: str, comments: str, permission: List[Permission], id: int = VIRTUAL_ID_PLACEHOLDER):
+
+        self.name = name
+        self.comments = comments
+        self.permission = permission
+
+        if len(self.permission) == 0:
+            raise UserGroupZeroPermissionError(
+                f"No permission were specified for user group {name}"
+            )
+
+        Vertex.__init__(self=self, id=id)
+
+    def add(self):
+        """
+        Add this UserGroup instance to the database.
+        """
+
+        if self.added_to_db():
+            raise VertexAlreadyAddedError(
+                f"UserGroup with name {self.name}" +
+                "already exists in the database."
+            )
+
+        attributes = {
+            'name': self.name,
+            'comments': self.comments
+        }
+
+        Vertex.add(self=self, attributes=attributes)
+
+        for p in self.permission:
+
+            if not p.added_to_db():
+                p.add()
+
+            e = RelationGroupAllowedType(
+                inVertex=p,
+                outVertex=self
+            )
+
+            e.add()
+
+    def added_to_db(self) -> bool:
+        """Return whether this UserGroup is added to the database, that is, whether the ID is not the virtual ID placeholder and perform a query to the database to determine if the vertex has already been added.
+
+        :return: True if element is added to database, False otherwise.
+        :rtype: bool
+        """
+
+        return (
+            self.id() != VIRTUAL_ID_PLACEHOLDER or (
+                g.V().has('category', UserGroup.category).has(
+                    'name', self.name).count().next() == 1
+            )
+        )
+
+    @classmethod
+    def from_db(cls, name: str):
+        """Query the database and return a UserGroup instance based on the name :param name:, connected to the necessary Permission instances.
+
+        :param name: The name of the UserGroup instance.
+        :type name: str
+        """
+
+        d = g.V().has('category', UserGroup.category).has('name', name).project('id', 'attrs', 'permission_ids').by(
+            __.id()).by(__.valueMap()).by(__.both(RelationGroupAllowedType.category).id().fold()).next()
+
+        id, attrs, perimssion_ids = d['id'], d['attrs'], d['permission_ids']
+
+        if id not in _vertex_cache:
+
+            permissions = []
+
+            for p_id in perimssion_ids:
+                permissions.append(Permission.from_id(p_id))
+
+            Vertex._cache_vertex(
+                UserGroup(
+                    name=name,
+                    comments=attrs['comments'][0],
+                    permission=permissions,
+                    id=id
+                )
+            )
+
+        return _vertex_cache[id]
+
+
+class User(Vertex):
+    """ The representation of a user.
+
+    :ivar uname: Name used by the user to login.
+    :ivar pwd_hash: Password is stored after being salted and hashed.
+    :ivar institution: Name of the institution of the user. 
+    :ivar allowed_group: The allowed user group of the user vertex, as a list of UserGroup attributes.
+    """
+
+    category: str = "user"
+
+    uname: str
+    pwd_hash: str
+    institution: str
+    allowed_group: List[UserGroup]
+
+    def __new__(
+        cls, uname: str, pwd_hash: str, institution: str, allowed_group: List[UserGroup], id: int = VIRTUAL_ID_PLACEHOLDER
+    ):
+        """
+        Return a User instance given the desired attributes.
+
+        :param uname: Name used by the user to login.
+        :type uname: str
+
+        :param pwd_hash: Password is stored after being salted and hashed.
+        :type pwd_hash: str
+
+        :param institution: Name of the institution of the user.
+        :type institution: str
+
+        :param allowed_group: The UserGroup instance representing the groups the user is in.
+        :type user_group: List[UserGroup]
+
+        :param id: The serverside ID of the User, defaults to VIRTUAL_ID_PLACEHOLDER
+        :type id: int,optional 
+        """
+        if id is not VIRTUAL_ID_PLACEHOLDER and id in _vertex_cache:
+            return _vertex_cache[id]
+
+        else:
+            return object.__new__(cls)
+
+    def __init__(
+            self, uname: str, pwd_hash: str, institution: str, allowed_group: List[UserGroup], id: int = VIRTUAL_ID_PLACEHOLDER):
+        """
+        Initialize a User instance given the desired attributes.
+
+        :param uname: Name used by the user to login.
+        :type uname: str
+
+        :param pwd_hash: Password is stored after being salted and hashed.
+        :type pwd_hash: str
+
+        :param institution: Name of the institution of the user.
+        :type institution: str
+
+        :param allowed_group: The UserGroup instance representing the groups the user is in.
+        :type user_group: List[UserGroup]
+
+        :param id: The serverside ID of the User, defaults to VIRTUAL_ID_PLACEHOLDER
+        :type id: int,optional 
+        """
+
+        self.uname = uname
+        self.pwd_hash = pwd_hash
+        self.institution = institution
+        self.allowed_group = allowed_group
+
+        if len(self.allowed_group) == 0:
+            raise UserZeroAllowedTypesError(
+                f"No allowed group types were specified for user {uname}"
+            )
+
+        Vertex.__init__(self, id=id)
+
+    def add(self):
+        """Add this user to the serverside.
+        """
+
+        # If already added, raise an error!
+        if self.added_to_db():
+            raise VertexAlreadyAddedError(
+                f"User with username {self.uname}" +
+                "already exists in the database."
+            )
+
+        attributes = {
+            'uname': self.uname,
+            'pwd_hash': self.pwd_hash,
+            'institution': self.institution
+        }
+
+        Vertex.add(self, attributes)
+
+        for gtype in self.allowed_group:
+
+            if not gtype.added_to_db():
+                gtype.add()
+
+            e = RelationUserAllowedGroup(
+                inVertex=gtype,
+                outVertex=self
+            )
+
+            e.add()
+
+    def added_to_db(self) -> bool:
+        """Return whether this User is added to the database, that is, whether the ID is not the virtual ID placeholder and perform a query to the database if the vertex has already been added.
+
+        :return: True if element is added to database, False otherwise.
+        rtype: bool
+        """
+
+        return (
+            self.id() != VIRTUAL_ID_PLACEHOLDER or (
+                g.V().has('category', User.category).has(
+                    'uname', self.uname).count().next() > 0
+            )
+        )
+
+    @classmethod
+    def _attrs_to_user(
+            cls, uname: str, pwd_hash: str, institution: str, allowed_group: List[UserGroup], id: int = VIRTUAL_ID_PLACEHOLDER):
+        """Given the id and attributes of a User, see if one exists in the cache. If so, return the cached User. Otherwise, create a new one, cache it, and return it.
+
+        :param uname: Name used by the user to login.
+        :type uname: str
+
+        :param pwd_hash: Password is stored after being salted and hashed.
+        :type pwd_hash: str
+
+        :param institution: Name of the institution of the user.
+        :type institution: str
+
+        :param allowed_group: The UserGroup instance representing the groups the user is in.
+        :type user_group: List[UserGroup]
+
+        :param id: The serverside ID of the User, defaults to VIRTUAL_ID_PLACEHOLDER
+        :type id: int,optional 
+        """
+
+        if id not in _vertex_cache:
+            Vertex._cache_vertex(
+                User(
+                    uname=uname,
+                    pwd_hash=pwd_hash,
+                    institution=institution,
+                    allowed_group=allowed_group,
+                    id=id
+                )
+            )
+
+        return _vertex_cache[id]
+
+    @classmethod
+    def from_db(cls, uname: str):
+        """Query the database and return a User instance based on uname
+
+        :param uname: Name used by the user to login.
+        :type uname: str 
+        """
+
+        d = g.V().has('category', User.category).has('uname', uname).project('id', 'attrs', 'group_ids').by(
+            __.id()).by(__.valueMap()).by(__.both(RelationUserAllowedGroup.category).id().fold()).next()
+
+        # to access attributes from attrs, do attrs[...][0]
+        id, attrs, gtype_ids = d['id'], d['attrs'], d['group_ids']
+
+        if id not in _vertex_cache:
+
+            gtypes = []
+
+            for gtype_id in gtype_ids:
+                gtypes.append(UserGroup.from_id(gtype_id))
+
+            Vertex._cache_vertex(
+                User(
+                    uname=uname,
+                    pwd_hash=attrs['pwd_hash'][0],
+                    institution=attrs['institution'][0],
+                    allowed_group=gtypes,
+                    id=id
+                )
+            )
+
+        return _vertex_cache[id]
+
+    @classmethod
+    def from_id(cls, id: int):
+        """Query the database and return a User instance based on the ID.
+
+        :param id: The serverside ID of the User instance vertex.
+        type id: int
+        :return: Return a User from that ID.
+        rtype: User
+        """
+
+        if id not in _vertex_cache:
+
+            d = g.V(id).project('attrs', 'group_ids').by(__.valueMap()).by(
+                __.both(RelationUserAllowedGroup.category).id().fold()).next()
+
+            # to access attributes from attrs, do attrs[...][0]
+
+            attrs, gtype_ids = d['attrs'], d['group_ids']
+
+            gtypes = []
+
+            for gtype_id in gtype_ids:
+                gtypes.append(UserGroup.from_id(gtype_id))
+
+            Vertex._cache_vertex(
+                User(
+                    uname=attrs['uname'][0],
+                    pwd_hash=attrs['pwd_hash'][0],
+                    institution=attrs['institution'][0],
+                    allowed_group=gtypes,
                     id=id
                 )
             )
@@ -3023,12 +4231,12 @@ class RelationConnection(Edge):
     end_comments: str
 
     def __init__(
-        self, inVertex: Vertex, outVertex: Vertex, start_time: float, 
-        start_uid: str, start_edit_time: float, start_comments: str="",
-        end_time: float=EXISTING_RELATION_END_PLACEHOLDER, end_uid: str="", 
-        end_edit_time: float=EXISTING_RELATION_END_EDIT_PLACEHOLDER, 
-        end_comments: str="",
-        id: int=VIRTUAL_ID_PLACEHOLDER
+        self, inVertex: Vertex, outVertex: Vertex, start_time: float,
+        start_uid: str, start_edit_time: float, start_comments: str = "",
+        end_time: float = EXISTING_RELATION_END_PLACEHOLDER, end_uid: str = "",
+        end_edit_time: float = EXISTING_RELATION_END_EDIT_PLACEHOLDER,
+        end_comments: str = "",
+        id: int = VIRTUAL_ID_PLACEHOLDER
     ):
         """Initialize the connection.
 
@@ -3069,10 +4277,8 @@ class RelationConnection(Edge):
         self.end_uid = end_uid
         self.end_edit_time = end_edit_time
         self.end_comments = end_comments
-        
 
         Edge.__init__(self=self, id=id, inVertex=inVertex, outVertex=outVertex)
-
 
     def add(self):
         """Add this connection as an edge to the database.
@@ -3091,10 +4297,9 @@ class RelationConnection(Edge):
 
         Edge.add(self, attributes=attributes)
 
-
     def _end_connection(
-        self, end_time: float, 
-        end_uid: str, end_edit_time: float, end_comments: str=""
+        self, end_time: float,
+        end_uid: str, end_edit_time: float, end_comments: str = ""
     ):
         """End the connection if the connection is not permanent.
 
@@ -3125,7 +4330,7 @@ class RelationConnection(Edge):
         g.E(self.id()).property('end_time', end_time) \
             .property('end_uid', end_uid) \
             .property('end_edit_time', end_edit_time) \
-            .property('end_comments', end_comments).iterate()        
+            .property('end_comments', end_comments).iterate()
 
 
 class RelationProperty(Edge):
@@ -3153,11 +4358,11 @@ class RelationProperty(Edge):
     end_comments: str
 
     def __init__(
-        self, inVertex: Vertex, outVertex: Vertex, start_time: float, 
-        start_uid: str, start_edit_time: float, start_comments: str="",
-        end_time: float=EXISTING_RELATION_END_PLACEHOLDER, end_uid: str="", 
-        end_edit_time: float=-1, end_comments: str="",
-        id: int=VIRTUAL_ID_PLACEHOLDER
+        self, inVertex: Vertex, outVertex: Vertex, start_time: float,
+        start_uid: str, start_edit_time: float, start_comments: str = "",
+        end_time: float = EXISTING_RELATION_END_PLACEHOLDER, end_uid: str = "",
+        end_edit_time: float = -1, end_comments: str = "",
+        id: int = VIRTUAL_ID_PLACEHOLDER
     ):
         """Initialize the relation.
 
@@ -3197,8 +4402,8 @@ class RelationProperty(Edge):
         self.end_edit_time = end_edit_time
         self.end_comments = end_comments
 
-        Edge.__init__(self=self, id=id, inVertex=inVertex, 
-        outVertex=outVertex)
+        Edge.__init__(self=self, id=id, inVertex=inVertex,
+                      outVertex=outVertex)
 
     def add(self):
         """Add this relation to the serverside.
@@ -3215,10 +4420,9 @@ class RelationProperty(Edge):
             "end_comments": self.end_comments
         })
 
-
     def end_relation(
-        self, end_time: float, 
-        end_uid: str, end_edit_time: float, end_comments: str=""
+        self, end_time: float,
+        end_uid: str, end_edit_time: float, end_comments: str = ""
     ):
         """End the relation.
 
@@ -3241,16 +4445,16 @@ class RelationProperty(Edge):
 class RelationRevision(Edge):
     """
     Representation of a "rel_revision" edge.
-    """ 
+    """
 
     category: str = "rel_revision"
 
     def __init__(
         self, inVertex: Vertex, outVertex: Vertex,
-        id: int=VIRTUAL_ID_PLACEHOLDER
+        id: int = VIRTUAL_ID_PLACEHOLDER
     ):
         Edge.__init__(self=self, id=id,
-        inVertex=inVertex, outVertex=outVertex)
+                      inVertex=inVertex, outVertex=outVertex)
 
     def _add(self):
         """Add this relation to the serverside.
@@ -3262,17 +4466,17 @@ class RelationRevision(Edge):
 class RelationRevisionAllowedType(Edge):
     """
     Representation of a "rel_revision_allowed_type" edge.
-    """ 
+    """
 
     category: str = "rel_revision_allowed_type"
 
     def __init__(
         self, inVertex: Vertex, outVertex: Vertex,
-        id: int=VIRTUAL_ID_PLACEHOLDER
+        id: int = VIRTUAL_ID_PLACEHOLDER
     ):
         Edge.__init__(self=self, id=id,
-            inVertex=inVertex, outVertex=outVertex, 
-        )
+                      inVertex=inVertex, outVertex=outVertex,
+                      )
 
     def add(self):
         """Add this relation to the serverside.
@@ -3284,16 +4488,16 @@ class RelationRevisionAllowedType(Edge):
 class RelationComponentType(Edge):
     """
     Representation of a "rel_component_type" edge.
-    """ 
+    """
 
     category: str = "rel_component_type"
 
     def __init__(
-        self, inVertex: Vertex, outVertex: Vertex, 
-        id: int=VIRTUAL_ID_PLACEHOLDER
+        self, inVertex: Vertex, outVertex: Vertex,
+        id: int = VIRTUAL_ID_PLACEHOLDER
     ):
         Edge.__init__(self=self, id=id,
-        inVertex=inVertex, outVertex=outVertex)
+                      inVertex=inVertex, outVertex=outVertex)
 
     def add(self):
         """Add this relation to the serverside.
@@ -3305,13 +4509,13 @@ class RelationComponentType(Edge):
 class RelationPropertyType(Edge):
     """
     Representation of a "rel_property_type" edge.
-    """ 
+    """
 
     category: str = "rel_property_type"
 
     def __init__(
         self, inVertex: Vertex, outVertex: Vertex,
-        id: int=VIRTUAL_ID_PLACEHOLDER
+        id: int = VIRTUAL_ID_PLACEHOLDER
     ):
         Edge.__init__(
             self=self, id=id,
@@ -3328,13 +4532,13 @@ class RelationPropertyType(Edge):
 class RelationPropertyAllowedType(Edge):
     """
     Representation of a "rel_property_allowed_type" edge.
-    """ 
+    """
 
     category: str = "rel_property_allowed_type"
 
     def __init__(
         self, inVertex: Vertex, outVertex: Vertex,
-        id: int=VIRTUAL_ID_PLACEHOLDER
+        id: int = VIRTUAL_ID_PLACEHOLDER
     ):
         Edge.__init__(
             self=self, id=id,
@@ -3351,13 +4555,13 @@ class RelationPropertyAllowedType(Edge):
 class RelationFlagComponent(Edge):
     """
     Representation of a "rel_flag_component" edge.
-    """ 
+    """
 
     category: str = "rel_flag_component"
 
     def __init__(
-        self, inVertex: Vertex, outVertex: Vertex, 
-        id: int=VIRTUAL_ID_PLACEHOLDER
+        self, inVertex: Vertex, outVertex: Vertex,
+        id: int = VIRTUAL_ID_PLACEHOLDER
     ):
         Edge.__init__(
             self=self, id=id,
@@ -3373,13 +4577,13 @@ class RelationFlagComponent(Edge):
 class RelationFlagType(Edge):
     """
     Representation of a "rel_flag_type" edge.
-    """ 
+    """
 
     category: str = "rel_flag_type"
 
     def __init__(
-        self, inVertex: Vertex, outVertex: Vertex, 
-        id: int=VIRTUAL_ID_PLACEHOLDER
+        self, inVertex: Vertex, outVertex: Vertex,
+        id: int = VIRTUAL_ID_PLACEHOLDER
     ):
         Edge.__init__(
             self=self, id=id,
@@ -3388,5 +4592,73 @@ class RelationFlagType(Edge):
 
     def add(self):
         """Add this relation to the serverside."""
+
+        Edge.add(self, attributes={})
+
+
+class RelationFlagSeverity(Edge):
+    """
+    Representation of a "rel_flag_severity" edge.
+    """
+
+    category: str = "rel_flag_severity"
+
+    def __init__(
+        self, inVertex: Vertex, outVertex: Vertex,
+        id: int = VIRTUAL_ID_PLACEHOLDER
+    ):
+        Edge.__init__(
+            self=self, id=id,
+            inVertex=inVertex, outVertex=outVertex
+        )
+
+    def add(self):
+        """Add this relation to the serverside."""
+
+        Edge.add(self, attributes={})
+
+
+class RelationUserAllowedGroup(Edge):
+    """
+    Representation of a "rel_user_allowed_group" edge.
+    """
+
+    category: str = "rel_user_allowed_group"
+
+    def __init__(
+        self, inVertex: Vertex, outVertex: Vertex,
+        id: int = VIRTUAL_ID_PLACEHOLDER
+    ):
+        Edge.__init__(
+            self=self, id=id,
+            inVertex=inVertex, outVertex=outVertex
+        )
+
+    def add(self):
+        """Add this relation to the serverside.
+        """
+
+        Edge.add(self, attributes={})
+
+
+class RelationGroupAllowedType(Edge):
+    """
+    Representation of a "rel_group_allowed_permission" edge.
+    """
+
+    category: str = "rel_group_allowed_permission"
+
+    def __init__(
+        self, inVertex: Vertex, outVertex: Vertex,
+        id: int = VIRTUAL_ID_PLACEHOLDER
+    ):
+        Edge.__init__(
+            self=self, id=id,
+            inVertex=inVertex, outVertex=outVertex
+        )
+
+    def add(self):
+        """Add this relation to the serverside.
+        """
 
         Edge.add(self, attributes={})

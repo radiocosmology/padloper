@@ -7,6 +7,20 @@ import {
     } 
 from '@mui/material';
 import ComponentRevisionFilter from './ComponentRevisionFilter.js';
+import CircularProgress from '@mui/material/CircularProgress';
+import TextField from '@mui/material/TextField';
+import Dialog from '@mui/material/Dialog';
+import DialogActions from '@mui/material/DialogActions';
+import DialogContent from '@mui/material/DialogContent';
+import DialogTitle from '@mui/material/DialogTitle';
+import Box from '@mui/material/Box';
+import InputLabel from '@mui/material/InputLabel';
+import MenuItem from '@mui/material/MenuItem';
+import FormControl from '@mui/material/FormControl';
+import Select from '@mui/material/Select';
+import FormHelperText from '@mui/material/FormHelperText';
+
+import axios from 'axios'
 
 /**
  * A MUI component that renders a list of component revisions.
@@ -39,7 +53,7 @@ function ComponentRevisionList() {
 
     // the list of component types
     // TODO: DON'T DO IT LIKE THIS, MAKE A COMPONENT TYPE AUTOCOMPLETE INSTEAD!!
-    const [component_types, setComponentTypes] = useState([]);
+    const [componentTypes, setComponentTypes] = useState([]);
 
     /* filters stored as 
         [
@@ -118,6 +132,12 @@ function ComponentRevisionList() {
         return strSoFar;
     }
 
+    const [reloadBool, setReloadBool] = useState(false);
+    function toggleReload() {
+        setReloadBool(!reloadBool);
+    }
+
+
 
         
    /**
@@ -152,7 +172,8 @@ function ComponentRevisionList() {
         range,
         orderBy,
         orderDirection,
-        filters
+        filters,
+        reloadBool
     ]);
 
     /**
@@ -161,7 +182,7 @@ function ComponentRevisionList() {
     useEffect(() => {
         let input = `/api/component_revision_count`;
         if (filters.length > 0) {
-            input += `&filters=${createFilterString()}`;
+            input += `?filters=${createFilterString()}`;
         }
         fetch(input).then(
             res => res.json()
@@ -170,7 +191,8 @@ function ComponentRevisionList() {
             setMin(0);
         });
     }, [
-        filters
+        filters,
+        reloadBool
     ]);
 
     /**
@@ -224,6 +246,134 @@ function ComponentRevisionList() {
         e.comments
     ]);
 
+  const ComponentRevisionAddButton = ({componentTypes}) => {
+  const [open, setOpen] = React.useState(false);
+  const [name,setName] = useState('')
+  const [comment,setComment] = useState('')
+  const [isError,setIsError] = useState(false)
+  const [inputComponentType,setInputComponentType] = useState('')
+  const [loading, setLoading] = useState(false);
+
+  const handleClickOpen = () => {
+    setOpen(true);
+  };
+
+  /*
+  This function sets the variables back to empty string once 
+  the form is closed or the user clicks on the cancel button
+  on the pop up form.
+  */
+  const handleClose = () => {
+    setOpen(false);
+    setIsError(false)
+    setName('')
+    setComment('')
+    setInputComponentType('')
+    setLoading(false)
+  };
+
+
+  const handleSubmit = (e) => {
+    e.preventDefault() // To preserve the state once the form is submitted.
+
+    // Empty component type along with empty component revision cannot be submitted.
+    if(name && inputComponentType){ 
+    let input = `/api/set_component_revision`;
+    input += `?name=${name}`;
+    input += `&type=${inputComponentType}`;
+    input += `&comments=${comment}`;
+    axios.post(input).then((response)=>{
+        toggleReload() //To reload the page once the form has been submitted.
+    })
+    } else {
+      setIsError(true) // Displays the error if empty values of component type or component revision is submitted.
+    }
+  }
+
+  return (
+    <>
+        <Button variant="contained" onClick={handleClickOpen}>Add Component Revision</Button>
+      <Dialog open={open} onClose={handleClose}>
+        <DialogTitle>Add Component Revision</DialogTitle>
+        <DialogContent>
+    <div style={{
+        marginTop:'10px',
+        marginBottom:'10px',
+    }}>
+          <TextField
+            error={isError}
+            autoFocus
+            margin="dense"
+            id="name"
+            label="Component Revision"
+            type='text'
+            fullWidth
+            variant="outlined"
+            onChange={(e)=>setName(e.target.value)}
+            helperText = {isError ? 'Cannot be empty' : ''}
+            />
+    </div>
+    <div style={{
+        marginTop:'15px',
+        marginBottom:'15px',
+    }}>   
+            <Box sx={{ minWidth: 120 }}>
+      <FormControl fullWidth error = {isError}>
+        <InputLabel id="Component Type">
+            Component Type</InputLabel>
+        <Select
+          labelId="ComponentType"
+          id="ComponentType"
+          value={inputComponentType}
+          label="Component Type"
+          onChange={(e)=>setInputComponentType(e.target.value)}
+          >
+            {componentTypes.map((component,index)=>{
+                return (
+                    <MenuItem key={index} value={component.name}>{component.name}
+                    </MenuItem>
+                    )
+                })}
+        </Select>
+        {
+        isError ? 
+        <FormHelperText>Cannot be empty</FormHelperText> 
+        : 
+        ''
+        }
+      </FormControl>
+    </Box>
+    </div>
+    <div>
+          <TextField
+            margin="dense"
+            id="comment"
+            label="Comment"
+            multiline
+            maxRows={4}
+            type="text"
+            fullWidth
+            variant="outlined"
+            onChange={(e)=>setComment(e.target.value)}
+            />
+    </div>
+        </DialogContent>
+        <DialogActions>
+          <Button onClick={handleClose}>Cancel</Button>
+          <Button onClick={handleSubmit}>
+              {loading ? <CircularProgress
+                            size={24}
+                            sx={{
+                                color: 'blue',
+                            }}
+                        /> : "Submit"}
+              </Button>
+        </DialogActions>
+      </Dialog>
+    </>
+  );
+}
+
     return (
         <>
             <ElementRangePanel
@@ -243,18 +393,22 @@ function ComponentRevisionList() {
                         </Button>
                     )
                 }
+                rightColumn2 = {
+                    <ComponentRevisionAddButton componentTypes={componentTypes}/>
+                }
             />
 
             {
                 filters.map(
                     (filter, index) => (
                         <ComponentRevisionFilter
+                        key={index}
                             addFilter={() => { }}
                             removeFilter={removeFilter}
                             changeFilter={changeFilter}
                             filter={filter}
                             index={index}
-                            types={component_types}
+                            types={componentTypes}
                         />
                     )
                 )

@@ -48,6 +48,14 @@ function Header() {
                             name: 'Property Types', 
                             link: `/list/property-types`
                         },
+                        {
+                            name: 'Flag Types', 
+                            link: `/list/flag-types`
+                        },
+                        {
+                            name: 'Flags', 
+                            link: `/list/flag`
+                        },
                     ]}
                 />
 

@@ -63,7 +63,7 @@
         \color{blue} ``comments'': \color{black} str
     };
 
-    \node [rect_node] (component_revision) at (0, 0) {
+    \node [rect_node] (component_revision) at (-1, 0) {
         \color{red} ``component_revision'' \\
         \color{blue} ``name'': \color{black} str (unique) \\
         \color{blue} ``comments'': \color{black} str
@@ -76,10 +76,9 @@
 
     \node [rect_node] (flag) at (6, -5.5) {
         \color{red} ``flag'' \\
-        \color{blue} ``name'': \color{black} str \\
+        \color{blue} ``name'': \color{black} str (unique) \\
         \color{blue} ``start_time'': \color{black} num \\ 
         \color{blue} ``end_time'': \color{black} num \\ 
-        \color{blue} ``severity'': \color{black} num \\
         \color{blue} ``comments'': \color{black} str
     };
 
@@ -88,7 +87,11 @@
         \color{blue} ``name'': \color{black} str (unique) \\
         \color{blue} ``comments'': \color{black} str
     };
-
+    
+    \node [rect_node] (flag_severity) at (6,-10) {
+        \color{red} ``flag_severity'' \\
+        \color{blue} ``value'': \color{black} int (unique) \\
+    };
     %%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%
 
     \draw[edge_style] (main_component) -- (property) node[midway, below] {
@@ -123,7 +126,7 @@
         \color{black} ($\leq 1$ per \color{red} ``component'' \color{black})
     };
 
-    \draw[edge_style] (component_type) -- (component_revision) node[midway, anchor=center, left] {
+    \draw[edge_style] (component_type) -- (component_revision) node[midway, anchor=center, left,xshift=-5] {
         \color{red} ``rel_revision_allowed_type'' \\ 
         \color{black} (1 per \color{red} ``component_revision'' \color{black})
     };
@@ -150,12 +153,17 @@
 
     \draw[edge_style] (main_component) -- (flag) node[midway, anchor=center, left, yshift=-35] {
         \color{red} ``rel_flag_component'' \\ 
-        \color{black} (1 per \color{red} ``flag'' \color{black})
+        \color{black} ($\geq 0$ per \color{red} ``component'' \color{black})
     };
 
 
     \draw[edge_style] (flag) -- (flag_type) node[midway, anchor=center, below, yshift=-5] {
         \color{red} ``rel_flag_type'' \\ 
+        \color{black} (1 per \color{red} ``flag'' \color{black})
+    };
+    
+    \draw[edge_style] (flag) -- (flag_severity) node[midway,anchor=center,left,yshift=-5] {
+        \color{red} ``rel_flag_severity'' \\
         \color{black} (1 per \color{red} ``flag'' \color{black})
     };
 

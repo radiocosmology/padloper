@@ -161,9 +161,29 @@ class PropertyNotMatchRegexError(Error):
     """
     pass
 
+
 class UnassignedError(Error):
     """
     Exception raised when something unexpected occurs, but should still
     have an error.
     """
     pass
+
+
+class ComponentPropertyStartTimeExceedsInputtedTime(Error):
+    """
+    Exception raised when the end time inputted by the user
+    is later than the component's property start time.
+    """
+
+
+class UserZeroAllowedTypesError(Error):
+    """
+    Exception raised when creating a user with zero allowed group types. 
+    """
+
+
+class UserGroupZeroPermissionError(Error):
+    """
+    Exception raised when creating a UserGroup instance with zero allowed permission. 
+    """

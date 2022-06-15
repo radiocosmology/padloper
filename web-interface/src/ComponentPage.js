@@ -6,10 +6,12 @@ import Grid from '@mui/material/Grid';
 import MuiAccordion from '@mui/material/Accordion';
 import MuiAccordionSummary from '@mui/material/AccordionSummary';
 import MuiAccordionDetails from '@mui/material/AccordionDetails';
-
+import FlagIcon from '@mui/icons-material/Flag';
+import CommentIcon from '@mui/icons-material/Comment';
 import ExpandMoreIcon from '@mui/icons-material/ExpandMore';
 import EventIcon from '@mui/icons-material/Event';
 import AddIcon from '@mui/icons-material/Add';
+import EditIcon from '@mui/icons-material/Edit';
 
 import ThemeProvider from '@mui/material/styles/ThemeProvider';
 import createTheme from '@mui/material/styles/createTheme';
@@ -18,7 +20,11 @@ import styled from '@mui/material/styles/styled';
 import Timestamp from './Timestamp.js';
 import ComponentEvent from './ComponentEvent.js';
 import ComponentPropertyAddPanel from './ComponentPropertyAddPanel.js';
+import ComponentPropertyEndPanel from './ComponentPropertyEndPanel.js';
 import ComponentConnectionAddPanel from './ComponentConnectionAddPanel.js';
+import ComponentConnectionEndPanel from './ComponentConnectionEndPanel'
+
+
 
 import { Link } from "react-router-dom";
 
@@ -74,6 +80,7 @@ const Accordion = styled((props) => (
     />
 ))(({ theme }) => ({
     borderBottom: `1px solid ${theme.palette.divider}`,
+    
 }));
 
 /**
@@ -86,6 +93,7 @@ const EntryAccordion = styled((props) => (
     />
 ))(({ theme }) => ({
     borderBottom: `0`,
+    
 }));
 
 /**
@@ -111,7 +119,6 @@ const AccordionSummary = styled((props) => (
       marginLeft: theme.spacing(1),
     },
     lineHeight: '100%',
-    display: 'flex',
 }));
 
 const EntryAccordionSummary = styled(AccordionSummary)(({ theme }) => ({
@@ -120,19 +127,22 @@ const EntryAccordionSummary = styled(AccordionSummary)(({ theme }) => ({
     '& .MuiAccordionSummary-content': {
       marginLeft: theme.spacing(1),
     },
+    
 }));
 
 const AccordionDetails = styled(MuiAccordionDetails)(({ theme }) => ({
     padding: theme.spacing(2),
     borderTop: '1px solid rgba(0, 0, 0, .125)',
+    
 }));
 
 const EntryAccordionDetails = styled(AccordionDetails)(({ theme }) => ({
     backgroundColor: 'rgba(0, 0, 0, .015)',
+    
 }));
 
 /**
- * A MUI component representing a button for adding a component.
+ * A MUI component representing a button for adding a component's property.
  */
 const AddButton = styled((props) => (
     <Button 
@@ -148,6 +158,41 @@ const AddButton = styled((props) => (
 ))(({ theme }) => ({
     marginTop: -2 * theme.spacing(2),
 }));
+/**
+ * A MUI component representing a button for editing a component's property.
+ */
+const EndButton = styled((props) => (
+    <Button 
+    style={{
+        maxWidth: '40px', 
+        maxHeight: '30px', 
+        minWidth: '30px', 
+        minHeight: '30px',
+        marginRight:'5px'
+    }}
+    {...props}
+        variant="outlined">
+        End
+    </Button>
+))(({ theme }) => ({
+    
+}))
+
+const EditButton = styled((props) => (
+    <Button 
+    style={{
+        maxWidth: '40px', 
+        maxHeight: '30px', 
+        minWidth: '30px', 
+        minHeight: '30px',
+    }}
+    {...props}
+        variant="outlined">
+        <EditIcon/>
+    </Button>
+))(({ theme }) => ({
+    
+}))
 
 /**
  * Custom MUI theme, see 
@@ -172,18 +217,34 @@ function ComponentPage() {
     // the list of components in objects representation
     const [component, setComponent] = useState(undefined);
 
+    const [propType,setPropType] = useState('')
+
+    const [otherName,setOtherName] = useState('')
+
     const [
         open_properties_accordion, setOpenPropertiesAccordion
     ] = useState(true);
     const [
         open_connections_accordion, setOpenConnectionsAccordion
     ] = useState(true);
+    const [open_flags_accordion, setOpenFlagsAccordion] = useState(true);
     const [
         open_properties_add_panel, setOpenPropertiesAddPanel
     ] = useState(false);
     const [
+        open_properties_end_panel, setOpenPropertiesEndPanel
+    ] = useState(false);
+    const [
         open_connections_add_panel, setOpenConnectionsAddPanel
     ] = useState(false);
+    const [
+        open_connections_end_panel, setOpenConnectionsEndPanel
+    ] = useState(false);
+
+    const [activeIndexConnection,setActiveIndexConnection] = useState(null)
+
+    const [activeIndexProperty,setActiveIndexProperty] = useState(null)
+
 
     // toggle the properties accordion.
     const toggleOpenPropertiesAccordion = () => {
@@ -192,6 +253,11 @@ function ComponentPage() {
 
     // toggle the connections accordion.
     const toggleOpenConnectionsAccordion = () => {
+        setOpenConnectionsAccordion(!open_connections_accordion);
+    }
+
+    // toggle the flags accordion.
+    const toggleOpenFlagAccordion = () => {
         setOpenConnectionsAccordion(!open_connections_accordion);
     }
 
@@ -236,6 +302,24 @@ function ComponentPage() {
         });
     }
 
+    async function endProperty(time, uid, comments) {
+
+        // build up the string to query the API
+        let input = `/api/component_end_property`;
+        input += `?name=${name}`;
+        input += `&propertyType=${propType}`;
+        input += `&time=${time}`;
+        input += `&uid=${uid}`;
+        input += `&comments=${comments}`;
+
+        fetch(input).then(
+            res => res.json()
+        ).then(data => {
+            setOpenPropertiesEndPanel(false);
+            toggleReload();
+        });
+    }
+
     /**
      * Add a connection to another component.
      * @param {string} otherName - the name of the other component 
@@ -261,6 +345,30 @@ function ComponentPage() {
             ).then(data => {
                 if (data.result) {
                     setOpenConnectionsAddPanel(false);
+                    toggleReload();
+                }
+                resolve(data.result);
+            });
+        });
+
+    }
+
+    async function endConnection(time, uid, comments) {
+        
+        // build up the string to query the API
+        let input = `/api/component_end_connection`;
+        input += `?name1=${name}`;
+        input += `&name2=${otherName}`;
+        input += `&time=${time}`;
+        input += `&uid=${uid}`;
+        input += `&comments=${comments}`;
+
+        return new Promise((resolve, reject) => {
+            fetch(input).then(
+                res => res.json()
+            ).then(data => {
+                if (data.result) {
+                    setOpenConnectionsEndPanel(false);
                     toggleReload();
                 }
                 resolve(data.result);
@@ -310,13 +418,22 @@ function ComponentPage() {
                 onSet={setProperty}
             />
         ) : <></>;
+        
+        let properties_end_panel_content = (open_properties_end_panel) ? (
+            <ComponentPropertyEndPanel 
+                theme={theme} 
+                onClose={() => setOpenPropertiesEndPanel(false)}
+                onSet={endProperty}
+            />
+        ) : <></>;
 
         let properties_content = (
             <Stack spacing={1}>
-                {component.properties.map((prop) => (
-                    <EntryAccordion>
-                        <EntryAccordionSummary>
-                            <Stack spacing={1} direction="row">
+                {component.properties.map((prop,index) => (
+                    <EntryAccordion key={index}>
+                        <EntryAccordionSummary >
+                            <Stack spacing={1} direction="row"
+                            >
                                 <EventIcon fontSize="small" />
                                 <Timestamp unixTime={prop.start_time} />
                                 {prop.end_time <= Number.MAX_SAFE_INTEGER ? (
@@ -341,10 +458,15 @@ function ComponentPage() {
                                     }
                                 </Typography>
                             </Stack>
-                        
                         </EntryAccordionSummary>
+
                         <EntryAccordionDetails>
                             <Stack spacing={1}>
+                                <Stack 
+                                direction='row'
+                                justifyContent='space-between'
+                                alignItems='center'
+                                >
                                 <ComponentEvent
                                     name="Start"
                                     time={prop.start_time}
@@ -352,8 +474,30 @@ function ComponentPage() {
                                     edit_time={prop.start_edit_time}
                                     comments={prop.start_comments}
                                     theme={theme} />
-
+                                    <Stack direction='row'>
+                        {prop.end_uid
+                        ?
+                        ""
+                        :
+                        <EndButton 
+                            onClick={
+                                () => 
                                 {
+                                    setOpenPropertiesEndPanel(true)
+                                    setPropType(prop.type.name)
+                                    setActiveIndexProperty(index)
+                                }
+                            }
+                            />}
+                        {prop.end_uid
+                        ?
+                        ""
+                        :
+                        <EditButton 
+                            />}
+                                    </Stack>
+                            </Stack>
+                               {
                                     prop.end_time <= 
                                     Number.MAX_SAFE_INTEGER ?
                                     <ComponentEvent
@@ -367,6 +511,11 @@ function ComponentPage() {
                                 }
                             </Stack>
                         </EntryAccordionDetails>
+                        {activeIndexProperty === index 
+                        ?
+                         properties_end_panel_content
+                        :
+                        ''}
                     </EntryAccordion>
                 ))}
             </Stack>
@@ -381,10 +530,19 @@ function ComponentPage() {
             />
         ) : <></>;
 
+        let connections_end_panel_content = (open_connections_end_panel) ? (
+            <ComponentConnectionEndPanel 
+                theme={theme} 
+                onClose={() => setOpenConnectionsEndPanel(false)}
+                onSet={endConnection}
+                name={name}
+            />
+        ) : <></>;
+
         let connections_content = (
             <Stack spacing={1}>
-                {component.connections.map((conn) => (
-                    <EntryAccordion>
+                {component.connections.map((conn,index) => (
+                    <EntryAccordion key={index}>
                         <EntryAccordionSummary>
                             <Stack spacing={1} direction="row">
                                 <EventIcon fontSize="small" />
@@ -405,16 +563,21 @@ function ComponentPage() {
                                         <Link to={`/component/${name}`}>
                                             {name}
                                         </Link>
-                                    } — {
+                                    } - {
                                         <Link to={`/component/${conn.name}`}>
                                         {conn.name}
                                     </Link>}
                                 </Typography>
+                                
                             </Stack>
                         
                         </EntryAccordionSummary>
                         <EntryAccordionDetails>
                             <Stack spacing={1}>
+                                <Stack
+                                direction = 'row'
+                                justifyContent='space-between'
+                                alignItems='center'>
                                 <ComponentEvent
                                     name="Start"
                                     time={conn.start_time}
@@ -422,7 +585,30 @@ function ComponentPage() {
                                     edit_time={conn.start_edit_time}
                                     comments={conn.start_comments}
                                     theme={theme} />
-
+                                <Stack direction='row'>
+                                    {
+                                        conn.end_uid
+                                        ?
+                                        ""
+                                        :
+                                        <EndButton
+                                        onClick={
+                                            ()=>{
+                                                setOpenConnectionsEndPanel(true)
+                                                setOtherName(conn.name)
+                                                setActiveIndexConnection(index)
+                                            }
+                                        }
+                                        />
+                                    }
+                                    {conn.end_uid
+                        ?
+                        ""
+                        :
+                        <EditButton 
+                            />}
+                            </Stack>
+                            </Stack>
                                 {
                                     conn.end_time <= 
                                     Number.MAX_SAFE_INTEGER ?
@@ -435,6 +621,78 @@ function ComponentPage() {
                                         theme={theme} />
                                     : ""
                                 }
+                            </Stack>
+                        </EntryAccordionDetails>
+                        {activeIndexConnection === index 
+                        ? 
+                        connections_end_panel_content 
+                        :
+                        ''}
+                    </EntryAccordion>
+                ))}
+            </Stack>
+        )
+
+        let flags_content = (
+            <Stack spacing={1}>
+                {component.flags.map((flag,index) => (
+                    <EntryAccordion key={index}>
+                        <EntryAccordionSummary>
+                            <Stack spacing={1} direction="row">
+                                <EventIcon fontSize="small" />
+                                <Timestamp unixTime={flag.start_time} />
+                                {flag.end_time <= Number.MAX_SAFE_INTEGER ? (
+                                    <>
+                                        <div>—</div> 
+                                        <Timestamp unixTime={flag.end_time} />
+                                    </>
+                                ) : ''}
+                                <Typography
+                                    variant="body2"
+                                    style={{
+                                        marginLeft: theme.spacing(4)
+                                    }}
+                                >
+                                    <FlagIcon/>
+                                </Typography>
+                                <Typography
+                                    variant="body2"
+                                    style={{
+                                        marginLeft: theme.spacing(4)
+                                    }}
+                                >
+                                    
+                                    {flag.name}
+                                </Typography>
+                            </Stack>
+                        </EntryAccordionSummary>
+                        <EntryAccordionDetails>
+                            <Stack spacing={1}>
+                                <Stack
+                                direction = 'row'
+                                justifyContent='space-between'
+                                alignItems='center'>
+                                    <p>
+                                    Flag severity: {flag.severity.value}
+                                    </p>
+                                    <p>
+                                    Flag Type: {flag.type.name}
+                                    </p>
+                                    
+                                    <Stack
+                                    direction='row'
+                                    >
+                                    <CommentIcon 
+                    fontSize="small"
+                    style={{
+                        marginRight:theme.spacing(1),
+                    }}
+                />
+                {flag.comments}
+                                    </Stack>
+                                    
+                            </Stack>
+                                
                             </Stack>
                         </EntryAccordionDetails>
                     </EntryAccordion>
@@ -509,6 +767,7 @@ function ComponentPage() {
                         {properties_add_panel_content}
                         
                         {properties_content}
+                        
                     </AccordionDetails>
                 </Accordion>
 
@@ -532,11 +791,32 @@ function ComponentPage() {
                         />
                     
                     </AccordionSummary>
+                    
                     <AccordionDetails>
                         {connections_add_panel_content}
 
                         {connections_content}
+
                     </AccordionDetails>
+                </Accordion>
+
+                    <Accordion
+                    style={{
+                        marginTop: theme.spacing(1)
+                    }}
+                    expanded={open_flags_accordion}
+                >
+                    <AccordionSummary
+                        expandOnClick={toggleOpenFlagAccordion}
+                    >
+                           <Typography style={{ flex: 1 }} align='left'>
+                            Flags
+                        </Typography>
+                    </AccordionSummary>
+                        <AccordionDetails>
+                        {flags_content}
+
+                    </AccordionDetails>       
                 </Accordion>
 
             </ThemeProvider>
