@@ -66,6 +66,20 @@ class ComponentsAlreadyConnectedError(Error):
     pass
 
 
+class ComponentAlreadySubcomponentError(Error):
+    """
+    Exception raised when trying to connect two components when one of them is already a subcomponent of other.
+    """
+    pass
+
+
+class ComponentIsSubcomponentOfOtherComponentError(Error):
+    """
+    Exception raised when trying to connect two components when one of them is already a subcomponent of other.
+    """
+    pass
+
+
 class ComponentsAlreadyDisconnectedError(Error):
     """
     Exception raised when trying to disconnect two components when they are
@@ -93,6 +107,13 @@ class ComponentsOverlappingConnectionError(Error):
 class ComponentConnectToSelfError(Error):
     """
     Exception raised when trying to connect a component to itself.
+    """
+    pass
+
+
+class ComponentSubcomponentToSelfError(Error):
+    """
+    Exception raised when trying to make a component subcomponent to itself.
     """
     pass
 

@@ -228,6 +228,7 @@ function ComponentPage() {
         open_connections_accordion, setOpenConnectionsAccordion
     ] = useState(true);
     const [open_flags_accordion, setOpenFlagsAccordion] = useState(true);
+    const [open_subcomponents_accordion, setOpenSubcomponentsAccordion] = useState(true);
     const [
         open_properties_add_panel, setOpenPropertiesAddPanel
     ] = useState(false);
@@ -258,7 +259,11 @@ function ComponentPage() {
 
     // toggle the flags accordion.
     const toggleOpenFlagAccordion = () => {
-        setOpenConnectionsAccordion(!open_connections_accordion);
+        setOpenFlagsAccordion(!open_flags_accordion);
+    }
+    // toggle the subcomponents accordion.
+    const toggleOpenSubcomponentAccordion = () => {
+        setOpenSubcomponentsAccordion(!open_subcomponents_accordion);
     }
 
     /**
@@ -700,6 +705,32 @@ function ComponentPage() {
             </Stack>
         )
 
+        let subcomponents_content = (
+            <Stack spacing={1}>
+                {component.subcomponents.map((subcomponent,index) => (
+                    <EntryAccordion key={index}>
+                        <EntryAccordionSummary>
+                            <Stack spacing={1} direction="row">
+                                <Typography
+                                    variant="body2"
+                                    style={{
+                                        marginLeft: theme.spacing(4)
+                                    }}
+                                >
+                                    
+                                    {
+                                        <Link to={`/component/${subcomponent.name}`}>
+                                            {subcomponent.name}
+                                    </Link>
+    }
+                                </Typography>
+                            </Stack>
+                        </EntryAccordionSummary>
+                    </EntryAccordion>
+                ))}
+            </Stack>
+        )
+
         content = (
             <ThemeProvider theme={theme}>
                 <Stack direction="row" spacing={2}>
@@ -815,6 +846,25 @@ function ComponentPage() {
                     </AccordionSummary>
                         <AccordionDetails>
                         {flags_content}
+
+                    </AccordionDetails>       
+                </Accordion>
+
+                    <Accordion
+                    style={{
+                        marginTop: theme.spacing(1)
+                    }}
+                    expanded={open_subcomponents_accordion}
+                >
+                    <AccordionSummary
+                        expandOnClick={toggleOpenSubcomponentAccordion}
+                    >
+                           <Typography style={{ flex: 1 }} align='left'>
+                            Subcomponents
+                        </Typography>
+                    </AccordionSummary>
+                        <AccordionDetails>
+                        {subcomponents_content}
 
                     </AccordionDetails>       
                 </Accordion>

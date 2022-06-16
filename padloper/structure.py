@@ -1263,6 +1263,31 @@ class Component(Vertex):
 
         return result
 
+    def get_all_subcomponents(self):
+        """Return all subcomponents connected to this component of the form (Component)
+
+        :rtype: [Component]
+        """
+
+        if not self.added_to_db():
+            raise ComponentNotAddedError(
+                f"Component {self.name} has not yet been added to the database."
+            )
+
+        # list of flag vertices of this flag type and flag severity and active at this time.
+
+        query = g.V(self.id()).inE(
+            RelationSubcomponent.category).otherV().id().toList()
+
+        # Build up the result of format (flag vertex)
+        result = []
+
+        for q in query:
+            subcomponent = Component.from_id(q)
+            result.append((subcomponent))
+
+        return result
+
     def set_property(
         self, property, time: int,
         uid: str, end_time: int = EXISTING_RELATION_END_PLACEHOLDER,
@@ -1778,6 +1803,91 @@ class Component(Vertex):
 
         return result
 
+    def subcomponent_connect(
+            self, component):
+        """
+        Given another Component :param component:, make it a subcomponent of the current component.
+
+        :param component: Another component that is a subcomponent of the current component.
+        :type component: Component
+        """
+
+        if not self.added_to_db():
+            raise ComponentNotAddedError(
+                f"Component {self.name} has not yet been added to the database."
+            )
+
+        if not component.added_to_db():
+            raise ComponentNotAddedError(
+                f"Component {component.name} has not yet" +
+                "been added to the database."
+            )
+
+        if self.name == component.name:
+            raise ComponentSubcomponentToSelfError(
+                f"Trying to make {self.name} subcomponent to itself."
+            )
+
+        current_subcomponent = self.get_subcomponent(
+            component=component
+        )
+
+        component_to_subcomponent = component.get_subcomponent(
+            component=self
+        )
+
+        if component_to_subcomponent is not None:
+            raise ComponentIsSubcomponentOfOtherComponentError(
+                f"Component {self.name} is already a subcomponent of {component.name}"
+            )
+
+        if current_subcomponent is not None:
+
+            # Already a subcomponent!
+            raise ComponentAlreadySubcomponentError(
+                f"component {component.name} is already a subcomponent of component {self.name}"
+            )
+
+        else:
+            current_subcomponent = RelationSubcomponent(
+                inVertex=self,
+                outVertex=component
+            )
+
+            current_subcomponent.add()
+
+    def get_subcomponent(self, component):
+        """Given the component itself and its subcomponent, return the edge between them.
+
+        :param component: The other component which is the subcomponent of the current component.
+        :type component: Component
+        """
+
+        # Done for troubleshooting (so you know which component is not added?)
+        if not self.added_to_db():
+            raise ComponentNotAddedError(
+                f"Component {self.name} has not yet been added to the database."
+            )
+
+        if not component.added_to_db():
+            raise ComponentNotAddedError(
+                f"Component {component.name} has not yet" +
+                "been added to the database."
+            )
+
+        e = g.V(self.id()).bothE(RelationSubcomponent.category).as_('e').otherV().hasId(
+            component.id()).select('e').project('id').by(__.id()).toList()
+
+        if len(e) == 0:
+            return None
+
+        assert len(e) == 1
+
+        return RelationSubcomponent(
+            inVertex=self, outVertex=component,
+            id=e[0]['id']['@value']['relationId']
+        )
+
     def added_to_db(self) -> bool:
         """Return whether this Component is added to the database,
         that is, whether the ID is not the virtual ID placeholder and perform a 
@@ -2183,6 +2293,13 @@ class Component(Vertex):
                 }
             })
 
+        subcomponent_dicts = []
+
+        for (subcomponent) in c.get_all_subcomponents():
+            subcomponent_dicts.append({
+                'name': subcomponent.name
+            })
+
         return {
             'name': c.name,
             'type': {
@@ -2194,7 +2311,8 @@ class Component(Vertex):
             'time_added': c.time_added,
             'properties': prop_dicts,
             'connections': connection_dicts,
-            'flags': flag_dicts
+            'flags': flag_dicts,
+            'subcomponents': subcomponent_dicts
         }
 
 
@@ -3054,18 +3172,18 @@ class FlagSeverity(Vertex):
     """
     The representation of a flag severity.
 
-    :ivar value: The numerical value of the severity.
+    :ivar value: The value of the severity.
     """
     category: str = "flag_severity"
 
-    value: int
+    value: str
 
-    def __new__(cls, value: int, id: int = VIRTUAL_ID_PLACEHOLDER):
+    def __new__(cls, value: str, id: int = VIRTUAL_ID_PLACEHOLDER):
         """
         Return a FlagSeverity instance given the desired attribute.
 
-        :param value: The numerical value of the severity.
-        :type value: int
+        :param value: Indicates the value of a flag severity.
+        :type value: str
 
         :param id: The serverside ID of the FlagType,
         defaults to VIRTUAL_ID_PLACEHOLDER
@@ -3078,12 +3196,12 @@ class FlagSeverity(Vertex):
         else:
             return object.__new__(cls)
 
-    def __init__(self, value: int, id: int = VIRTUAL_ID_PLACEHOLDER):
+    def __init__(self, value: str, id: int = VIRTUAL_ID_PLACEHOLDER):
         """
         Initialize a FlagSeverity instance given the FlagSeverity instance given the desired attributes.
 
-        :param value: The numerical value of the severity.
-        :type value: int
+        :param value: Indicates the value of a flag severity.
+        :type value: str
 
         :param id: The serverside ID of the FlagType,
         defaults to VIRTUAL_ID_PLACEHOLDER
@@ -3119,11 +3237,11 @@ class FlagSeverity(Vertex):
         )
 
     @classmethod
-    def from_db(cls, value: int):
+    def from_db(cls, value: str):
         """Query the database and return a FlagSeverity instance based on Flag Severity value :param value:.
 
-        :param value: The numerical value of the severity.
-        :type value: int
+        :param value: The value of the severity.
+        :type value: str
 
         :return: A FlagSeverity instance with the correct value and ID.
         :rtype: FlagSeverity.
@@ -3168,13 +3286,13 @@ class FlagSeverity(Vertex):
         return _vertex_cache[id]
 
     @classmethod
-    def _attrs_to_type(cls, value: int, id: int):
+    def _attrs_to_type(cls, value: str, id: int):
         """Given value of a FlagSeverity, see if one
         exists in the cache. If so, return the cached FlagSeverity.
         Otherwise, create a new one, cache it, and return it.
 
-        :param value: The numerical value of the severity.
-        :type value: int 
+        :param value: The value of the severity.
+        :type value: str
 
         :param id: The ID of the ComponentType vertex.
         :type id: int
@@ -4491,6 +4609,27 @@ class RelationComponentType(Edge):
     """
 
     category: str = "rel_component_type"
+
+    def __init__(
+        self, inVertex: Vertex, outVertex: Vertex,
+        id: int = VIRTUAL_ID_PLACEHOLDER
+    ):
+        Edge.__init__(self=self, id=id,
+                      inVertex=inVertex, outVertex=outVertex)
+
+    def add(self):
+        """Add this relation to the serverside.
+        """
+
+        Edge.add(self, attributes={})
+
+
+class RelationSubcomponent(Edge):
+    """
+    Representation of a "rel_subcomponent" edge.
+    """
+
+    category: str = "rel_subcomponent"
 
     def __init__(
         self, inVertex: Vertex, outVertex: Vertex,

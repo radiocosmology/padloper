@@ -797,6 +797,38 @@ def get_all_connections_at_time():
     }
 
 
+@app.route("/api/component_add_subcomponent")
+def add_component_subcomponent():
+    """Given the name of the the component that is a subcomponent along with the name of the main component, establish the appropriate relation.
+
+    The URL parameters are:
+
+    name1 - the name of the main component
+
+    name2 - the name of the subcomponent
+
+    :return: Return a dictionary with a key 'result' and value being a boolean
+    that is True if and only if the component was not a subcomponent beforehand.
+    :rtype: dict
+    """
+
+    val_name1 = escape(request.args.get('name1'))
+    val_name2 = escape(request.args.get('name2'))
+
+    c1, c2 = Component.from_db(val_name1), Component.from_db(val_name2)
+
+    already_subcomponent = False
+
+    try:
+        c1.subcomponent_connect(
+            component=c2
+        )
+    except ComponentAlreadySubcomponentError:
+        already_subcomponent = True
+
+    return {'result': not already_subcomponent}
+
+
 @app.route("/api/set_flag_type", methods=['POST'])
 def set_flag_type():
     """Given the flag type name and comments,
@@ -830,7 +862,7 @@ def set_flag_severity():
 
     The URL parameters are:
 
-    value - numerical value associated indicating the severity of a flag.
+    value - value indicating the severity of a flag.
 
     :return: A dictionary with a key 'result' of corresponding value True
     :rtype: dict
