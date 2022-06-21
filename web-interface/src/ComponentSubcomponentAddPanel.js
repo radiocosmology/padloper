@@ -7,15 +7,13 @@ import Grid from '@mui/material/Grid';
 import CircularProgress from '@mui/material/CircularProgress';
 import MuiTextField from '@mui/material/TextField';
 
-
 import CloseIcon from '@mui/icons-material/Close';
-
+import ErrorIcon from '@mui/icons-material/Error';
 
 import ThemeProvider from '@mui/material/styles/ThemeProvider';
 import styled from '@mui/material/styles/styled';
 import { Typography } from '@mui/material';
-
-
+import ComponentAutocomplete from './ComponentAutocomplete.js';
 
 /**
  * A styled "panel" component, used as the background for the panel.
@@ -27,7 +25,7 @@ const Panel = styled((props) => (
     <Paper 
         elevation={0}
         {...props}
-        sx={{marginTop:1}}
+        sx={{margin:-1}}
     />
 ))(({ theme }) => ({
     backgroundColor: 'rgb(240, 240, 255)',
@@ -65,43 +63,45 @@ const CloseButton = styled((props) => (
 ))(({ theme }) => ({
 }));
 
-
 /**
- * The MUI component which represents a panel through which existing properties of components are ended.
+ * The MUI component which represents a panel through which relation between two components where one is a subcomponent of another can be established.
  * 
  * @param {object} theme - A MUI theme object, see 
  * https://mui.com/material-ui/customization/theming/
  * @param {function} onClose - function to call when the close button is pressed
- * @param {function(string, int, string)} onSet - function to 
- * call when ending a component's property.
- * {int} time - the time at which to end the property 
- * {string} uid - the ID of the user that is ending the property
- * {string} comments - the comments associated with the termination 
+ * @param {function(string)} onSet - function to call when 
+ * setting a component subcomponent connection. The parameters are of the form:
+ * onSet(otherName), where otherName is the name of the
+ * subcomponent you are connecting this one to.
+ * @param {string} name - the name of the component you are connecting another
+ * subcomponent to.
  */
-function ComponentPropertyEndPanel(
+function ComponentSubcomponentAddPanel(
     {
         theme,
         onClose,
-        onSet
+        onSet,
+        name
     }
 ) {
 
-    // the ID of the user setting the property
-    const [uid, setUid] = useState("");
+    // what the "selected" other component is
+    const [selectedOption, setSelectedOption] = useState(null);
 
-    // the default time to set the property
-    const defaultTime = 1;
 
-    // time to set the property (NOT the edit time)
-    const [time, setTime] = useState(defaultTime);
-
-    // the comments associated with setting the property
-    const [comments, setComments] = useState("");
-
-    // whether the panel is loading: usually happens after the "END" button
-    // is clicked, waiting for a response from the DB.
+    // whether the panel is loading: usually happens after the "Connect" button
+    // is made, waiting for a response from the DB.
     const [loading, setLoading] = useState(false);
 
+    // the body of an error message to display, if any.
+    const [errorMessage, setErrorMessage] = useState("");
+
+    // function to select an option. I'm not even sure why I have this...
+    function selectOption(option) {
+        setSelectedOption(option);
+    }
+
+    // return the MUI component.
     return (
         <ThemeProvider theme={theme}>
             <Panel>
@@ -118,7 +118,7 @@ function ComponentPropertyEndPanel(
                         <Typography style={{
                             color: 'rgba(0,0,0,0.7)',
                         }}>
-                            End the property
+                            Connect a subcomponent
                         </Typography>
                     </Grid>
 
@@ -129,46 +129,39 @@ function ComponentPropertyEndPanel(
 
                 <Grid container spacing={2} justifyContent="space-around">
                     <Grid item>
-                        <TextField 
-                            required
-                            label="User" 
-                            sx={{ width: 150 }}
-                            onChange={(event) => setUid(event.target.value)}
-                        />
-                    </Grid>
-
-                    <Grid item>
-                        <TextField
-                            required
-                            id="datetime-local"
-                            label="Time"
-                            type="datetime-local"
-                            sx={{ width: 240 }}
-                            InputLabelProps={{
-                                shrink: true,
-                            }}
-                            size="large"
-                            onChange={(event) => {
-                                let date = new Date(event.target.value);
-                                setTime(Math.round(date.getTime() / 1000));
-                            }}
-                        />
-                    </Grid>
-
-                    <Grid item>
-                        <TextField
-                            id="outlined-multiline-static"
-                            label="Comments"
-                            multiline
-                            sx={{ width: 260 }}
-                            onChange={(event) => {
-                                setComments(event.target.value)
-                            }}
+                        <ComponentAutocomplete 
+                            onSelect={selectOption} 
+                            excludeName={name}
                         />
                     </Grid>
 
                 </Grid>
 
+                {errorMessage !== "" ? 
+                    <Grid 
+                        container 
+                        style={{
+                            marginTop: theme.spacing(1),
+                        }}
+                        spacing={1}
+                        justifyContent="center"
+                    >
+                        <Grid item>
+                            <ErrorIcon sx={{color: 'red'}} />
+                        </Grid>
+                        <Grid item>
+                            <Typography
+                                style={{
+                                    color: 'rgb(255,0,0)',
+                                }}
+                            >
+                                {errorMessage}
+                            </Typography>
+                        </Grid>
+                    </Grid> : <></>
+                }
+
+                
 
                 <Box 
                     style={{
@@ -180,28 +173,39 @@ function ComponentPropertyEndPanel(
                         variant="contained" 
                         size="large"
                         disableElevation
-                        disabled={ 
-                            uid === "" ||
-                            time === defaultTime    
+                        disabled={
+                            selectedOption === null  
                         }
                         onClick={
-                            () => {
+                            async () => {
+                                setErrorMessage("");
                                 setLoading(true);
                                 onSet(
-                                    time, 
-                                    uid, 
-                                    comments, 
-                                );
+                                    selectedOption.name,
+                                ).then(
+                                    successful => {
+                                        if (successful === false) {
+                                            setLoading(false);
+                                            setErrorMessage(`${name} is 
+                                            already a subcomponent of 
+                                            ${selectedOption.name} `);
+                                        }
+                                    }
+                                )
                             }
                         }
                     >
+                        {/**
+                         * so when the panel is loading, the button
+                         * is spinning.
+                         */}
                         {loading ? 
                         <CircularProgress
                             size={24}
                             sx={{
                                 color: 'white',
                             }}
-                        /> : "End"}
+                        /> : "Set"}
                     </Button>
                 </Box>
             </Panel>
@@ -209,4 +213,4 @@ function ComponentPropertyEndPanel(
     )
 }
 
-export default ComponentPropertyEndPanel;
+export default ComponentSubcomponentAddPanel;

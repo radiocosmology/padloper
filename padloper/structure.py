@@ -1274,8 +1274,6 @@ class Component(Vertex):
                 f"Component {self.name} has not yet been added to the database."
             )
 
-        # list of flag vertices of this flag type and flag severity and active at this time.
-
         query = g.V(self.id()).inE(
             RelationSubcomponent.category).otherV().id().toList()
 
@@ -4037,7 +4035,7 @@ class UserGroup(Vertex):
             if not p.added_to_db():
                 p.add()
 
-            e = RelationGroupAllowedType(
+            e = RelationGroupAllowedPermission(
                 inVertex=p,
                 outVertex=self
             )
@@ -4067,7 +4065,7 @@ class UserGroup(Vertex):
         """
 
         d = g.V().has('category', UserGroup.category).has('name', name).project('id', 'attrs', 'permission_ids').by(
-            __.id()).by(__.valueMap()).by(__.both(RelationGroupAllowedType.category).id().fold()).next()
+            __.id()).by(__.valueMap()).by(__.both(RelationGroupAllowedPermission.category).id().fold()).next()
 
         id, attrs, perimssion_ids = d['id'], d['attrs'], d['permission_ids']
 
@@ -4780,7 +4778,7 @@ class RelationUserAllowedGroup(Edge):
         Edge.add(self, attributes={})
 
 
-class RelationGroupAllowedType(Edge):
+class RelationGroupAllowedPermission(Edge):
     """
     Representation of a "rel_group_allowed_permission" edge.
     """

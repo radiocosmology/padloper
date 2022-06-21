@@ -34,7 +34,8 @@
 \begin{tikzpicture}[
     rect_node/.style={rectangle, draw=black, fill=white, very thick, minimum size=1cm, align=left, inner sep = 1.5mm, font=\small},
     duplicate_rect_node/.style={rectangle, draw=black, dashed, very thick, minimum size=1cm, align=center, inner sep=2mm, font=\small},
-    edge_style/.style={draw=black, ultra thick, align=center, font=\footnotesize}
+    edge_style/.style={draw=black, ultra thick, align=center, font=\footnotesize},
+    edge_style_arrow/.style={draw=black, ->,ultra thick,align=center, font=\footnotesize}
 ]
     
 
@@ -90,7 +91,7 @@
     
     \node [rect_node] (flag_severity) at (6,-10) {
         \color{red} ``flag_severity'' \\
-        \color{blue} ``value'': \color{black} int (unique) \\
+        \color{blue} ``value'': \color{black} str (unique) 
     };
     %%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%
 
@@ -131,7 +132,7 @@
         \color{black} (1 per \color{red} ``component_revision'' \color{black})
     };
 
-    \draw[edge_style] (main_component) -- (duplicate_component) node[midway, anchor=center, left, xshift=-35] {
+    \draw[edge_style] (main_component) [xshift=-100]-- (duplicate_component) node[midway, anchor=center, left, xshift=-85,yshift=-25] {
         \color{red} ``rel_connection'' \\ 
         \color{blue} ``start_time'': \color{black} num \\ 
         \color{blue} ``end_time'': \color{black} num \\ 
@@ -143,15 +144,20 @@
         \color{blue} ``end_comments'': \color{black} str \\
     };
 
-    \draw[edge_style] (main_component) -- (duplicate_component) node[midway, anchor=center, below, yshift=-50, xshift=-6] {
+
+    \draw[edge_style] (main_component)[xshift=-100] -- (duplicate_component) node[midway, anchor=center, below, yshift=45, xshift=-45] {
         \color{red} ``rel_connection_permanent'' \\ 
         \color{blue} ``start_time'': \color{black} num \\ 
         \color{blue} ``start_uid'': \color{black} str \\ 
         \color{blue} ``start_edit_time'': \color{black} num \\ 
         \color{blue} ``start_comments'': \color{black} str
     };
+    
+    \draw[edge_style_arrow] (duplicate_component)[xshift=100] -- (main_component) node[midway, anchor=center, left,xshift=85] {
+    \color{red} ``rel_subcomponent'' \\ 
+    };
 
-    \draw[edge_style] (main_component) -- (flag) node[midway, anchor=center, left, yshift=-35] {
+    \draw[edge_style] (main_component) -- (flag) node[midway, anchor=center, left, yshift=-35,xshift=90] {
         \color{red} ``rel_flag_component'' \\ 
         \color{black} ($\geq 0$ per \color{red} ``component'' \color{black})
     };

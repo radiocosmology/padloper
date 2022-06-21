@@ -6,10 +6,8 @@ import Box from '@mui/material/Box';
 import Grid from '@mui/material/Grid';
 import CircularProgress from '@mui/material/CircularProgress';
 import MuiTextField from '@mui/material/TextField';
-import InputAdornment from '@mui/material/InputAdornment';
 
 import CloseIcon from '@mui/icons-material/Close';
-import PersonIcon from '@mui/icons-material/Person';
 
 import ComponentPropertyAutocomplete from './ComponentPropertyAutocomplete.js';
 
@@ -17,7 +15,6 @@ import ThemeProvider from '@mui/material/styles/ThemeProvider';
 import styled from '@mui/material/styles/styled';
 import { Typography } from '@mui/material';
 import { verifyRegex } from './utility/utility.js';
-import { SettingsSuggestRounded } from '@mui/icons-material';
 
 /**
  * A styled "panel" component, used as the background for the panel.
@@ -76,8 +73,8 @@ const CloseButton = styled((props) => (
  * https://mui.com/material-ui/customization/theming/
  * @param {function} onClose - function to call when the close button is pressed
  * @param {function(string, int, string, string, Array)} onSet - function to 
- * call when setting a component connection.
- * {string} propertyType - the name of the property tyoe
+ * call when setting a component property.
+ * {string} propertyType - the name of the property type
  * {int} time - the time at which to add the property 
  * {string} uid - the ID of the user that is adding the property
  * {string} comments - the comments associated with the property 

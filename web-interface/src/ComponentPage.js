@@ -23,6 +23,9 @@ import ComponentPropertyAddPanel from './ComponentPropertyAddPanel.js';
 import ComponentPropertyEndPanel from './ComponentPropertyEndPanel.js';
 import ComponentConnectionAddPanel from './ComponentConnectionAddPanel.js';
 import ComponentConnectionEndPanel from './ComponentConnectionEndPanel'
+import ComponentSubcomponentAddPanel from './ComponentSubcomponentAddPanel.js';
+import SettingsInputComponentIcon from '@mui/icons-material/SettingsInputComponent';
+import ReportIcon from '@mui/icons-material/Report';
 
 
 
@@ -142,7 +145,7 @@ const EntryAccordionDetails = styled(AccordionDetails)(({ theme }) => ({
 }));
 
 /**
- * A MUI component representing a button for adding a component's property.
+ * A MUI component representing a button for adding a component's property or connection.
  */
 const AddButton = styled((props) => (
     <Button 
@@ -159,7 +162,7 @@ const AddButton = styled((props) => (
     marginTop: -2 * theme.spacing(2),
 }));
 /**
- * A MUI component representing a button for editing a component's property.
+ * A MUI component representing a button for ending a component's property or connection.
  */
 const EndButton = styled((props) => (
     <Button 
@@ -178,6 +181,9 @@ const EndButton = styled((props) => (
     
 }))
 
+/*
+A MUI component representing a button for editing a component's property or connection.
+ */
 const EditButton = styled((props) => (
     <Button 
     style={{
@@ -217,29 +223,51 @@ function ComponentPage() {
     // the list of components in objects representation
     const [component, setComponent] = useState(undefined);
 
+    // Stores the property type selected by the user when adding a new property.
     const [propType,setPropType] = useState('')
 
+    // Stores the name of the other component with which the connection is being made.
     const [otherName,setOtherName] = useState('')
 
+    // Opens the property accordion.
     const [
         open_properties_accordion, setOpenPropertiesAccordion
     ] = useState(true);
+
+    // Opens the connections accordion.
     const [
         open_connections_accordion, setOpenConnectionsAccordion
     ] = useState(true);
+
+    // Opens the flags accordion.
     const [open_flags_accordion, setOpenFlagsAccordion] = useState(true);
+
+    // Opens the subcomponents accordion.
     const [open_subcomponents_accordion, setOpenSubcomponentsAccordion] = useState(true);
+
+    // Opens/Closes a panel to add a new property.
     const [
         open_properties_add_panel, setOpenPropertiesAddPanel
-    ] = useState(false);
+    ] = useState(false) ;
+
+    // Opens/Closes a panel to end an existing property.
     const [
         open_properties_end_panel, setOpenPropertiesEndPanel
     ] = useState(false);
+
+    // Opens/Closes a panel to add a new connection.
     const [
         open_connections_add_panel, setOpenConnectionsAddPanel
     ] = useState(false);
+
+    // Opens/Closes a panel to end an existing connection.
     const [
         open_connections_end_panel, setOpenConnectionsEndPanel
+    ] = useState(false);
+
+    // Opens/Closes a panel to a add new subcomponents.
+    const [
+        open_subcomponents_add_panel,setOpenSubcomponentsAddPanel
     ] = useState(false);
 
     const [activeIndexConnection,setActiveIndexConnection] = useState(null)
@@ -258,11 +286,11 @@ function ComponentPage() {
     }
 
     // toggle the flags accordion.
-    const toggleOpenFlagAccordion = () => {
+    const toggleOpenFlagsAccordion = () => {
         setOpenFlagsAccordion(!open_flags_accordion);
     }
     // toggle the subcomponents accordion.
-    const toggleOpenSubcomponentAccordion = () => {
+    const toggleOpenSubcomponentsAccordion = () => {
         setOpenSubcomponentsAccordion(!open_subcomponents_accordion);
     }
 
@@ -381,6 +409,33 @@ function ComponentPage() {
         });
 
     }
+
+        /**
+     * Add a subcomponent.
+     * @param {string} otherName - the name of the other component, which is a subcomponent.
+     * @returns 
+     */
+    async function addSubcomponent(otherName) {
+        
+        // build up the string to query the API
+        let input = `/api/component_add_subcomponent`;
+        input += `?name1=${name}`;
+        input += `&name2=${otherName}`;
+
+        return new Promise((resolve, reject) => {
+            fetch(input).then(
+                res => res.json()
+            ).then(data => {
+                if (data.result) {
+                    setOpenSubcomponentsAddPanel(false);
+                    toggleReload();
+                }
+                resolve(data.result);
+            });
+        });
+
+    }
+
 
     /**
      * When the name of the component is changed or the page is to be reloaded,
@@ -638,6 +693,15 @@ function ComponentPage() {
             </Stack>
         )
 
+    let subcomponent_add_panel_content = (open_subcomponents_add_panel) ? (
+    <ComponentSubcomponentAddPanel 
+        theme={theme} 
+        onClose={() => setOpenSubcomponentsAddPanel(false)}
+        onSet={addSubcomponent}
+        name={name}
+    />
+        ) : <></>;
+
         let flags_content = (
             <Stack spacing={1}>
                 {component.flags.map((flag,index) => (
@@ -677,9 +741,15 @@ function ComponentPage() {
                                 direction = 'row'
                                 justifyContent='space-between'
                                 alignItems='center'>
-                                    <p>
-                                    Flag severity: {flag.severity.value}
-                                    </p>
+                                    <Stack direction='row'>
+
+                                    <ReportIcon
+                                     fontSize="small"
+                                     style={{
+                                         marginRight:theme.spacing(1),
+                                        }}
+                                        /> {flag.severity.value}
+                                        </Stack>
                                     <p>
                                     Flag Type: {flag.type.name}
                                     </p>
@@ -711,6 +781,7 @@ function ComponentPage() {
                     <EntryAccordion key={index}>
                         <EntryAccordionSummary>
                             <Stack spacing={1} direction="row">
+                                <SettingsInputComponentIcon/>
                                 <Typography
                                     variant="body2"
                                     style={{
@@ -831,6 +902,33 @@ function ComponentPage() {
                     </AccordionDetails>
                 </Accordion>
 
+
+                    <Accordion
+                    style={{
+                        marginTop: theme.spacing(1)
+                    }}
+                    expanded={open_subcomponents_accordion}
+                >
+                    <AccordionSummary
+                        expandOnClick={toggleOpenSubcomponentsAccordion}
+                    >
+                           <Typography style={{ flex: 1 }} align='left'>
+                            Subcomponents
+                        </Typography>
+                        <AddButton 
+                            onClick={
+                                () => {setOpenSubcomponentsAddPanel(true)}
+                            }
+                        />
+                    </AccordionSummary>
+                        <AccordionDetails>
+                        {subcomponent_add_panel_content}
+
+                        {subcomponents_content}
+
+                    </AccordionDetails>       
+                </Accordion>
+
                     <Accordion
                     style={{
                         marginTop: theme.spacing(1)
@@ -838,7 +936,7 @@ function ComponentPage() {
                     expanded={open_flags_accordion}
                 >
                     <AccordionSummary
-                        expandOnClick={toggleOpenFlagAccordion}
+                        expandOnClick={toggleOpenFlagsAccordion}
                     >
                            <Typography style={{ flex: 1 }} align='left'>
                             Flags
@@ -849,26 +947,6 @@ function ComponentPage() {
 
                     </AccordionDetails>       
                 </Accordion>
-
-                    <Accordion
-                    style={{
-                        marginTop: theme.spacing(1)
-                    }}
-                    expanded={open_subcomponents_accordion}
-                >
-                    <AccordionSummary
-                        expandOnClick={toggleOpenSubcomponentAccordion}
-                    >
-                           <Typography style={{ flex: 1 }} align='left'>
-                            Subcomponents
-                        </Typography>
-                    </AccordionSummary>
-                        <AccordionDetails>
-                        {subcomponents_content}
-
-                    </AccordionDetails>       
-                </Accordion>
-
             </ThemeProvider>
         )
     }
