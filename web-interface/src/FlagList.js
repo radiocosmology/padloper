@@ -328,9 +328,11 @@ export default function FlagList() {
                 }
                 rightColumn2 = {
                     <FlagAddButton 
-                    flagTypes={flag_types} 
-                    flagSeverities={flag_severities} flagComponents={flag_components}
+                    flag_types={flag_types} 
+                    flag_severities={flag_severities} 
+                    flag_components={flag_components}
                     toggleReload={toggleReload}
+                    elements = {elements}
                     />
                 }
             />

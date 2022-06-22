@@ -18,7 +18,7 @@ const [alertOpen, setAlertOpen] = useState(false);
 Function that is used to open the alert dialog box when the user clicks on the 'submit' button in the form.
 */
 const handleClickAlertOpen = () => {
-      setAlertOpen(true);
+        setAlertOpen(true)
     };
 
 /*Function that closes the alert dialog box*/
@@ -28,9 +28,20 @@ const handleAlertClose = () => {
 
   return (
     <div>
-        <Button onClick={handleClickAlertOpen}>
+        { nameList && componentType 
+        ?
+          <Button 
+        onClick={handleClickAlertOpen}
+        >
               Submit
-              </Button>
+        </Button>
+      :
+        <Button 
+        disabled
+        >
+              Submit
+        </Button>
+      }
       <Dialog
         open={alertOpen}
         onClose={handleAlertClose}

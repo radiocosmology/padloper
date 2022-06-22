@@ -154,6 +154,7 @@ function ComponentList() {
             ).then(data => {
                 setComponents(data.result);
                 setLoaded(true);
+             
             });
         }
         fetchData();
@@ -243,6 +244,7 @@ function ComponentList() {
                 }
                 rightColumn2 = {<ComponentAddButton
                 types_and_revisions={types_and_revisions}
+                components = {components}
                 toggleReload={toggleReload}
                 />}
             />

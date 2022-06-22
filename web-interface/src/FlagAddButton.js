@@ -13,10 +13,10 @@ import MenuItem from '@mui/material/MenuItem';
 import FormControl from '@mui/material/FormControl';
 import Select from '@mui/material/Select';
 import axios from 'axios'
-import FormHelperText from '@mui/material/FormHelperText';
 import OutlinedInput from '@mui/material/OutlinedInput';
 import Checkbox from '@mui/material/Checkbox';
 import ListItemText from '@mui/material/ListItemText';
+import ErrorIcon from '@mui/icons-material/Error';
 
 
 const ITEM_HEIGHT = 48;
@@ -32,13 +32,10 @@ const MenuProps = {
 
 
 
-export default function FlagAddButton ({flagTypes,flagSeverities,flagComponents,toggleReload}){
+export default function FlagAddButton ({flag_types,flag_severities,flag_components,elements,toggleReload}){
 
     // opens and closes the pop up form to add a new flag.
     const [open, setOpen] = useState(false);
-    
-    // Controls when to display error messages.
-    const [isError,setIsError] = useState(false)
 
     // Stores user inputted values for name of the flag, flag severity selected, flag type selected and comments assocaited with the new flag.
     const [property,setProperty] = useState({
@@ -59,6 +56,11 @@ export default function FlagAddButton ({flagTypes,flagSeverities,flagComponents,
 
   // Whether the submit button has been clicked or not and set loading to true.
   const [loading, setLoading] = useState(false);
+
+  /*
+   To display an error message when a user tried to add a new flag but a flag with the same name already exists in the database.
+   */
+  const [isError,setIsError] = useState(false)
 
 
   // Function that updates the list of component selected by the user in the pop up form.
@@ -92,8 +94,8 @@ export default function FlagAddButton ({flagTypes,flagSeverities,flagComponents,
   */
   const handleClose = () => {
     setOpen(false);
-    setIsError(false)
     setLoading(false)
+    setIsError(false)
     setStartTime(0)
     setEndTime(0)
     setComponentName([])
@@ -110,29 +112,24 @@ export default function FlagAddButton ({flagTypes,flagSeverities,flagComponents,
   }]
 
   const handleSubmit = (e) => {
-    e.preventDefault() // To preserve the state once the form is submitted.
+      e.preventDefault() // To preserve the state once the form is submitted.
 
-    /*
-    These conditions don't allow the user to submit the form if the property type name, 
-    component type, units, allowed regex or number of values fields in the form
-    are left empty.
-     */
-    if(property.name && startTime && endTime && property.flag_severity && property.flag_type){ 
-    let input = `/api/set_flag`;
-    input += `?name=${property.name}`;
-    input += `&start_time=${startTime}`;
-    input += `&end_time=${endTime}`;
-    input += `&flag_severity=${property.flag_severity}`;
-    input += `&flag_type=${property.flag_type}`;
-    input += `&comments=${property.comment}`;
-    input += `&flag_components=${componentName.join(';')}`;
-    axios.post(input).then((response)=>{
-            toggleReload() //To reload the page once the form has been submitted.
-            handleClose()
-    })
-    } else {
-      setIsError(true) 
-    }
+      if(elements.filter((item)=> item.name === property.name).length === 0){
+        let input = `/api/set_flag`;
+        input += `?name=${property.name}`;
+        input += `&start_time=${startTime}`;
+        input += `&end_time=${endTime}`;
+        input += `&flag_severity=${property.flag_severity}`;
+        input += `&flag_type=${property.flag_type}`;
+        input += `&comments=${property.comment}`;
+        input += `&flag_components=${componentName.join(';')}`;
+        axios.post(input).then((response)=>{
+                toggleReload() //To reload the page once the form has been submitted.
+                handleClose()
+        })
+      } else {
+          setIsError(true)
+      }
   }
 
   return (
@@ -145,8 +142,6 @@ export default function FlagAddButton ({flagTypes,flagSeverities,flagComponents,
         marginTop:'10px',
     }}>
           <TextField
-            error={isError}
-            helperText = {isError ? 'Cannot be empty' : ''}
             autoFocus
             margin="dense"
             id="name"
@@ -164,7 +159,7 @@ export default function FlagAddButton ({flagTypes,flagSeverities,flagComponents,
         marginTop:'15px',
         marginBottom:'15px',
     }}>   
-        <FormControl sx={{width: 300}} error = {isError}>
+        <FormControl sx={{width: 300}} >
         <InputLabel id="Flag Type">Flag Type</InputLabel>
         <Select
           labelId="Flag-Type-label"
@@ -174,7 +169,7 @@ export default function FlagAddButton ({flagTypes,flagSeverities,flagComponents,
           label='Flag Type'
           onChange={handleChange}
          >
-          {flagTypes.map((item) => {
+          {flag_types.map((item) => {
             return (
               <MenuItem
               key={item.name}
@@ -185,19 +180,13 @@ export default function FlagAddButton ({flagTypes,flagSeverities,flagComponents,
           )}
           )}
         </Select>
-        {
-        isError ? 
-        <FormHelperText>Cannot be empty</FormHelperText> 
-        : 
-        ''
-        }
       </FormControl>
     </div>
     <div style={{
         marginTop:'15px',
         marginBottom:'15px',
     }}>   
-        <FormControl sx={{width: 300}} error = {isError}>
+        <FormControl sx={{width: 300}}>
         <InputLabel id="Flag Severity">Flag Severity</InputLabel>
         <Select
           labelId="Flag-Severity-label"
@@ -207,7 +196,7 @@ export default function FlagAddButton ({flagTypes,flagSeverities,flagComponents,
           label='Flag Severity'
           onChange={handleChange}
          >
-          {flagSeverities.map((item) => {
+          {flag_severities.map((item) => {
             return (
               <MenuItem
               key={item.value}
@@ -218,12 +207,6 @@ export default function FlagAddButton ({flagTypes,flagSeverities,flagComponents,
           )}
           )}
         </Select>
-        {
-        isError ? 
-        <FormHelperText>Cannot be empty</FormHelperText> 
-        : 
-        ''
-        }
       </FormControl>
     </div>
     
@@ -231,7 +214,7 @@ export default function FlagAddButton ({flagTypes,flagSeverities,flagComponents,
     <div style={{
         marginTop:'10px'
     }}>
-      <FormControl sx={{width: 300}} error = {isError}>
+      <FormControl sx={{width: 300}}>
         <InputLabel id="multiple-checkbox-label">Components</InputLabel> 
         <Select
           labelId="multiple-checkbox-label"
@@ -243,22 +226,26 @@ export default function FlagAddButton ({flagTypes,flagSeverities,flagComponents,
           renderValue={(selected) => selected.join(', ')}
           MenuProps={MenuProps}
         >
-          {componentName == 'Global' 
+          {
+          componentName.includes('Global') 
           ?
           flag_components_global_list.map((item,index) => (
-            <MenuItem key={index} value={item.name}>
+            <MenuItem 
+            key={index} 
+            value={item.name}>
               <Checkbox checked={componentName.indexOf(item.name) > -1} />
               <ListItemText primary={item.name} />
             </MenuItem>
           )
           )
           :
-           flagComponents.map((item,index) => (
+          flag_components.map((item,index) => (
             <MenuItem key={index} value={item.name}>
               <Checkbox checked={componentName.indexOf(item.name) > -1} />
               <ListItemText primary={item.name} />
             </MenuItem>
-          ))}
+          ))
+          }
         </Select>
       </FormControl>
     </div>
@@ -268,8 +255,6 @@ export default function FlagAddButton ({flagTypes,flagSeverities,flagComponents,
     }}>
             <TextField
             required
-            error={isError}
-            helperText={isError ? 'Cannot be empty' : ''}
             margin = 'dense'
             id="start_time"
             label="start_time"
@@ -290,8 +275,6 @@ export default function FlagAddButton ({flagTypes,flagSeverities,flagComponents,
     }}>
             <TextField
             required
-            error={isError}
-            helperText={isError ? 'Cannot be empty' : ''}
             margin = 'dense'
             id="end_time"
             label="end_time"
@@ -325,10 +308,34 @@ export default function FlagAddButton ({flagTypes,flagSeverities,flagComponents,
             onChange={handleChange}
             />
     </div>
+    <div 
+    style={{
+    marginTop:'15px',
+    marginBottom:'5px',
+    color:'red',
+    display:'flex',
+    alignItems:'center'
+    }}>
+      {
+      isError 
+      ? 
+      <>
+      <ErrorIcon
+      fontSize='small'
+      /> 
+      A flag with the same name already exists in the database
+      </>
+      : 
+      null}
+    </div>
+
         </DialogContent>
         <DialogActions>
           <Button onClick={handleClose}>Cancel</Button>
-          <Button onClick={handleSubmit}>
+          {
+             componentName.length !== 0 && property.name && property.flag_type && property.flag_severity && startTime && endTime 
+            ?
+            <Button onClick={handleSubmit}>
               {loading ? <CircularProgress
                             size={24}
                             sx={{
@@ -336,6 +343,11 @@ export default function FlagAddButton ({flagTypes,flagSeverities,flagComponents,
                             }}
                         /> : "Submit"}
               </Button>
+              :
+              <Button disabled>
+              Submit
+              </Button>
+              }
         </DialogActions>
       </Dialog>
     </>

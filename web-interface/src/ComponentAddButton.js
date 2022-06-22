@@ -16,15 +16,16 @@ import { styled } from '@mui/material/styles';
 import Chip from '@mui/material/Chip';
 import Paper from '@mui/material/Paper';
 import AlertDialog from './ComponentAlertDialog.js';
+import ErrorIcon from '@mui/icons-material/Error';
 
 
-  export default function ComponentAddButton ({types_and_revisions,toggleReload}){
+  export default function ComponentAddButton ({types_and_revisions,components,toggleReload}){
 
   // opens and closes the pop up form.
   const [open, setOpen] = useState(false);
 
-  // controls when to display error messages 
-  const [isError,setIsError] = useState(false)
+  // Cannot add a component without a name
+  const [componentNameError,setComponentNameError] = useState(false)
 
   // stores the component name
   const [name,setName] = useState('')
@@ -32,6 +33,12 @@ import AlertDialog from './ComponentAlertDialog.js';
   // when adding components in bulk, this state stores all
   // the names 
   const [nameList,setNameList] = useState([])
+
+  /*
+  To display an error message when a user tries to add a new component but a 
+  component with the same name already exists in the database.
+  */
+  const [isError,setIsError] = useState(false)
 
   // stores the component type name selected in the pop up form
   const [componentType,setComponentType] = useState('')
@@ -61,24 +68,34 @@ import AlertDialog from './ComponentAlertDialog.js';
   };
  
   // adds the component name in the chipData array of objects and displays the name on the pop up form
-  const handleSubmit2 = (e) => {
-    e.preventDefault()
-      setChipData((prevState)=>{
-        return prevState.concat(
-          [
-          {
-          key: keyCount,
-          label : name
+  const handleSubmit2 = () => {
+      if(name){
+        if(components.filter((item) => item.name === name).length === 0 ){
+          setComponentNameError(false)
+          setIsError(false)
+          setChipData((prevState)=>{
+            return prevState.concat(
+              [
+              {
+              key: keyCount,
+              label : name
+            }
+          ]
+            )
+          })
+          setKeyCount((prevState)=> prevState + 1)
+          setNameList(prevState => {
+                        return (
+                            [...prevState,name]
+                        )
+                    })
+        } else {
+          setComponentNameError(false)
+          setIsError(true)
         }
-      ]
-        )
-      })
-      setKeyCount((prevState)=> prevState + 1)
-      setNameList(prevState => {
-                    return (
-                        [...prevState,name]
-                    )
-                })
+      } else {
+        setComponentNameError(true)
+      }
             }
 
 
@@ -91,10 +108,11 @@ import AlertDialog from './ComponentAlertDialog.js';
   };
 
   /*
-  Function sets the relevant form variables back to empty string once the form is closed or the user clicks on the cancel button on the pop up form.
+  Function that sets the relevant form variables back to empty string once the form is closed or the user clicks on the cancel button on the pop up form.
   */
   const handleClose = () => {
     setOpen(false);
+    setComponentNameError(false)
     setIsError(false)
     setName('')
     setComponentRevision('')
@@ -119,9 +137,6 @@ import AlertDialog from './ComponentAlertDialog.js';
    */
   const handleSubmit = (e) => {
     e.preventDefault() // To preserve the state once the form is submitted.
-
-    // Empty component type along with empty component revision cannot be submitted.
-    if(name && componentType && componentRevision){ 
     let input = `/api/set_component`;
     input += `?name=${nameList.join(';')}`;
     input += `&type=${componentType}`;
@@ -130,9 +145,7 @@ import AlertDialog from './ComponentAlertDialog.js';
                 toggleReload() //To reload the list of components once the form has been submitted.
                 handleClose()
     })
-    } else {
-      setIsError(true) // Displays the error if empty values of component type or component revision is submitted.
-    }
+
   }
   
   return (
@@ -171,7 +184,6 @@ import AlertDialog from './ComponentAlertDialog.js';
       })}
     </Paper>
       <TextField
-            error={isError}
             autoFocus
             margin="dense"
             id="name"
@@ -180,7 +192,6 @@ import AlertDialog from './ComponentAlertDialog.js';
             fullWidth
             variant="outlined"
             onChange={(e)=>setName(e.target.value)}
-            helperText = {isError ? 'Cannot be empty' : ''}
             />
             <div style={{
                 display:'flex',
@@ -192,7 +203,9 @@ import AlertDialog from './ComponentAlertDialog.js';
           marginTop: '10px'
         }}
         variant = 'contained'
-        onClick={handleSubmit2}>Add</Button>
+        onClick={handleSubmit2}
+        >Add
+        </Button>
         </div>
     </div>
 
@@ -203,7 +216,8 @@ import AlertDialog from './ComponentAlertDialog.js';
             <Box sx={{ minWidth: 120 }}>
       <FormControl fullWidth>
         <InputLabel id="Component Type">
-            Component Type</InputLabel>
+            Component Type
+        </InputLabel>
         <Select
           labelId="ComponentType"
           id="ComponentType"
@@ -211,10 +225,6 @@ import AlertDialog from './ComponentAlertDialog.js';
           label="Component Type"
           onChange={handleChange}
           >
-            {/*
-            .filter(Boolean) because some component types don't have a component revision so .filter(Boolean) gets rid of
-            undefined values and .includes() can be used.
-            */}
             {types_and_revisions.map((item,index)=>{
                 return (
                     <MenuItem key={index} value={item.name}>{item.name}
@@ -248,7 +258,34 @@ import AlertDialog from './ComponentAlertDialog.js';
     </div>
     :
     null}
-    
+    <div 
+    style={{
+    marginTop:'15px',
+    marginBottom:'5px',
+    color:'red',
+    display:'flex',
+    alignItems:'center'
+    }}>
+      {
+      componentNameError ? 
+      <>
+      <ErrorIcon
+      fontSize='small'
+      /> 
+      Component name cannot be empty
+      </> 
+      : 
+      isError 
+      ? 
+      <>
+      <ErrorIcon
+      fontSize='small'
+      /> 
+      A component with the same name already exists in the database
+      </>
+      : 
+      null}
+    </div>
         </DialogContent>
         <DialogActions>
           <Button onClick={handleClose}>Cancel</Button>

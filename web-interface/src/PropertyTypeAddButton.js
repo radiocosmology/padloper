@@ -7,16 +7,14 @@ import Dialog from '@mui/material/Dialog';
 import DialogActions from '@mui/material/DialogActions';
 import DialogContent from '@mui/material/DialogContent';
 import DialogTitle from '@mui/material/DialogTitle';
-import Box from '@mui/material/Box';
 import InputLabel from '@mui/material/InputLabel';
 import MenuItem from '@mui/material/MenuItem';
 import FormControl from '@mui/material/FormControl';
 import Select from '@mui/material/Select';
-import { useTheme } from '@mui/material/styles';
 import OutlinedInput from '@mui/material/OutlinedInput';
-import Chip from '@mui/material/Chip';
 import axios from 'axios'
-import FormHelperText from '@mui/material/FormHelperText';
+import ErrorIcon from '@mui/icons-material/Error'
+import { Checkbox, ListItemText } from '@mui/material';
 
 
 const ITEM_HEIGHT = 48;
@@ -30,21 +28,17 @@ const MenuProps = {
   },
 };
 
-function getStyles(name, componentTypeName, theme) {
-  return {
-    fontWeight:
-      componentTypeName.indexOf(name) === -1
-        ? theme.typography.fontWeightRegular
-        : theme.typography.fontWeightMedium,
-  };
-}
 
 
-export default function PropertyTypeAddButton ({componentTypes,toggleReload}) {
+export default function PropertyTypeAddButton ({componentTypes,elements,toggleReload}) {
 
+  // Opens and closes the pop up form.
   const [open, setOpen] = useState(false);
-  const [isError,setIsError] = useState(false)
+
+  // Stores the list of component types selected by the user in the pop up form.
   const [componentTypeName, setComponentTypeName] = useState([]);
+
+  // Stores the data inputted by the user/
   const [property,setProperty] = useState({
     name: '',
     units:'',
@@ -52,8 +46,13 @@ export default function PropertyTypeAddButton ({componentTypes,toggleReload}) {
     values:0,
     comment:''
   })
+
+  // Whether the submit button has been clicked or not.
   const [loading, setLoading] = useState(false);
-  const theme = useTheme();
+
+  /*To display an error message when a user tries to add a new property type but a property tpye with the same name already exists in the database. */
+  const [isError,setIsError] = useState(false)
+
 
   /*
   Keeps a record of multiple state values.
@@ -103,12 +102,7 @@ export default function PropertyTypeAddButton ({componentTypes,toggleReload}) {
   const handleSubmit = (e) => {
     e.preventDefault() // To preserve the state once the form is submitted.
 
-    /*
-    These conditions don't allow the user to submit the form if the property type name, 
-    component type, units, allowed regex or number of values fields in the form
-    are left empty.
-     */
-    if(property.name && componentTypeName && property.units &&property.allowed_regex && property.values !=0){ 
+    if(elements.filter((item)=> item.name === property.name).length ===0 ){ 
     let input = `/api/set_property_type`;
     input += `?name=${property.name}`;
     input += `&type=${componentTypeName.join(';')}`;
@@ -121,8 +115,8 @@ export default function PropertyTypeAddButton ({componentTypes,toggleReload}) {
           handleClose()
     })
     } else {
-      setIsError(true) 
-    }
+      setIsError(true)
+    } 
   }
 
   return (
@@ -135,8 +129,6 @@ export default function PropertyTypeAddButton ({componentTypes,toggleReload}) {
         marginTop:'10px',
     }}>
           <TextField
-            error={isError}
-            helperText = {isError ? 'Cannot be empty' : ''}
             autoFocus
             margin="dense"
             id="name"
@@ -149,12 +141,11 @@ export default function PropertyTypeAddButton ({componentTypes,toggleReload}) {
             onChange={handleChange2}
             />
     </div>
-
     <div style={{
         marginTop:'15px',
         marginBottom:'15px',
     }}>   
-            <FormControl sx={{width: 300}} error = {isError}>
+        <FormControl sx={{width: 300}} >
         <InputLabel id="Allowed Type">Allowed Type</InputLabel>
         <Select
           labelId="multiple-Allowed-Type-label"
@@ -163,42 +154,25 @@ export default function PropertyTypeAddButton ({componentTypes,toggleReload}) {
           value={componentTypeName}
           onChange={handleChange}
           input={<OutlinedInput id="select-multiple-Allowed-Type" label="Allowed-Type" />}
-          renderValue={(selected) => (
-            <Box sx={{ display: 'flex', flexWrap: 'wrap', gap: 0.5 }}>
-              {selected.map((value) => (
-                <Chip key={value} label={value} />
-              ))}
-            </Box>
-          )}
+          renderValue={(selected) => selected.join(',')}
           MenuProps={MenuProps}
         >
-          {componentTypes.map((component) => {
-
-            return (
+          {componentTypes.map((component,index) => (
               <MenuItem
-              key={component.name}
-              value={component.name}
-              style={getStyles(component.name, componentTypeName, theme)}
-              >
-              {component.name}
+              key={index}
+              value={component.name}>
+              <Checkbox checked={componentTypeName.indexOf(component.name) > -1} />
+              <ListItemText primary={component.name} />
             </MenuItem>
-          )}
+          )
           )}
         </Select>
-        {
-        isError ? 
-        <FormHelperText>Cannot be empty</FormHelperText> 
-        : 
-        ''
-        }
       </FormControl>
     </div>
     <div style={{
         marginTop:'10px',
     }}>
           <TextField
-            error={isError}
-            helperText = {isError ? 'Cannot be empty' : ''}
             autoFocus
             margin="dense"
             id="units"
@@ -216,8 +190,6 @@ export default function PropertyTypeAddButton ({componentTypes,toggleReload}) {
         marginBottom:'10px'
     }}>
           <TextField
-            error={isError}
-            helperText = {isError ? 'Cannot be empty' : ''}
             autoFocus
             margin="dense"
             id="Allowed Regex"
@@ -235,8 +207,6 @@ export default function PropertyTypeAddButton ({componentTypes,toggleReload}) {
         marginBottom:'10px'
     }}>
           <TextField
-          error={isError}
-          helperText = {isError ? 'Cannot be empty' : ''}
           id="outlined-number"
           label="Number of Values"
           type="number"
@@ -267,10 +237,33 @@ export default function PropertyTypeAddButton ({componentTypes,toggleReload}) {
             onChange={handleChange2}
             />
     </div>
+    <div 
+    style={{
+    marginTop:'15px',
+    marginBottom:'5px',
+    color:'red',
+    display:'flex',
+    alignItems:'center'
+    }}>
+      {
+      isError 
+      ? 
+      <>
+      <ErrorIcon
+      fontSize='small'
+      /> 
+      A property type with the same name already exists in the database
+      </>
+      : 
+      null}
+    </div>
+
         </DialogContent>
         <DialogActions>
           <Button onClick={handleClose}>Cancel</Button>
-          <Button onClick={handleSubmit}>
+          { property.name && componentTypeName.length !== 0 && property.units && property.allowed_regex && property.values !== 0
+          ?
+            <Button onClick={handleSubmit}>
               {loading ? <CircularProgress
                             size={24}
                             sx={{
@@ -278,6 +271,11 @@ export default function PropertyTypeAddButton ({componentTypes,toggleReload}) {
                             }}
                         /> : "Submit"}
               </Button>
+              :
+              <Button disabled>
+              Submit
+              </Button>
+              }
         </DialogActions>
       </Dialog>
     </>

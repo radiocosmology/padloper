@@ -271,6 +271,7 @@ export default function PropertyTypeList() {
                 rightColumn2 = {
                     <PropertyTypeAddButton 
                     componentTypes={componentTypes}
+                    elements = {elements}
                     toggleReload={toggleReload}
                     />
                 }
