@@ -462,10 +462,10 @@ function ComponentPage() {
                         <Grid item>
                             <Stack spacing={-0.1}>
                                 <Typography color={'rgb(128,128,128)'}>
-                                    Component revision
+                                    Component version
                                 </Typography>
                                 <Typography variant="h5">
-                                    {component.revision.name}
+                                    {component.version.name}
                                 </Typography>
                             </Stack>
                         </Grid>

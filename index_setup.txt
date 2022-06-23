@@ -6,8 +6,8 @@
 # composite index on "category" for vertices: g.V().has('category', ...)
 # composite index for "category" THEN "name" for vertices: 
 # 	g.V().has('category', ...).has('name', ...)
-# mixed index on "start" THEN "end" for edges:
-# 	g.E().hasLabel('connection').has('start', ...).has('end', ...)
+# mixed index on "start_time" THEN "end_time" for edges:
+# 	g.E().hasLabel('connection').has('start_time', ...).has('end_time', ...)
 # a LIST cardinality on the "values" attribute of vertices (for property vertices)
 
 # Read more here: https://docs.janusgraph.org/index-management/index-performance/
@@ -15,8 +15,8 @@
 mgmt = graph.openManagement()
 name = mgmt.makePropertyKey('name').dataType(String.class).make()
 category = mgmt.makePropertyKey('category').dataType(String.class).make()
-start = mgmt.makePropertyKey('start').dataType(Long.class).make()
-end = mgmt.makePropertyKey('end').dataType(Long.class).make()
+start = mgmt.makePropertyKey('start_time').dataType(Long.class).make()
+end = mgmt.makePropertyKey('end_time').dataType(Long.class).make()
 connection = mgmt.makeEdgeLabel('connection').make()
 
 mgmt.buildIndex('byCategoryComposite', Vertex.class).addKey(category).buildCompositeIndex()

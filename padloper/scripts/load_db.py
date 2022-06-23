@@ -10,9 +10,9 @@ if __name__ == "__main__":
 
     property_types_count = 3
 
-    revisions_per_type_count = 5
+    versions_per_type_count = 5
 
-    components_per_revision_count = 10
+    components_per_version_count = 10
 
     for i in range(types_count):
         t = ComponentType(name=f"TYPE-{i}", comments=f"{i}th type")
@@ -34,24 +34,24 @@ if __name__ == "__main__":
 
         rev_numbers = sample(
             range(1, 100), 
-            revisions_per_type_count
+            versions_per_type_count
         )
 
-        for j in range(revisions_per_type_count):
+        for j in range(versions_per_type_count):
             r = None
 
-            if j < revisions_per_type_count - 1: 
-                r = ComponentRevision(
+            if j < versions_per_type_count - 1: 
+                r = ComponentVersion(
                     name=f"REV-{rev_numbers[j]}",
-                    comments=f"{j}th revision of {i}th type",
+                    comments=f"{j}th version of {i}th type",
                     allowed_type=t
                 )
 
-            for k in range(components_per_revision_count):
+            for k in range(components_per_version_count):
                 c = Component(
                     name=f"CMP-{i}-{j}-{k}",
                     component_type=t,
-                    revision=r
+                    version=r
                 )
                 c.add()
 

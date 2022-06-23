@@ -6,12 +6,12 @@ import {
     Button,
     } 
 from '@mui/material';
-import ComponentRevisionFilter from './ComponentRevisionFilter.js';
+import ComponentVersionFilter from './ComponentVersionFilter.js';
 
 /**
- * A MUI component that renders a list of component revisions.
+ * A MUI component that renders a list of component versions.
  */
-function ComponentRevisionList() {
+function ComponentVersionList() {
     
     // the list of component types in objects representation
     const [elements, setElements] = useState([]);
@@ -130,7 +130,7 @@ function ComponentRevisionList() {
             setLoaded(false);
 
             // create the URL query string
-            let input = '/api/component_revision_list';
+            let input = '/api/component_version_list';
             input += `?range=${min};${min + range}`;
             input += `&orderBy=${orderBy}`;
             input += `&orderDirection=${orderDirection}`;
@@ -159,7 +159,7 @@ function ComponentRevisionList() {
      * Change the component type count when filters are updated.
      */
     useEffect(() => {
-        let input = `/api/component_revision_count`;
+        let input = `/api/component_version_count`;
         if (filters.length > 0) {
             input += `&filters=${createFilterString()}`;
         }
@@ -199,7 +199,7 @@ function ComponentRevisionList() {
     const tableHeadCells = [
         {
             id: 'name', 
-            label: 'Component Revision',
+            label: 'Component Version',
             allowOrdering: true,
         },
         {
@@ -216,7 +216,7 @@ function ComponentRevisionList() {
 
     /**
      * the rows of the table. We are only putting the name, allowed type of the
-     * revision, and the comments.
+     * version, and the comments.
      */
     let tableRowContent = elements.map((e) => [
         e.name,
@@ -248,7 +248,7 @@ function ComponentRevisionList() {
             {
                 filters.map(
                     (filter, index) => (
-                        <ComponentRevisionFilter
+                        <ComponentVersionFilter
                             addFilter={() => { }}
                             removeFilter={removeFilter}
                             changeFilter={changeFilter}
@@ -274,4 +274,4 @@ function ComponentRevisionList() {
     )
 }
 
-export default ComponentRevisionList;
+export default ComponentVersionList;
