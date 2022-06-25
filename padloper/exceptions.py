@@ -50,9 +50,9 @@ class ComponentTypeNotAddedError(Error):
     pass
 
 
-class ComponentRevisionNotAddedError(Error):
+class ComponentVersionNotAddedError(Error):
     """
-    Exception raised when trying to access a component revision when its
+    Exception raised when trying to access a component version when its
     allowed type has not been added to the database.
     """
     pass

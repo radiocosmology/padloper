@@ -57,38 +57,38 @@ pt = PropertyType(name="position", units="m", \
 pt.add()
 
 
-# revisions
+# versions
 
-ANT_A = ComponentRevision(name="A", allowed_type=ANT, \
-    comments="This is the first Antenna revision")
+ANT_A = ComponentVersion(name="A", allowed_type=ANT, \
+    comments="This is the first Antenna version")
 ANT_A.add()
 
-DPF_A = ComponentRevision(name="A", allowed_type=DPF, \
-    comments="This is the first Dual polarization feed revision")
+DPF_A = ComponentVersion(name="A", allowed_type=DPF, \
+    comments="This is the first Dual polarization feed version")
 DPF_A.add()
 
-BLN_A = ComponentRevision(name="A", allowed_type=BLN, \
-    comments="This is the first Active Balun revision")
+BLN_A = ComponentVersion(name="A", allowed_type=BLN, \
+    comments="This is the first Active Balun version")
 BLN_A.add()
 
-RFT_A = ComponentRevision(name="A", allowed_type=RFT, \
-    comments="This is the first RFoF transmitter revision")
+RFT_A = ComponentVersion(name="A", allowed_type=RFT, \
+    comments="This is the first RFoF transmitter version")
 RFT_A.add()
 
-OPF_A = ComponentRevision(name="A", allowed_type=OPF, \
-    comments="This is the first Optical Fiber revision")
+OPF_A = ComponentVersion(name="A", allowed_type=OPF, \
+    comments="This is the first Optical Fiber version")
 OPF_A.add()
 
-RFR_A = ComponentRevision(name="A", allowed_type=RFR, \
-    comments="This is the first RFoF receiver revision")
+RFR_A = ComponentVersion(name="A", allowed_type=RFR, \
+    comments="This is the first RFoF receiver version")
 RFR_A.add()
 
-ADC_A = ComponentRevision(name="A", allowed_type=ADC, \
-    comments="This is the first Analog to Digital Converter revision")
+ADC_A = ComponentVersion(name="A", allowed_type=ADC, \
+    comments="This is the first Analog to Digital Converter version")
 ADC_A.add()
 
-COR_A = ComponentRevision(name="A", allowed_type=COR, \
-    comments="This is the first Correlator Input revision")
+COR_A = ComponentVersion(name="A", allowed_type=COR, \
+    comments="This is the first Correlator Input version")
 COR_A.add()
 
 # components
@@ -101,24 +101,24 @@ for chain_num in range(1, chains + 1):
     ANT_1 = Component(
         name=f"ANT{str(chain_num).zfill(4)}", 
         type=ANT, 
-        revision=ANT_A
+        version=ANT_A
     )
     ANT_1.add()
 
     DPF_1 = Component(
         name=f"DPF{str(chain_num).zfill(4)}", 
         type=DPF, 
-        revision=DPF_A)
+        version=DPF_A)
     DPF_1.add()
 
     BLN_1, BLN_2 =  Component(
             name=f"BLN{str(chain_num * 2 - 1).zfill(4)}",
             type=BLN, 
-            revision=BLN_A), \
+            version=BLN_A), \
         Component(
             name=f"BLN{str(chain_num * 2).zfill(4)}", 
             type=BLN,
-            revision=BLN_A
+            version=BLN_A
         )
     BLN_1.add()
     BLN_2.add()
@@ -126,11 +126,11 @@ for chain_num in range(1, chains + 1):
     RFT_1, RFT_2 =  Component(
             name=f"RFT{str(chain_num * 2 - 1).zfill(4)}", 
             type=RFT, 
-            revision=RFT_A), \
+            version=RFT_A), \
         Component(
             name=f"RFT{str(chain_num * 2).zfill(4)}", 
             type=RFT, 
-            revision=RFT_A
+            version=RFT_A
         )
     RFT_1.add()
     RFT_2.add()
@@ -138,11 +138,11 @@ for chain_num in range(1, chains + 1):
     OPF_1, OPF_2 =  Component(
             name=f"OPF{str(chain_num * 2 - 1).zfill(4)}", 
             type=OPF, 
-            revision=OPF_A), \
+            version=OPF_A), \
         Component(
             name=f"OPF{str(chain_num * 2).zfill(4)}", 
             type=OPF, 
-            revision=OPF_A
+            version=OPF_A
         )
     OPF_1.add()
     OPF_2.add()
@@ -150,11 +150,11 @@ for chain_num in range(1, chains + 1):
     RFR_1, RFR_2 =  Component(
             name=f"RFR{str(chain_num * 2 - 1).zfill(4)}", 
             type=RFR, 
-            revision=RFR_A), \
+            version=RFR_A), \
         Component(
             name=f"RFR{str(chain_num * 2).zfill(4)}", 
             type=RFR, 
-            revision=RFR_A
+            version=RFR_A
         )
     RFR_1.add()
     RFR_2.add()
@@ -162,11 +162,11 @@ for chain_num in range(1, chains + 1):
     ADC_1, ADC_2 =  Component(
             name=f"ADC{str(chain_num * 2 - 1).zfill(4)}", 
             type=ADC, 
-            revision=ADC_A), \
+            version=ADC_A), \
         Component(
             name=f"ADC{str(chain_num * 2).zfill(4)}", 
             type=ADC, 
-            revision=ADC_A
+            version=ADC_A
         )
     ADC_1.add()
     ADC_2.add()
@@ -174,7 +174,7 @@ for chain_num in range(1, chains + 1):
     COR_1 = Component(
             name=f"COR{str(chain_num).zfill(4)}", 
             type=COR, 
-            revision=COR_A
+            version=COR_A
         )
     COR_1.add()
 

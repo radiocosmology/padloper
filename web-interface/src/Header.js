@@ -22,7 +22,7 @@ function Header() {
             style={{
                 flexGrow: 1,
             }}>
-              HIRAX Layout DB
+              Padloper
             </Typography>
 
             <Stack direction="row" spacing={3}>
@@ -41,8 +41,8 @@ function Header() {
                             link: `/list/component-types`
                         },
                         {
-                            name: 'Component Revisions', 
-                            link: `/list/component-revisions`
+                            name: 'Component Versions', 
+                            link: `/list/component-versions`
                         },
                         {
                             name: 'Property Types', 

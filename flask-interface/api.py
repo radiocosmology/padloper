@@ -129,10 +129,10 @@ def get_component_list():
                     'name': c.type.name,
                     'comments': c.type.comments,
                 },
-                'revision': {
-                    'name': c.revision.name if c.revision is not None else None,
-                    'comments': c.revision.comments \
-                        if c.revision is not None else None,
+                'version': {
+                    'name': c.version.name if c.version is not None else None,
+                    'comments': c.version.comments \
+                        if c.version is not None else None,
                 }
             }   
             for c in components
@@ -162,23 +162,23 @@ def get_component_count():
     return {'result': Component.get_count(filters=filter_triples)}
 
 
-@app.route("/api/component_types_and_revisions")
-def get_component_types_and_revisions():
+@app.route("/api/component_types_and_versions")
+def get_component_types_and_versions():
     """Return a dictionary with a value 'result' and corresponding value 
-    being a list of all the component types and their corresponding revisions.
+    being a list of all the component types and their corresponding versions.
 
     # TODO: This should ideally never, ever be used. Querying every type and 
-    # corresponding revision is a very bad idea. In the web interface, instead
+    # corresponding version is a very bad idea. In the web interface, instead
     of fetching this URL, create a ComponentTypeAutocomplete and
-    ComponentRevisionAutocomplete that will query the limited component list
+    ComponentVersionAutocomplete that will query the limited component list
     that has a min/max range instead.
 
     :return: A dictionary with a value 'result' and corresponding value 
-    being a list of all the component types and their corresponding revisions.
+    being a list of all the component types and their corresponding versions.
     :rtype: dict
     """
 
-    types = ComponentType.get_names_of_types_and_revisions()
+    types = ComponentType.get_names_of_types_and_versions()
 
     return {'result': types}
     
@@ -257,21 +257,21 @@ def get_component_type_count():
     return {'result': ComponentType.get_count(name_substring=name_substring)}
 
 
-@app.route("/api/component_revision_list")
-def get_component_revision_list():
+@app.route("/api/component_version_list")
+def get_component_version_list():
     """Given three URL parameters 'range', 'orderBy', 'orderDirection', 
     and 'filters', return a dictionary containing a key 'result' with its 
     corresponding value being an array of dictionary representations of each 
-    component revision in the desired list.
+    component version in the desired list.
 
     The URL parameters are:
 
     range - of the form "<int>;<int>" -- two integers split by a semicolon,
-    where the first integer denotes the index first component revision to be 
+    where the first integer denotes the index first component version to be 
     considered in the list and the second integer denotes the last component 
     to be shown in the list.
 
-    orderBy - the field to order the component revision list by.
+    orderBy - the field to order the component version list by.
 
     orderDirection - either "asc" or "desc" for ascending/descending,
     respectively.
@@ -281,7 +281,7 @@ def get_component_revision_list():
     tuples' contents separated by commas.
 
     :return: A dictionary containing a key 'result' with its corresponding value
-    being an array of dictionary representations of each component revision 
+    being an array of dictionary representations of each component version 
     in the desired list.
     :rtype: dict
     """
@@ -300,7 +300,7 @@ def get_component_revision_list():
     assert order_direction in {'asc', 'desc'}
 
     # query to padloper
-    component_revisions = ComponentRevision.get_list(
+    component_versions = ComponentVersion.get_list(
         range=range_bounds, 
         order_by=order_by,
         order_direction=order_direction,
@@ -318,13 +318,13 @@ def get_component_revision_list():
                     'comments': c.allowed_type.comments,
                 },
             }   
-            for c in component_revisions
+            for c in component_versions
         ] 
     }
 
 
-@app.route("/api/component_revision_count")
-def get_component_revision_count():
+@app.route("/api/component_version_count")
+def get_component_version_count():
     """Given a URL parameter 'filters', return a dictionary with a value 
     'result' and corresponding value being the number of component types that 
     satisfy said filters.
@@ -343,7 +343,7 @@ def get_component_revision_count():
     filter_tuples = read_filters(filters)
 
     return {
-        'result': ComponentRevision.get_count(filters=filter_tuples)
+        'result': ComponentVersion.get_count(filters=filter_tuples)
     }
 
 
