@@ -9,8 +9,8 @@ import Close from '@mui/icons-material/Close';
 
 /**
  * A MUI component that represents a filter object which allows to choose a
- * name for the revision along with an associated type. These are used in the
- * ComponentRevisionList.
+ * name for the version along with an associated type. These are used in the
+ * ComponentVersionList.
  * @param {function} removeFilter - function to call when the filter is removed.
  * @param {function(int, object)} changeFilter - function to call when the 
  * filter is changed.
@@ -21,7 +21,7 @@ import Close from '@mui/icons-material/Close';
  * @param {Array} types - the list of types to choose from (TODO: turn this 
  * into an autocomplete instead................)
  */
-function ComponentRevisionFilter(
+function ComponentVersionFilter(
         { 
             removeFilter, 
             changeFilter, 
@@ -158,4 +158,4 @@ function ComponentRevisionFilter(
     )
 }
 
-export default ComponentRevisionFilter;
+export default ComponentVersionFilter;

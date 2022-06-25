@@ -19,7 +19,7 @@ import AlertDialog from './ComponentAlertDialog.js';
 import ErrorIcon from '@mui/icons-material/Error';
 
 
-  export default function ComponentAddButton ({types_and_revisions,components,toggleReload}){
+  export default function ComponentAddButton ({types_and_versions,components,toggleReload}){
 
   // opens and closes the pop up form.
   const [open, setOpen] = useState(false);
@@ -43,8 +43,8 @@ import ErrorIcon from '@mui/icons-material/Error';
   // stores the component type name selected in the pop up form
   const [componentType,setComponentType] = useState('')
 
-  // stores the component revision name selected in the pop up form
-  const [componentRevision,setComponentRevision] = useState('')
+  // stores the component version name selected in the pop up form
+  const [componentVersion,setComponentVersion] = useState('')
 
   // whether the submit button has been clicked or not
   const [loading, setLoading] = useState(false);
@@ -129,7 +129,7 @@ import ErrorIcon from '@mui/icons-material/Error';
     setComponentNameError(false)
     setIsError(false)
     setName('')
-    setComponentRevision('')
+    setComponentVersion('')
     setComponentType('')
     setLoading(false)
     setNameList([])
@@ -139,11 +139,11 @@ import ErrorIcon from '@mui/icons-material/Error';
   };
 
   /*
-  Updates the componentType state and simultaneously selects the relevant component revisions contigent on the selected component type.
+  Updates the componentType state and simultaneously selects the relevant component versions contigent on the selected component type.
   */
   const handleChange = (e) => {
     setComponentType(e.target.value) 
-    setComponentRevision(types_and_revisions.filter(element => element.name.includes(e.target.value)).map((item)=> item.revisions[0]))
+    setComponentVersion(types_and_versions.filter(element => element.name.includes(e.target.value)).map((item)=> item.versions[0]))
   }
 
   /*
@@ -154,7 +154,7 @@ import ErrorIcon from '@mui/icons-material/Error';
     let input = `/api/set_component`;
     input += `?name=${nameList.sort().join(';')}`;
     input += `&type=${componentType}`;
-    input += `&revision=${componentRevision}`;
+    input += `&version=${componentVersion}`;
     axios.post(input).then((response)=>{
                 toggleReload() //To reload the list of components once the form has been submitted.
                 handleClose()
@@ -244,7 +244,7 @@ import ErrorIcon from '@mui/icons-material/Error';
           label="Component Type"
           onChange={handleChange}
           >
-            {types_and_revisions.map((item,index)=>{
+            {types_and_versions.map((item,index)=>{
                 return (
                     <MenuItem key={index} value={item.name}>{item.name}
                     </MenuItem>
@@ -263,9 +263,9 @@ import ErrorIcon from '@mui/icons-material/Error';
             <Box sx={{ minWidth: 120 }}>
       <FormControl fullWidth >
         <TextField
-          id="ComponentRevision"
-          label="Component Revision"
-          value={componentRevision}
+          id="ComponentVersion"
+          label="Component Version"
+          value={componentVersion}
           inputProps={{
             readOnly: true,
           }}
@@ -322,7 +322,7 @@ import ErrorIcon from '@mui/icons-material/Error';
           <AlertDialog 
           handleSubmit={handleSubmit}
           nameList={nameList}
-          componentRevision={componentRevision}
+          componentVersion={componentVersion}
           componentType={componentType}
           loading={loading}
           alertOpen={alertOpen}

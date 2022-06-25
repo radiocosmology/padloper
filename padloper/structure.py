@@ -455,30 +455,30 @@ class ComponentType(Vertex):
         return _vertex_cache[id]
 
     @classmethod
-    def get_names_of_types_and_revisions(cls):
+    def get_names_of_types_and_versions(cls):
         """
         Return a list of dictionaries, of the format
-        {'type': <ctypename>, 'revisions': [<revname>, ..., <revname>]}
+        {'type': <ctypename>, 'versions': [<revname>, ..., <revname>]}
 
         where <ctypename> is the name of the component type, and
-        the corresponding value of the 'revisions' key is a list of the names
-        of all of the revisions.
+        the corresponding value of the 'versions' key is a list of the names
+        of all of the versions.
 
         Used for updating the filter panels.
 
         :return: a list of dictionaries, of the format
-        {'type': <ctypename>, 'revisions': [<revname>, ..., <revname>]}
+        {'type': <ctypename>, 'versions': [<revname>, ..., <revname>]}
         :rtype: list[dict]
         """
 
         ts = g.V().has('category', ComponentType.category) \
             .order().by('name', Order.asc) \
-            .project('name', 'revisions') \
+            .project('name', 'versions') \
             .by(__.values('name')) \
             .by(
-                __.both(RelationRevisionAllowedType.category)
-            .order().by('name', Order.asc).values('name').fold()
-        ) \
+                __.both(RelationVersionAllowedType.category) \
+                    .order().by('name', Order.asc).values('name').fold()
+            ) \
             .toList()
 
         return ts
@@ -585,17 +585,17 @@ class ComponentType(Vertex):
             .count().next()
 
 
-class ComponentRevision(Vertex):
+class ComponentVersion(Vertex):
     """
-    The representation of a component revision.
+    The representation of a component version.
 
     :ivar comments: The comments associated with the component type.
     :ivar name: The name of the component type.
     :ivar allowed_type: The ComponentType instance representing the allowed
-    type of the component revision.
+    type of the component version.
     """
 
-    category: str = "component_revision"
+    category: str = "component_version"
 
     comments: str
     name: str
@@ -606,18 +606,17 @@ class ComponentRevision(Vertex):
         id: int = VIRTUAL_ID_PLACEHOLDER
     ):
         """
-        Return a ComponentRevision instance given the desired name, comments, 
+        Return a ComponentVersion instance given the desired name, comments, 
         allowed type, and id.
 
-        :param name: The name of the component revision.
+        :param name: The name of the component version.
         :type name: str
-
-        :param comments: The comments attached to the component revision,
+        :param comments: The comments attached to the component version,
         defaults to ""
         :str comments: str  
 
         :param allowed_type: The ComponentType instance representing the 
-        allowed component type of the revision.
+        allowed component type of the version.
         :type allowed_type: ComponentType
 
         :param id: The serverside ID of the ComponentType, 
@@ -636,12 +635,12 @@ class ComponentRevision(Vertex):
         id: int = VIRTUAL_ID_PLACEHOLDER
     ):
         """
-        Initialize the ComponentRevision vertex.
+        Initialize the ComponentVersion vertex.
 
-        :param name: The name of the component revision. 
-        :param comments: The comments attached to the component revision.    
+        :param name: The name of the component version. 
+        :param comments: The comments attached to the component version.    
         :param allowed_type: The ComponentType instance representing the 
-        allowed component type of the revision.
+        allowed component type of the version.
         """
 
         self.name = name
@@ -651,13 +650,13 @@ class ComponentRevision(Vertex):
         Vertex.__init__(self, id=id)
 
     def add(self):
-        """Add this ComponentRevision vertex to the serverside.
+        """Add this ComponentVersion vertex to the serverside.
         """
 
         # If already added.
         if self.added_to_db():
             raise VertexAlreadyAddedError(
-                f"ComponentRevision with name {self.name} " +
+                f"ComponentVersion with name {self.name} " +
                 f"and allowed type {self.allowed_type} " +
                 "already exists in the database."
             )
@@ -672,15 +671,15 @@ class ComponentRevision(Vertex):
         if not self.allowed_type.added_to_db():
             self.allowed_type.add()
 
-        e = RelationRevisionAllowedType(
-            inVertex=self.allowed_type,
+        e = RelationVersionAllowedType(
+            inVertex=self.allowed_type, 
             outVertex=self
         )
 
         e.add()
 
     def added_to_db(self) -> bool:
-        """Return whether this ComponentRevision is added to the database,
+        """Return whether this ComponentVersion is added to the database,
         that is, whether the ID is not the virtual ID placeholder and perform 
         a query to the database to determine if the vertex 
         has already been added.
@@ -691,19 +690,19 @@ class ComponentRevision(Vertex):
 
         return (
             self.id() != VIRTUAL_ID_PLACEHOLDER or (
-                self.allowed_type.added_to_db() and
-                g.V(self.allowed_type.id())
-                .both(RelationRevisionAllowedType.category)
-                .has('name', self.name).count().next() > 0
+                self.allowed_type.added_to_db() and \
+                g.V(self.allowed_type.id()) \
+                .both(RelationVersionAllowedType.category) \
+                    .has('name', self.name).count().next() > 0
             )
         )
 
     @classmethod
-    def _attrs_to_revision(
-        cls,
-        name: str,
+    def _attrs_to_version(
+        cls, 
+        name: str, 
         comments: str,
-        allowed_type: ComponentType,
+        allowed_type: ComponentType, 
         id: int
     ):
         """Given name, comments and id of a ComponentType, see if one
@@ -720,7 +719,7 @@ class ComponentRevision(Vertex):
 
         if id not in _vertex_cache:
             Vertex._cache_vertex(
-                ComponentRevision(
+                ComponentVersion(
                     name=name,
                     comments=comments,
                     allowed_type=allowed_type,
@@ -732,33 +731,33 @@ class ComponentRevision(Vertex):
 
     @classmethod
     def from_db(cls, name: str, allowed_type: ComponentType):
-        """Query the database and return a ComponentRevision instance based on
-        component revision of name :param name: connected to component type
+        """Query the database and return a ComponentVersion instance based on
+        component version of name :param name: connected to component type
         :param allowed_type:.
 
         :param name: The name of the component type.
         :type name: str
         :param allowed_type: The ComponentType instance that this component
-        revision is to be connected to.
+        version is to be connected to.
         :type allowed_type: ComponentType
-        :return: A ComponentRevision instance with the correct name, comments, 
+        :return: A ComponentVersion instance with the correct name, comments, 
         allowed component type, and ID.
-        :rtype: ComponentRevision
+        :rtype: ComponentVersion
         """
 
         if allowed_type.added_to_db():
 
-            d = g.V(allowed_type.id()) \
-                .both(RelationRevisionAllowedType.category).has('name', name) \
+            d =  g.V(allowed_type.id()) \
+                .both(RelationVersionAllowedType.category).has('name', name) \
                 .as_('v').valueMap().as_('attrs').select('v').id().as_('id') \
                 .select('attrs', 'id').next()
 
             props, id = d['attrs'], d['id']
 
             Vertex._cache_vertex(
-                ComponentRevision(
-                    name=name,
-                    comments=props['comments'][0],
+                ComponentVersion(
+                    name=name, 
+                    comments=props['comments'][0], 
                     allowed_type=allowed_type,
                     id=id
                 )
@@ -769,32 +768,32 @@ class ComponentRevision(Vertex):
         else:
             raise ComponentTypeNotAddedError(
                 f"Allowed type {allowed_type.name} of " +
-                f"proposed component revision {name} has not yet been added " +
+                f"proposed component version {name} has not yet been added " +
                 "to the database."
             )
 
     @classmethod
     def from_id(cls, id: int):
-        """Query the database and return a ComponentRevision instance based on
+        """Query the database and return a ComponentVersion instance based on
         the ID.
 
-        :param id: The serverside ID of the ComponentRevision vertex.
+        :param id: The serverside ID of the ComponentVersion vertex.
         :type id: int
-        :return: Return a ComponentRevision from that ID.
-        :rtype: ComponentRevision
+        :return: Return a ComponentVersion from that ID.
+        :rtype: ComponentVersion
         """
 
         if id not in _vertex_cache:
 
             d = g.V(id).project('attrs', 'type_id').by(__.valueMap()) \
-                .by(__.both(RelationRevisionAllowedType.category).id()).next()
+                .by(__.both(RelationVersionAllowedType.category).id()).next()
 
             t = ComponentType.from_id(d['type_id'])
 
             Vertex._cache_vertex(
-                ComponentRevision(
-                    name=d['attrs']['name'][0],
-                    comments=d['attrs']['comments'][0],
+                ComponentVersion(
+                    name=d['attrs']['name'][0], 
+                    comments=d['attrs']['comments'][0], 
                     allowed_type=t,
                     id=id
                 )
@@ -811,27 +810,27 @@ class ComponentRevision(Vertex):
         filters: list
     ):
         """
-        Return a list of ComponentRevisions in the range :param range:,
+        Return a list of ComponentVersions in the range :param range:,
         based on the filters in :param filters:,
         and order them based on  :param order_by: in the direction 
         :param order_direction:.
 
-        :param range: The range of ComponentRevisions to query
+        :param range: The range of ComponentVersions to query
         :type range: tuple[int, int]
 
-        :param order_by: What to order the component revisions by. Must be in
+        :param order_by: What to order the component versions by. Must be in
         {'name', 'allowed_type'}
         :type order_by: str
 
-        :param order_direction: Order the component revisions by 
+        :param order_direction: Order the component versions by 
         ascending or descending?
         Must be in {'asc', 'desc'}
         :type order_by: str
 
         :param filters: A list of 2-tuples of the format (name, ctype)
         :type order_by: list
-
-        :return: A list of ComponentRevision instances.
+        
+        :return: A list of ComponentVersion instances.
         :rtype: list[ComponentType]
         """
 
@@ -839,8 +838,8 @@ class ComponentRevision(Vertex):
 
         assert order_by in {'name', 'allowed_type'}
 
-        traversal = g.V().has('category', ComponentRevision.category)
-
+        traversal = g.V().has('category', ComponentVersion.category)
+        
         # if order_direction is not asc or desc, it will just sort by asc.
         # Keep like this if removing the assert above only in production.
         if order_direction == 'desc':
@@ -858,15 +857,15 @@ class ComponentRevision(Vertex):
 
                 contents = []
 
-                # substring of component revision name
+                # substring of component version name
                 if f[0] != "":
                     contents.append(__.has('name', TextP.containing(f[0])))
 
                 # component type
                 if f[1] != "":
                     contents.append(
-                        __.both(RelationRevisionAllowedType.category).has(
-                            'name',
+                        __.both(RelationVersionAllowedType.category).has(
+                            'name', 
                             f[1]
                         )
                     )
@@ -882,14 +881,14 @@ class ComponentRevision(Vertex):
             traversal = traversal.order().by('name', direction) \
                 .by(
                     __.both(
-                        RelationRevisionAllowedType.category
+                        RelationVersionAllowedType.category
                     ).values('name'),
                     Order.asc
             )
         elif order_by == 'allowed_type':
             traversal = traversal.order().by(
                 __.both(
-                    RelationRevisionAllowedType.category
+                    RelationVersionAllowedType.category
                 ).values('name'),
                 direction
             ).by('name', Order.asc)
@@ -900,10 +899,10 @@ class ComponentRevision(Vertex):
             .by(__.id()) \
             .by(__.values('name')) \
             .by(__.values('comments')) \
-            .by(__.both(RelationRevisionAllowedType.category).id()) \
+            .by(__.both(RelationVersionAllowedType.category).id()) \
             .toList()
 
-        component_revisions = []
+        component_versions = []
 
         for entry in cts:
             id, name, comments, type_id = entry['id'], entry['name'], \
@@ -911,30 +910,29 @@ class ComponentRevision(Vertex):
 
             t = ComponentType.from_id(id=type_id)
 
-            component_revisions.append(
-                ComponentRevision._attrs_to_revision(
-                    id=id,
+            component_versions.append(
+                ComponentVersion._attrs_to_version(
+                    id=id, 
                     name=name,
                     comments=comments,
                     allowed_type=t
                 )
             )
-
-        return component_revisions
+        return component_versions
 
     @classmethod
     def get_count(cls, filters: list):
-        """Return the count of ComponentRevisions given a list of filters
+        """Return the count of ComponentVersions given a list of filters
 
         :param filters: A list of 2-tuples of the format (name, ctype)
         :type order_by: list
 
-        :return: The number of ComponentRevisions that agree with
+        :return: The number of ComponentVersions that agree with
         :param filters:.
         :rtype: int
         """
 
-        traversal = g.V().has('category', ComponentRevision.category)
+        traversal = g.V().has('category', ComponentVersion.category)
 
         if filters is not None:
 
@@ -946,15 +944,15 @@ class ComponentRevision(Vertex):
 
                 contents = []
 
-                # substring of component revision name
+                # substring of component version name
                 if f[0] != "":
                     contents.append(__.has('name', TextP.containing(f[0])))
 
                 # component type
                 if f[1] != "":
                     contents.append(
-                        __.both(RelationRevisionAllowedType.category).has(
-                            'name',
+                        __.both(RelationVersionAllowedType.category).has(
+                            'name', 
                             f[1]
                         )
                     )
@@ -972,13 +970,13 @@ class Component(Vertex):
     """
     The representation of a component. 
     Contains a name attribute, ComponentType instance, can contain a
-    ComponentRevision and can contain a Flag
+    ComponentVersion and can contain a Flag
 
     :ivar name: The name of the component
     :ivar type: The ComponentType instance representing the 
     type of the component.
-    :ivar revision: Optional ComponentRevision instance representing the
-    revision of the component.
+    :ivar version: Optional ComponentVersion instance representing the
+    version of the component.
 
     """
 
@@ -986,17 +984,17 @@ class Component(Vertex):
 
     name: str
     type: ComponentType
-    revision: ComponentRevision = None
+    version: ComponentVersion = None
 
     def __new__(
-        cls, name: str, type: ComponentType,
-        revision: ComponentRevision = None,
-        id: int = VIRTUAL_ID_PLACEHOLDER,
-        time_added: int = -1
+        cls, name: str, type: ComponentType, 
+        version: ComponentVersion=None,
+        id: int=VIRTUAL_ID_PLACEHOLDER,
+        time_added: int=-1
     ):
         """
         Return a Component instance given the desired name, component type,
-        and revision.
+        and version.
 
         :param name: The name of the Component.
         :type name: str
@@ -1004,9 +1002,9 @@ class Component(Vertex):
         :param type: The component type of the Component.
         :type type: ComponentType
 
-        :param revision: The ComponentRevision instance representing the 
-        revision of the Component.
-        :type revision: ComponentRevision
+        :param version: The ComponentVersion instance representing the 
+        version of the Component.
+        :type version: ComponentVersion
 
         :param id: The serverside ID of the ComponentType, 
         defaults to VIRTUAL_ID_PLACEHOLDER
@@ -1020,39 +1018,39 @@ class Component(Vertex):
             return object.__new__(cls)
 
     def __init__(
-        self, name: str, type: ComponentType,
-        revision: ComponentRevision = None,
-        id: int = VIRTUAL_ID_PLACEHOLDER,
-        time_added: int = -1
-    ):
+        self, name: str, type: ComponentType, 
+        version: ComponentVersion=None,
+        id: int=VIRTUAL_ID_PLACEHOLDER,
+        time_added: int=-1
+        ):
         """
         Initialize the Component vertex.
 
-        :param name: The name of the component revision. 
+        :param name: The name of the component version. 
         :param type: A ComponentType instance representing the type of the
         component.
-        :param revision: A ComponentRevision instance representing the 
-        revision of the component, optional.
+        :param version: A ComponentVersion instance representing the 
+        version of the component, optional.
         """
 
         self.name = name
         self.type = type
-        self.revision = revision
+        self.version = version
         self.time_added = time_added
 
         Vertex.__init__(self, id=id)
 
     def __str__(self):
 
-        if self.revision is None:
-            revision_text = "no revision"
-
+        if self.version is None:
+            version_text = "no version"
+        
         else:
-            revision_text = 'revision "{self.revision.name}"'
+            version_text = 'version "{self.version.name}"'
 
         return f'Component of name "{self.name}", \
             type "{self.type.name}", \
-            {revision_text}, id {self.id()}'
+            {version_text}, id {self.id()}'
 
     def add(self):
         """Add this Component to the serverside.
@@ -1070,12 +1068,12 @@ class Component(Vertex):
 
         Vertex.add(self, attributes)
 
-        if self.revision is not None:
-            if not self.revision.added_to_db():
-                self.revision.add()
+        if self.version is not None:
+            if not self.version.added_to_db():
+                self.version.add()
 
-            rev_edge = RelationRevision(
-                inVertex=self.revision,
+            rev_edge = RelationVersion(
+                inVertex=self.version,
                 outVertex=self
             )
 
@@ -1911,7 +1909,7 @@ class Component(Vertex):
     def _attrs_to_component(self, name, id, type_id, rev_ids, time_added):
         """Given the name ID of the component :param id: and the ID of the 
         component type :param type_id: and a list of the IDs of the
-        component revision vertices :param rev_ids:, 
+        component version vertices :param rev_ids:, 
         create and return a Component based on that.
 
         :param name: The name of the component
@@ -1920,12 +1918,12 @@ class Component(Vertex):
         :type id: int
         :param type_id: The ID of its component type vertex serverside
         :type type_id: int
-        :param rev_ids: A list of IDs of component revision vertices serverside
+        :param rev_ids: A list of IDs of component version vertices serverside
         :type rev_ids: list
         :param time_added: UNIX timestamp of when the Component was added to DB.
         :type time_added: int
         :return: A Component instance corresponding to :param id:, connected
-        to the correct ComponentType and ComponentRevision.
+        to the correct ComponentType and ComponentVersion.
         :rtype: Component
         """
 
@@ -1937,12 +1935,12 @@ class Component(Vertex):
 
         if len(rev_ids) > 1:
             raise ValueError(
-                f"More than one component revision exists for component {name}."
+                f"More than one component version exists for component {name}."
             )
 
         if len(rev_ids) == 1:
             crev = Vertex._cache_vertex(
-                ComponentRevision.from_id(id=rev_ids[0])
+                ComponentVersion.from_id(id=rev_ids[0])
             )
 
         Vertex._cache_vertex(
@@ -1950,7 +1948,7 @@ class Component(Vertex):
                 name=name,
                 id=id,
                 type=_vertex_cache[type_id],
-                revision=crev,
+                version=crev,
                 time_added=time_added
             )
         )
@@ -1969,7 +1967,7 @@ class Component(Vertex):
         d = g.V().has('category', Component.category).has('name', name) \
             .project('id', 'type_id', 'rev_ids', 'time_added') \
             .by(__.id()).by(__.both(RelationComponentType.category).id()) \
-            .by(__.both(RelationRevision.category).id().fold()) \
+            .by(__.both(RelationVersion.category).id().fold()) \
             .by(__.values('time_added')).next()
 
         id, type_id, rev_ids, time_added = \
@@ -1996,7 +1994,7 @@ class Component(Vertex):
             d = g.V(id).project('name', 'type_id', 'rev_ids', 'time_added') \
                 .by(__.values('name')) \
                 .by(__.both(RelationComponentType.category).id()) \
-                .by(__.both(RelationRevision.category).id().fold()) \
+                .by(__.both(RelationVersion.category).id().fold()) \
                 .by(__.values('time_added')).next()
 
             name, type_id, rev_ids, time_added = \
@@ -2028,14 +2026,14 @@ class Component(Vertex):
         :type range: tuple[int, int]
 
         :param order_by: What to order the components by. Must be in
-        {'name', 'type', 'revision'}
+        {'name', 'type', 'version'}
         :type order_by: str
 
         :param order_direction: Order the components by ascending or descending?
         Must be in {'asc', 'desc'}
         :type order_by: str
 
-        :param filters: A list of 3-tuples of the format (name, ctype, revision)
+        :param filters: A list of 3-tuples of the format (name, ctype, version)
         :type order_by: list
 
         :return: A list of Component instances.
@@ -2044,7 +2042,7 @@ class Component(Vertex):
 
         assert order_direction in {'asc', 'desc'}
 
-        assert order_by in {'name', 'type', 'revision'}
+        assert order_by in {'name', 'type', 'version'}
 
         # if order_direction is not asc or desc, it will just sort by asc.
         # Keep like this if removing the assert above only in production.
@@ -2080,12 +2078,12 @@ class Component(Vertex):
                         )
                     )
 
-                    # component revision
-
+                    # component version
+                    
                     if f[2] != "":
                         contents.append(
-                            __.both(RelationRevision.category).has(
-                                'name',
+                            __.both(RelationVersion.category).has(
+                                'name', 
                                 f[2]
                             )
                         )
@@ -2098,11 +2096,11 @@ class Component(Vertex):
 
         # chr(0x10FFFF) is the "biggest" character in unicode
 
-        if order_by == 'revision':
+        if order_by == 'version':
             traversal = traversal.order() \
                 .by(
                     __.coalesce(
-                        __.both(RelationRevision.category).values('name'),
+                        __.both(RelationVersion.category).values('name'), 
                         __.constant(chr(0x10FFFF))
                     ),
                     direction
@@ -2122,7 +2120,7 @@ class Component(Vertex):
                 .by('name', Order.asc) \
                 .by(
                     __.coalesce(
-                        __.both(RelationRevision.category).values('name'),
+                        __.both(RelationVersion.category).values('name'), 
                         __.constant(chr(0x10FFFF))
                     ),
                     Order.asc
@@ -2137,7 +2135,7 @@ class Component(Vertex):
             ) \
                 .by(
                     __.coalesce(
-                        __.both(RelationRevision.category).values('name'),
+                        __.both(RelationVersion.category).values('name'), 
                         __.constant(chr(0x10FFFF))
                     ),
                     Order.asc,
@@ -2148,7 +2146,7 @@ class Component(Vertex):
             .by(__.id()) \
             .by(__.values('name')) \
             .by(__.both(RelationComponentType.category).id()) \
-            .by(__.both(RelationRevision.category).id().fold()) \
+            .by(__.both(RelationVersion.category).id().fold()) \
             .by(__.values('time_added')) \
             .toList()
 
@@ -2174,7 +2172,7 @@ class Component(Vertex):
     def get_count(cls, filters: str):
         """Return the count of components given a list of filters.
 
-        :param filters: A list of 3-tuples of the format (name, ctype, revision)
+        :param filters: A list of 3-tuples of the format (name, ctype, version)
         :type order_by: list
 
         :return: The number of Components.
@@ -2208,12 +2206,12 @@ class Component(Vertex):
                         )
                     )
 
-                    # component revision
-
+                    # component version
+                    
                     if f[2] != "":
                         contents.append(
-                            __.both(RelationRevision.category).has(
-                                'name',
+                            __.both(RelationVersion.category).has(
+                                'name', 
                                 f[2]
                             )
                         )
@@ -2312,8 +2310,8 @@ class Component(Vertex):
             'type': {
                 'name': c.type.name,
             },
-            'revision': {
-                'name': c.revision.name if c.revision is not None else ''
+            'version': {
+                'name': c.version.name if c.version is not None else ''
             },
             'time_added': c.time_added,
             'properties': prop_dicts,
@@ -4674,12 +4672,12 @@ class RelationProperty(Edge):
         self.end_comments = end_comments
 
 
-class RelationRevision(Edge):
+class RelationVersion(Edge):
     """
-    Representation of a "rel_revision" edge.
-    """
+    Representation of a "rel_version" edge.
+    """ 
 
-    category: str = "rel_revision"
+    category: str = "rel_version"
 
     def __init__(
         self, inVertex: Vertex, outVertex: Vertex,
@@ -4695,12 +4693,12 @@ class RelationRevision(Edge):
         Edge.add(self, attributes={})
 
 
-class RelationRevisionAllowedType(Edge):
+class RelationVersionAllowedType(Edge):
     """
-    Representation of a "rel_revision_allowed_type" edge.
-    """
+    Representation of a "rel_version_allowed_type" edge.
+    """ 
 
-    category: str = "rel_revision_allowed_type"
+    category: str = "rel_version_allowed_type"
 
     def __init__(
         self, inVertex: Vertex, outVertex: Vertex,

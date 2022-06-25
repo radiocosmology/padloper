@@ -28,7 +28,7 @@ function ComponentList() {
     const [loaded, setLoaded] = useState(false);
 
     // property to order the components by.
-    // must be in the set {'name', 'type', 'revision'}
+    // must be in the set {'name', 'type', 'version'}
     const [orderBy, setOrderBy] = useState('name');
 
     /*
@@ -36,16 +36,16 @@ function ComponentList() {
     [
         {
         'name': <str>
-        'revisions': [
-            <revision name as str>,
+        'versions': [
+            <version name as str>,
             ...,
-            <revision name as str>
+            <version name as str>
         ]
         }
     ]
     */
-    const [types_and_revisions,
-        setTypesAndRevisions] = useState([]);
+    const [types_and_versions,
+        setTypesAndVersions] = useState([]);
 
     // 'asc' or 'desc'
     const [orderDirection,
@@ -56,7 +56,7 @@ function ComponentList() {
     {
     name: <str>,
     type: <str>,
-    revision: <str>
+    version: <str>
     }
     ]
     */
@@ -67,7 +67,7 @@ function ComponentList() {
         setFilters([...filters, {
             name: "",
             type: "",
-            revision: ""
+            version: ""
         }])
     }
 
@@ -115,7 +115,7 @@ function ComponentList() {
 
             // create the string 
             for (let f of filters) {
-                strSoFar += `${f.name},${f.type},${f.revision};`;
+                strSoFar += `${f.name},${f.type},${f.version};`;
             }
 
             // remove the last semicolon.
@@ -183,13 +183,13 @@ function ComponentList() {
     }, [filters,reloadBool]);
 
     /*
-    When the site is loaded, load all of the component types and revisions.
+    When the site is loaded, load all of the component types and versions.
     */
     useEffect(() => {
-        fetch("/api/component_types_and_revisions").then(
+        fetch("/api/component_types_and_versions").then(
             res => res.json()
         ).then(data => {
-            setTypesAndRevisions(data.result);
+            setTypesAndVersions(data.result);
         });
     }, []);
 
@@ -207,8 +207,8 @@ function ComponentList() {
             allowOrdering: true,
         },
         {
-            id: 'revision', 
-            label: 'Revision',
+            id: 'version', 
+            label: 'Version',
             allowOrdering: true,
         },
     ];
@@ -219,7 +219,7 @@ function ComponentList() {
             {c.name}
         </Link>,
         c.type.name,
-        c.revision.name,
+        c.version.name,
     ]);
 
 
@@ -243,7 +243,7 @@ function ComponentList() {
                     )
                 }
                 rightColumn2 = {<ComponentAddButton
-                types_and_revisions={types_and_revisions}
+                types_and_versions={types_and_versions}
                 components={components}
                 toggleReload={toggleReload}
                 />}
@@ -259,7 +259,7 @@ function ComponentList() {
                             changeFilter={changeFilter}
                             filter={filter}
                             index={index}
-                            types_and_revisions={types_and_revisions}
+                            types_and_versions={types_and_versions}
                         />
                     )
                 )

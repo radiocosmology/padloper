@@ -16,15 +16,15 @@ import Button from '@mui/material/Button'
 import axios from 'axios'
 
 
-export default function ComponentRevisionAddButton ({componentTypes,toggleReload}) {
+export default function ComponentVersionAddButton ({componentTypes,toggleReload}) {
     
-  // opens and closes the pop up form to add a new component revision.
+  // opens and closes the pop up form to add a new component version.
   const [open, setOpen] = useState(false);
 
-  // Name of the new component revision.
-  const [componentRevision,setComponentRevision] = useState('')
+  // Name of the new component version.
+  const [componentVersion,setComponentVersion] = useState('')
 
-  // Comments associated with the new component revision.
+  // Comments associated with the new component version.
   const [comment,setComment] = useState('')
 
   // Component type selected while filling the pop up form
@@ -34,7 +34,7 @@ export default function ComponentRevisionAddButton ({componentTypes,toggleReload
   const [loading, setLoading] = useState(false);
 
   /*
-  To display error when a user tries to add a new component revision but a component revision with the same name already exists in the database.
+  To display error when a user tries to add a new component version but a component version with the same name already exists in the database.
   */
   const [isError,setIsError] = useState(false)
 
@@ -50,7 +50,7 @@ export default function ComponentRevisionAddButton ({componentTypes,toggleReload
   */
   const handleClose = () => {
     setOpen(false);
-    setComponentRevision('')
+    setComponentVersion('')
     setIsError(false)
     setComment('')
     setInputComponentType('')
@@ -61,8 +61,8 @@ export default function ComponentRevisionAddButton ({componentTypes,toggleReload
   const handleSubmit = (e) => {
       e.preventDefault() // To preserve the state once the form is submitted.
 
-      let input = `/api/set_component_revision`;
-      input += `?name=${componentRevision}`;
+      let input = `/api/set_component_version`;
+      input += `?name=${componentVersion}`;
       input += `&type=${inputComponentType}`;
       input += `&comments=${comment}`;
       axios.post(input).then((response)=>{
@@ -76,9 +76,9 @@ export default function ComponentRevisionAddButton ({componentTypes,toggleReload
   }
   return (
     <>
-        <Button variant="contained" onClick={handleClickOpen}>Add Component Revision</Button>
+        <Button variant="contained" onClick={handleClickOpen}>Add Component Version</Button>
       <Dialog open={open} onClose={handleClose}>
-        <DialogTitle>Add Component Revision</DialogTitle>
+        <DialogTitle>Add Component Version</DialogTitle>
         <DialogContent>
     <div style={{
         marginTop:'10px',
@@ -87,12 +87,12 @@ export default function ComponentRevisionAddButton ({componentTypes,toggleReload
           <TextField
             autoFocus
             margin="dense"
-            id="Component Revision"
-            label="Component Revision"
+            id="Component Version"
+            label="Component Version"
             type='text'
             fullWidth
             variant="outlined"
-            onChange={(e)=>setComponentRevision(e.target.value)}
+            onChange={(e)=>setComponentVersion(e.target.value)}
             />
     </div>
     <div style={{
@@ -143,7 +143,7 @@ export default function ComponentRevisionAddButton ({componentTypes,toggleReload
       <>
       <ErrorIcon
       fontSize='small'
-      /> A component revision with the same name and component type already exists in the database.
+      /> A component version with the same name and component type already exists in the database.
       </>
       : 
       null}
@@ -152,7 +152,7 @@ export default function ComponentRevisionAddButton ({componentTypes,toggleReload
         <DialogActions>
           <Button onClick={handleClose}>Cancel</Button>
           {
-            componentRevision && inputComponentType
+            componentVersion && inputComponentType
             ?
           <Button onClick={handleSubmit}>
               {loading ? <CircularProgress

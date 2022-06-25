@@ -6,13 +6,13 @@ import {
     Button,
     } 
 from '@mui/material';
-import ComponentRevisionFilter from './ComponentRevisionFilter.js';
-import ComponentRevisionAddButton from './ComponentRevisionAddButton.js';
+import ComponentVersionFilter from './ComponentVersionFilter.js';
+import ComponentVersionAddButton from './ComponentVersionAddButton.js';
 
 /**
- * A MUI component that renders a list of component revisions.
+ * A MUI component that renders a list of component versions.
  */
-function ComponentRevisionList() {
+function ComponentVersionList() {
     
     // the list of component types in objects representation
     const [elements, setElements] = useState([]);
@@ -125,8 +125,8 @@ function ComponentRevisionList() {
     }
       
    /**
-    * The function that updates the list of component revisions when the site is 
-    * loaded or a change of the component revisions is requested 
+    * The function that updates the list of component versions when the site is 
+    * loaded or a change of the component versions is requested 
     * (upon state change).
     */
     useEffect(() => {
@@ -134,7 +134,7 @@ function ComponentRevisionList() {
             setLoaded(false);
 
             // create the URL query string
-            let input = '/api/component_revision_list';
+            let input = '/api/component_version_list';
             input += `?range=${min};${min + range}`;
             input += `&orderBy=${orderBy}`;
             input += `&orderDirection=${orderDirection}`;
@@ -161,10 +161,10 @@ function ComponentRevisionList() {
     ]);
 
     /**
-     * Change the component revision count when filters are updated.
+     * Change the component version count when filters are updated.
      */
     useEffect(() => {
-        let input = `/api/component_revision_count`;
+        let input = `/api/component_version_count`;
         if (filters.length > 0) {
             input += `?filters=${createFilterString()}`;
         }
@@ -205,7 +205,7 @@ function ComponentRevisionList() {
     const tableHeadCells = [
         {
             id: 'name', 
-            label: 'Component Revision',
+            label: 'Component Version',
             allowOrdering: true,
         },
         {
@@ -222,7 +222,7 @@ function ComponentRevisionList() {
 
     /**
      * the rows of the table. We are only putting the name, allowed type of the
-     * revision, and the comments.
+     * version, and the comments.
      */
     let tableRowContent = elements.map((e) => [
         e.name,
@@ -250,7 +250,7 @@ function ComponentRevisionList() {
                     )
                 }
                 rightColumn2 = {
-                    <ComponentRevisionAddButton 
+                    <ComponentVersionAddButton 
                     componentTypes={componentTypes}
                     toggleReload={toggleReload}/>
                 }
@@ -259,7 +259,7 @@ function ComponentRevisionList() {
             {
                 filters.map(
                     (filter, index) => (
-                        <ComponentRevisionFilter
+                        <ComponentVersionFilter
                         key={index}
                             addFilter={() => { }}
                             removeFilter={removeFilter}
@@ -286,4 +286,4 @@ function ComponentRevisionList() {
     )
 }
 
-export default ComponentRevisionList;
+export default ComponentVersionList;

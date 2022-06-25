@@ -13,7 +13,7 @@ import Close from '@mui/icons-material/Close';
 
 /**
  * A MUI component that represents a filter object which allows to choose a
- * name for the component, a component type, and a revision. 
+ * name for the component, a component type, and a version. 
  * These are used in the ComponentList.
  * @param {function} removeFilter - function to call when the filter is removed.
  * @param {function(int, object)} changeFilter - function to call when the 
@@ -21,7 +21,7 @@ import Close from '@mui/icons-material/Close';
  * @param {int} index - the index of the filter 
  * (in an exterior list of filters).
  * @param {object} - the associated filter object (containing the name and type)
- * @param {types} - the list of types and revisions to choose from 
+ * @param {types} - the list of types and versions to choose from 
  * (TODO: turn this into an autocomplete instead................)
  */
 function ComponentFilter(
@@ -30,12 +30,12 @@ function ComponentFilter(
             changeFilter, 
             index, 
             filter, 
-            types_and_revisions
+            types_and_versions
         }
     ) {
 
-    // the list of revisions for this specific element filter panel.
-    const [revisions, setRevisions] = useState([]);
+    // the list of versions for this specific element filter panel.
+    const [versions, setVersions] = useState([]);
 
     /**
      * Update the filter with a new key/value pair.
@@ -67,28 +67,28 @@ function ComponentFilter(
 
             filterUpdateKey(
                 'type', 
-                types_and_revisions[event.target.value]['name']
+                types_and_versions[event.target.value]['name']
             );
 
-            setRevisions(types_and_revisions[event.target.value]['revisions'])
+            setVersions(types_and_versions[event.target.value]['versions'])
         }
         else {
             filterUpdateKey(
                 'type', 
                 ''
             );
-            setRevisions([]);
+            setVersions([]);
         }
     }
 
      /**
-     * Update the revision key of the filter with the 
+     * Update the version key of the filter with the 
      * value from the input field.
      * @param {object} event - the event associated with the 
      * change of the TextField.
      */
-    const filterUpdateRevision = (event) => {
-        filterUpdateKey('revision', event.target.value);
+    const filterUpdateVersion = (event) => {
+        filterUpdateKey('version', event.target.value);
     }
 
     // render the filter
@@ -134,7 +134,7 @@ function ComponentFilter(
                             All types
                         </option>
                         {
-                            types_and_revisions.map((t, index) =>
+                            types_and_versions.map((t, index) =>
                                 <option 
                                     value={index}
                                     key={index}
@@ -156,19 +156,19 @@ function ComponentFilter(
                 >
                     <Select
                         native
-                        labelId={`component-revision-select-${index}-label`}
-                        id={`component-revision-select-${index}`}
-                        onChange={filterUpdateRevision}
-                        disabled={revisions.length === 0}
+                        labelId={`component-version-select-${index}-label`}
+                        id={`component-version-select-${index}`}
+                        onChange={filterUpdateVersion}
+                        disabled={versions.length === 0}
                     >
                         <option aria-label="None" value={""}>
-                            {(revisions.length === 0) ? 
+                            {(versions.length === 0) ? 
                                 "Select a type" 
-                                : "All revisions"
+                                : "All versions"
                             }
                         </option>
                         {
-                            revisions.map((name) =>
+                            versions.map((name) =>
                                 <option value={name}>{name}</option>
                             )
                         }

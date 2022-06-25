@@ -1,6 +1,6 @@
 import ComponentList from './ComponentList.js';
 import ComponentTypeList from './ComponentTypeList.js';
-import ComponentRevisionList from './ComponentRevisionList.js';
+import ComponentVersionList from './ComponentVersionList.js';
 import PropertyTypeList from './PropertyTypeList';
 import ComponentPage from './ComponentPage.js';
 import ComponentConnectionVisualizer from './ComponentConnectionVisualizer.js';
@@ -66,8 +66,8 @@ function App() {
 
           <Route 
             exact={true} 
-            path="/list/component-revisions" 
-            element={<ComponentRevisionList />}
+            path="/list/component-versions" 
+            element={<ComponentVersionList />}
           />
 
           <Route 

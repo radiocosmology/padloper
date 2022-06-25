@@ -7,7 +7,7 @@ import DialogContent from '@mui/material/DialogContent';
 import DialogTitle from '@mui/material/DialogTitle';
 import DialogContentText from '@mui/material/DialogContentText';
 
-export default function AlertDialog ({handleSubmit,nameList,componentRevision,componentType,loading,alertOpen,handleAlertClose,handleClickAlertOpen}){
+export default function AlertDialog ({handleSubmit,nameList,componentVersion,componentType,loading,alertOpen,handleAlertClose,handleClickAlertOpen}){
 
   return (
     <div>
@@ -36,7 +36,7 @@ export default function AlertDialog ({handleSubmit,nameList,componentRevision,co
         </DialogTitle>
         <DialogContent>
           <DialogContentText id="alert-dialog-description">
-            You are about add components:[{nameList.join(',')}] with component type : [{componentType}] and component revision : [{componentRevision}]. Do you Agree ?
+            You are about add components:[{nameList.join(',')}] with component type : [{componentType}] and component version : [{componentVersion}]. Do you Agree ?
           </DialogContentText>
         </DialogContent>
         <DialogActions>
