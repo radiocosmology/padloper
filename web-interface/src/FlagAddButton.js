@@ -32,7 +32,7 @@ const MenuProps = {
 
 
 
-export default function FlagAddButton ({flag_types,flag_severities,flag_components,elements,toggleReload}){
+export default function FlagAddButton ({flag_types,flag_severities,flag_components,toggleReload}){
 
     // opens and closes the pop up form to add a new flag.
     const [open, setOpen] = useState(false);
@@ -40,6 +40,7 @@ export default function FlagAddButton ({flag_types,flag_severities,flag_componen
     // Stores user inputted values for name of the flag, flag severity selected, flag type selected and comments assocaited with the new flag.
     const [property,setProperty] = useState({
     name: '',
+    uid: '',
     flag_severity:'',
     flag_type:'',
     comment:''
@@ -47,9 +48,6 @@ export default function FlagAddButton ({flag_types,flag_severities,flag_componen
 
   // Stores the start time of the flag.
   const [startTime,setStartTime] = useState(0)
-
-  // Stores the end time of the flag.
-  const [endTime,setEndTime] = useState(0)
 
   // Stores the list of component names that are flagged.
   const [componentName,setComponentName] = useState([])
@@ -97,10 +95,10 @@ export default function FlagAddButton ({flag_types,flag_severities,flag_componen
     setLoading(false)
     setIsError(false)
     setStartTime(0)
-    setEndTime(0)
     setComponentName([])
     setProperty({
     name: '',
+    uid: '',
     flag_severity:'',
     flag_type:'',
     comment:''
@@ -114,23 +112,23 @@ export default function FlagAddButton ({flag_types,flag_severities,flag_componen
   const handleSubmit = (e) => {
       e.preventDefault() // To preserve the state once the form is submitted.
 
-      if(elements.filter((item)=> item.name === property.name).length === 0){
-        let input = `/api/set_flag`;
-        input += `?name=${property.name}`;
-        input += `&start_time=${startTime}`;
-        input += `&end_time=${endTime}`;
-        input += `&flag_severity=${property.flag_severity}`;
-        input += `&flag_type=${property.flag_type}`;
-        input += `&comments=${property.comment}`;
-        input += `&flag_components=${componentName.join(';')}`;
-        axios.post(input).then((response)=>{
-                toggleReload() //To reload the page once the form has been submitted.
-                handleClose()
-        })
-      } else {
+      let input = `/api/set_flag`;
+      input += `?name=${property.name}`;
+      input += `&start_time=${startTime}`;
+      input += `&uid=${property.uid}`;
+      input += `&flag_severity=${property.flag_severity}`;
+      input += `&flag_type=${property.flag_type}`;
+      input += `&comments=${property.comment}`;
+      input += `&flag_components=${componentName.join(';')}`;
+      axios.post(input).then((response)=>{
+              toggleReload() //To reload the page once the form has been submitted.
+              handleClose()
+      }).catch(error=> {
+        if(error.message === 'Request failed with status code 500'){
           setIsError(true)
-      }
-  }
+        }
+      })
+    } 
 
   return (
     <>
@@ -154,7 +152,21 @@ export default function FlagAddButton ({flag_types,flag_severities,flag_componen
             onChange={handleChange}
             />
     </div>
-
+    <div style={{
+        marginTop:'10px',
+    }}>
+          <TextField
+            margin="dense"
+            id="uid"
+            label="UID"
+            type='text'
+            fullWidth
+            variant="outlined"
+            name = 'uid'
+            value={property.uid}
+            onChange={handleChange}
+            />
+    </div>
     <div style={{
         marginTop:'15px',
         marginBottom:'15px',
@@ -272,26 +284,6 @@ export default function FlagAddButton ({flag_types,flag_severities,flag_componen
     </div>
     <div style={{
         marginTop:'10px',
-    }}>
-            <TextField
-            required
-            margin = 'dense'
-            id="end_time"
-            label="end_time"
-            type="datetime-local"
-            sx={{ width: 240 }}
-            InputLabelProps={{
-                shrink: true,
-            }}
-            size="large"
-            onChange={(event) => {
-                let date = new Date(event.target.value);
-                setEndTime(Math.round(date.getTime() / 1000));
-            }}
-                        />
-    </div>
-    <div style={{
-        marginTop:'10px',
         marginBottom:'10px'
     }}>
           <TextField
@@ -333,7 +325,7 @@ export default function FlagAddButton ({flag_types,flag_severities,flag_componen
         <DialogActions>
           <Button onClick={handleClose}>Cancel</Button>
           {
-             componentName.length !== 0 && property.name && property.flag_type && property.flag_severity && startTime && endTime 
+             componentName.length !== 0 && property.name && property.flag_type && property.flag_severity && startTime && property.uid
             ?
             <Button onClick={handleSubmit}>
               {loading ? <CircularProgress

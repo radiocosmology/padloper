@@ -880,16 +880,16 @@ def set_flag_severity():
 
 @app.route("/api/set_flag", methods=['POST'])
 def set_flag():
-    """Given the flag name,start_time,end_time,comments,flag_severity,flag_type and flag_components,
+    """Given the flag name,start_time,uid,start_comments,flag_severity,flag_type and flag_components,
     set a flag to the serverside.
 
     The URL parameters are:
 
     name - The name of the flag.
 
-    start_time - The start time of the flag.
+    uid - The ID of the user adding the new flag.
 
-    end_time - The end time of the flag.
+    start_time - The start time of the flag.
 
     comments - The comments relating to the flag.
 
@@ -903,8 +903,8 @@ def set_flag():
     :rtype: dict
     """
     val_name = escape(request.args.get('name'))
+    val_uid = escape(request.args.get('uid'))
     val_start_time = escape(request.args.get('start_time'))
-    val_end_time = escape(request.args.get('end_time'))
     val_comments = escape(request.args.get('comments'))
     val_flag_severity = escape(request.args.get('flag_severity'))
     val_flag_type = escape(request.args.get('flag_type'))
@@ -920,10 +920,42 @@ def set_flag():
         for name in val_flag_components:
             allowed_list.append(Component.from_db(name))
     # Need to initialize an instance of Flag first.
-    flag = Flag(val_name, val_start_time, val_end_time,
-                flag_severity, flag_type, allowed_list, val_comments)
+    flag = Flag(name=val_name, start_time=val_start_time,
+                flag_severity=flag_severity, flag_type=flag_type, flag_components=allowed_list, start_comments=val_comments, start_uid=val_uid)
 
     flag.add()
+
+    return {'result': True}
+
+
+@app.route("/api/unset_flag", methods=['POST'])
+def unset_flag():
+    """Given the flag name,end_time,end_uid and end_comments
+    set 'end' attributes to an existing flag.
+
+    The URL parameters are:
+
+    name - The name of the flag.
+
+    uid - The ID of the user adding the new flag.
+
+    end_time - The end time of the flag.
+
+    comments - The comments relating to the flag.
+
+    :return: A dictionary with a key 'result' of corresponding value True
+    :rtype: dict
+    """
+    val_name = escape(request.args.get('name'))
+    val_uid = escape(request.args.get('uid'))
+    val_end_time = escape(request.args.get('end_time'))
+    val_comments = escape(request.args.get('comments'))
+
+    # Need to initialize an instance of Flag first.
+    flag = Flag.from_db(val_name)
+
+    flag.end_flag(end_time=val_end_time, end_uid=val_uid,
+                  end_comments=val_comments)
 
     return {'result': True}
 
@@ -1009,8 +1041,9 @@ def get_flag_list():
                 'name': f.name,
                 'id': f.id(),
                 'start_time': f.start_time,
-                'end_time': f.end_time,
-                'comments': f.comments,
+                'start_uid': f.start_uid,
+                'start_edit_time': f.start_edit_time,
+                'start_comments': f.start_comments,
                 'flag_severity': {
                     'value': f.flag_severity.value,
                 },
@@ -1018,7 +1051,11 @@ def get_flag_list():
                     'name': f.flag_type.name,
                     'comments': f.flag_type.comments
                 },
-                'flag_components': [t.name for t in f.flag_components]
+                'flag_components': [t.name for t in f.flag_components],
+                'end_time': f.end_time,
+                'end_uid': f.end_uid,
+                'end_edit_time': f.end_edit_time,
+                'end_comments': f.end_comments,
             }
             for f in flags
         ]

@@ -58,6 +58,13 @@ class ComponentRevisionNotAddedError(Error):
     pass
 
 
+class FlagNotAddedError(Error):
+    """
+    Exception raised when trying to access a flag from the database that is not added to the database.
+    """
+    pass
+
+
 class ComponentsAlreadyConnectedError(Error):
     """
     Exception raised when trying to connect two components when they are already

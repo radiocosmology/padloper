@@ -49,6 +49,25 @@ import ErrorIcon from '@mui/icons-material/Error';
   // whether the submit button has been clicked or not
   const [loading, setLoading] = useState(false);
 
+  
+  /*
+  Used to open the alert dialog box when the submit button is clicked.
+  */
+  const [alertOpen, setAlertOpen] = useState(false);
+
+  /*
+  Function that is used to open the alert dialog box when the user clicks on the 'submit' button in the form.
+  */
+  const handleClickAlertOpen = () => {
+        setAlertOpen(true)
+    };
+
+  /*Function that closes the alert dialog box*/
+  const handleAlertClose = () => {
+    setAlertOpen(false);
+  };
+
+
   // Style for displaying all the components being selected to add in bulk
   const ListItem = styled('li')(({ theme }) => ({
     margin: theme.spacing(0.5),
@@ -70,7 +89,6 @@ import ErrorIcon from '@mui/icons-material/Error';
   // adds the component name in the chipData array of objects and displays the name on the pop up form
   const handleSubmit2 = () => {
       if(name){
-        if(components.filter((item) => item.name === name).length === 0 ){
           setComponentNameError(false)
           setIsError(false)
           setChipData((prevState)=>{
@@ -89,10 +107,6 @@ import ErrorIcon from '@mui/icons-material/Error';
                             [...prevState,name]
                         )
                     })
-        } else {
-          setComponentNameError(false)
-          setIsError(true)
-        }
       } else {
         setComponentNameError(true)
       }
@@ -138,12 +152,17 @@ import ErrorIcon from '@mui/icons-material/Error';
   const handleSubmit = (e) => {
     e.preventDefault() // To preserve the state once the form is submitted.
     let input = `/api/set_component`;
-    input += `?name=${nameList.join(';')}`;
+    input += `?name=${nameList.sort().join(';')}`;
     input += `&type=${componentType}`;
     input += `&revision=${componentRevision}`;
     axios.post(input).then((response)=>{
                 toggleReload() //To reload the list of components once the form has been submitted.
                 handleClose()
+    }).catch(error => {
+      if(error.message === 'Request failed with status code 500'){
+        setIsError(true)
+        handleAlertClose()
+      }
     })
 
   }
@@ -263,8 +282,7 @@ import ErrorIcon from '@mui/icons-material/Error';
     marginTop:'15px',
     marginBottom:'5px',
     color:'red',
-    display:'flex',
-    alignItems:'center'
+    display:'flex'
     }}>
       {
       componentNameError ? 
@@ -281,7 +299,19 @@ import ErrorIcon from '@mui/icons-material/Error';
       <ErrorIcon
       fontSize='small'
       /> 
-      A component with the same name already exists in the database
+      Components with names: {
+        nameList.map((item)=>{
+          return (
+            components.filter((component)=> component.name === item).map((element)=> 
+            {
+              return(
+                  `[${element.name}]`
+              )
+            }
+            )
+            )
+        })
+      } already exist in the database.
       </>
       : 
       null}
@@ -295,6 +325,9 @@ import ErrorIcon from '@mui/icons-material/Error';
           componentRevision={componentRevision}
           componentType={componentType}
           loading={loading}
+          alertOpen={alertOpen}
+          handleAlertClose={handleAlertClose}
+          handleClickAlertOpen={handleClickAlertOpen}
           />
         </DialogActions>
       </Dialog>

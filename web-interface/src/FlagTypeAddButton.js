@@ -13,7 +13,7 @@ import CircularProgress from '@mui/material/CircularProgress';
 import ErrorIcon from '@mui/icons-material/Error';
 import axios from 'axios'
 
-export default function FlagTypeAddButton ({elements,toggleReload}) {
+export default function FlagTypeAddButton ({toggleReload}) {
 
   // Opens and closes the pop up form.
   const [open, setOpen] = useState(false);
@@ -45,19 +45,17 @@ export default function FlagTypeAddButton ({elements,toggleReload}) {
 
   const handleSubmit = (e) => {
     e.preventDefault() // To preserve the state once the form is submitted.
-
-    // Empty flag Type cannot be submitted.
-    if(elements.filter((item)=> item.name === name).length === 0){ 
     let input = `/api/set_flag_type`;
     input += `?name=${name}`;
     input += `&comments=${comment}`;
     axios.post(input).then((response)=>{
         toggleReload() //To reload the page once the form has been submitted.
         handleClose()
-    })
-    } else {
-      setIsError(true)
-    } 
+    }).catch(error=> {
+        if(error.message === 'Request failed with status code 500'){
+          setIsError(true)
+        }
+      })
   }
 
   return (

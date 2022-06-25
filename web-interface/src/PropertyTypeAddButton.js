@@ -30,7 +30,7 @@ const MenuProps = {
 
 
 
-export default function PropertyTypeAddButton ({componentTypes,elements,toggleReload}) {
+export default function PropertyTypeAddButton ({componentTypes,toggleReload}) {
 
   // Opens and closes the pop up form.
   const [open, setOpen] = useState(false);
@@ -102,7 +102,6 @@ export default function PropertyTypeAddButton ({componentTypes,elements,toggleRe
   const handleSubmit = (e) => {
     e.preventDefault() // To preserve the state once the form is submitted.
 
-    if(elements.filter((item)=> item.name === property.name).length ===0 ){ 
     let input = `/api/set_property_type`;
     input += `?name=${property.name}`;
     input += `&type=${componentTypeName.join(';')}`;
@@ -113,10 +112,11 @@ export default function PropertyTypeAddButton ({componentTypes,elements,toggleRe
     axios.post(input).then((response)=>{
           toggleReload() //To reload the page once the form has been submitted.
           handleClose()
-    })
-    } else {
-      setIsError(true)
-    } 
+    }).catch(error=> {
+        if(error.message === 'Request failed with status code 500'){
+          setIsError(true)
+        }
+      })
   }
 
   return (

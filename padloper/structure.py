@@ -1413,13 +1413,17 @@ class Component(Vertex):
         :param property: The property vertex connected by an edge to the 
         component vertex.
         :type property: Property
+
         :param time: The time at which the property was removed (real time). This value has to be provided.
         :type time: int
+
         :param uid: The user that removed the property
         :type uid: str
+
         :param edit_time: The time at which the 
         user made the change, defaults to int(time.time())
         :type edit_time: int, optional
+
         :param comments: Comments about the property removal, defaults to ""
         :type comments: str, optional
         """
@@ -2280,8 +2284,13 @@ class Component(Vertex):
             flag_dicts.append({
                 'name': flag.name,
                 'start_time': flag.start_time,
+                'start_uid': flag.start_uid,
+                'start_edit_time': flag.start_edit_time,
+                'start_comments': flag.start_comments,
                 'end_time': flag.end_time,
-                'comments': flag.comments,
+                'end_uid': flag.end_uid,
+                'end_edit_time': flag.end_edit_time,
+                'end_comments': flag.end_comments,
                 'type': {
                     'name': flag.flag_type.name,
                     'comments': flag.flag_type.comments
@@ -3383,12 +3392,17 @@ class FlagSeverity(Vertex):
 
 class Flag(Vertex):
     """
-    The representation of a flag.
+    The representation of a flag component.
 
     :ivar name: The name of the flag.
     :ivar start_time: The start time of the flag.
     :ivar end_time: The end time of the flag.
-    :ivar comments: The comments relating to the flag.
+    :ivar start_uid: The ID of the user that created the flag.
+    :ivar end_uid: The ID of the user that ended the flag.
+    :ivar start_edit_time: The time that the flag was started at.
+    :ivar end_edit_time: The time that the flag was ended at.
+    :ivar start_comments: The comments about starting the flag.
+    :ivar end_comments: The comments about ending the flag.
     :ivar flag_severity: The FlagSeverity instance representing the severity of the flag.
     :ivar flag_type: The FlagType instance representing the type of the flag.
     :ivar flag_components: A list of Component instances related to the flag.
@@ -3399,23 +3413,35 @@ class Flag(Vertex):
     name: str
     start_time: int
     end_time: int
-    comments: str
+    start_uid: str
+    end_uid: str
+    start_edit_time: int
+    end_edit_time: int
+    start_comments: str
+    end_comments: str
     flag_severity: FlagSeverity
     flag_type: FlagType
     flag_components: List[Component]
 
-    def __new__(cls, name: str, start_time: int, end_time: int, comments: str, flag_severity: FlagSeverity, flag_type: FlagType, flag_components: List[Component] = [], id: int = VIRTUAL_ID_PLACEHOLDER):
+    def __new__(cls, name: str, start_time: int, start_uid: str, flag_severity: FlagSeverity, flag_type: FlagType,
+                start_edit_time: int = int(time.time()), start_comments: str = "", flag_components: List[Component] = [], end_time: float = EXISTING_RELATION_END_PLACEHOLDER, end_uid: str = "", end_edit_time: float = -1, end_comments: str = "", id: int = VIRTUAL_ID_PLACEHOLDER):
         """
-        Return a Flag instance given the desired name,start time,end time, comments, flag severity instance, flag type instance, component instance and id.
+        Return a Flag instance given the desired name,start time, end time, start_uid, end_uid, start_edit_time,end_edit_time, start_comments, end_comments, flag severity instance, flag type instance, component instance and id.
 
         :param name: The name of the flag.
         :type name: str
 
-        :param start_time: The start time of the flag.
-        :type start_time: float
+        :param start_time: The (physical) start time of the flag.
+        :type start_time: int
 
-        :param end_time: The end time of the flag.
-        :type end_time: float
+        :param start_uid: The ID of  the user that started the flag.
+        :type start_uid: str
+
+        :param start_edit_time: When the flag start event was entered, defaults to int(time.time())
+        type: start_edit_time: int
+
+        :param start_comments: Comments associated with starting the flag, defaults to ""
+        :type comments: str, optional
 
         :param flag_severity: The flag severity that indicates the severity of the flag.
         :type flag_severity: FlagSeverity
@@ -3426,8 +3452,18 @@ class Flag(Vertex):
         :param flag_components: A list of The flag components that have this flag.
         :type flag_components: List[Component]
 
-        :param comments: Comments associated with this flag, defaults to ""
-        :type comments: str
+        :param end_time: The (physical) end time of the flag, defaults to EXISTING_RELATION_END_PLACEHOLDER
+        :type end_time: int, optional
+
+        :param end_uid: The ID of the user that ended the flag, defaults to ""
+        :type end_uid: str, optional
+
+        :param end_edit_time: When the flag end event was entered, defaults to EXISTING_RELATION_END_EDIT_PLACEHOLDER
+        :type end_edit_time: int, optional
+
+        :param end_comments: Comments regarding the ending of the flag, defaults to ""
+        :type end_comments: str, optional
+
         """
 
         if id is not VIRTUAL_ID_PLACEHOLDER and id in _vertex_cache:
@@ -3437,18 +3473,21 @@ class Flag(Vertex):
             return object.__new__(cls)
 
     def __init__(
-        self, name: str, start_time: int, end_time: int,
-        flag_severity: FlagSeverity, flag_type: FlagType,
-        flag_components: List[Component] = [], comments: str = "",
-        id: int = VIRTUAL_ID_PLACEHOLDER
+        self, name: str, start_time: int, start_uid: str, flag_severity: FlagSeverity, flag_type: FlagType,
+        start_edit_time: int = int(time.time()), start_comments: str = "", flag_components: List[Component] = [], end_time: float = EXISTING_RELATION_END_PLACEHOLDER, end_uid: str = "", end_edit_time: float = -1, end_comments: str = "", id: int = VIRTUAL_ID_PLACEHOLDER
     ):
         self.name = name
         self.start_time = start_time
-        self.end_time = end_time
-        self.comments = comments
+        self.start_uid = start_uid
+        self.start_edit_time = start_edit_time
+        self.start_comments = start_comments
         self.flag_severity = flag_severity
         self.flag_type = flag_type
         self.flag_components = flag_components
+        self.end_time = end_time
+        self.end_uid = end_uid
+        self.end_edit_time = end_edit_time
+        self.end_comments = end_comments
 
         Vertex.__init__(self=self, id=id)
 
@@ -3466,8 +3505,13 @@ class Flag(Vertex):
         attributes = {
             'name': self.name,
             'start_time': self.start_time,
+            'start_uid': self.start_uid,
+            'start_edit_time': self.start_edit_time,
+            'start_comments': self.start_comments,
             'end_time': self.end_time,
-            'comments': self.comments
+            'end_uid': self.end_uid,
+            'end_edit_time': self.end_edit_time,
+            'end_comments': self.end_comments
         }
 
         Vertex.add(self=self, attributes=attributes)
@@ -3519,20 +3563,23 @@ class Flag(Vertex):
 
     @classmethod
     def _attrs_to_flag(
-            cls, name: str, start_time: int, end_time: int,
-            flag_severity: FlagSeverity, flag_type: FlagType,
-            flag_components: List[Component] = [], comments: str = "",
-            id: int = VIRTUAL_ID_PLACEHOLDER):
+            cls, name: str, start_time: int, start_uid: str, flag_severity: FlagSeverity, flag_type: FlagType, start_edit_time: int = int(time.time()), start_comments: str = "", flag_components: List[Component] = [], end_time: float = EXISTING_RELATION_END_PLACEHOLDER, end_uid: str = "", end_edit_time: float = -1, end_comments: str = "", id: int = VIRTUAL_ID_PLACEHOLDER):
         """Given the id and attributes of a Flag, see if one exists in the cache. If so, return the cached Flag. Otherwise, create a new one, cache it, and return it.
 
         :param name: The name of the flag.
         :type name: str
 
-        :param start_time: The start time of the flag.
-        :type start_time: float
+        :param start_time: The (physical) start time of the flag.
+        :type start_time: int
 
-        :param end_time: The end time of the flag.
-        :type end_time: float
+        :param start_uid: The ID of  the user that started the flag.
+        :type start_uid: str
+
+        :param start_edit_time: When the flag start event was entered, defaults to int(time.time())
+        type: start_edit_time: int
+
+        :param start_comments: Comments associated with starting the flag, defaults to ""
+        :type comments: str, optional
 
         :param flag_severity: The flag severity that indicates the severity of the flag.
         :type flag_severity: FlagSeverity
@@ -3543,8 +3590,17 @@ class Flag(Vertex):
         :param flag_components: A list of The flag components that have this flag.
         :type flag_components: List[Component]
 
-        :param comments: Comments associated with this flag, defaults to ""
-        :type comments: str
+        :param end_time: The (physical) end time of the flag, defaults to EXISTING_RELATION_END_PLACEHOLDER
+        :type end_time: int, optional
+
+        :param end_uid: The ID of the user that ended the flag, defaults to ""
+        :type end_uid: str, optional
+
+        :param end_edit_time: When the flag end event was entered, defaults to EXISTING_RELATION_END_EDIT_PLACEHOLDER
+        :type end_edit_time: int, optional
+
+        :param end_comments: Comments regarding the ending of the flag, defaults to ""
+        :type end_comments: str, optional
 
         """
 
@@ -3553,11 +3609,16 @@ class Flag(Vertex):
                 Flag(
                     name=name,
                     start_time=start_time,
-                    end_time=end_time,
-                    comments=comments,
+                    start_uid=start_uid,
+                    start_edit_time=start_edit_time,
+                    start_comments=start_comments,
                     flag_severity=flag_severity,
                     flag_type=flag_type,
                     flag_components=flag_components,
+                    end_time=end_time,
+                    end_uid=end_uid,
+                    end_edit_time=end_edit_time,
+                    end_comments=end_comments,
                     id=id
                 )
             )
@@ -3599,11 +3660,16 @@ class Flag(Vertex):
                 Flag(
                     name=name,
                     start_time=attrs['start_time'][0],
-                    end_time=attrs['end_time'][0],
-                    comments=attrs['comments'][0],
+                    start_uid=attrs['start_uid'][0],
+                    start_edit_time=attrs['start_edit_time'][0],
+                    start_comments=attrs['start_comments'][0],
                     flag_severity=_vertex_cache[severity_id],
                     flag_type=_vertex_cache[type_id],
                     flag_components=components,
+                    end_time=attrs['end_time'][0],
+                    end_uid=attrs['end_uid'][0],
+                    end_edit_time=attrs['end_edit_time'][0],
+                    end_comments=attrs['end_comments'][0],
                     id=id
                 )
             )
@@ -3633,11 +3699,16 @@ class Flag(Vertex):
                 Flag(
                     name=attrs['name'][0],
                     start_time=attrs['start_time'][0],
-                    end_time=attrs['end_time'][0],
-                    comments=attrs['comments'][0],
+                    start_uid=attrs['start_uid'][0],
+                    start_edit_time=attrs['start_edit_time'][0],
+                    start_comments=attrs['start_comments'][0],
                     flag_severity=FlagSeverity.from_id(fseverity_id),
                     flag_type=FlagType.from_id(ftype_id),
                     flag_components=components,
+                    end_time=attrs['end_time'][0],
+                    end_uid=attrs['end_uid'][0],
+                    end_edit_time=attrs['end_edit_time'][0],
+                    end_comments=attrs['end_comments'][0],
                     id=id
                 )
             )
@@ -3785,11 +3856,16 @@ class Flag(Vertex):
                     id=id,
                     name=attrs['name'][0],
                     start_time=attrs['start_time'][0],
-                    end_time=attrs['end_time'][0],
-                    comments=attrs['comments'][0],
+                    start_uid=attrs['start_uid'][0],
+                    start_edit_time=attrs['start_edit_time'][0],
+                    start_comments=attrs['start_comments'][0],
                     flag_severity=FlagSeverity.from_id(fseverity_id),
                     flag_type=FlagType.from_id(ftype_id),
                     flag_components=fcomponents,
+                    end_time=attrs['end_time'][0],
+                    end_uid=attrs['end_uid'][0],
+                    end_edit_time=attrs['end_edit_time'][0],
+                    end_comments=attrs['end_comments'][0],
                 )
             )
 
@@ -3848,6 +3924,37 @@ class Flag(Vertex):
                 traversal = traversal.or_(*ands)
 
         return traversal.count().next()
+
+    def end_flag(
+            self, end_time: int, end_uid: str, end_edit_time: int = int(time.time()), end_comments=""):
+        """
+        Given a flag, set the "end" attributes of the flag to indicate that this flag has been ended.
+
+        :param time: The time at which the flag was ended (real time). This value has to be provided.
+        :type time: int
+
+        :param uid: The user that ended the flag.
+        :type uid: str
+
+        :param edit_time: The time at which the user made the change, defaults to int(time.time())
+        :type edit_time: int, optional
+
+        :param comments: Comments associated with ending the flag.
+        :type comments: str, optional
+        """
+
+        if not self.added_to_db():
+            raise FlagNotAddedError(
+                f"Flag {self.name} has not yet been added to the database."
+            )
+
+        self.end_time = end_time
+        self.end_uid = end_uid
+        self.end_edit_time = end_edit_time
+        self.end_comments = end_comments
+
+        g.V(self.id()).property('end_time', end_time).property('end_uid', end_uid).property(
+            'end_edit_time', end_edit_time).property('end_comments', end_comments).iterate()
 
 
 class Permission(Vertex):
@@ -4484,26 +4591,35 @@ class RelationProperty(Edge):
 
         :param inVertex: The Vertex that the edge is going into.
         :type inVertex: Vertex
+
         :param outVertex: The Vertex that the edge is going out of.
         :type outVertex: Vertex
+
         :param start_time: The (physical) start time of the relation.
         :type start_time: float
+
         :param start_uid: The ID of the user that started the relation.
         :type start_uid: str
+
         :param start_edit_time: When the relation start event was entered.
         :type start_edit_time: float
+
         :param start_comments: Comments regarding the starting of 
         the relation, defaults to ""
         :type start_comments: str, optional
+
         :param end_time: The (physical) end time of the relation, 
         defaults to EXISTING_RELATION_END_PLACEHOLDER
         :type end_time: float, optional
+
         :param end_uid: The ID of the user that ended the relation, 
         defaults to ""
         :type end_uid: str, optional
+
         :param end_edit_time: When the relation end event was entered, 
         defaults to EXISTING_RELATION_END_EDIT_PLACEHOLDER
         :type end_edit_time: float, optional
+
         :param end_comments: Comments regarding the ending of 
         the relation, defaults to ""
         :type end_comments: str, optional

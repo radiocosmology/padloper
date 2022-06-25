@@ -6,6 +6,8 @@ import FlagFilter from './FlagFilter.js';
 import Button from '@mui/material/Button'
 import Timestamp from './Timestamp.js';
 import FlagAddButton from './FlagAddButton.js';
+import { Typography } from '@mui/material';
+import FlagEndButton from './FlagEndButton.js';
 
 /**
  * A MUI component that renders a list of flags.
@@ -239,8 +241,9 @@ export default function FlagList() {
         });
     }, []);
 
-    // the header cells of the table with their ids, labels, and whether you
-    // can order by them.
+
+// the header cells of the table with their ids, labels, and whether you
+// can order by them.
     const tableHeadCells = [
         {
             id: 'name', 
@@ -255,7 +258,7 @@ export default function FlagList() {
         {
             id: 'end_time', 
             label: 'End Time',
-            allowOrdering: false,
+            allowOrdering: true,
         },
         {
             id: 'Type', 
@@ -273,8 +276,23 @@ export default function FlagList() {
             allowOrdering: false,
         },
         {
-            id: 'comments', 
-            label: 'Comments',
+            id: 'Start_uid', 
+            label: 'Start UID',
+            allowOrdering: false,
+        },
+        {
+            id: 'End_uid', 
+            label: 'End UID',
+            allowOrdering: false,
+        },
+        {
+            id: 'start_comments', 
+            label: 'Start comments',
+            allowOrdering: false,
+        },
+        {
+            id: 'end_comments', 
+            label: 'End comments',
             allowOrdering: false,
         }
     ];
@@ -283,15 +301,29 @@ export default function FlagList() {
      * the rows of the table. We are only putting:
      * - the name,
      * - the start time,
-     * - the end time,
      * - flag's allowed types,
      * - flag's allowed severity,
      * - the comments associated with the property type.
      */
     let tableRowContent = elements.map((e) => [
-        e.name,
+        e.end_uid 
+        ?
+        e.name
+        :
+        <Typography
+        style={{
+            display:'flex'
+        }}>
+        {e.name}
+        {
+        <FlagEndButton
+        name = {e.name}
+        toggleReload={toggleReload}
+        />}
+        </Typography>
+        ,
        <Timestamp unixTime={e.start_time}/>,
-       <Timestamp unixTime={e.end_time}/>,
+       e.end_time !== 9223372036854776000 ? <Timestamp unixTime={e.end_time}/> : 'Ongoing',
         e.flag_type.name,
         e.flag_severity.value,
         e.flag_components != ''
@@ -303,7 +335,10 @@ export default function FlagList() {
         })
         :
         'Global',
-        e.comments
+        e.start_uid,
+        e.end_uid,
+        e.start_comments,
+        e.end_comments,
     ]);
 
     return (
@@ -332,7 +367,6 @@ export default function FlagList() {
                     flag_severities={flag_severities} 
                     flag_components={flag_components}
                     toggleReload={toggleReload}
-                    elements = {elements}
                     />
                 }
             />
@@ -355,7 +389,7 @@ export default function FlagList() {
             }
 
             <ElementList
-                width="800px"
+                width='1200px'
                 tableRowContent={tableRowContent}
                 loaded={loaded}
                 orderBy={orderBy}

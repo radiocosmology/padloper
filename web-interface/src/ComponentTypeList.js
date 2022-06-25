@@ -144,7 +144,6 @@ function ComponentTypeList() {
                 }
                 rightColumn2= {
                     <ComponentTypeAddButton
-                    elements = {elements}
                     toggleReload={toggleReload}
                     />
                 }

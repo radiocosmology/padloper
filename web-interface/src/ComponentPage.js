@@ -7,7 +7,6 @@ import MuiAccordion from '@mui/material/Accordion';
 import MuiAccordionSummary from '@mui/material/AccordionSummary';
 import MuiAccordionDetails from '@mui/material/AccordionDetails';
 import FlagIcon from '@mui/icons-material/Flag';
-import CommentIcon from '@mui/icons-material/Comment';
 import ExpandMoreIcon from '@mui/icons-material/ExpandMore';
 import EventIcon from '@mui/icons-material/Event';
 import AddIcon from '@mui/icons-material/Add';
@@ -161,6 +160,7 @@ const AddButton = styled((props) => (
 ))(({ theme }) => ({
     marginTop: -2 * theme.spacing(2),
 }));
+
 /**
  * A MUI component representing a button for ending a component's property or connection.
  */
@@ -702,78 +702,89 @@ function ComponentPage() {
     />
         ) : <></>;
 
-        let flags_content = (
+    let flags_content = (
             <Stack spacing={1}>
                 {component.flags.map((flag,index) => (
                     <EntryAccordion key={index}>
-                        <EntryAccordionSummary>
-                            <Stack spacing={1} direction="row">
+                        <EntryAccordionSummary >
+                            <Stack spacing={1} direction="row"
+                            >
                                 <EventIcon fontSize="small" />
                                 <Timestamp unixTime={flag.start_time} />
                                 {flag.end_time <= Number.MAX_SAFE_INTEGER ? (
                                     <>
-                                        <div>—</div> 
+                                        <div>-</div> 
                                         <Timestamp unixTime={flag.end_time} />
                                     </>
                                 ) : ''}
                                 <Typography
                                     variant="body2"
                                     style={{
-                                        marginLeft: theme.spacing(4)
+                                        marginLeft: theme.spacing(4),
+                                        display:'flex'
                                     }}
                                 >
-                                    <FlagIcon/>
+                                    <FlagIcon
+                                    fontSize='small'/>
+                                    {flag.name}
                                 </Typography>
                                 <Typography
                                     variant="body2"
                                     style={{
-                                        marginLeft: theme.spacing(4)
+                                        marginLeft: theme.spacing(4),
+                                        display:'flex'
                                     }}
                                 >
-                                    
-                                    {flag.name}
+                                    Flag Type: {flag.type.name}
+                                </Typography>
+                                <Typography
+                                    variant="body2"
+                                    style={{
+                                        marginLeft: theme.spacing(4),
+                                        display:'flex'
+                                    }}
+                                >
+                                   <ReportIcon fontSize='small'/> {flag.severity.value}
                                 </Typography>
                             </Stack>
                         </EntryAccordionSummary>
+
                         <EntryAccordionDetails>
                             <Stack spacing={1}>
-                                <Stack
-                                direction = 'row'
+                                <Stack 
+                                direction='row'
                                 justifyContent='space-between'
-                                alignItems='center'>
+                                alignItems='center'
+                                >
+                                <ComponentEvent
+                                    name="Start"
+                                    time={flag.start_time}
+                                    uid={flag.start_uid}
+                                    edit_time={flag.start_edit_time}
+                                    comments={flag.start_comments}
+                                    theme={theme} />
                                     <Stack direction='row'>
-
-                                    <ReportIcon
-                                     fontSize="small"
-                                     style={{
-                                         marginRight:theme.spacing(1),
-                                        }}
-                                        /> {flag.severity.value}
-                                        </Stack>
-                                    <p>
-                                    Flag Type: {flag.type.name}
-                                    </p>
-                                    
-                                    <Stack
-                                    direction='row'
-                                    >
-                                    <CommentIcon 
-                    fontSize="small"
-                    style={{
-                        marginRight:theme.spacing(1),
-                    }}
-                />
-                {flag.comments}
-                                    </Stack>
-                                    
                             </Stack>
-                                
+                            </Stack>
+                               {
+                                    flag.end_time <= 
+                                    Number.MAX_SAFE_INTEGER ?
+                                    <ComponentEvent
+                                        name="End"
+                                        time={flag.end_time}
+                                        uid={flag.end_uid}
+                                        edit_time={flag.end_edit_time}
+                                        comments={flag.end_comments}
+                                        theme={theme} />
+                                    : ""
+                                }
                             </Stack>
                         </EntryAccordionDetails>
                     </EntryAccordion>
                 ))}
             </Stack>
         )
+
 
         let subcomponents_content = (
             <Stack spacing={1}>

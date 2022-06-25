@@ -68,7 +68,7 @@ function ComponentEvent(
                     {emDashIfEmpty(uid)} 
                 </Typography> 
                 <Stack direction="row" spacing={0}>
-                    (<Timestamp unixTime={time} />)
+                    (<Timestamp unixTime={edit_time} />)
                 </Stack>
 
                 <CommentIcon 

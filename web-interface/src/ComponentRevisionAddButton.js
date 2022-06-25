@@ -14,10 +14,9 @@ import Select from '@mui/material/Select';
 import ErrorIcon from '@mui/icons-material/Error';
 import Button from '@mui/material/Button'
 import axios from 'axios'
-import { Typography } from '@mui/material';
 
 
-export default function ComponentRevisionAddButton ({componentTypes,elements,toggleReload}) {
+export default function ComponentRevisionAddButton ({componentTypes,toggleReload}) {
     
   // opens and closes the pop up form to add a new component revision.
   const [open, setOpen] = useState(false);
@@ -60,7 +59,6 @@ export default function ComponentRevisionAddButton ({componentTypes,elements,tog
 
 
   const handleSubmit = (e) => {
-    if(elements.filter((item)=> item.name === componentRevision && item.allowed_type.name === inputComponentType).length === 0){
       e.preventDefault() // To preserve the state once the form is submitted.
 
       let input = `/api/set_component_revision`;
@@ -70,11 +68,11 @@ export default function ComponentRevisionAddButton ({componentTypes,elements,tog
       axios.post(input).then((response)=>{
           toggleReload() //To reload the page once the form has been submitted.
           handleClose()
+      }).catch(error=> {
+        if(error.message === 'Request failed with status code 500'){
+          setIsError(true)
+        }
       })
-    }
-    else {
-      setIsError(true)
-    }
   }
   return (
     <>

@@ -252,7 +252,6 @@ function ComponentRevisionList() {
                 rightColumn2 = {
                     <ComponentRevisionAddButton 
                     componentTypes={componentTypes}
-                    elements = {elements}
                     toggleReload={toggleReload}/>
                 }
             />

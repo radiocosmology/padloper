@@ -7,24 +7,7 @@ import DialogContent from '@mui/material/DialogContent';
 import DialogTitle from '@mui/material/DialogTitle';
 import DialogContentText from '@mui/material/DialogContentText';
 
-export default function AlertDialog ({handleSubmit,nameList,componentRevision,componentType,loading}){
-
-/*
-Used to open the alert dialog box when the submit button is clicked.
-*/
-const [alertOpen, setAlertOpen] = useState(false);
-
-/*
-Function that is used to open the alert dialog box when the user clicks on the 'submit' button in the form.
-*/
-const handleClickAlertOpen = () => {
-        setAlertOpen(true)
-    };
-
-/*Function that closes the alert dialog box*/
-const handleAlertClose = () => {
-    setAlertOpen(false);
-  };
+export default function AlertDialog ({handleSubmit,nameList,componentRevision,componentType,loading,alertOpen,handleAlertClose,handleClickAlertOpen}){
 
   return (
     <div>

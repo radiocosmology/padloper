@@ -142,7 +142,6 @@ function FlagTypeList() {
                 }
                 rightColumn2= {
                     <FlagTypeAddButton
-                    elements={elements}
                     toggleReload={toggleReload}
                     />
                 }

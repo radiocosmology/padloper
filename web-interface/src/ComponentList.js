@@ -244,7 +244,7 @@ function ComponentList() {
                 }
                 rightColumn2 = {<ComponentAddButton
                 types_and_revisions={types_and_revisions}
-                components = {components}
+                components={components}
                 toggleReload={toggleReload}
                 />}
             />

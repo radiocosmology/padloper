@@ -14,7 +14,7 @@ import CircularProgress from '@mui/material/CircularProgress';
 import axios from 'axios'
 import ErrorIcon from '@mui/icons-material/Error';
 
-export default function ComponentTypeAddButton ({toggleReload,elements}) {
+export default function ComponentTypeAddButton ({toggleReload}) {
 
   // Opens and closes the pop up form.
   const [open, setOpen] = React.useState(false);
@@ -52,7 +52,6 @@ export default function ComponentTypeAddButton ({toggleReload,elements}) {
   };
 
   const handleSubmit = (e) => {
-    if(elements.filter((item)=> item.name === componentType).length === 0){
       e.preventDefault() // To preserve the state once the form is submitted.
       
       let input = `/api/set_component_type`;
@@ -61,10 +60,11 @@ export default function ComponentTypeAddButton ({toggleReload,elements}) {
       axios.post(input).then((response)=>{
         handleClose()
         toggleReload() //To reload the page once the form has been submitted.
-      }) 
-    } else {
-      setIsError(true)
-    }
+      }).catch(error=> {
+        if(error.message === 'Request failed with status code 500'){
+          setIsError(true)
+        }
+      })
   }
 
   return (
