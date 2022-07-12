@@ -9,6 +9,7 @@ import FlagAddButton from './FlagAddButton.js';
 import { Typography } from '@mui/material';
 import FlagEndButton from './FlagEndButton.js';
 
+
 /**
  * A MUI component that renders a list of flags.
  */
@@ -275,12 +276,7 @@ export default function FlagList() {
             id: 'Components', 
             label: 'Component List',
             allowOrdering: false,
-        },
-        {
-            id: 'start_comments', 
-            label: 'Start comments',
-            allowOrdering: false,
-        },
+        }
     ];
 
     /**
@@ -320,8 +316,7 @@ export default function FlagList() {
                 )
         })
         :
-        'Global',
-        e.start_comments,
+        'Global'
     ]);
 
     return (

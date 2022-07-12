@@ -908,6 +908,8 @@ def set_flag():
     val_name = escape(request.args.get('name'))
     val_uid = escape(request.args.get('uid'))
     val_start_time = escape(request.args.get('start_time'))
+    val_end_time = escape(request.args.get('end_time'))
+    val_start_comments = escape(request.args.get('start_comments'))
     val_comments = escape(request.args.get('comments'))
     val_flag_severity = escape(request.args.get('flag_severity'))
     val_flag_type = escape(request.args.get('flag_type'))
@@ -922,11 +924,20 @@ def set_flag():
     if val_flag_components != ['Global']:
         for name in val_flag_components:
             allowed_list.append(Component.from_db(name))
-    # Need to initialize an instance of Flag first.
-    flag = Flag(name=val_name, start_time=val_start_time,
-                flag_severity=flag_severity, flag_type=flag_type, flag_components=allowed_list, start_comments=val_comments, start_uid=val_uid)
 
-    flag.add()
+    if(val_end_time == str(0)):
+        # Need to initialize an instance of Flag first.
+        flag = Flag(name=val_name, start_time=val_start_time,
+                    flag_severity=flag_severity, flag_type=flag_type, flag_components=allowed_list, comments=val_comments, start_comments=val_start_comments, start_uid=val_uid)
+
+        flag.add()
+
+    if(val_end_time != str(0)):
+        # Need to initialize an instance of Flag first.
+        flag = Flag(name=val_name, start_time=val_start_time,
+                    flag_severity=flag_severity, flag_type=flag_type, flag_components=allowed_list, comments=val_comments, start_comments=val_start_comments, start_uid=val_uid, end_uid=val_uid, end_time=val_end_time, end_edit_time=int(time.time()))
+
+        flag.add()
 
     return {'result': True}
 
@@ -1042,6 +1053,7 @@ def get_flag_list():
         'result': [
             {
                 'name': f.name,
+                'comments': f.comments,
                 'id': f.id(),
                 'start_time': f.start_time,
                 'start_uid': f.start_uid,

@@ -42,7 +42,7 @@ export default function Timestamp(
             arrow
         >
             <Typography {...props}>
-                {unixTimeToString(unixTime, false)}
+                {unixTimeToString(unixTime, true)}
             </Typography>
             
             

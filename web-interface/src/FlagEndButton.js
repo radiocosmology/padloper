@@ -138,7 +138,7 @@ export default function FlagEndButton ({toggleReload,name}){
           <TextField
             margin="dense"
             id="comment"
-            label="Comment"
+            label="End Comment"
             multiline
             maxRows={4}
             type="text"

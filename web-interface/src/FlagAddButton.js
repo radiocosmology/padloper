@@ -43,11 +43,15 @@ export default function FlagAddButton ({flag_types,flag_severities,flag_componen
     uid: '',
     flag_severity:'',
     flag_type:'',
-    comment:''
+    start_comment:'',
+    comments: ''
   })
 
   // Stores the start time of the flag.
   const [startTime,setStartTime] = useState(0)
+
+  // Stores the end time of the flag.
+  const [endTime,setEndTime] = useState(0)
 
   // Stores the list of component names that are flagged.
   const [componentName,setComponentName] = useState([])
@@ -101,7 +105,8 @@ export default function FlagAddButton ({flag_types,flag_severities,flag_componen
     uid: '',
     flag_severity:'',
     flag_type:'',
-    comment:''
+    start_comment:'',
+    comments:''
   })
   };
 
@@ -111,14 +116,15 @@ export default function FlagAddButton ({flag_types,flag_severities,flag_componen
 
   const handleSubmit = (e) => {
       e.preventDefault() // To preserve the state once the form is submitted.
-
       let input = `/api/set_flag`;
       input += `?name=${property.name}`;
       input += `&start_time=${startTime}`;
+      input += `&end_time=${endTime}`;
       input += `&uid=${property.uid}`;
       input += `&flag_severity=${property.flag_severity}`;
       input += `&flag_type=${property.flag_type}`;
-      input += `&comments=${property.comment}`;
+      input += `&comments=${property.comments}`;
+      input += `&start_comments=${property.start_comment}`;
       input += `&flag_components=${componentName.join(';')}`;
       axios.post(input).then((response)=>{
               toggleReload() //To reload the page once the form has been submitted.
@@ -133,12 +139,21 @@ export default function FlagAddButton ({flag_types,flag_severities,flag_componen
   return (
     <>
         <Button variant="contained" onClick={handleClickOpen}>Add Flag</Button>
-      <Dialog open={open} onClose={handleClose}>
+      <Dialog 
+      fullWidth
+      open={open} 
+      onClose={handleClose}>
         <DialogTitle>Add A Flag</DialogTitle>
         <DialogContent>
     <div style={{
         marginTop:'10px',
+        display:'flex',
+        justifyContent:'space-between'
     }}>
+      <div style={{
+        marginRight:'10px',
+        width:'50%'
+      }}>
           <TextField
             autoFocus
             margin="dense"
@@ -151,10 +166,10 @@ export default function FlagAddButton ({flag_types,flag_severities,flag_componen
             value={property.name}
             onChange={handleChange}
             />
-    </div>
-    <div style={{
-        marginTop:'10px',
-    }}>
+      </div>
+      <div style={{
+        width:'50%'
+      }}>
           <TextField
             margin="dense"
             id="uid"
@@ -166,16 +181,23 @@ export default function FlagAddButton ({flag_types,flag_severities,flag_componen
             value={property.uid}
             onChange={handleChange}
             />
-    </div>
+        </div>
+      </div>
     <div style={{
         marginTop:'15px',
-        marginBottom:'15px',
+        display:'flex',
+        justifyContent:'space-between'
     }}>   
-        <FormControl sx={{width: 300}} >
+    <div style={{
+        marginRight:'10px',
+        width:'50%'
+      }}>
+        <FormControl sx={{width: 272}} >
         <InputLabel id="Flag Type">Flag Type</InputLabel>
         <Select
           labelId="Flag-Type-label"
           id="Flag-Type"
+          fullWidth
           value={property.flag_type}
           name='flag_type'
           label='Flag Type'
@@ -195,14 +217,14 @@ export default function FlagAddButton ({flag_types,flag_severities,flag_componen
       </FormControl>
     </div>
     <div style={{
-        marginTop:'15px',
-        marginBottom:'15px',
-    }}>   
-        <FormControl sx={{width: 300}}>
+        width:'50%'
+      }}>
+        <FormControl sx={{width: 272}}>
         <InputLabel id="Flag Severity">Flag Severity</InputLabel>
         <Select
           labelId="Flag-Severity-label"
           id="Flag-Severity"
+          fullWidth
           value={property.flag_severity}
           name = 'flag_severity'
           label='Flag Severity'
@@ -220,11 +242,12 @@ export default function FlagAddButton ({flag_types,flag_severities,flag_componen
           )}
         </Select>
       </FormControl>
+</div>
     </div>
-    
-    
     <div style={{
-        marginTop:'10px'
+        display:'flex',
+        justifyContent:'center',
+        marginTop:'15px'
     }}>
       <FormControl sx={{width: 300}}>
         <InputLabel id="multiple-checkbox-label">Components</InputLabel> 
@@ -264,14 +287,21 @@ export default function FlagAddButton ({flag_types,flag_severities,flag_componen
 
     <div style={{
         marginTop:'10px',
+        display:'flex',
+        justifyContent:'space-between'
     }}>
+      <div style={{
+        marginRight:'10px',
+        width:'50%'
+      }}>
             <TextField
             required
             margin = 'dense'
             id="start_time"
             label="start_time"
+            fullWidth
+            variant="outlined"
             type="datetime-local"
-            sx={{ width: 240 }}
             InputLabelProps={{
                 shrink: true,
             }}
@@ -281,25 +311,64 @@ export default function FlagAddButton ({flag_types,flag_severities,flag_componen
                 setStartTime(Math.round(date.getTime() / 1000));
             }}
                         />
+      </div>
+      <div style={{
+        width:'50%'
+      }}>
+            <TextField
+            fullWidth
+            variant="outlined"
+            margin = 'dense'
+            id="end_time"
+            label="end_time"
+            type="datetime-local"
+            InputLabelProps={{
+                shrink: true,
+            }}
+            size="large"
+            onChange={(event) => {
+                let date = new Date(event.target.value);
+                setEndTime(Math.round(date.getTime() / 1000));
+            }}
+                        />
+      </div>
     </div>
     <div style={{
-        marginTop:'10px',
-        marginBottom:'10px'
+      marginTop:'10px',
+      marginBottom:'10px'
     }}>
           <TextField
             margin="dense"
-            id="comment"
-            label="Comment"
+            id="start_comment"
+            label="Start Comment"
             multiline
             maxRows={4}
             type="text"
             fullWidth
             variant="outlined"
-            name = 'comment'
-            value={property.comment}
+            name = 'start_comment'
+            value={property.start_comment}
             onChange={handleChange}
             />
     </div>
+      <div style={{
+          marginTop:'10px',
+          marginBottom:'10px'
+      }}>
+            <TextField
+              margin="dense"
+              id="comments"
+              label="Comments"
+              multiline
+              rows={4}
+              type="text"
+              fullWidth
+              variant="outlined"
+              name = 'comments'
+              value={property.comments}
+              onChange={handleChange}
+              />
+      </div>
     <div 
     style={{
     marginTop:'15px',
