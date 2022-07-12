@@ -37,8 +37,8 @@ _vertex_cache = dict()
 class Element:
     """
     The simplest element. Contains an ID.
-
     :ivar id: The unique identifier of the element. 
+
     If id is VIRTUAL_ID_PLACEHOLDER, then the 
     element is not in the actual graph and only exists clienside.
     """
@@ -87,10 +87,16 @@ class Vertex(Element):
 
     :ivar category: The category of the Vertex.
     :ivar time_added: When this vertex was added to the database (UNIX time).
+    :ivar time_disabled: When this vertex was disabled in the database (UNIX time).
+    :ivar active: Whether the vertex is disabled or not.
+    :ivar replacement: If the vertex has been replaced, then this property points towards the vertex that replaced it.
     """
 
     category: str
     time_added: int
+    time_disabled: int
+    active: bool
+    replacement: int
 
     def __init__(self, id: int):
         """
@@ -129,8 +135,14 @@ class Vertex(Element):
             # set time added to now.
             self.time_added = int(time.time())
 
-            traversal = g.addV().property('category', self.category) \
-                                .property('time_added', self.time_added)
+            self.active = True
+
+            self.replacement = 0
+
+            self.time_disabled = EXISTING_RELATION_END_EDIT_PLACEHOLDER
+
+            traversal = g.addV().property('category', self.category).property('time_added', self.time_added).property(
+                'time_disabled', self.time_disabled).property('active', self.active).property('replacement', self.replacement)
 
             for key in attributes:
 
@@ -334,7 +346,7 @@ class ComponentType(Vertex):
         :type name: str
 
         :param comments: The comments attached to the component type. 
-        :str comments: str  
+        :type comments: str  
         """
 
         self.name = name
@@ -476,9 +488,9 @@ class ComponentType(Vertex):
             .project('name', 'versions') \
             .by(__.values('name')) \
             .by(
-                __.both(RelationVersionAllowedType.category) \
-                    .order().by('name', Order.asc).values('name').fold()
-            ) \
+                __.both(RelationVersionAllowedType.category)
+            .order().by('name', Order.asc).values('name').fold()
+        ) \
             .toList()
 
         return ts
@@ -672,7 +684,7 @@ class ComponentVersion(Vertex):
             self.allowed_type.add()
 
         e = RelationVersionAllowedType(
-            inVertex=self.allowed_type, 
+            inVertex=self.allowed_type,
             outVertex=self
         )
 
@@ -690,19 +702,19 @@ class ComponentVersion(Vertex):
 
         return (
             self.id() != VIRTUAL_ID_PLACEHOLDER or (
-                self.allowed_type.added_to_db() and \
-                g.V(self.allowed_type.id()) \
-                .both(RelationVersionAllowedType.category) \
-                    .has('name', self.name).count().next() > 0
+                self.allowed_type.added_to_db() and
+                g.V(self.allowed_type.id())
+                .both(RelationVersionAllowedType.category)
+                .has('name', self.name).count().next() > 0
             )
         )
 
     @classmethod
     def _attrs_to_version(
-        cls, 
-        name: str, 
+        cls,
+        name: str,
         comments: str,
-        allowed_type: ComponentType, 
+        allowed_type: ComponentType,
         id: int
     ):
         """Given name, comments and id of a ComponentType, see if one
@@ -747,7 +759,7 @@ class ComponentVersion(Vertex):
 
         if allowed_type.added_to_db():
 
-            d =  g.V(allowed_type.id()) \
+            d = g.V(allowed_type.id()) \
                 .both(RelationVersionAllowedType.category).has('name', name) \
                 .as_('v').valueMap().as_('attrs').select('v').id().as_('id') \
                 .select('attrs', 'id').next()
@@ -756,8 +768,8 @@ class ComponentVersion(Vertex):
 
             Vertex._cache_vertex(
                 ComponentVersion(
-                    name=name, 
-                    comments=props['comments'][0], 
+                    name=name,
+                    comments=props['comments'][0],
                     allowed_type=allowed_type,
                     id=id
                 )
@@ -792,8 +804,8 @@ class ComponentVersion(Vertex):
 
             Vertex._cache_vertex(
                 ComponentVersion(
-                    name=d['attrs']['name'][0], 
-                    comments=d['attrs']['comments'][0], 
+                    name=d['attrs']['name'][0],
+                    comments=d['attrs']['comments'][0],
                     allowed_type=t,
                     id=id
                 )
@@ -829,7 +841,7 @@ class ComponentVersion(Vertex):
 
         :param filters: A list of 2-tuples of the format (name, ctype)
         :type order_by: list
-        
+
         :return: A list of ComponentVersion instances.
         :rtype: list[ComponentType]
         """
@@ -839,7 +851,7 @@ class ComponentVersion(Vertex):
         assert order_by in {'name', 'allowed_type'}
 
         traversal = g.V().has('category', ComponentVersion.category)
-        
+
         # if order_direction is not asc or desc, it will just sort by asc.
         # Keep like this if removing the assert above only in production.
         if order_direction == 'desc':
@@ -865,7 +877,7 @@ class ComponentVersion(Vertex):
                 if f[1] != "":
                     contents.append(
                         __.both(RelationVersionAllowedType.category).has(
-                            'name', 
+                            'name',
                             f[1]
                         )
                     )
@@ -912,7 +924,7 @@ class ComponentVersion(Vertex):
 
             component_versions.append(
                 ComponentVersion._attrs_to_version(
-                    id=id, 
+                    id=id,
                     name=name,
                     comments=comments,
                     allowed_type=t
@@ -952,7 +964,7 @@ class ComponentVersion(Vertex):
                 if f[1] != "":
                     contents.append(
                         __.both(RelationVersionAllowedType.category).has(
-                            'name', 
+                            'name',
                             f[1]
                         )
                     )
@@ -987,10 +999,10 @@ class Component(Vertex):
     version: ComponentVersion = None
 
     def __new__(
-        cls, name: str, type: ComponentType, 
-        version: ComponentVersion=None,
-        id: int=VIRTUAL_ID_PLACEHOLDER,
-        time_added: int=-1
+        cls, name: str, type: ComponentType,
+        version: ComponentVersion = None,
+        id: int = VIRTUAL_ID_PLACEHOLDER,
+        time_added: int = -1
     ):
         """
         Return a Component instance given the desired name, component type,
@@ -1018,11 +1030,11 @@ class Component(Vertex):
             return object.__new__(cls)
 
     def __init__(
-        self, name: str, type: ComponentType, 
-        version: ComponentVersion=None,
-        id: int=VIRTUAL_ID_PLACEHOLDER,
-        time_added: int=-1
-        ):
+        self, name: str, type: ComponentType,
+        version: ComponentVersion = None,
+        id: int = VIRTUAL_ID_PLACEHOLDER,
+        time_added: int = -1
+    ):
         """
         Initialize the Component vertex.
 
@@ -1044,7 +1056,7 @@ class Component(Vertex):
 
         if self.version is None:
             version_text = "no version"
-        
+
         else:
             version_text = 'version "{self.version.name}"'
 
@@ -1281,6 +1293,30 @@ class Component(Vertex):
         for q in query:
             subcomponent = Component.from_id(q)
             result.append((subcomponent))
+
+        return result
+
+    def get_all_supercomponents(self):
+        """Return all supercomponents connected to this component of the form (Component)
+
+        :rtype: [Component]
+        """
+
+        if not self.added_to_db():
+            raise ComponentNotAddedError(
+                f"Component {self.name} has not yet been added to the database."
+            )
+        # Relation as a subcomponent stays the same except now
+        # we have outE to distinguish from subcomponents
+        query = g.V(self.id()).outE(
+            RelationSubcomponent.category).otherV().id().toList()
+
+        # Build up the result of format (flag vertex)
+        result = []
+
+        for q in query:
+            supercomponent = Component.from_id(q)
+            result.append((supercomponent))
 
         return result
 
@@ -2079,11 +2115,11 @@ class Component(Vertex):
                     )
 
                     # component version
-                    
+
                     if f[2] != "":
                         contents.append(
                             __.both(RelationVersion.category).has(
-                                'name', 
+                                'name',
                                 f[2]
                             )
                         )
@@ -2100,7 +2136,7 @@ class Component(Vertex):
             traversal = traversal.order() \
                 .by(
                     __.coalesce(
-                        __.both(RelationVersion.category).values('name'), 
+                        __.both(RelationVersion.category).values('name'),
                         __.constant(chr(0x10FFFF))
                     ),
                     direction
@@ -2120,7 +2156,7 @@ class Component(Vertex):
                 .by('name', Order.asc) \
                 .by(
                     __.coalesce(
-                        __.both(RelationVersion.category).values('name'), 
+                        __.both(RelationVersion.category).values('name'),
                         __.constant(chr(0x10FFFF))
                     ),
                     Order.asc
@@ -2135,7 +2171,7 @@ class Component(Vertex):
             ) \
                 .by(
                     __.coalesce(
-                        __.both(RelationVersion.category).values('name'), 
+                        __.both(RelationVersion.category).values('name'),
                         __.constant(chr(0x10FFFF))
                     ),
                     Order.asc,
@@ -2207,11 +2243,11 @@ class Component(Vertex):
                     )
 
                     # component version
-                    
+
                     if f[2] != "":
                         contents.append(
                             __.both(RelationVersion.category).has(
-                                'name', 
+                                'name',
                                 f[2]
                             )
                         )
@@ -2294,7 +2330,7 @@ class Component(Vertex):
                     'comments': flag.flag_type.comments
                 },
                 'severity': {
-                    'value': flag.flag_severity.value
+                    'name': flag.flag_severity.name
                 }
             })
 
@@ -2303,6 +2339,13 @@ class Component(Vertex):
         for (subcomponent) in c.get_all_subcomponents():
             subcomponent_dicts.append({
                 'name': subcomponent.name
+            })
+
+        supercomponent_dicts = []
+
+        for (supercomponent) in c.get_all_supercomponents():
+            supercomponent_dicts.append({
+                'name': supercomponent.name
             })
 
         return {
@@ -2317,7 +2360,8 @@ class Component(Vertex):
             'properties': prop_dicts,
             'connections': connection_dicts,
             'flags': flag_dicts,
-            'subcomponents': subcomponent_dicts
+            'subcomponents': subcomponent_dicts,
+            'supercomponents': supercomponent_dicts
         }
 
 
@@ -3177,18 +3221,18 @@ class FlagSeverity(Vertex):
     """
     The representation of a flag severity.
 
-    :ivar value: The value of the severity.
+    :ivar name: The name of the severity.
     """
     category: str = "flag_severity"
 
-    value: str
+    name: str
 
-    def __new__(cls, value: str, id: int = VIRTUAL_ID_PLACEHOLDER):
+    def __new__(cls, name: str, id: int = VIRTUAL_ID_PLACEHOLDER):
         """
         Return a FlagSeverity instance given the desired attribute.
 
-        :param value: Indicates the value of a flag severity.
-        :type value: str
+        :param name: Indicates the severity of a flag.
+        :type name: str
 
         :param id: The serverside ID of the FlagType,
         defaults to VIRTUAL_ID_PLACEHOLDER
@@ -3201,27 +3245,34 @@ class FlagSeverity(Vertex):
         else:
             return object.__new__(cls)
 
-    def __init__(self, value: str, id: int = VIRTUAL_ID_PLACEHOLDER):
+    def __init__(self, name: str, id: int = VIRTUAL_ID_PLACEHOLDER):
         """
         Initialize a FlagSeverity instance given the FlagSeverity instance given the desired attributes.
 
-        :param value: Indicates the value of a flag severity.
-        :type value: str
+        :param name: Indicates the severity of a flag.
+        :type name: str
 
         :param id: The serverside ID of the FlagType,
         defaults to VIRTUAL_ID_PLACEHOLDER
         :type id: int, optional
         """
 
-        self.value = value
+        self.name = name
 
         Vertex.__init__(self, id=id)
 
     def add(self):
         """Add this FlagSeverity to the database."""
 
+        # If already added.
+        if self.added_to_db():
+            raise VertexAlreadyAddedError(
+                f"FlagSeverity with name {self.name}" +
+                "already exists in the database."
+            )
+
         attributes = {
-            'value': self.value
+            'name': self.name
         }
 
         Vertex.add(self=self, attributes=attributes)
@@ -3237,29 +3288,29 @@ class FlagSeverity(Vertex):
         return (
             self.id() != VIRTUAL_ID_PLACEHOLDER or (
                 g.V().has('category', FlagSeverity.category).has(
-                    'value', self.value).count().next() == 1
+                    'name', self.name).count().next() == 1
             )
         )
 
     @classmethod
-    def from_db(cls, value: str):
-        """Query the database and return a FlagSeverity instance based on Flag Severity value :param value:.
+    def from_db(cls, name: str):
+        """Query the database and return a FlagSeverity instance based on Flag Severity name :param name:.
 
-        :param value: The value of the severity.
-        :type value: str
+        :param name: Indicated the severity of a flag.
+        :type name: str
 
-        :return: A FlagSeverity instance with the correct value and ID.
+        :return: A FlagSeverity instance with the correct name and ID.
         :rtype: FlagSeverity.
         """
 
-        d = g.V().has('category', FlagSeverity.category).has('value', value).as_(
+        d = g.V().has('category', FlagSeverity.category).has('name', name).as_(
             'v').valueMap().as_('props').select('v').id().as_('id').select('props', 'id').next()
 
         props, id = d['props'], d['id']
 
         Vertex._cache_vertex(
             FlagSeverity(
-                value=value,
+                name=name,
                 id=id
             )
         )
@@ -3283,7 +3334,7 @@ class FlagSeverity(Vertex):
 
             Vertex._cache_vertex(
                 FlagSeverity(
-                    value=d['value'][0],
+                    name=d['name'][0],
                     id=id
                 )
             )
@@ -3291,13 +3342,13 @@ class FlagSeverity(Vertex):
         return _vertex_cache[id]
 
     @classmethod
-    def _attrs_to_type(cls, value: str, id: int):
-        """Given value of a FlagSeverity, see if one
+    def _attrs_to_type(cls, name: str, id: int):
+        """Given name of a FlagSeverity, see if one
         exists in the cache. If so, return the cached FlagSeverity.
         Otherwise, create a new one, cache it, and return it.
 
-        :param value: The value of the severity.
-        :type value: str
+        :param name: Indicates the severity of flag.
+        :type name: str
 
         :param id: The ID of the ComponentType vertex.
         :type id: int
@@ -3306,7 +3357,7 @@ class FlagSeverity(Vertex):
         if id not in _vertex_cache:
             Vertex._cache_vertex(
                 FlagSeverity(
-                    value=value,
+                    name=name,
                     id=id
                 )
             )
@@ -3330,7 +3381,7 @@ class FlagSeverity(Vertex):
         :type range: tuple[int, int]
 
         :param order_by: What to order the flag severities by. Must be in
-        {'value'}
+        {'name'}
         :type order_by: str
 
         :param order_direction: Order the flag severities by 
@@ -3344,7 +3395,7 @@ class FlagSeverity(Vertex):
 
         assert order_direction in {'asc', 'desc'}
 
-        assert order_by in {'value'}
+        assert order_by in {'name'}
 
         traversal = g.V().has('category', FlagSeverity.category) \
 
@@ -3361,26 +3412,26 @@ class FlagSeverity(Vertex):
         # not sure why it happens as the 'name' property will ALWAYS exist...
         # but maybe the traversal somehow catches other vertices not of this
         # type...
-        if order_by == 'value':
-            traversal = traversal.order().by('value', direction
+        if order_by == 'name':
+            traversal = traversal.order().by('name', direction
                                              )
 
         # flag severity query to DB
         fs = traversal.range(range[0], range[1]) \
-            .project('id', 'value') \
+            .project('id', 'name') \
             .by(__.id()) \
-            .by(__.values('value')) \
+            .by(__.values('name')) \
             .toList()
 
         flag_severities = []
 
         for entry in fs:
-            id, value = entry['id'], entry['value']
+            id, name = entry['id'], entry['name']
 
             flag_severities.append(
                 FlagSeverity._attrs_to_type(
                     id=id,
-                    value=value,
+                    name=name,
 
                 )
             )
@@ -3784,7 +3835,7 @@ class Flag(Vertex):
                 if f[2] != "":
                     contents.append(
                         __.both(RelationFlagSeverity.category).has(
-                            'value',
+                            'name',
                             f[2]
                         )
                     )
@@ -3805,7 +3856,7 @@ class Flag(Vertex):
                     Order.asc
             ).by(
                 __.both(RelationFlagSeverity.category).values(
-                    'value'), Order.asc
+                    'name'), Order.asc
             )
 
         elif order_by == 'flag_type':
@@ -3817,14 +3868,14 @@ class Flag(Vertex):
             ).by('name', Order.asc).by(
                 __.both(
                     RelationFlagSeverity.category
-                ).values('value'), Order.asc
+                ).values('name'), Order.asc
             )
 
         elif order_by == 'flag_severity':
             traversal = traversal.order().by(
                 __.both(
                     RelationFlagSeverity.category
-                ).values('value'),
+                ).values('name'),
                 direction
             ).by('name', Order.asc).by(
                 __.both(RelationFlagType.category).values('name'), Order.asc
@@ -3910,7 +3961,7 @@ class Flag(Vertex):
                 if f[2] != "":
                     contents.append(
                         __.both(RelationFlagSeverity.category).has(
-                            'value',
+                            'name',
                             f[2]
                         )
                     )
@@ -4199,7 +4250,7 @@ class User(Vertex):
     :ivar uname: Name used by the user to login.
     :ivar pwd_hash: Password is stored after being salted and hashed.
     :ivar institution: Name of the institution of the user. 
-    :ivar allowed_group: The allowed user group of the user vertex, as a list of UserGroup attributes.
+    :ivar allowed_group: Optional allowed user group of the user vertex, as a list of UserGroup attributes.
     """
 
     category: str = "user"
@@ -4207,10 +4258,10 @@ class User(Vertex):
     uname: str
     pwd_hash: str
     institution: str
-    allowed_group: List[UserGroup]
+    allowed_group: List[UserGroup] = None
 
     def __new__(
-        cls, uname: str, pwd_hash: str, institution: str, allowed_group: List[UserGroup], id: int = VIRTUAL_ID_PLACEHOLDER
+        cls, uname: str, pwd_hash: str, institution: str, allowed_group: List[UserGroup] = None, id: int = VIRTUAL_ID_PLACEHOLDER
     ):
         """
         Return a User instance given the desired attributes.
@@ -4237,7 +4288,7 @@ class User(Vertex):
             return object.__new__(cls)
 
     def __init__(
-            self, uname: str, pwd_hash: str, institution: str, allowed_group: List[UserGroup], id: int = VIRTUAL_ID_PLACEHOLDER):
+            self, uname: str, pwd_hash: str, institution: str, allowed_group: List[UserGroup] = None, id: int = VIRTUAL_ID_PLACEHOLDER):
         """
         Initialize a User instance given the desired attributes.
 
@@ -4262,11 +4313,6 @@ class User(Vertex):
         self.institution = institution
         self.allowed_group = allowed_group
 
-        if len(self.allowed_group) == 0:
-            raise UserZeroAllowedTypesError(
-                f"No allowed group types were specified for user {uname}"
-            )
-
         Vertex.__init__(self, id=id)
 
     def add(self):
@@ -4288,17 +4334,19 @@ class User(Vertex):
 
         Vertex.add(self, attributes)
 
-        for gtype in self.allowed_group:
+        if self.allowed_group is not None:
 
-            if not gtype.added_to_db():
-                gtype.add()
+            for gtype in self.allowed_group:
 
-            e = RelationUserAllowedGroup(
-                inVertex=gtype,
-                outVertex=self
-            )
+                if not gtype.added_to_db():
+                    gtype.add()
 
-            e.add()
+                e = RelationUserAllowedGroup(
+                    inVertex=gtype,
+                    outVertex=self
+                )
+
+                e.add()
 
     def added_to_db(self) -> bool:
         """Return whether this User is added to the database, that is, whether the ID is not the virtual ID placeholder and perform a query to the database if the vertex has already been added.
@@ -4316,7 +4364,7 @@ class User(Vertex):
 
     @classmethod
     def _attrs_to_user(
-            cls, uname: str, pwd_hash: str, institution: str, allowed_group: List[UserGroup], id: int = VIRTUAL_ID_PLACEHOLDER):
+            cls, uname: str, pwd_hash: str, institution: str, allowed_group: List[UserGroup] = None, id: int = VIRTUAL_ID_PLACEHOLDER):
         """Given the id and attributes of a User, see if one exists in the cache. If so, return the cached User. Otherwise, create a new one, cache it, and return it.
 
         :param uname: Name used by the user to login.
@@ -4675,7 +4723,7 @@ class RelationProperty(Edge):
 class RelationVersion(Edge):
     """
     Representation of a "rel_version" edge.
-    """ 
+    """
 
     category: str = "rel_version"
 
@@ -4696,7 +4744,7 @@ class RelationVersion(Edge):
 class RelationVersionAllowedType(Edge):
     """
     Representation of a "rel_version_allowed_type" edge.
-    """ 
+    """
 
     category: str = "rel_version_allowed_type"
 
@@ -4871,10 +4919,10 @@ class RelationFlagSeverity(Edge):
 
 class RelationUserAllowedGroup(Edge):
     """
-    Representation of a "rel_user_allowed_group" edge.
+    Representation of a "rel_user_group" edge.
     """
 
-    category: str = "rel_user_allowed_group"
+    category: str = "rel_user_group"
 
     def __init__(
         self, inVertex: Vertex, outVertex: Vertex,
@@ -4894,10 +4942,10 @@ class RelationUserAllowedGroup(Edge):
 
 class RelationGroupAllowedPermission(Edge):
     """
-    Representation of a "rel_group_allowed_permission" edge.
+    Representation of a "rel_group_permission" edge.
     """
 
-    category: str = "rel_group_allowed_permission"
+    category: str = "rel_group_permission"
 
     def __init__(
         self, inVertex: Vertex, outVertex: Vertex,

@@ -5,23 +5,24 @@ import random
 
 offset = 0
 n_dish = 1024
-adc_per_ice = 8 # In reality it will be 32, but this makes visuals easier …
+adc_per_ice = 8  # In reality it will be 32, but this makes visuals easier …
 uid = "ahincks"
 bulkhead_n_row = 8
 bulkhead_n_col = 16
 hirax_lat = -30.951720
 hirax_lon = 22.009480
 dish_space = 8  # Metres
-dlat = 1.0 / 111319.9 * dish_space # Dish spacing in deg.
+dlat = 1.0 / 111319.9 * dish_space  # Dish spacing in deg.
 dlon = 1.0 / 111319.9 * dish_space / math.cos(hirax_lat * math.pi / 180.0)
-default_pol_orientation = 13.2 # Random choice …
+default_pol_orientation = 13.2  # Random choice …
 curr_time = int(datetime(2022, 6, 1, 12, 0, 0).timestamp())
 random.seed()
 
 if False:
     ComponentType("dish", "a radio dish").add()
     ComponentType("antenna", "a dual polarisation antenna").add()
-    ComponentType("antenna-pol", "one of the polarisations of an antenna").add()
+    ComponentType(
+        "antenna-pol", "one of the polarisations of an antenna").add()
     ComponentType("coax", "coaxial cable").add()
     ComponentType("rfof-tx", "RFoF transmitter").add()
     ComponentType("fibre", "fibre optic cable").add()
@@ -40,7 +41,7 @@ t_bulk = ComponentType.from_db("bulkhead-plug")
 t_adc = ComponentType.from_db("adc")
 t_ice = ComponentType.from_db("iceboard")
 
-if False:    
+if False:
     ComponentVersion("A", t_ant).add()
     ComponentVersion("B", t_ant).add()
     ComponentVersion("10cm", t_coax, comments="10cm coax cable length").add()
@@ -58,12 +59,12 @@ if False:
     PropertyType("pointing", "deg", "^[\-]?\d*[.]?\d*$", 2, [t_dish],
                  comments="alt/az of telescope pointing").add()
     PropertyType("pol-orientation", "deg", "^[\-]?\d*[.]?\d*$", 1, [t_ant],
-                comments="degrees clockwise from north of H polarisation").add()
+                 comments="degrees clockwise from north of H polarisation").add()
     PropertyType("pol-type", "", "[HV]", 1, [t_pol],
-                comments="one of H or V").add()
+                 comments="one of H or V").add()
     PropertyType("attenuation", "dB", "^\d*[.]?\d*$", 1,
                  [t_pol, t_rft, t_rfr, t_bulk, t_adc],
-                  comments="additional attenuation of component").add()
+                 comments="additional attenuation of component").add()
 p_loc = PropertyType.from_db("location")
 p_point = PropertyType.from_db("pointing")
 p_orient = PropertyType.from_db("pol-orientation")
@@ -81,6 +82,7 @@ adc = []
 ice_col = adc_per_ice - 1
 v_ant = v_ant_a
 
+
 def new_ice():
     global ice, adc
     print("Adding new ICE board.")
@@ -96,6 +98,7 @@ def new_ice():
         ret.append(c)
     adc.append(ret)
 
+
 def new_bulkhead():
     global bulkhead
     print("Adding new bulkhead.")
@@ -109,6 +112,7 @@ def new_bulkhead():
             col.append(c)
         ret.append(col)
     bulkhead.append(ret)
+
 
 def add_dish(t, loc, point, orient):
     global sig_chain, bulkhead, bulkhead_row, bulkhead_col, ice_col, v_ant
@@ -154,6 +158,7 @@ def add_dish(t, loc, point, orient):
             if i > 1:   # Antenna and dish already connected.
                 c.connect(sig_chain[-1][-1][i-1], t, uid)
         i_c += 1
+
 
 # Start by adding two dishes.
 print("Laying down two dishes.")

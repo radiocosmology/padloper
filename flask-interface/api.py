@@ -130,8 +130,8 @@ def get_component_list():
                 },
                 'version': {
                     'name': c.version.name if c.version is not None else None,
-                    'comments': c.version.comments \
-                        if c.version is not None else None,
+                    'comments': c.version.comments
+                    if c.version is not None else None,
                 }
             }
             for c in components
@@ -220,8 +220,11 @@ def set_component():
     component_type = ComponentType.from_db(val_type)
 
     # Query the database and return the ComponentVersion instance based on component type.
-    component_version = ComponentVersion.from_db(
-        val_version, component_type)
+    if val_version:
+        component_version = ComponentVersion.from_db(
+            val_version, component_type)
+    else:
+        component_version = None
 
     for name in val_name:
         # Need to initialize an instance of a component first.
@@ -437,7 +440,7 @@ def get_component_version_list():
 
     # query to padloper
     component_versions = ComponentVersion.get_list(
-        range=range_bounds, 
+        range=range_bounds,
         order_by=order_by,
         order_direction=order_direction,
         filters=filter_tuples,
@@ -453,9 +456,9 @@ def get_component_version_list():
                     'name': c.allowed_type.name,
                     'comments': c.allowed_type.comments,
                 },
-            }   
+            }
             for c in component_versions
-        ] 
+        ]
     }
 
 
@@ -857,21 +860,21 @@ def set_flag_type():
 
 @app.route("/api/set_flag_severity", methods=['POST'])
 def set_flag_severity():
-    """Given the flag severity value,
+    """Given the flag severity name,
     set a flag severity to the serverside.
 
     The URL parameters are:
 
-    value - value indicating the severity of a flag.
+    name - name indicating the severity of a flag.
 
     :return: A dictionary with a key 'result' of corresponding value True
     :rtype: dict
     """
-    val_value = escape(request.args.get('value'))
+    val_name = escape(request.args.get('name'))
 
     # Need to initialize an instance of a component version first.
     flag_severity = FlagSeverity(
-        val_value)
+        val_name)
 
     flag_severity.add()
 
@@ -1045,7 +1048,7 @@ def get_flag_list():
                 'start_edit_time': f.start_edit_time,
                 'start_comments': f.start_comments,
                 'flag_severity': {
-                    'value': f.flag_severity.value,
+                    'name': f.flag_severity.name,
                 },
                 'flag_type': {
                     'name': f.flag_type.name,
@@ -1177,7 +1180,7 @@ def get_flag_severity_list():
     return {
         'result': [
             {
-                'value': f.value,
+                'name': f.name,
                 'id': f.id(),
             }
             for f in flag_severities
@@ -1267,10 +1270,12 @@ def set_user():
 
     allowed_list = []
 
-    for name in val_user_group:
-        allowed_list.append(UserGroup.from_db(name))
-
-    user = User(val_uname, val_pwd_hash, val_institution, allowed_list)
+    if val_user_group != ['']:
+        for name in val_user_group:
+            allowed_list.append(UserGroup.from_db(name))
+        user = User(val_uname, val_pwd_hash, val_institution, allowed_list)
+    else:
+        user = User(val_uname, val_pwd_hash, val_institution)
 
     user.add()
 

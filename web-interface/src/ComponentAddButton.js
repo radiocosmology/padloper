@@ -139,14 +139,6 @@ import ErrorIcon from '@mui/icons-material/Error';
   };
 
   /*
-  Updates the componentType state and simultaneously selects the relevant component versions contigent on the selected component type.
-  */
-  const handleChange = (e) => {
-    setComponentType(e.target.value) 
-    setComponentVersion(types_and_versions.filter(element => element.name.includes(e.target.value)).map((item)=> item.versions[0]))
-  }
-
-  /*
     Stores the data in terms of url strings and sends the submitted data to the flask server.
    */
   const handleSubmit = (e) => {
@@ -242,7 +234,7 @@ import ErrorIcon from '@mui/icons-material/Error';
           id="ComponentType"
           value={componentType}
           label="Component Type"
-          onChange={handleChange}
+          onChange={(e)=> setComponentType(e.target.value)}
           >
             {types_and_versions.map((item,index)=>{
                 return (
@@ -254,29 +246,24 @@ import ErrorIcon from '@mui/icons-material/Error';
       </FormControl>
     </Box>
     </div>
-
-    {componentType ? 
     <div style={{
         marginTop:'15px',
         marginBottom:'15px',
     }}>   
-            <Box sx={{ minWidth: 120 }}>
+      <Box sx={{ minWidth: 120 }}>
       <FormControl fullWidth >
         <TextField
           id="ComponentVersion"
           label="Component Version"
-          value={componentVersion}
-          inputProps={{
-            readOnly: true,
-          }}
-          variant='standard'
+          type='text'
+          variant='outlined'
+          onChange={(e)=> setComponentVersion(e.target.value)}
           >
         </TextField>
       </FormControl>
     </Box>
     </div>
-    :
-    null}
+
     <div 
     style={{
     marginTop:'15px',

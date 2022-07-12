@@ -102,7 +102,7 @@ export default function FlagList() {
     * filter information.
     * 
     * The string is of the format
-    * "<name>,<ftype_name>,<fseverity_value>;...;<name>,<ftype_name>,<fseverity_value>"
+    * "<name>,<ftype_name>,<fseverity_name>;...;<name>,<ftype_name>,<fseverity_name>"
     * @returns Return a string containing all of the filter information
     */
     const createFilterString = () => {
@@ -214,12 +214,13 @@ export default function FlagList() {
 
         let input = '/api/flag_severity_list'
         input += `?range=0;-1`
-        input += `&orderBy=value`
+        input += `&orderBy=name`
         input += `&orderDirection=asc`
         fetch(input).then(
             res => res.json()
         ).then(data => {
             setFlagSeverities(data.result);
+            console.log(data.result)
         });
     }, []);
 
@@ -271,18 +272,8 @@ export default function FlagList() {
             allowOrdering: false,
         },
         {
-            id: 'List_of_Components', 
-            label: 'List Of Components',
-            allowOrdering: false,
-        },
-        {
-            id: 'Start_uid', 
-            label: 'Start UID',
-            allowOrdering: false,
-        },
-        {
-            id: 'End_uid', 
-            label: 'End UID',
+            id: 'Components', 
+            label: 'Component List',
             allowOrdering: false,
         },
         {
@@ -290,11 +281,6 @@ export default function FlagList() {
             label: 'Start comments',
             allowOrdering: false,
         },
-        {
-            id: 'end_comments', 
-            label: 'End comments',
-            allowOrdering: false,
-        }
     ];
 
     /**
@@ -325,7 +311,7 @@ export default function FlagList() {
        <Timestamp unixTime={e.start_time}/>,
        e.end_time !== 9223372036854776000 ? <Timestamp unixTime={e.end_time}/> : 'Ongoing',
         e.flag_type.name,
-        e.flag_severity.value,
+        e.flag_severity.name,
         e.flag_components != ''
         ? 
         e.flag_components.map((item,index)=>{
@@ -335,10 +321,7 @@ export default function FlagList() {
         })
         :
         'Global',
-        e.start_uid,
-        e.end_uid,
         e.start_comments,
-        e.end_comments,
     ]);
 
     return (
@@ -389,7 +372,7 @@ export default function FlagList() {
             }
 
             <ElementList
-                width='1200px'
+                width='800px'
                 tableRowContent={tableRowContent}
                 loaded={loaded}
                 orderBy={orderBy}

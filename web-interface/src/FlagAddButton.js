@@ -211,10 +211,10 @@ export default function FlagAddButton ({flag_types,flag_severities,flag_componen
           {flag_severities.map((item) => {
             return (
               <MenuItem
-              key={item.value}
-              value={item.value}
+              key={item.name}
+              value={item.name}
               >
-              {item.value}
+              {item.name}
             </MenuItem>
           )}
           )}

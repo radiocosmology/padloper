@@ -205,12 +205,6 @@ class ComponentPropertyStartTimeExceedsInputtedTime(Error):
     """
 
 
-class UserZeroAllowedTypesError(Error):
-    """
-    Exception raised when creating a user with zero allowed group types. 
-    """
-
-
 class UserGroupZeroPermissionError(Error):
     """
     Exception raised when creating a UserGroup instance with zero allowed permission. 
