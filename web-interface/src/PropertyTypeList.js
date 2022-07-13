@@ -2,10 +2,9 @@ import React, { useState, useEffect } from 'react';
 
 import ElementList from './ElementList.js';
 import ElementRangePanel from './ElementRangePanel.js';
-import { 
-    Button,
-} from '@mui/material';
 import PropertyTypeFilter from './PropertyTypeFilter.js';
+import Button from '@mui/material/Button'
+import PropertyTypeAddButton from './PropertyTypeAddButton.js';
 
 /**
  * A MUI component that renders a list of property types.
@@ -36,7 +35,7 @@ export default function PropertyTypeList() {
     const [orderDirection,
         setOrderDirection] = useState('asc');
 
-    const [component_types, setComponentTypes] = useState([]);
+    const [componentTypes, setComponentTypes] = useState([]);
 
     /* filters stored as 
         [
@@ -115,6 +114,10 @@ export default function PropertyTypeList() {
         return strSoFar;
     }
 
+    const [reloadBool, setReloadBool] = useState(false);
+    function toggleReload() {
+        setReloadBool(!reloadBool);
+    }
    /**
     * The function that updates the list of property types when the site is 
     * loaded or a change of the property types is requested 
@@ -147,7 +150,8 @@ export default function PropertyTypeList() {
         range,
         orderBy,
         orderDirection,
-        filters
+        filters,
+        reloadBool
     ]);
 
     /**
@@ -156,7 +160,7 @@ export default function PropertyTypeList() {
     useEffect(() => {
         let input = `/api/property_type_count`;
         if (filters.length > 0) {
-            input += `&filters=${createFilterString()}`;
+            input += `?filters=${createFilterString()}`;
         }
         fetch(input).then(
             res => res.json()
@@ -165,7 +169,8 @@ export default function PropertyTypeList() {
             setMin(0);
         });
     }, [
-        filters
+        filters,
+        reloadBool
     ]);
 
     /**
@@ -185,7 +190,6 @@ export default function PropertyTypeList() {
         fetch(input).then(
             res => res.json()
         ).then(data => {
-            console.log(data.result);
             setComponentTypes(data.result);
         });
     }, []);
@@ -243,6 +247,7 @@ export default function PropertyTypeList() {
         e.comments
     ]);
 
+
     return (
         <>
             <ElementRangePanel
@@ -263,19 +268,26 @@ export default function PropertyTypeList() {
                         </Button>
                     )
                 }
+                rightColumn2 = {
+                    <PropertyTypeAddButton 
+                    componentTypes={componentTypes}
+                    toggleReload={toggleReload}
+                    />
+                }
             />
 
             {
                 filters.map(
                     (filter, index) => (
                         <PropertyTypeFilter
+                            key={index}
                             width="700px"
                             addFilter={() => { }}
                             removeFilter={removeFilter}
                             changeFilter={changeFilter}
                             filter={filter}
                             index={index}
-                            types={component_types}
+                            types={componentTypes}
                         />
                     )
                 )

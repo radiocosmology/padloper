@@ -6,14 +6,12 @@ import Box from '@mui/material/Box';
 import Grid from '@mui/material/Grid';
 import CircularProgress from '@mui/material/CircularProgress';
 import MuiTextField from '@mui/material/TextField';
-
 import CloseIcon from '@mui/icons-material/Close';
-import ErrorIcon from '@mui/icons-material/Error';
-
 import ThemeProvider from '@mui/material/styles/ThemeProvider';
 import styled from '@mui/material/styles/styled';
 import { Typography } from '@mui/material';
-import ComponentAutocomplete from './ComponentAutocomplete.js';
+
+
 
 /**
  * A styled "panel" component, used as the background for the panel.
@@ -25,7 +23,7 @@ const Panel = styled((props) => (
     <Paper 
         elevation={0}
         {...props}
-        sx={{margin:-1}}
+        sx={{marginTop:1}}
     />
 ))(({ theme }) => ({
     backgroundColor: 'rgb(240, 240, 255)',
@@ -63,59 +61,43 @@ const CloseButton = styled((props) => (
 ))(({ theme }) => ({
 }));
 
+
 /**
- * The MUI component which represents a panel through which connections are
- * added between components.
+ * The MUI component which represents a panel through which existing properties of components are ended.
  * 
  * @param {object} theme - A MUI theme object, see 
  * https://mui.com/material-ui/customization/theming/
  * @param {function} onClose - function to call when the close button is pressed
- * @param {function(string, int, string, string)} onSet - function to call when 
- * setting a component connection. The parameters are of the form:
- * onSet(otherName, time, uid, comments), where otherName is the name of the
- * OTHER component you are connecting this one to, time is the Unix time when
- * the connection is being mdae, uid is the ID of the user making the
- * connection, and comments are the comments associated with the connection.
- * @param {string} name - the name of the component you are connecting another
- * component to.
+ * @param {function(string, int, string)} onSet - function to 
+ * call when ending a component's property.
+ * {int} time - the time at which to end the property 
+ * {string} uid - the ID of the user that is ending the property
+ * {string} comments - the comments associated with the termination 
  */
-function ComponentConnectionAddPanel(
+function ComponentPropertyEndPanel(
     {
         theme,
         onClose,
-        onSet,
-        name
+        onSet
     }
 ) {
 
-    // what the "selected" other component is
-    const [selectedOption, setSelectedOption] = useState(null);
-
-    // the ID of the user making the connection
+    // the ID of the user setting the property
     const [uid, setUid] = useState("");
 
-    // default time to make the connection
+    // the default time to set the property
     const defaultTime = 1;
 
-    // time to make the connection
+    // time to set the property (NOT the edit time)
     const [time, setTime] = useState(defaultTime);
 
-    // comments associated with the connection
+    // the comments associated with setting the property
     const [comments, setComments] = useState("");
 
-    // whether the panel is loading: usually happens after the "Connect" button
-    // is made, waiting for a response from the DB.
+    // whether the panel is loading: usually happens after the "END" button
+    // is clicked, waiting for a response from the DB.
     const [loading, setLoading] = useState(false);
 
-    // the body of an error message to display, if any.
-    const [errorMessage, setErrorMessage] = useState("");
-
-    // function to select an option. I'm not even sure why I have this...
-    function selectOption(option) {
-        setSelectedOption(option);
-    }
-
-    // return the MUI component.
     return (
         <ThemeProvider theme={theme}>
             <Panel>
@@ -132,7 +114,7 @@ function ComponentConnectionAddPanel(
                         <Typography style={{
                             color: 'rgba(0,0,0,0.7)',
                         }}>
-                            Connect a component
+                            End the property
                         </Typography>
                     </Grid>
 
@@ -142,13 +124,6 @@ function ComponentConnectionAddPanel(
                 </Grid>
 
                 <Grid container spacing={2} justifyContent="space-around">
-                    <Grid item>
-                        <ComponentAutocomplete 
-                            onSelect={selectOption} 
-                            excludeName={name}
-                        />
-                    </Grid>
-
                     <Grid item>
                         <TextField 
                             required
@@ -190,31 +165,6 @@ function ComponentConnectionAddPanel(
 
                 </Grid>
 
-                {errorMessage !== "" ? 
-                    <Grid 
-                        container 
-                        style={{
-                            marginTop: theme.spacing(1),
-                        }}
-                        spacing={1}
-                        justifyContent="center"
-                    >
-                        <Grid item>
-                            <ErrorIcon sx={{color: 'red'}} />
-                        </Grid>
-                        <Grid item>
-                            <Typography
-                                style={{
-                                    color: 'rgb(255,0,0)',
-                                }}
-                            >
-                                {errorMessage}
-                            </Typography>
-                        </Grid>
-                    </Grid> : <></>
-                }
-
-                
 
                 <Box 
                     style={{
@@ -226,45 +176,28 @@ function ComponentConnectionAddPanel(
                         variant="contained" 
                         size="large"
                         disableElevation
-                        disabled={
-                            selectedOption === null || 
+                        disabled={ 
                             uid === "" ||
                             time === defaultTime    
                         }
                         onClick={
-                            async () => {
-                                setErrorMessage("");
+                            () => {
                                 setLoading(true);
                                 onSet(
-                                    selectedOption.name, 
                                     time, 
                                     uid, 
-                                    comments
-                                ).then(
-                                    successful => {
-                                        if (successful === false) {
-                                            setLoading(false);
-                                            setErrorMessage(`${name} is 
-                                            already connected to 
-                                            ${selectedOption.name} 
-                                            at this time.`);
-                                        }
-                                    }
-                                )
+                                    comments, 
+                                );
                             }
                         }
                     >
-                        {/**
-                         * so when the panel is loading, the button
-                         * is spinning.
-                         */}
                         {loading ? 
                         <CircularProgress
                             size={24}
                             sx={{
                                 color: 'white',
                             }}
-                        /> : "Set"}
+                        /> : "End"}
                     </Button>
                 </Box>
             </Panel>
@@ -272,4 +205,4 @@ function ComponentConnectionAddPanel(
     )
 }
 
-export default ComponentConnectionAddPanel;
+export default ComponentPropertyEndPanel;

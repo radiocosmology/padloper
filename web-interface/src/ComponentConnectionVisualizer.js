@@ -1,7 +1,6 @@
 import React, { useState, useEffect, useRef, useCallback } from 'react';
 import ReactFlow, { 
-    Controls, Background, Handle, Position, ControlButton, isNode,
-    useZoomPanHelper
+    Controls, Background, Handle, ControlButton, isNode,
 } from 'react-flow-renderer';
 import styled from '@mui/material/styles/styled';
 import createTheme from '@mui/material/styles/createTheme';

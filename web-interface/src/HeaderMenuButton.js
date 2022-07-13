@@ -61,6 +61,7 @@ export default function HeaderMenuButton({name, links}) {
                 {
                     links.map((el) => (
                         <Link 
+                            key={el.name}
                             to={el.link}
                             style={{
                                 color: 'black',
@@ -68,7 +69,9 @@ export default function HeaderMenuButton({name, links}) {
                                 textDecoration: 'none',
                             }}
                         >
-                            <MenuItem onClick={handleClose}>
+                            
+                            <MenuItem 
+                            onClick={handleClose}>
                                     {el.name}
                             </MenuItem>
                         </Link>

@@ -64,22 +64,19 @@ const CloseButton = styled((props) => (
 }));
 
 /**
- * The MUI component which represents a panel through which connections are
- * added between components.
+ * The MUI component which represents a panel through which relation between two components where one is a subcomponent of another can be established.
  * 
  * @param {object} theme - A MUI theme object, see 
  * https://mui.com/material-ui/customization/theming/
  * @param {function} onClose - function to call when the close button is pressed
- * @param {function(string, int, string, string)} onSet - function to call when 
- * setting a component connection. The parameters are of the form:
- * onSet(otherName, time, uid, comments), where otherName is the name of the
- * OTHER component you are connecting this one to, time is the Unix time when
- * the connection is being mdae, uid is the ID of the user making the
- * connection, and comments are the comments associated with the connection.
+ * @param {function(string)} onSet - function to call when 
+ * setting a component subcomponent connection. The parameters are of the form:
+ * onSet(otherName), where otherName is the name of the
+ * subcomponent you are connecting this one to.
  * @param {string} name - the name of the component you are connecting another
- * component to.
+ * subcomponent to.
  */
-function ComponentConnectionAddPanel(
+function ComponentSubcomponentAddPanel(
     {
         theme,
         onClose,
@@ -91,17 +88,6 @@ function ComponentConnectionAddPanel(
     // what the "selected" other component is
     const [selectedOption, setSelectedOption] = useState(null);
 
-    // the ID of the user making the connection
-    const [uid, setUid] = useState("");
-
-    // default time to make the connection
-    const defaultTime = 1;
-
-    // time to make the connection
-    const [time, setTime] = useState(defaultTime);
-
-    // comments associated with the connection
-    const [comments, setComments] = useState("");
 
     // whether the panel is loading: usually happens after the "Connect" button
     // is made, waiting for a response from the DB.
@@ -132,7 +118,7 @@ function ComponentConnectionAddPanel(
                         <Typography style={{
                             color: 'rgba(0,0,0,0.7)',
                         }}>
-                            Connect a component
+                            Connect a subcomponent
                         </Typography>
                     </Grid>
 
@@ -146,45 +132,6 @@ function ComponentConnectionAddPanel(
                         <ComponentAutocomplete 
                             onSelect={selectOption} 
                             excludeName={name}
-                        />
-                    </Grid>
-
-                    <Grid item>
-                        <TextField 
-                            required
-                            label="User" 
-                            sx={{ width: 150 }}
-                            onChange={(event) => setUid(event.target.value)}
-                        />
-                    </Grid>
-
-                    <Grid item>
-                        <TextField
-                            required
-                            id="datetime-local"
-                            label="Time"
-                            type="datetime-local"
-                            sx={{ width: 240 }}
-                            InputLabelProps={{
-                                shrink: true,
-                            }}
-                            size="large"
-                            onChange={(event) => {
-                                let date = new Date(event.target.value);
-                                setTime(Math.round(date.getTime() / 1000));
-                            }}
-                        />
-                    </Grid>
-
-                    <Grid item>
-                        <TextField
-                            id="outlined-multiline-static"
-                            label="Comments"
-                            multiline
-                            sx={{ width: 260 }}
-                            onChange={(event) => {
-                                setComments(event.target.value)
-                            }}
                         />
                     </Grid>
 
@@ -227,27 +174,21 @@ function ComponentConnectionAddPanel(
                         size="large"
                         disableElevation
                         disabled={
-                            selectedOption === null || 
-                            uid === "" ||
-                            time === defaultTime    
+                            selectedOption === null  
                         }
                         onClick={
                             async () => {
                                 setErrorMessage("");
                                 setLoading(true);
                                 onSet(
-                                    selectedOption.name, 
-                                    time, 
-                                    uid, 
-                                    comments
+                                    selectedOption.name,
                                 ).then(
                                     successful => {
                                         if (successful === false) {
                                             setLoading(false);
                                             setErrorMessage(`${name} is 
-                                            already connected to 
-                                            ${selectedOption.name} 
-                                            at this time.`);
+                                            already a subcomponent of 
+                                            ${selectedOption.name} `);
                                         }
                                     }
                                 )
@@ -272,4 +213,4 @@ function ComponentConnectionAddPanel(
     )
 }
 
-export default ComponentConnectionAddPanel;
+export default ComponentSubcomponentAddPanel;

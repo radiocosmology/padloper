@@ -27,6 +27,7 @@ function ElementRangePanel(
             updateRange, 
             count, 
             rightColumn,
+            rightColumn2,
             width,
         }
     ) {
@@ -114,6 +115,7 @@ function ElementRangePanel(
                     gridRow: 1,
                     gridColumn: 1,
                     margin: 'auto'
+                    
                 }}>
                 {numDisplayText}
             </div>
@@ -183,6 +185,15 @@ function ElementRangePanel(
                     marginBottom: 'auto'
                 }}>
                 {rightColumn}
+            </div>
+            <div
+                style={{
+                   marginLeft:'100px',
+                   padding:'10px',
+                   width:'100%'
+                }}
+            >
+                {rightColumn2}
             </div>
         </Paper>
     )

@@ -4,6 +4,8 @@ import ComponentVersionList from './ComponentVersionList.js';
 import PropertyTypeList from './PropertyTypeList';
 import ComponentPage from './ComponentPage.js';
 import ComponentConnectionVisualizer from './ComponentConnectionVisualizer.js';
+import FlagTypeList from './FlagTypeList.js'
+import FlagList from './FlagList.js';
 import Header from './Header.js';
 
 import { ReactFlowProvider } from 'react-flow-renderer';
@@ -48,6 +50,18 @@ function App() {
             exact={true} 
             path="/list/component-types"
             element={<ComponentTypeList />} 
+          />
+
+          <Route 
+            exact={true} 
+            path="/list/flag-types"
+            element={<FlagTypeList />} 
+          />
+
+          <Route 
+            exact={true} 
+            path="/list/flag"
+            element={<FlagList />} 
           />
 
           <Route 

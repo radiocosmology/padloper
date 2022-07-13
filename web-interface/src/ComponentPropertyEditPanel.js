@@ -26,7 +26,7 @@ const Panel = styled((props) => (
     <Paper 
         elevation={0}
         {...props}
-        sx={{margin:-1}}
+        sx={{marginTop:1}}
     />
 ))(({ theme }) => ({
     backgroundColor: 'rgb(240, 240, 255)',
@@ -84,7 +84,7 @@ function ComponentPropertyAddPanel(
     {
         theme,
         onClose,
-        onSet
+        onSet,
     }
 ) {
 
@@ -225,7 +225,7 @@ function ComponentPropertyAddPanel(
                         <Typography style={{
                             color: 'rgba(0,0,0,0.7)',
                         }}>
-                            Set a property
+                            Edit the property
                         </Typography>
                     </Grid>
 
@@ -370,7 +370,7 @@ function ComponentPropertyAddPanel(
                             sx={{
                                 color: 'white',
                             }}
-                        /> : "Set"}
+                        /> : "Update"}
                     </Button>
                 </Box>
             </Panel>

@@ -137,6 +137,7 @@ function ComponentFilter(
                             types_and_versions.map((t, index) =>
                                 <option 
                                     value={index}
+                                    key={index}
                                 >
                                     {t['name']}
                                 </option>

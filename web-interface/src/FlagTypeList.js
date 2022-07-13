@@ -6,15 +6,14 @@ import {
     TextField, 
     } 
 from '@mui/material';
-
-import ComponentTypeAddButton from './ComponentTypeAddButton'
+import FlagTypeAddButton from './FlagTypeAddButton.js';
 
 /**
- * A MUI component that renders a list of component types.
+ * A MUI component that renders a list of flag types.
  */
-function ComponentTypeList() {
+function FlagTypeList() {
     
-    // the list of component types in objects representation
+    // the list of flag types in objects representation
     const [elements, setElements] = useState([]);
 
     // the first index to show
@@ -29,11 +28,11 @@ function ComponentTypeList() {
     // whether the elements are loaded or not
     const [loaded, setLoaded] = useState(false);
 
-    // property to order the component types by
+    // property to order the flag types by
     // must be in the set {'name'}
     const [orderBy, setOrderBy] = useState('name');
 
-    // property to order the component types by
+    // property to order the flag types by
     // must be in the set {'name'}
     const [nameSubstring, setNameSubstring] = useState("");
     
@@ -50,15 +49,15 @@ function ComponentTypeList() {
 
 
     /*
-    The function that updates the list of component types when the site is 
-    loaded or a change of the component types is requested (upon state change).
+    The function that updates the list of flag types when the site is 
+    loaded or a change of the flag types is requested (upon state change).
     */
     useEffect(() => {
         async function fetchData() {
             setLoaded(false);
 
             // create the URL query string
-            let input = '/api/component_type_list'
+            let input = '/api/flag_type_list'
             input += `?range=${min};${min + range}`
             input += `&orderBy=${orderBy}`
             input += `&orderDirection=${orderDirection}`
@@ -83,11 +82,11 @@ function ComponentTypeList() {
     ]);
 
     /**
-     * function to change the component count when filters are updated.
+     * function to change the flag count when filters are updated.
      */
     useEffect(() => {
 
-        fetch(`/api/component_type_count?nameSubstring=${nameSubstring}`).then(
+        fetch(`/api/flag_type_count?nameSubstring=${nameSubstring}`).then(
             res => res.json()
         ).then(data => {
             setCount(data.result);
@@ -106,7 +105,7 @@ function ComponentTypeList() {
     const tableHeadCells = [
         {
             id: 'name', 
-            label: 'Component Type',
+            label: 'Flag Type',
             allowOrdering: true,
         },
         {
@@ -122,7 +121,6 @@ function ComponentTypeList() {
         e.name,
         e.comments,
     ]);
-
     return (
         <>
             <ElementRangePanel
@@ -143,7 +141,7 @@ function ComponentTypeList() {
                     />   
                 }
                 rightColumn2= {
-                    <ComponentTypeAddButton
+                    <FlagTypeAddButton
                     toggleReload={toggleReload}
                     />
                 }
@@ -163,4 +161,4 @@ function ComponentTypeList() {
     )
 }
 
-export default ComponentTypeList;
+export default FlagTypeList;

@@ -50,13 +50,13 @@ function ComponentEvent(
 ) {
     return (
         <ThemeProvider theme={theme}>
-            <Stack direction='row' spacing={1}>
+            <Stack 
+            direction='row' spacing={1}>
                 <EntryRowLabel>{name}</EntryRowLabel>
 
                 <AccessTimeIcon fontSize="small"/>
 
                 <Timestamp unixTime={time} />
-
 
                 <PersonIcon 
                     fontSize="small"
@@ -68,7 +68,7 @@ function ComponentEvent(
                     {emDashIfEmpty(uid)} 
                 </Typography> 
                 <Stack direction="row" spacing={0}>
-                    (<Timestamp unixTime={time} />)
+                    (<Timestamp unixTime={edit_time} />)
                 </Stack>
 
                 <CommentIcon 

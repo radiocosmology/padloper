@@ -1,18 +1,19 @@
 # https://flask.palletsprojects.com/en/2.0.x/quickstart/
 
-from padloper.structure import *
+#from crypt import methods
 from re import split
 from flask import Flask, request
 from flask.scaffold import F
-
 from markupsafe import escape
 from time import time
+from padloper.structure import *
 
 
 # see https://stackoverflow.com/a/27876800
 
 # The flask application
 app = Flask(__name__)
+
 
 def read_filters(filters):
     """Return a list of filter tuples given a URL string containing the
@@ -30,7 +31,7 @@ def read_filters(filters):
     if filters is not None and filters != '':
 
         split_by_semicolon = filters.split(';')
-        
+
         return [tuple(f.split(',')) for f in split_by_semicolon]
 
     else:
@@ -40,7 +41,6 @@ def read_filters(filters):
 # @app.route("/api/components_id/<id>")
 # def get_component_by_id(id):
 #     return str(Component.from_id(escape(id)))
-
 
 
 @app.route("/api/components_name/<name>")
@@ -57,7 +57,6 @@ def get_component_by_name(name):
     return {
         'result': Component.get_as_dict(str(escape(name)))
     }
-
 
 
 @app.route("/api/component_list")
@@ -91,7 +90,7 @@ def get_component_list():
 
     # extract the component range from the url parameters
     component_range = escape(request.args.get('range'))
-    
+
     # extract the min/max
     range_bounds = tuple(map(int, component_range.split(';')))
 
@@ -113,17 +112,17 @@ def get_component_list():
     assert order_direction in {'asc', 'desc'}
 
     components = Component.get_list(
-        range=range_bounds, 
+        range=range_bounds,
         order_by=order_by,
         order_direction=order_direction,
         filters=filter_triples,
     )
-    
+
     # TODO: Why not use Component.get_as_dict?
     return {
         'result': [
             {
-                'name': c.name, 
+                'name': c.name,
                 'id': c.id(),
                 'type': {
                     'name': c.type.name,
@@ -131,13 +130,153 @@ def get_component_list():
                 },
                 'version': {
                     'name': c.version.name if c.version is not None else None,
-                    'comments': c.version.comments \
-                        if c.version is not None else None,
+                    'comments': c.version.comments
+                    if c.version is not None else None,
                 }
-            }   
+            }
             for c in components
-        ] 
+        ]
     }
+
+
+@app.route("/api/set_component_type", methods=['POST'])
+def set_component_type():
+    """Given the component type name, and comments,
+    set a component type to the serverside.
+
+    The URL parameters are:
+
+    name - the name of the component type.
+
+    comments - the comments associated with the component type.
+
+    :return: A dictionary with a key 'result' of corresponding value True
+    :rtype: dict
+    """
+    val_name = escape(request.args.get('name'))
+    val_comments = escape(request.args.get('comments'))
+
+    # Need to initialize an instance of a component type first.
+    component_type = ComponentType(val_name, val_comments)
+
+    component_type.add()
+
+    return {'result': True}
+
+
+@app.route("/api/set_component_version", methods=['POST'])
+def set_component_version():
+    """Given the component version name, component type and comments,
+    set a component version to the serverside.
+
+    The URL parameters are:
+
+    name - the name of the component version.
+
+    type - the name of the component type.
+
+    comments - the comments associated with the component version.
+
+    :return: A dictionary with a key 'result' of corresponding value True
+    :rtype: dict
+    """
+    val_name = escape(request.args.get('name'))
+    val_type = escape(request.args.get('type'))
+    val_comments = escape(request.args.get('comments'))
+
+    # Query the database and return a ComponentType instance based on component type.
+    component_type = ComponentType.from_db(val_type)
+
+    # Need to initialize an instance of a component version first.
+    component_version = ComponentVersion(
+        val_name, component_type, val_comments)
+
+    component_version.add()
+
+    return {'result': True}
+
+
+@app.route("/api/set_component", methods=['POST'])
+def set_component():
+    """Given the component name, component type and component version,
+    set a component to the serverside.
+
+    The URL parameters are:
+
+    name - the name of the component.
+
+    type - the component type associated with the component type.
+
+    version - the version associated with the component.
+
+    :return: A dictionary with a key 'result' of corresponding value True
+    :rtype: dict
+    """
+    val_name = escape(request.args.get('name')).split(';')
+    val_type = escape(request.args.get('type'))
+    val_version = escape(request.args.get('version'))
+
+    # Query the database and return the ComponentType instance based on component type.
+    component_type = ComponentType.from_db(val_type)
+
+    # Query the database and return the ComponentVersion instance based on component type.
+    if val_version:
+        component_version = ComponentVersion.from_db(
+            val_version, component_type)
+    else:
+        component_version = None
+
+    for name in val_name:
+        # Need to initialize an instance of a component first.
+        component = Component(
+            name, component_type, component_version)
+
+        component.add()
+
+    return {'result': True}
+
+
+@app.route("/api/set_property_type", methods=['POST'])
+def set_property_type():
+    """Given the property type name, allowed component types ,units,allowed regex, number of values and comments,
+    set a property type to the serverside.
+
+    The URL parameters are:
+
+    name - the name of the property type.
+
+    type - the name of the allowed component type.
+
+    units - the units of the property type.
+
+    allowed_reg - the allowed regex of the property type.
+
+    values - number of values of the property type.
+
+    comments - the comments associated with the property type.
+
+    :return: A dictionary with a key 'result' of corresponding value True
+    :rtype: dict
+    """
+    val_name = escape(request.args.get('name'))
+    # A list of allowed component types.
+    val_type = escape(request.args.get('type')).split(';')
+    val_units = escape(request.args.get('units'))
+    val_allowed_reg = escape(request.args.get('allowed_reg'))
+    val_values = escape(request.args.get('values'))
+    val_comments = escape(request.args.get('comments'))
+
+    allowed_list = []
+    # Query the database and return a list of ComponentType instance based on component type.
+    for name in val_type:
+        allowed_list.append(ComponentType.from_db(name))
+    # Need to initialize an instance of a property type first.
+    property_type = PropertyType(
+        val_name, val_units, val_allowed_reg, val_values, allowed_list, val_comments)
+
+    property_type.add()
+
+    return {'result': True}
 
 
 @app.route("/api/component_count")
@@ -181,7 +320,7 @@ def get_component_types_and_versions():
     types = ComponentType.get_names_of_types_and_versions()
 
     return {'result': types}
-    
+
 
 @app.route("/api/component_type_list")
 def get_component_type_list():
@@ -221,7 +360,7 @@ def get_component_type_list():
 
     # query to padloper
     component_types = ComponentType.get_list(
-        range=range_bounds, 
+        range=range_bounds,
         order_by=order_by,
         order_direction=order_direction,
         name_substring=name_substring
@@ -230,12 +369,12 @@ def get_component_type_list():
     return {
         'result': [
             {
-                'name': c.name, 
+                'name': c.name,
                 'id': c.id(),
                 'comments': c.comments
-            }   
+            }
             for c in component_types
-        ] 
+        ]
     }
 
 
@@ -251,7 +390,7 @@ def get_component_type_count():
     the number of components that satisfies the name substring.
     :rtype: dict
     """
-    
+
     name_substring = escape(request.args.get('nameSubstring'))
 
     return {'result': ComponentType.get_count(name_substring=name_substring)}
@@ -301,7 +440,7 @@ def get_component_version_list():
 
     # query to padloper
     component_versions = ComponentVersion.get_list(
-        range=range_bounds, 
+        range=range_bounds,
         order_by=order_by,
         order_direction=order_direction,
         filters=filter_tuples,
@@ -310,16 +449,16 @@ def get_component_version_list():
     return {
         'result': [
             {
-                'name': c.name, 
+                'name': c.name,
                 'id': c.id(),
                 'comments': c.comments,
                 'allowed_type': {
                     'name': c.allowed_type.name,
                     'comments': c.allowed_type.comments,
                 },
-            }   
+            }
             for c in component_versions
-        ] 
+        ]
     }
 
 
@@ -344,6 +483,30 @@ def get_component_version_count():
 
     return {
         'result': ComponentVersion.get_count(filters=filter_tuples)
+    }
+
+
+@app.route("/api/property_type_count")
+def get_property_type_count():
+    """Given a URL parameter 'filters', return a dictionary with a value 
+    'result' and corresponding value being the number of property types that 
+    satisfy said filters.
+
+    filters - of the form "<str>,<str>;...;<str>,<str>", consisting
+    of three-tuples of strings with the tuples separated by semicolons and the
+    tuples' contents separated by commas.
+
+    :return: A dictionary with a value 'result' and corresponding value being
+    the number of property type that satisfy the filters. 
+    :rtype: dict
+    """
+
+    filters = request.args.get('filters')
+
+    filter_tuples = read_filters(filters)
+
+    return {
+        'result': PropertyType.get_count(filters=filter_tuples)
     }
 
 
@@ -392,7 +555,7 @@ def get_property_type_list():
 
     # query to padloper
     property_types = PropertyType.get_list(
-        range=range_bounds, 
+        range=range_bounds,
         order_by=order_by,
         order_direction=order_direction,
         filters=filter_tuples,
@@ -401,16 +564,16 @@ def get_property_type_list():
     return {
         'result': [
             {
-                'name': pt.name, 
+                'name': pt.name,
                 'id': pt.id(),
                 'units': pt.units,
                 'allowed_regex': pt.allowed_regex,
                 'n_values': pt.n_values,
-                'allowed_types': [ t.name for t in pt.allowed_types ],
+                'allowed_types': [t.name for t in pt.allowed_types],
                 'comments': pt.comments,
-            }   
+            }
             for pt in property_types
-        ] 
+        ]
     }
 
 
@@ -461,14 +624,56 @@ def set_component_property():
     property = Property(values=values, property_type=property_type)
 
     component.set_property(
-        property=property, 
-        time=val_time, 
-        uid=val_uid, 
+        property=property,
+        time=val_time,
+        uid=val_uid,
         comments=val_comments
     )
 
     return {'result': True}
 
+
+@app.route("/api/component_end_property")
+def end_component_property():
+    """Given the component name, property type, time, user ID and comments, end the property for the component.
+
+    The URL parameters are:
+
+    name - the name of the component to end the property for.
+
+    propertyType - the name of the property type of the property.
+
+    time - the UNIX time for when the property is ended.
+
+    uid - the ID of the user that is ending the property.
+
+    comments - the comments associated with the property termination.
+
+    :return: A dictionary with a key 'result' of corresponding value True
+    :rtype: dict
+    """
+
+    val_name = escape(request.args.get('name'))
+    val_property_type = escape(request.args.get('propertyType'))
+    val_time = int(escape(request.args.get('time')))
+    val_uid = escape(request.args.get('uid'))
+    val_comments = escape(request.args.get('comments'))
+
+    property_type = PropertyType.from_db(val_property_type)
+
+    # Initializing the component instance from the name provided as the url parameter.
+    component = Component.from_db(val_name)
+
+    property = component.get_property(property_type, val_time, False)
+
+    component.unset_property(
+        property=property,
+        time=val_time,
+        uid=val_uid,
+        comments=val_comments
+    )
+
+    return {'result': True}
 
 
 @app.route("/api/component_add_connection")
@@ -515,6 +720,50 @@ def add_component_connection():
     return {'result': not already_connected}
 
 
+@app.route("/api/component_end_connection")
+def end_component_connection():
+    """Given the names of the two components to connect, the time to make the
+    connection, the ID of the user making this connection, and the comments
+    associated with the connection, connect the two components.
+
+    The URL parameters are:
+
+    name1 - the name of the first component
+
+    name2 - the name of the second component
+
+    time - the UNIX time for when the connection is made
+
+    uid - the ID of the user that has made the connection
+
+    comments - Comments associated with the connection
+
+    :return: Return a dictionary with a key 'result' and value being a boolean
+    that is True if and only if the components were not already connected
+    beforehand.
+    :rtype: dict
+    """
+
+    val_name1 = escape(request.args.get('name1'))
+    val_name2 = escape(request.args.get('name2'))
+    val_time = int(escape(request.args.get('time')))
+    val_uid = escape(request.args.get('uid'))
+    val_comments = escape(request.args.get('comments'))
+
+    c1, c2 = Component.from_db(val_name1), Component.from_db(val_name2)
+
+    already_disconnected = False
+
+    try:
+        c1.disconnect(
+            component=c2, time=val_time, uid=val_uid, comments=val_comments
+        )
+    except ComponentsAlreadyDisconnectedError:
+        already_disconnected = True
+
+    return {'result': not already_disconnected}
+
+
 @app.route("/api/get_all_connections_at_time")
 def get_all_connections_at_time():
     """Given a component name and a time to check all connections, return all 
@@ -545,7 +794,501 @@ def get_all_connections_at_time():
                 'inVertexName': conn.inVertex.name,
                 'outVertexName': conn.outVertex.name,
                 'id': conn.id(),
-            }   
+            }
             for conn in connections
-        ] 
+        ]
     }
+
+
+@app.route("/api/component_add_subcomponent")
+def add_component_subcomponent():
+    """Given the name of the the component that is a subcomponent along with the name of the main component, establish the appropriate relation.
+
+    The URL parameters are:
+
+    name1 - the name of the main component
+
+    name2 - the name of the subcomponent
+
+    :return: Return a dictionary with a key 'result' and value being a boolean
+    that is True if and only if the component was not a subcomponent beforehand.
+    :rtype: dict
+    """
+
+    val_name1 = escape(request.args.get('name1'))
+    val_name2 = escape(request.args.get('name2'))
+
+    c1, c2 = Component.from_db(val_name1), Component.from_db(val_name2)
+
+    already_subcomponent = False
+
+    try:
+        c1.subcomponent_connect(
+            component=c2
+        )
+    except ComponentAlreadySubcomponentError:
+        already_subcomponent = True
+
+    return {'result': not already_subcomponent}
+
+
+@app.route("/api/set_flag_type", methods=['POST'])
+def set_flag_type():
+    """Given the flag type name and comments,
+    set a flag type to the serverside.
+
+    The URL parameters are:
+
+    name - the name of the flag type.
+
+    comments - the comments associated with the flag type.
+
+    :return: A dictionary with a key 'result' of corresponding value True
+    :rtype: dict
+    """
+    val_name = escape(request.args.get('name'))
+    val_comments = escape(request.args.get('comments'))
+
+    # Need to initialize an instance of a component version first.
+    flag_type = FlagType(
+        val_name, val_comments)
+
+    flag_type.add()
+
+    return {'result': True}
+
+
+@app.route("/api/set_flag_severity", methods=['POST'])
+def set_flag_severity():
+    """Given the flag severity name,
+    set a flag severity to the serverside.
+
+    The URL parameters are:
+
+    name - name indicating the severity of a flag.
+
+    :return: A dictionary with a key 'result' of corresponding value True
+    :rtype: dict
+    """
+    val_name = escape(request.args.get('name'))
+
+    # Need to initialize an instance of a component version first.
+    flag_severity = FlagSeverity(
+        val_name)
+
+    flag_severity.add()
+
+    return {'result': True}
+
+
+@app.route("/api/set_flag", methods=['POST'])
+def set_flag():
+    """Given the flag name,start_time,uid,start_comments,flag_severity,flag_type and flag_components,
+    set a flag to the serverside.
+
+    The URL parameters are:
+
+    name - The name of the flag.
+
+    uid - The ID of the user adding the new flag.
+
+    start_time - The start time of the flag.
+
+    comments - The comments relating to the flag.
+
+    flag_severity - The FlagSeverity instance representing the severity of the flag.
+
+    flag_type - The FlagType instance representing the type of the flag.
+
+    flag_components - A list of Component instances related to the flag.
+
+    :return: A dictionary with a key 'result' of corresponding value True
+    :rtype: dict
+    """
+    val_name = escape(request.args.get('name'))
+    val_uid = escape(request.args.get('uid'))
+    val_start_time = escape(request.args.get('start_time'))
+    val_end_time = escape(request.args.get('end_time'))
+    val_start_comments = escape(request.args.get('start_comments'))
+    val_comments = escape(request.args.get('comments'))
+    val_flag_severity = escape(request.args.get('flag_severity'))
+    val_flag_type = escape(request.args.get('flag_type'))
+    val_flag_components = escape(
+        request.args.get('flag_components')).split(';')
+
+    flag_severity = FlagSeverity.from_db(val_flag_severity)
+    flag_type = FlagType.from_db(val_flag_type)
+
+    allowed_list = []
+    # Query the database and return a list of Component instances based on component name.
+    if val_flag_components != ['Global']:
+        for name in val_flag_components:
+            allowed_list.append(Component.from_db(name))
+
+    if(val_end_time == str(0)):
+        # Need to initialize an instance of Flag first.
+        flag = Flag(name=val_name, start_time=val_start_time,
+                    flag_severity=flag_severity, flag_type=flag_type, flag_components=allowed_list, comments=val_comments, start_comments=val_start_comments, start_uid=val_uid)
+
+        flag.add()
+
+    if(val_end_time != str(0)):
+        # Need to initialize an instance of Flag first.
+        flag = Flag(name=val_name, start_time=val_start_time,
+                    flag_severity=flag_severity, flag_type=flag_type, flag_components=allowed_list, comments=val_comments, start_comments=val_start_comments, start_uid=val_uid, end_uid=val_uid, end_time=val_end_time, end_edit_time=int(time.time()))
+
+        flag.add()
+
+    return {'result': True}
+
+
+@app.route("/api/unset_flag", methods=['POST'])
+def unset_flag():
+    """Given the flag name,end_time,end_uid and end_comments
+    set 'end' attributes to an existing flag.
+
+    The URL parameters are:
+
+    name - The name of the flag.
+
+    uid - The ID of the user adding the new flag.
+
+    end_time - The end time of the flag.
+
+    comments - The comments relating to the flag.
+
+    :return: A dictionary with a key 'result' of corresponding value True
+    :rtype: dict
+    """
+    val_name = escape(request.args.get('name'))
+    val_uid = escape(request.args.get('uid'))
+    val_end_time = escape(request.args.get('end_time'))
+    val_comments = escape(request.args.get('comments'))
+
+    # Need to initialize an instance of Flag first.
+    flag = Flag.from_db(val_name)
+
+    flag.end_flag(end_time=val_end_time, end_uid=val_uid,
+                  end_comments=val_comments)
+
+    return {'result': True}
+
+
+@app.route("/api/flag_count")
+def get_flag_count():
+    """Given a URL parameter 'filters', return a dictionary with a value 
+    'result' and corresponding value being the number of flags that 
+    satisfy said filters.
+
+    filters - of the form "<str>,<str>;...;<str>,<str>", consisting
+    of three-tuples of strings with the tuples separated by semicolons and the
+    tuples' contents separated by commas.
+
+    :return: A dictionary with a value 'result' and corresponding value being
+    the number of flag that satisfy the filters. 
+    :rtype: dict
+    """
+
+    filters = request.args.get('filters')
+
+    filter_triples = read_filters(filters)
+
+    return {
+        'result': Flag.get_count(filters=filter_triples)
+    }
+
+
+@app.route("/api/flag_list")
+def get_flag_list():
+    """Given three URL parameters 'range', 'orderBy', 'orderDirection', 
+    and 'filters', return a dictionary containing a key 'result' with its 
+    corresponding value being an array of dictionary representations of each 
+    flag in the desired list.
+
+    The URL parameters are:
+
+    range - of the form "<int>;<int>" -- two integers split by a semicolon,
+    where the first integer denotes the index first property type to be 
+    considered in the list and the second integer denotes the last flag
+    to be shown in the list.
+
+    orderBy - the field to order the flag list by.
+
+    orderDirection - either "asc" or "desc" for ascending/descending,
+    respectively.
+
+    filters - of the form "<str>,<str>,<int>;...;<str>,<str>,<int>", consisting of 
+    three-tuples of strings with the tuples separated by semicolons and the
+    tuples' contents separated by commas.
+
+    :return: A dictionary containing a key 'result' with its corresponding value
+    being an array of dictionary representations of each flag
+    in the desired list.
+    :rtype: dict
+
+    """
+    list_range = escape(request.args.get('range'))
+    order_by = escape(request.args.get('orderBy'))
+    order_direction = escape(request.args.get('orderDirection'))
+
+    filters = request.args.get('filters')
+
+    filter_triples = read_filters(filters)
+
+    range_bounds = tuple(map(int, list_range.split(';')))
+
+    # A bunch of assertions to make sure everything is as intended.
+    assert len(range_bounds) == 2
+    assert order_direction in {'asc', 'desc'}
+
+    # query to padloper
+    flags = Flag.get_list(
+        range=range_bounds,
+        order_by=order_by,
+        order_direction=order_direction,
+        filters=filter_triples,
+    )
+
+    return {
+        'result': [
+            {
+                'name': f.name,
+                'comments': f.comments,
+                'id': f.id(),
+                'start_time': f.start_time,
+                'start_uid': f.start_uid,
+                'start_edit_time': f.start_edit_time,
+                'start_comments': f.start_comments,
+                'flag_severity': {
+                    'name': f.flag_severity.name,
+                },
+                'flag_type': {
+                    'name': f.flag_type.name,
+                    'comments': f.flag_type.comments
+                },
+                'flag_components': [t.name for t in f.flag_components],
+                'end_time': f.end_time,
+                'end_uid': f.end_uid,
+                'end_edit_time': f.end_edit_time,
+                'end_comments': f.end_comments,
+            }
+            for f in flags
+        ]
+    }
+
+
+@app.route("/api/flag_type_list")
+def get_flag_type_list():
+    """Given three URL parameters 'range', 'orderBy', 'orderDirection', 
+    and 'nameSubstring', return a dictionary containing a key 'result' with its 
+    corresponding value being an array of dictionary representations of each 
+    flag type in the desired list.
+
+    range - of the form "<int>;<int>" -- two integers split by a semicolon,
+    where the first integer denotes the index first component type to be 
+    considered in the list and the second integer denotes the last component 
+    type to be shown in the list.
+
+    orderBy - the field to order the flag type list by, a string.
+
+    orderDirection - either "asc" or "desc" for ascending/descending,
+    respectively.
+
+    nameSubstring - substring of the name of flag types to consider.
+
+    :return: A dictionary containing a key 'result' with its corresponding value
+    being an array of dictionary representations of each flag type in the
+    desired list.
+    :rtype: dict
+    """
+
+    flag_range = escape(request.args.get('range'))
+    order_by = escape(request.args.get('orderBy'))
+    order_direction = escape(request.args.get('orderDirection'))
+    name_substring = escape(request.args.get('nameSubstring'))
+
+    range_bounds = tuple(map(int, flag_range.split(';')))
+
+    # A bunch of assertions to make sure everything is as intended.
+    assert len(range_bounds) == 2
+    assert order_direction in {'asc', 'desc'}
+
+    # query to padloper
+    flag_types = FlagType.get_list(
+        range=range_bounds,
+        order_by=order_by,
+        order_direction=order_direction,
+        name_substring=name_substring
+    )
+
+    return {
+        'result': [
+            {
+                'name': f.name,
+                'id': f.id(),
+                'comments': f.comments
+            }
+            for f in flag_types
+        ]
+    }
+
+
+@app.route("/api/flag_type_count")
+def get_flag_type_count():
+    """Given a URL parameter 'nameSubstring', return a dictionary with a value 
+    'result' and corresponding value being the number of flag types that 
+    have said substring in their name.
+
+    nameSubstring - substring of the name of flag types to consider.
+
+    :return: A dictionary with a value 'result' and corresponding value being
+    the number of flag types that satisfies the name substring.
+    :rtype: dict
+    """
+
+    name_substring = escape(request.args.get('nameSubstring'))
+
+    return {'result': FlagType.get_count(name_substring=name_substring)}
+
+
+@app.route("/api/flag_severity_list")
+def get_flag_severity_list():
+    """Given three URL parameters 'range', 'orderBy', 'orderDirection', return a dictionary containing a key 'result' with its 
+    corresponding value being an array of dictionary representations of each 
+    flag severity in the desired list.
+
+    range - of the form "<int>;<int>" -- two integers split by a semicolon,
+    where the first integer denotes the index first component type to be 
+    considered in the list and the second integer denotes the last flag severity to be shown in the list.
+
+    orderBy - the field to order the flag severity list by, a string.
+
+    orderDirection - either "asc" or "desc" for ascending/descending,
+    respectively.
+
+    :return: A dictionary containing a key 'result' with its corresponding value
+    being an array of dictionary representations of each flag severity in the
+    desired list.
+    :rtype: dict
+    """
+
+    flag_range = escape(request.args.get('range'))
+    order_by = escape(request.args.get('orderBy'))
+    order_direction = escape(request.args.get('orderDirection'))
+
+    range_bounds = tuple(map(int, flag_range.split(';')))
+
+    # A bunch of assertions to make sure everything is as intended.
+    assert len(range_bounds) == 2
+    assert order_direction in {'asc', 'desc'}
+
+    # query to padloper
+    flag_severities = FlagSeverity.get_list(
+        range=range_bounds,
+        order_by=order_by,
+        order_direction=order_direction,
+    )
+
+    return {
+        'result': [
+            {
+                'name': f.name,
+                'id': f.id(),
+            }
+            for f in flag_severities
+        ]
+    }
+
+
+@app.route("/api/set_permission", methods=['POST'])
+def set_permission():
+    """Given the permission name and comments associated with the permission,
+    set a permission to the serverside.
+
+    The URL parameters are:
+
+    name - the name of the component.
+
+    comment - comments associated with the permission.
+
+    :return: A dictionary with a key 'result' of corresponding value True
+    :rtype: dict
+    """
+    val_name = escape(request.args.get('name'))
+    val_comment = escape(request.args.get('comment'))
+
+    # Need to initialize an instance of a component first.
+    permission = Permission(
+        val_name, val_comment)
+
+    permission.add()
+
+    return {'result': True}
+
+
+@app.route("/api/set_user_group", methods=['POST'])
+def set_user_group():
+    """Given the name of the group, comments associated with the group and the list of permissions attached to the group, set a user group to the serverside.
+
+    The URL parameters are:
+
+    name - The name of the user group.
+
+    comment - Comments associated with the user group.
+
+    permission - List of allowed permissions
+
+    :return: A dictionary with a key 'result' of corresponding value True
+    :rtype: dict
+    """
+
+    val_name = escape(request.args.get('name'))
+    val_comment = escape(request.args.get('comment'))
+    # A list of allowed permissions.
+    val_permission = escape(request.args.get('permission')).split(';')
+
+    allowed_list = []
+    # Query the database and return a list of Permission instances based on permission name.
+    for name in val_permission:
+        allowed_list.append(Permission.from_db(name))
+
+    user_group = UserGroup(val_name, val_comment, allowed_list)
+
+    user_group.add()
+
+    return {'result': True}
+
+
+@app.route("/api/set_user", methods=['POST'])
+def set_user():
+    """Given username, password, institution and the list of allowed user group,set a user to the serverside.
+
+    The URL parameters are:
+
+    uname - The username associated with the user.
+
+    pwd_hash - The hashed and salted password.
+
+    institution - Name of the institution.
+
+    :return: A dictionary with a key 'result' of corresponding value True
+    :rtype: dict
+    """
+
+    val_uname = escape(request.args.get('uname'))
+    val_pwd_hash = escape(request.args.get('pwd'))
+    val_institution = escape(request.args.get('institution'))
+    val_user_group = escape(request.args.get('user_group')).split(';')
+
+    allowed_list = []
+
+    if val_user_group != ['']:
+        for name in val_user_group:
+            allowed_list.append(UserGroup.from_db(name))
+        user = User(val_uname, val_pwd_hash, val_institution, allowed_list)
+    else:
+        user = User(val_uname, val_pwd_hash, val_institution)
+
+    user.add()
+
+    return {'result': True}

@@ -58,10 +58,31 @@ class ComponentVersionNotAddedError(Error):
     pass
 
 
+class FlagNotAddedError(Error):
+    """
+    Exception raised when trying to access a flag from the database that is not added to the database.
+    """
+    pass
+
+
 class ComponentsAlreadyConnectedError(Error):
     """
     Exception raised when trying to connect two components when they are already
     connected.
+    """
+    pass
+
+
+class ComponentAlreadySubcomponentError(Error):
+    """
+    Exception raised when trying to connect two components when one of them is already a subcomponent of other.
+    """
+    pass
+
+
+class ComponentIsSubcomponentOfOtherComponentError(Error):
+    """
+    Exception raised when trying to connect two components when one of them is already a subcomponent of other.
     """
     pass
 
@@ -93,6 +114,13 @@ class ComponentsOverlappingConnectionError(Error):
 class ComponentConnectToSelfError(Error):
     """
     Exception raised when trying to connect a component to itself.
+    """
+    pass
+
+
+class ComponentSubcomponentToSelfError(Error):
+    """
+    Exception raised when trying to make a component subcomponent to itself.
     """
     pass
 
@@ -161,9 +189,23 @@ class PropertyNotMatchRegexError(Error):
     """
     pass
 
+
 class UnassignedError(Error):
     """
     Exception raised when something unexpected occurs, but should still
     have an error.
     """
     pass
+
+
+class ComponentPropertyStartTimeExceedsInputtedTime(Error):
+    """
+    Exception raised when the end time inputted by the user
+    is later than the component's property start time.
+    """
+
+
+class UserGroupZeroPermissionError(Error):
+    """
+    Exception raised when creating a UserGroup instance with zero allowed permission. 
+    """

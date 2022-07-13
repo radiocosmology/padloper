@@ -14,19 +14,20 @@ import Close from '@mui/icons-material/Close';
  * filter is changed.
  * @param {int} index - the index of the filter 
  * (in an exterior list of filters).
- * @param {object} filter - the associated filter object (containing the name
- * and type)
+ * @param {object} filter - the associated filter object (containing the name, flag type and flag severity)
  * @param {Array} types - the list of types to choose from (TODO: turn this 
+ * @param {Array} severities - the list of severities to choose from (TODO: turn this 
  * into an autocomplete instead................)
  * @param {int} width - the width of the filter panel
  */
-export default function PropertyTypeFilter(
+export default function FlagFilter(
         { 
             removeFilter, 
             changeFilter, 
             index, 
             filter, 
             types,
+            severities,
             width
         }
     ) {
@@ -67,6 +68,25 @@ export default function PropertyTypeFilter(
         else {
             filterUpdateKey(
                 'type', 
+                ''
+            );
+        }
+    }
+    /**
+     * Update the severity key of the filter with the value from the select field.
+     * @param {object} event - the event associated with the 
+     * change of the TextField.
+     */
+    const filterUpdateSeverity = (event) => {
+        if (event.target.value != -1) {
+            filterUpdateKey(
+                'severity', 
+                severities[event.target.value]['value']
+            );
+        }
+        else {
+            filterUpdateKey(
+                'severity', 
                 ''
             );
         }
@@ -113,8 +133,8 @@ export default function PropertyTypeFilter(
                 >
                     <Select
                         native
-                        labelId={`component-type-select-${index}-label`}
-                        id={`component-type-select-${index}`}
+                        labelId={`flag-type-select-${index}-label`}
+                        id={`flag-type-select-${index}`}
                         onChange={filterUpdateType}
                         displayEmpty
                     >
@@ -124,8 +144,8 @@ export default function PropertyTypeFilter(
                         {
                             types.map((t, index) =>
                                 <option 
-                                key={index}
                                     value={index}
+                                    key={index}
                                 >
                                     {t['name']}
                                 </option>
@@ -134,7 +154,39 @@ export default function PropertyTypeFilter(
                     </Select>
 
                 </FormControl>
+                <FormControl 
+                    style={{
+                        gridColumnStart: 3,
+                    }}
+                    variant="outlined"
+                >
+                    <Select
+                        native
+                        labelId={`flag-severity-select-${index}-label`}
+                        id={`flag-severity-select-${index}`}
+                        onChange={filterUpdateSeverity}
+                        displayEmpty
+                    >
+                        <option aria-label="None" value={-1} selected>
+                            All Severities
+                        </option>
+                        {
+                            severities.map((s, index) =>
+                                <option 
+                                    value={index}
+                                    key={index}
+                                >
+                                    {s['value']}
+                                </option>
+                            )
+                        }
+                    </Select>
 
+                </FormControl>
+
+                <FormControl style={{
+                        gridColumnStart: 4,
+                    }}>
                 <Button 
                     color="primary" 
                     style={{
@@ -149,6 +201,8 @@ export default function PropertyTypeFilter(
                 >
                     <Close />
                 </Button>
+                </FormControl>
+
 
             </Stack>
         </Paper>

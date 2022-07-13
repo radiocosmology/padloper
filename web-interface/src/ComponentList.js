@@ -5,6 +5,7 @@ import ElementRangePanel from './ElementRangePanel.js';
 import ComponentFilter from './ComponentFilter.js';
 import { Link } from "react-router-dom";
 import Button from '@mui/material/Button';
+import ComponentAddButton from './ComponentAddButton.js';
 
 /**
  * A MUI component that represents a list of components.
@@ -124,6 +125,12 @@ function ComponentList() {
         return strSoFar;
     }
 
+    // Update the state after a new component is submitted via the pop up form.
+    const [reloadBool, setReloadBool] = useState(false);
+    function toggleReload() {
+        setReloadBool(!reloadBool);
+    }
+
     /*
     The function that updates the list of components when the site is loaded
     or a change of the components is requested (upon state change).
@@ -147,6 +154,7 @@ function ComponentList() {
             ).then(data => {
                 setComponents(data.result);
                 setLoaded(true);
+             
             });
         }
         fetchData();
@@ -155,7 +163,8 @@ function ComponentList() {
         range,
         orderBy,
         orderDirection,
-        filters
+        filters,
+        reloadBool
     ]
     );
 
@@ -171,7 +180,7 @@ function ComponentList() {
 
             setMin(0);
         });
-    }, [filters]);
+    }, [filters,reloadBool]);
 
     /*
     When the site is loaded, load all of the component types and versions.
@@ -213,6 +222,7 @@ function ComponentList() {
         c.version.name,
     ]);
 
+
     return (
         <>
             <ElementRangePanel
@@ -232,12 +242,18 @@ function ComponentList() {
                         </Button>
                     )
                 }
+                rightColumn2 = {<ComponentAddButton
+                types_and_versions={types_and_versions}
+                components={components}
+                toggleReload={toggleReload}
+                />}
             />
 
             {
                 filters.map(
                     (filter, index) => (
                         <ComponentFilter
+                            key={index}
                             addFilter={() => { }}
                             removeFilter={removeFilter}
                             changeFilter={changeFilter}
