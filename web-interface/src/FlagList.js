@@ -4,10 +4,95 @@ import ElementList from './ElementList.js';
 import ElementRangePanel from './ElementRangePanel.js';
 import FlagFilter from './FlagFilter.js';
 import Button from '@mui/material/Button'
-import Timestamp from './Timestamp.js';
 import FlagAddButton from './FlagAddButton.js';
-import { Typography } from '@mui/material';
+import { ThemeProvider, Typography } from '@mui/material';
 import FlagEndButton from './FlagEndButton.js';
+import ExpandMoreIcon from '@mui/icons-material/ExpandMore';
+import styled from '@mui/material/styles/styled';
+import MuiAccordion from '@mui/material/Accordion';
+import MuiAccordionSummary from '@mui/material/AccordionSummary';
+import MuiAccordionDetails from '@mui/material/AccordionDetails';
+import createTheme from '@mui/material/styles/createTheme';
+import Stack from '@mui/material/Stack';
+import ComponentEvent from './ComponentEvent.js';
+import FlagEvent from './FlagEvent.js';
+
+/**
+ * A styling for an MUI Accordion component.
+ */
+const Accordion = styled((props) => (
+    <MuiAccordion 
+        disableGutters 
+        elevation={0} 
+        defaultExpanded
+        {...props} 
+    />
+))(({ theme }) => ({
+    borderBottom: `1px solid ${theme.palette.divider}`,
+    
+}));
+
+/**
+ * An even more styled Accordion component.
+ */
+const EntryAccordion = styled((props) => (
+    <Accordion 
+        defaultExpanded={false}
+        {...props}
+    />
+))(({ theme }) => ({
+    borderBottom: `0`,
+    
+}));
+
+const AccordionDetails = styled(MuiAccordionDetails)(({ theme }) => ({
+    padding: theme.spacing(2),
+    borderTop: '1px solid rgba(0, 0, 0, .125)',
+    
+}));
+
+const EntryAccordionDetails = styled(AccordionDetails)(({ theme }) => ({
+    backgroundColor: 'rgba(0, 0, 0, .015)',
+    
+}));
+
+/**
+ * Custom MUI theme, see 
+ * https://mui.com/customization/theming/#theme-configuration-variables
+ */
+const theme = createTheme({
+    typography: {
+        body2: {
+            fontWeight: 800,
+            fontSize: 16,
+        },
+    }
+});
+
+/**
+ * A styled MUI AccordionSummary component
+ */
+const AccordionSummary = styled((props) => (
+    <MuiAccordionSummary
+        expandIcon={
+            <ExpandMoreIcon 
+                sx={{
+                    color: "rgba(0,0,0, 0.4)",
+                    padding: "4px",
+                }}
+                onClick={props.expandOnClick}
+            />
+        }
+      {...props}
+    />
+))(({ theme }) => ({
+    backgroundColor: 'rgba(0, 0, 0, .06)',
+    flexDirection: 'row-reverse',
+    '& .MuiAccordionSummary-content': {
+      marginLeft: theme.spacing(1),
+    },
+    lineHeight: '100%',
+}));
 
 
 /**
@@ -253,16 +338,6 @@ export default function FlagList() {
             allowOrdering: true,
         },
         {
-            id: 'start_time', 
-            label: 'Start Time',
-            allowOrdering: true,
-        },
-        {
-            id: 'end_time', 
-            label: 'End Time',
-            allowOrdering: true,
-        },
-        {
             id: 'Type', 
             label: 'Flag Type',
             allowOrdering: false,
@@ -273,8 +348,8 @@ export default function FlagList() {
             allowOrdering: false,
         },
         {
-            id: 'Components', 
-            label: 'Component List',
+            id: 'More Information', 
+            label: '',
             allowOrdering: false,
         }
     ];
@@ -287,36 +362,95 @@ export default function FlagList() {
      * - flag's allowed severity,
      * - the comments associated with the property type.
      */
-    let tableRowContent = elements.map((e) => [
-        e.end_uid 
+    let tableRowContent = elements.map((flag) => [
+        flag.end_uid 
         ?
-        e.name
+        flag.name
         :
         <Typography
         style={{
             display:'flex'
         }}>
-        {e.name}
+        {flag.name}
         {
         <FlagEndButton
-        name = {e.name}
+        name = {flag.name}
         toggleReload={toggleReload}
         />}
         </Typography>
         ,
-       <Timestamp unixTime={e.start_time}/>,
-       e.end_time !== 9223372036854776000 ? <Timestamp unixTime={e.end_time}/> : 'Ongoing',
-        e.flag_type.name,
-        e.flag_severity.name,
-        e.flag_components != ''
-        ? 
-        e.flag_components.map((item,index)=>{
-                return (
-                    <li key={index}>{item}</li>
-                )
-        })
-        :
-        'Global'
+        flag.flag_type.name,
+        flag.flag_severity.name,
+        ,
+        <ThemeProvider theme={theme}>
+        <Accordion>
+        <AccordionSummary
+          expandIcon={<ExpandMoreIcon />}
+          aria-controls="panel1a-content"
+          id="panel1a-header"
+          >
+            <Typography>
+                More Information
+            </Typography>
+        </AccordionSummary>
+        <AccordionDetails>
+            <Stack spacing={1}>
+          <EntryAccordion>
+
+        <EntryAccordionDetails>
+            <Stack spacing={1}>
+                <Stack 
+                direction='row'
+                justifyContent='space-between'
+                alignItems='center'
+                >
+                <ComponentEvent
+                    name="Start"
+                    time={flag.start_time}
+                    uid={flag.start_uid}
+                    edit_time={flag.start_edit_time}
+                    comments={flag.start_comments}
+                    theme={theme} />
+            </Stack>
+                {
+                    flag.end_time <= 
+                    Number.MAX_SAFE_INTEGER ?
+                    <ComponentEvent
+                    name="End"
+                    time={flag.end_time}
+                    uid={flag.end_uid}
+                    edit_time={flag.end_edit_time}
+                    comments={flag.end_comments}
+                    theme={theme} />
+                    : ""
+                }
+                {
+                    <FlagEvent
+                        name="Comments"
+                        parameter = {flag.comments}
+                        theme={theme}
+                        />
+                    }
+                {
+                    <FlagEvent
+                        name="Components"
+                        parameter={
+                            flag.flag_components.length != 0
+                            ? 
+                            flag.flag_components.map((item)=>item + ' | ')
+                            :
+                            'Global'
+                        }
+                        theme={theme}
+                        />
+                    }
+                            </Stack>
+                        </EntryAccordionDetails>
+                    </EntryAccordion>
+        </Stack>
+        </AccordionDetails>
+      </Accordion>
+    </ThemeProvider>
     ]);
 
     return (
@@ -367,7 +501,7 @@ export default function FlagList() {
             }
 
             <ElementList
-                width='800px'
+                width='1200px'
                 tableRowContent={tableRowContent}
                 loaded={loaded}
                 orderBy={orderBy}
