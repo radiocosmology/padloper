@@ -164,6 +164,55 @@ def set_component_type():
     return {'result': True}
 
 
+@app.route("/api/disable_component_type")
+def disable_component_type():
+    """Given the component type name, disable the component type from the serverside.
+
+    The URL parameters are:
+
+    name - the name of the component type.
+
+    :return: A dictionary with a key 'result' of corresponding value True
+    :rtype: dict
+    """
+    val_name = escape(request.args.get('name'))
+
+    # Need to initialize an instance of a component type first.
+    component_type = ComponentType.from_db(val_name)
+
+    component_type.disable()
+
+    return {'result': True}
+
+
+@app.route("/api/replace_component_type", methods=['POST'])
+def replace_component_type():
+    """Given the replaced component type name, and comments,
+    set a component type to the serverside.
+
+    The URL parameters are:
+
+    name - the name of the component type.
+
+    comments - the comments associated with the component type.
+
+    :return: A dictionary with a key 'result' of corresponding value True
+    :rtype: dict
+    """
+    val_name = escape(request.args.get('name'))
+    val_comments = escape(request.args.get('comments'))
+    val_ct = escape(request.args.get('ct'))
+
+    # Need to initialize an instance of a component type first.
+    component_type_new = ComponentType(val_name, val_comments)
+
+    component_type_old = ComponentType.from_db(val_ct)
+
+    component_type_old.replace(component_type_new)
+
+    return {'result': True}
+
+
 @app.route("/api/set_component_version", methods=['POST'])
 def set_component_version():
     """Given the component version name, component type and comments,
@@ -192,6 +241,67 @@ def set_component_version():
         val_name, component_type, val_comments)
 
     component_version.add()
+
+    return {'result': True}
+
+
+@app.route("/api/disable_component_version", methods=['POST'])
+def disable_component_version():
+    """Given the component version name, disable the component version from the serverside.
+
+    The URL parameters are:
+
+    name - the name of the component type.
+
+    :return: A dictionary with a key 'result' of corresponding value True
+    :rtype: dict
+    """
+    val_name = escape(request.args.get('name'))
+
+    # Need to initialize an instance of a component version first.
+    component_version = ComponentVersion.from_db(val_name)
+
+    component_version.disable()
+
+    return {'result': True}
+
+
+@app.route("/api/replace_component_version", methods=['POST'])
+def replace_component_version():
+    """Given the component version name, component type and comments,
+    set a component version to the serverside.
+
+    The URL parameters are:
+
+    name - the name of the component version.
+
+    type - the name of the component type.
+
+    comments - the comments associated with the component version.
+
+    :return: A dictionary with a key 'result' of corresponding value True
+    :rtype: dict
+    """
+    val_name = escape(request.args.get('name'))
+    val_type = escape(request.args.get('type'))
+    val_comments = escape(request.args.get('comments'))
+    val_cv = escape(request.args.get('cv'))
+    val_cv_allowed_type = escape(request.args.get('cv_allowed_type'))
+
+    # Query the database and return a ComponentType instance based on component type.
+    component_type_new = ComponentType.from_db(val_type)
+
+    # Query the database and return a ComponentType instance based on component type.
+    component_type_old = ComponentType.from_db(val_cv_allowed_type)
+
+    # Need to initialize an instance of a component version first.
+    component_version_new = ComponentVersion(
+        val_name, component_type_new, val_comments)
+
+    component_version_old = ComponentVersion.from_db(
+        name=val_cv, allowed_type=component_type_old)
+
+    component_version_old.replace(component_version_new)
 
     return {'result': True}
 
@@ -236,6 +346,69 @@ def set_component():
     return {'result': True}
 
 
+@app.route("/api/replace_component", methods=['POST'])
+def replace_component():
+    """Given the component name, component type and component version,
+    replace a component in the serverside.
+
+    The URL parameters are:
+
+    name - the name of the component.
+
+    type - the component type associated with the component type.
+
+    version - the version associated with the component.
+
+    :return: A dictionary with a key 'result' of corresponding value True
+    :rtype: dict
+    """
+    val_name = escape(request.args.get('name'))
+    val_type = escape(request.args.get('type'))
+    val_version = escape(request.args.get('version'))
+    val_component = escape(request.args.get('component'))
+
+    # Query the database and return the ComponentType instance based on component type.
+    component_type = ComponentType.from_db(val_type)
+
+    # Query the database and return the ComponentVersion instance based on component type.
+    if val_version:
+        component_version = ComponentVersion.from_db(
+            val_version, component_type)
+    else:
+        component_version = None
+
+    # Need to initialize an instance of a component first.
+    component_new = Component(
+        val_name, component_type, component_version)
+
+    component_old = Component.from_db(val_component)
+
+    component_old.replace(component_new)
+
+    return {'result': True}
+
+
+@app.route("/api/disable_component")
+def disable_component():
+    """Given the component type name, disable the component type from the serverside.
+
+    The URL parameters are:
+
+    name - the name of the component type.
+
+    :return: A dictionary with a key 'result' of corresponding value True
+    :rtype: dict
+    """
+    val_name = escape(request.args.get('name'))
+
+    # Need to initialize an instance of a component first.
+    component = Component.from_db(val_name)
+
+    component.disable()
+
+    return {'result': True}
+
+
 @app.route("/api/set_property_type", methods=['POST'])
 def set_property_type():
     """Given the property type name, allowed component types ,units,allowed regex, number of values and comments,
@@ -275,6 +448,73 @@ def set_property_type():
         val_name, val_units, val_allowed_reg, val_values, allowed_list, val_comments)
 
     property_type.add()
+
+    return {'result': True}
+
+
+@app.route("/api/replace_property_type", methods=['POST'])
+def replace_property_type():
+    """Given the property type name, allowed component types ,units,allowed regex, number of values and comments,
+    replace a property type in the serverside.
+
+    The URL parameters are:
+
+    name - the name of the property type.
+
+    type - the name of the allowed component type.
+
+    units - the units of the property type.
+
+    allowed_reg - the allowed regex of the property type.
+
+    values - number of values of the property type.
+
+    comments - the comments associated with the property type.
+
+    :return: A dictionary with a key 'result' of corresponding value True
+    :rtype: dict
+    """
+    val_name = escape(request.args.get('name'))
+    # A list of allowed component types.
+    val_type = escape(request.args.get('type')).split(';')
+    val_units = escape(request.args.get('units'))
+    val_allowed_reg = escape(request.args.get('allowed_reg'))
+    val_values = escape(request.args.get('values'))
+    val_comments = escape(request.args.get('comments'))
+    val_property_type = escape(request.args.get('property_type'))
+
+    allowed_list = []
+    # Query the database and return a list of ComponentType instance based on component type.
+    for name in val_type:
+        allowed_list.append(ComponentType.from_db(name))
+    # Need to initialize an instance of a property type first.
+    property_type_new = PropertyType(
+        val_name, val_units, val_allowed_reg, val_values, allowed_list, val_comments)
+
+    property_type_old = PropertyType.from_db(val_property_type)
+
+    property_type_old.replace(property_type_new)
+
+    return {'result': True}
+
+
+@app.route("/api/disable_property_type", methods=['POST'])
+def disable_property_type():
+    """Given the property type name, disable the property type from the serverside.
+
+    The URL parameters are:
+
+    name - the name of the component type.
+
+    :return: A dictionary with a key 'result' of corresponding value True
+    :rtype: dict
+    """
+    val_name = escape(request.args.get('name'))
+
+    # Need to initialize an instance of a component type first.
+    property_type = PropertyType.from_db(val_name)
+
+    property_type.disable()
 
     return {'result': True}
 
@@ -676,6 +916,56 @@ def end_component_property():
     return {'result': True}
 
 
+@app.route("/api/component_replace_property")
+def replace_component_property():
+    """Editing the property
+    """
+    val_name = escape(request.args.get('name'))
+    val_property_type = escape(request.args.get('propertyType'))
+    val_time = int(escape(request.args.get('time')))
+    val_uid = escape(request.args.get('uid'))
+    val_comments = escape(request.args.get('comments'))
+    val_value_count = int(escape(request.args.get('valueCount')))
+    val_values = escape(request.args.get('values'))
+
+    values = val_values.split(';')
+
+    # if this is false, then you put a semicolon in a value name!!!
+    assert len(values) == val_value_count
+
+    property_type = PropertyType.from_db(val_property_type)
+
+    component = Component.from_db(val_name)
+
+    property_new = Property(values=values, property_type=property_type)
+
+    component.replace_property(
+        propertyTypeName=val_property_type,
+        property=property_new,
+        time=val_time,
+        uid=val_uid,
+        comments=val_comments
+    )
+
+    return {'result': True}
+
+
+@app.route("/api/component_disable_property")
+def disable_component_property():
+    """Disabling a property
+    """
+    val_name = escape(request.args.get('name'))
+    val_property_type = escape(request.args.get('propertyType'))
+
+    component = Component.from_db(val_name)
+
+    component.disable_property(
+        propertyTypeName=val_property_type
+    )
+
+    return {'result': True}
+
+
 @app.route("/api/component_add_connection")
 def add_component_connection():
     """Given the names of the two components to connect, the time to make the
@@ -764,6 +1054,40 @@ def end_component_connection():
     return {'result': not already_disconnected}
 
 
+@app.route("/api/component_replace_connection")
+def replace_component_connection():
+    """ Changes the time and comment section.
+    """
+
+    val_name1 = escape(request.args.get('name1'))
+    val_name2 = escape(request.args.get('name2'))
+    val_time = int(escape(request.args.get('time')))
+    val_uid = escape(request.args.get('uid'))
+    val_comments = escape(request.args.get('comments'))
+
+    c1, c2 = Component.from_db(val_name1), Component.from_db(val_name2)
+
+    c1.replace_connection(otherComponent=c2, time=val_time,
+                          uid=val_uid, comments=val_comments)
+
+    return {'result': True}
+
+
+@app.route("/api/component_disable_connection")
+def disable_component_connection():
+    """ Disables an edge
+    """
+
+    val_name1 = escape(request.args.get('name1'))
+    val_name2 = escape(request.args.get('name2'))
+
+    c1, c2 = Component.from_db(val_name1), Component.from_db(val_name2)
+
+    c1.disable_connection(otherComponent=c2)
+
+    return {'result': True}
+
+
 @app.route("/api/get_all_connections_at_time")
 def get_all_connections_at_time():
     """Given a component name and a time to check all connections, return all 
@@ -832,6 +1156,31 @@ def add_component_subcomponent():
     return {'result': not already_subcomponent}
 
 
+@app.route("/api/component_disable_subcomponent")
+def disable_component_subcomponent():
+    """Given the name of the the component that is a subcomponent along with the name of the main component, establish the appropriate relation.
+
+    The URL parameters are:
+
+    name1 - the name of the main component
+
+    name2 - the name of the subcomponent
+
+    :return: Return a dictionary with a key 'result' and value being a boolean
+    that is True.
+    :rtype: dict
+    """
+
+    val_name1 = escape(request.args.get('name1'))
+    val_name2 = escape(request.args.get('name2'))
+
+    c1, c2 = Component.from_db(val_name1), Component.from_db(val_name2)
+
+    c1.disable_subcomponent(otherComponent=c2)
+
+    return {'result': True}
+
+
 @app.route("/api/set_flag_type", methods=['POST'])
 def set_flag_type():
     """Given the flag type name and comments,
@@ -858,6 +1207,56 @@ def set_flag_type():
     return {'result': True}
 
 
+@app.route("/api/replace_flag_type", methods=['POST'])
+def replace_flag_type():
+    """Given the flag type name and comments,
+    replace a flag type from the serverside.
+
+    The URL parameters are:
+
+    name - the name of the flag type.
+
+    comments - the comments associated with the flag type.
+
+    :return: A dictionary with a key 'result' of corresponding value True
+    :rtype: dict
+    """
+    val_name = escape(request.args.get('name'))
+    val_comments = escape(request.args.get('comments'))
+    val_flag_type = escape(request.args.get('flag_type'))
+
+    # Need to initialize an instance of a component version first.
+    flag_type_new = FlagType(
+        val_name, val_comments)
+
+    flag_type_old = FlagType.from_db(val_flag_type)
+
+    flag_type_old.replace(flag_type_new)
+
+    return {'result': True}
+
+
+@app.route("/api/disable_flag_type", methods=['POST'])
+def disable_flag_type():
+    """Given the flag type name, disable the flag type from the serverside.
+
+    The URL parameters are:
+
+    name - the name of the component type.
+
+    :return: A dictionary with a key 'result' of corresponding value True
+    :rtype: dict
+    """
+    val_name = escape(request.args.get('name'))
+
+    # Need to initialize an instance of a component type first.
+    flag_type = FlagType.from_db(val_name)
+
+    flag_type.disable()
+
+    return {'result': True}
+
+
 @app.route("/api/set_flag_severity", methods=['POST'])
 def set_flag_severity():
     """Given the flag severity name,
@@ -877,6 +1276,32 @@ def set_flag_severity():
         val_name)
 
     flag_severity.add()
+
+    return {'result': True}
+
+
+@app.route("/api/replace_flag_severity", methods=['POST'])
+def replace_flag_severity():
+    """Given the flag severity name,
+    replace a flag severity from the serverside.
+
+    The URL parameters are:
+
+    name - name indicating the severity of a flag.
+
+    :return: A dictionary with a key 'result' of corresponding value True
+    :rtype: dict
+    """
+    val_name = escape(request.args.get('name'))
+    val_flag_severity = escape(request.args.get('flag_severity'))
+
+    # Need to initialize an instance of a component version first.
+    flag_severity_new = FlagSeverity(
+        val_name)
+
+    flag_severity_old = FlagSeverity.from_db(val_flag_severity)
+
+    flag_severity_old.replace(flag_severity_new)
 
     return {'result': True}
 
@@ -970,6 +1395,92 @@ def unset_flag():
 
     flag.end_flag(end_time=val_end_time, end_uid=val_uid,
                   end_comments=val_comments)
+
+    return {'result': True}
+
+
+@app.route("/api/replace_flag", methods=['POST'])
+def replace_flag():
+    """Given the flag name,start_time,uid,start_comments,flag_severity,flag_type and flag_components,
+    replace a flag from the serverside.
+
+    The URL parameters are:
+
+    name - The name of the flag.
+
+    uid - The ID of the user adding the new flag.
+
+    start_time - The start time of the flag.
+
+    comments - The comments relating to the flag.
+
+    flag_severity - The FlagSeverity instance representing the severity of the flag.
+
+    flag_type - The FlagType instance representing the type of the flag.
+
+    flag_components - A list of Component instances related to the flag.
+
+    :return: A dictionary with a key 'result' of corresponding value True
+    :rtype: dict
+    """
+    val_name = escape(request.args.get('name'))
+    val_uid = escape(request.args.get('uid'))
+    val_start_time = escape(request.args.get('start_time'))
+    val_end_time = escape(request.args.get('end_time'))
+    val_start_comments = escape(request.args.get('start_comments'))
+    val_comments = escape(request.args.get('comments'))
+    val_flag_severity = escape(request.args.get('flag_severity'))
+    val_flag_type = escape(request.args.get('flag_type'))
+    val_flag_components = escape(
+        request.args.get('flag_components')).split(';')
+
+    flag_severity = FlagSeverity.from_db(val_flag_severity)
+    flag_type = FlagType.from_db(val_flag_type)
+
+    val_flag = escape(request.args.get('flag'))
+
+    allowed_list = []
+    # Query the database and return a list of Component instances based on component name.
+    if val_flag_components != ['Global']:
+        for name in val_flag_components:
+            allowed_list.append(Component.from_db(name))
+
+    flag_old = Flag.from_db(val_flag)
+
+    if(val_end_time == str(0)):
+        # Need to initialize an instance of Flag first. This case handles if the user doesn't set the end time initially.
+        flag_new = Flag(name=val_name, start_time=val_start_time,
+                        flag_severity=flag_severity, flag_type=flag_type, flag_components=allowed_list, comments=val_comments, start_comments=val_start_comments, start_uid=val_uid)
+
+        flag_old.replace(flag_new)
+
+    if(val_end_time != str(0)):
+        # Need to initialize an instance of Flag first. This case handles if the sets the end time at the time of setting a new flag.
+        flag_new = Flag(name=val_name, start_time=val_start_time,
+                        flag_severity=flag_severity, flag_type=flag_type, flag_components=allowed_list, comments=val_comments, start_comments=val_start_comments, start_uid=val_uid, end_uid=val_uid, end_time=val_end_time, end_edit_time=int(time.time()))
+
+        flag_old.replace(flag_new)
+
+    return {'result': True}
+
+
+@app.route("/api/disable_flag", methods=['POST'])
+def disable_flag():
+    """Given the flag name, disable the flag from the serverside.
+
+    The URL parameters are:
+
+    name - the name of the component type.
+
+    :return: A dictionary with a key 'result' of corresponding value True
+    :rtype: dict
+    """
+    val_name = escape(request.args.get('name'))
+
+    # Need to initialize an instance of a component type first.
+    flag = Flag.from_db(val_name)
+
+    flag.disable()
 
     return {'result': True}
 

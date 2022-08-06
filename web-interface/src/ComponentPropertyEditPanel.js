@@ -80,7 +80,7 @@ const CloseButton = styled((props) => (
  * {string} comments - the comments associated with the property 
  * {Array} values - an array connecting the values of the property. 
  */
-function ComponentPropertyAddPanel(
+function ComponentPropertyEditPanel(
     {
         theme,
         onClose,
@@ -378,4 +378,4 @@ function ComponentPropertyAddPanel(
     )
 }
 
-export default ComponentPropertyAddPanel;
+export default ComponentPropertyEditPanel;

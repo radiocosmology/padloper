@@ -5,8 +5,9 @@ import ElementRangePanel from './ElementRangePanel.js';
 import FlagFilter from './FlagFilter.js';
 import Button from '@mui/material/Button'
 import FlagAddButton from './FlagAddButton.js';
-import { ThemeProvider, Typography } from '@mui/material';
 import FlagEndButton from './FlagEndButton.js';
+import FlagReplaceButton from './FlagReplaceButton.js';
+import { ThemeProvider, Typography } from '@mui/material';
 import ExpandMoreIcon from '@mui/icons-material/ExpandMore';
 import styled from '@mui/material/styles/styled';
 import MuiAccordion from '@mui/material/Accordion';
@@ -16,6 +17,8 @@ import createTheme from '@mui/material/styles/createTheme';
 import Stack from '@mui/material/Stack';
 import ComponentEvent from './ComponentEvent.js';
 import FlagEvent from './FlagEvent.js';
+import DeleteIcon from '@mui/icons-material/Delete';
+
 
 /**
  * A styling for an MUI Accordion component.
@@ -93,6 +96,25 @@ const AccordionSummary = styled((props) => (
     },
     lineHeight: '100%',
 }));
+
+/*
+A MUI component representing a button for disabling a component type.
+ */
+const DisableButton = styled((props) => (
+    <Button 
+    style={{
+        maxWidth: '40px', 
+        maxHeight: '30px', 
+        minWidth: '30px', 
+        minHeight: '30px',
+    }}
+    {...props}
+        variant="outlined">
+        <DeleteIcon/>
+    </Button>
+))(({ theme }) => ({
+    
+}))
 
 
 /**
@@ -212,6 +234,30 @@ export default function FlagList() {
     const [reloadBool, setReloadBool] = useState(false);
     function toggleReload() {
         setReloadBool(!reloadBool);
+    }
+
+            /**
+     * Disable a flag.
+     * @param {string} name - the name of the componentType which is being disabled.
+     * @returns 
+     */
+    async function disableFlag(name) {
+        
+        // build up the string to query the API
+        let input = `/api/disable_flag`;
+        input += `?name=${name}`;
+
+        return new Promise((resolve, reject) => {
+            fetch(input).then(
+                res => res.json()
+            ).then(data => {
+                if (data.result) {
+                    toggleReload();
+                }
+                resolve(data.result);
+            });
+        });
+
     }
    /**
     * The function that updates the list of flags when the site is 
@@ -351,7 +397,13 @@ export default function FlagList() {
             id: 'More Information', 
             label: '',
             allowOrdering: false,
-        }
+        },
+        {
+
+        },
+        {
+
+        },
     ];
 
     /**
@@ -450,7 +502,21 @@ export default function FlagList() {
         </Stack>
         </AccordionDetails>
       </Accordion>
-    </ThemeProvider>
+    </ThemeProvider>,
+    <FlagReplaceButton 
+    nameFlag = {flag.name}
+    flag_types={flag_types} 
+    flag_severities={flag_severities} 
+    flag_components={flag_components}
+    toggleReload={toggleReload}
+    />,
+     <DisableButton
+        onClick={
+            ()=>{
+                disableFlag(flag.name)
+            }
+        }
+        />
     ]);
 
     return (
@@ -501,7 +567,7 @@ export default function FlagList() {
             }
 
             <ElementList
-                width='1200px'
+                width='1300px'
                 tableRowContent={tableRowContent}
                 loaded={loaded}
                 orderBy={orderBy}

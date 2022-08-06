@@ -6,6 +6,29 @@ import ComponentFilter from './ComponentFilter.js';
 import { Link } from "react-router-dom";
 import Button from '@mui/material/Button';
 import ComponentAddButton from './ComponentAddButton.js';
+import ComponentReplaceButton from './ComponentReplaceButton.js';
+import styled from '@mui/material/styles/styled';
+import DeleteIcon from '@mui/icons-material/Delete';
+
+
+/*
+A MUI component representing a button for disabling a component type.
+ */
+const DisableButton = styled((props) => (
+    <Button 
+    style={{
+        maxWidth: '40px', 
+        maxHeight: '30px', 
+        minWidth: '30px', 
+        minHeight: '30px',
+    }}
+    {...props}
+        variant="outlined">
+        <DeleteIcon/>
+    </Button>
+))(({ theme }) => ({
+    
+}))
 
 /**
  * A MUI component that represents a list of components.
@@ -50,6 +73,30 @@ function ComponentList() {
     // 'asc' or 'desc'
     const [orderDirection,
         setOrderDirection] = useState('asc');
+
+            /**
+     * Disable a component Type.
+     * @param {string} name - the name of the componentType which is being disabled.
+     * @returns 
+     */
+    async function disableComponent(name) {
+        
+        // build up the string to query the API
+        let input = `/api/disable_component`;
+        input += `?name=${name}`;
+
+        return new Promise((resolve, reject) => {
+            fetch(input).then(
+                res => res.json()
+            ).then(data => {
+                if (data.result) {
+                    toggleReload();
+                }
+                resolve(data.result);
+            });
+        });
+
+    }
 
     /* filters stored as 
     [
@@ -211,6 +258,12 @@ function ComponentList() {
             label: 'Version',
             allowOrdering: true,
         },
+        {
+
+        },
+        {
+
+        },
     ];
 
     // What to display in each row.
@@ -220,6 +273,18 @@ function ComponentList() {
         </Link>,
         c.type.name,
         c.version.name,
+        <ComponentReplaceButton
+        types_and_versions={types_and_versions}
+        nameComponent= {c.name}
+        toggleReload={toggleReload}
+        />,
+        <DisableButton
+        onClick={
+            ()=>{
+                disableComponent(c.name)
+            }
+        }
+        />
     ]);
 
 

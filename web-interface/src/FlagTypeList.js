@@ -7,6 +7,29 @@ import {
     } 
 from '@mui/material';
 import FlagTypeAddButton from './FlagTypeAddButton.js';
+import FlagTypeReplaceButton from './FlagTypeReplaceButton.js'
+import styled from '@mui/material/styles/styled';
+import DeleteIcon from '@mui/icons-material/Delete';
+import Button from '@mui/material/Button';
+
+/*
+A MUI component representing a button for disabling a component type.
+ */
+const DisableButton = styled((props) => (
+    <Button 
+    style={{
+        maxWidth: '40px', 
+        maxHeight: '30px', 
+        minWidth: '30px', 
+        minHeight: '30px',
+    }}
+    {...props}
+        variant="outlined">
+        <DeleteIcon/>
+    </Button>
+))(({ theme }) => ({
+    
+}))
 
 /**
  * A MUI component that renders a list of flag types.
@@ -45,6 +68,30 @@ function FlagTypeList() {
     const [reloadBool, setReloadBool] = useState(false);
     function toggleReload() {
         setReloadBool(!reloadBool);
+    }
+
+            /**
+     * Disable a component Type.
+     * @param {string} name - the name of the componentType which is being disabled.
+     * @returns 
+     */
+    async function disableFlagType(name) {
+        
+        // build up the string to query the API
+        let input = `/api/disable_flag_type`;
+        input += `?name=${name}`;
+
+        return new Promise((resolve, reject) => {
+            fetch(input).then(
+                res => res.json()
+            ).then(data => {
+                if (data.result) {
+                    toggleReload();
+                }
+                resolve(data.result);
+            });
+        });
+
     }
 
 
@@ -113,6 +160,12 @@ function FlagTypeList() {
             label: 'Comments',
             allowOrdering: false,
         },
+        {
+
+        },
+        {
+
+        },
     ];
     /**
      * the rows of the table. We are only putting the name and the comments.
@@ -120,6 +173,17 @@ function FlagTypeList() {
     let tableRowContent = elements.map((e) => [
         e.name,
         e.comments,
+        <FlagTypeReplaceButton
+        nameFlagType = {e.name}
+        toggleReload={toggleReload}
+        />,
+        <DisableButton
+        onClick={
+            ()=>{
+                disableFlagType(e.name)
+            }
+        }
+        />
     ]);
     return (
         <>

@@ -5,6 +5,29 @@ import ElementRangePanel from './ElementRangePanel.js';
 import PropertyTypeFilter from './PropertyTypeFilter.js';
 import Button from '@mui/material/Button'
 import PropertyTypeAddButton from './PropertyTypeAddButton.js';
+import PropertyTypeReplaceButton from './PropertyTypeReplaceButton.js';
+import styled from '@mui/material/styles/styled';
+import DeleteIcon from '@mui/icons-material/Delete';
+
+/*
+A MUI component representing a button for disabling a component version.
+ */
+const DisableButton = styled((props) => (
+    <Button 
+    style={{
+        maxWidth: '40px', 
+        maxHeight: '30px', 
+        minWidth: '30px', 
+        minHeight: '30px',
+    }}
+    {...props}
+        variant="outlined">
+        <DeleteIcon/>
+    </Button>
+))(({ theme }) => ({
+    
+}))
+
 
 /**
  * A MUI component that renders a list of property types.
@@ -47,6 +70,31 @@ export default function PropertyTypeList() {
         ]
     */
     const [filters, setFilters] = useState([]);
+
+    
+    /**
+     * Disable a Property Tyep.
+     * @param {string} name - the name of the PropertyType which is being disabled.
+     * @returns 
+     */
+    async function disablePropertyType(name) {
+        
+        // build up the string to query the API
+        let input = `/api/disable_component_version`;
+        input += `?name=${name}`;
+
+        return new Promise((resolve, reject) => {
+            fetch(input).then(
+                res => res.json()
+            ).then(data => {
+                if (data.result) {
+                    toggleReload();
+                }
+                resolve(data.result);
+            });
+        });
+
+    }
 
     /**
      * add an empty filter to filters
@@ -226,7 +274,13 @@ export default function PropertyTypeList() {
             id: 'comments', 
             label: 'Comments',
             allowOrdering: false,
-        }
+        },
+        {
+
+        },
+        {
+
+        },
     ];
 
     /**
@@ -244,7 +298,19 @@ export default function PropertyTypeList() {
         e.units,
         e.allowed_regex,
         e.n_values,
-        e.comments
+        e.comments,
+        <PropertyTypeReplaceButton
+        name = {e.name}
+        componentTypes={componentTypes}
+        toggleReload={toggleReload}
+        />,
+        <DisableButton
+        onClick={
+            ()=>{
+                disablePropertyType(e.name)
+            }
+        }
+        />,
     ]);
 
 

@@ -24,7 +24,6 @@ const EntryRowLabel = styled((props) => (
 ))(({ theme }) => ({
     backgroundColor: 'rgba(0, 0, 0, .05)',
     width: '80px',
-    textAlign:'center',
     marginRight: theme.spacing(4),
 }));
 
@@ -51,7 +50,11 @@ function ComponentEvent(
     return (
         <ThemeProvider theme={theme}>
             <Stack 
-            direction='row' spacing={1}>
+            direction='row' spacing={1}
+            style={{
+                textAlign:'center'
+            }}
+            >
                 <EntryRowLabel>{name}</EntryRowLabel>
 
                 <AccessTimeIcon fontSize="small"/>
