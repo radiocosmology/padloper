@@ -245,7 +245,7 @@ def set_component_version():
     return {'result': True}
 
 
-@app.route("/api/disable_component_version", methods=['POST'])
+@app.route("/api/disable_component_version")
 def disable_component_version():
     """Given the component version name, disable the component version from the serverside.
 
@@ -257,9 +257,15 @@ def disable_component_version():
     :rtype: dict
     """
     val_name = escape(request.args.get('name'))
+    val_allowed_type = escape(request.args.get('allowed_type'))
+
+    # Need to initialize an instance of a component type first.
+
+    component_type = ComponentType.from_db(val_allowed_type)
 
     # Need to initialize an instance of a component version first.
-    component_version = ComponentVersion.from_db(val_name)
+    component_version = ComponentVersion.from_db(
+        name=val_name, allowed_type=component_type)
 
     component_version.disable()
 
@@ -498,7 +504,7 @@ def replace_property_type():
     return {'result': True}
 
 
-@app.route("/api/disable_property_type", methods=['POST'])
+@app.route("/api/disable_property_type")
 def disable_property_type():
     """Given the property type name, disable the property type from the serverside.
 
@@ -1236,7 +1242,7 @@ def replace_flag_type():
     return {'result': True}
 
 
-@app.route("/api/disable_flag_type", methods=['POST'])
+@app.route("/api/disable_flag_type")
 def disable_flag_type():
     """Given the flag type name, disable the flag type from the serverside.
 
@@ -1464,7 +1470,7 @@ def replace_flag():
     return {'result': True}
 
 
-@app.route("/api/disable_flag", methods=['POST'])
+@app.route("/api/disable_flag")
 def disable_flag():
     """Given the flag name, disable the flag from the serverside.
 

@@ -152,11 +152,12 @@ function ComponentVersionList() {
      * @param {string} name - the name of the componentVersion which is being disabled.
      * @returns 
      */
-    async function disableComponentVersion(name) {
+    async function disableComponentVersion(name,allowed_type) {
         
         // build up the string to query the API
         let input = `/api/disable_component_version`;
         input += `?name=${name}`;
+        input += `&allowed_type=${allowed_type}`;
 
         return new Promise((resolve, reject) => {
             fetch(input).then(
@@ -290,7 +291,7 @@ function ComponentVersionList() {
         <DisableButton
         onClick={
             ()=>{
-                disableComponentVersion(e.name)
+                disableComponentVersion(e.name,e.allowed_type.name)
             }
         }
         />

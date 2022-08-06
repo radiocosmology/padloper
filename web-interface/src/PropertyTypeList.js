@@ -80,7 +80,7 @@ export default function PropertyTypeList() {
     async function disablePropertyType(name) {
         
         // build up the string to query the API
-        let input = `/api/disable_component_version`;
+        let input = `/api/disable_property_type`;
         input += `?name=${name}`;
 
         return new Promise((resolve, reject) => {
