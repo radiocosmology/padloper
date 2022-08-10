@@ -50,7 +50,7 @@ export default function FlagTypeReplaceButton ({nameFlagType,toggleReload}) {
   const [loading, setLoading] = useState(false);
 
   /*To display an error message when a user tries to add a new flag type but a flag type with the same name already exists in the database. */
-  const [isError,setIsError] = useState(false)
+  const [errorData,setErrorData] = useState(null)
 
   const handleClickOpen = () => {
     setOpen(true);
@@ -60,7 +60,7 @@ export default function FlagTypeReplaceButton ({nameFlagType,toggleReload}) {
   Function sets the relevant form variables back to empty string once the form is closed or the user clicks on the cancel button on the pop up form.
   */
   const handleClose = () => {
-    setIsError(false)
+    setErrorData(null)
     setOpen(false);
     setLoading(false)
   };
@@ -72,13 +72,13 @@ export default function FlagTypeReplaceButton ({nameFlagType,toggleReload}) {
     input += `&comments=${comment}`;
     input += `&flag_type=${nameFlagType}`;
     axios.post(input).then((response)=>{
+      if(response.data.result){
         toggleReload() //To reload the page once the form has been submitted.
         handleClose()
-    }).catch(error=> {
-        if(error.message === 'Request failed with status code 500'){
-          setIsError(true)
-        }
-      })
+      } else {
+        setErrorData(response.data.error)
+      }
+    })
   }
 
   return (
@@ -115,15 +115,15 @@ export default function FlagTypeReplaceButton ({nameFlagType,toggleReload}) {
     alignItems:'center'
     }}>
       {
-      isError 
-      ? 
+        errorData
+        ?
       <>
       <ErrorIcon
       fontSize='small'
       /> 
-      A flag type with the same name already exists in the database
+      {errorData}
       </>
-      : 
+      :
       null}
     </div>
 

@@ -31,7 +31,7 @@ export default function ComponentTypeAddButton ({toggleReload}) {
   /*
   To display error when a user tries to add a new component type but a component type with the same name already exists in the database.
    */
-  const [isError,setIsError] = useState(false)
+  const [errorData,setErrorData] = useState(null)
 
   const handleClickOpen = () => {
     setOpen(true);
@@ -44,11 +44,10 @@ export default function ComponentTypeAddButton ({toggleReload}) {
    */
   const handleClose = () => {
     setComment('')
-    setIsError(false)
+    setErrorData(null)
     setComponentType('')
     setOpen(false);
     setLoading(false)
-    setIsError(false)
   };
 
   const handleSubmit = (e) => {
@@ -58,11 +57,11 @@ export default function ComponentTypeAddButton ({toggleReload}) {
       input += `?name=${componentType}`;
       input += `&comments=${comment}`;
       axios.post(input).then((response)=>{
-        handleClose()
-        toggleReload() //To reload the page once the form has been submitted.
-      }).catch(error=> {
-        if(error.message === 'Request failed with status code 500'){
-          setIsError(true)
+        if(response.data.result){
+          handleClose()
+          toggleReload() //To reload the page once the form has been submitted.
+        } else {
+          setErrorData(response.data.error)
         }
       })
   }
@@ -101,15 +100,15 @@ export default function ComponentTypeAddButton ({toggleReload}) {
     alignItems:'center'
     }}>
       {
-      isError 
-      ? 
+        errorData
+        ?
       <>
       <ErrorIcon
       fontSize='small'
       /> 
-      A component type with the same name already exists in the database
+      {errorData}
       </>
-      : 
+      :
       null}
     </div>
         </DialogContent>

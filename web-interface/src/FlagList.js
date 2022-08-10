@@ -429,6 +429,13 @@ export default function FlagList() {
         name = {flag.name}
         toggleReload={toggleReload}
         />}
+        <FlagReplaceButton 
+        nameFlag = {flag.name}
+        flag_types={flag_types} 
+        flag_severities={flag_severities} 
+        flag_components={flag_components}
+        toggleReload={toggleReload}
+    />
         </Typography>
         ,
         flag.flag_type.name,
@@ -503,13 +510,6 @@ export default function FlagList() {
         </AccordionDetails>
       </Accordion>
     </ThemeProvider>,
-    <FlagReplaceButton 
-    nameFlag = {flag.name}
-    flag_types={flag_types} 
-    flag_severities={flag_severities} 
-    flag_components={flag_components}
-    toggleReload={toggleReload}
-    />,
      <DisableButton
         onClick={
             ()=>{

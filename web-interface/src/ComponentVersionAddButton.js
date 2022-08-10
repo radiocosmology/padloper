@@ -36,7 +36,7 @@ export default function ComponentVersionAddButton ({componentTypes,toggleReload}
   /*
   To display error when a user tries to add a new component version but a component version with the same name already exists in the database.
   */
-  const [isError,setIsError] = useState(false)
+  const [errorData,setErrorData] = useState(null)
 
   // Function that opens the form.
   const handleClickOpen = () => {
@@ -51,7 +51,7 @@ export default function ComponentVersionAddButton ({componentTypes,toggleReload}
   const handleClose = () => {
     setOpen(false);
     setComponentVersion('')
-    setIsError(false)
+    setErrorData(null)
     setComment('')
     setInputComponentType('')
     setLoading(false)
@@ -66,11 +66,11 @@ export default function ComponentVersionAddButton ({componentTypes,toggleReload}
       input += `&type=${inputComponentType}`;
       input += `&comments=${comment}`;
       axios.post(input).then((response)=>{
+        if(response.data.result){
           toggleReload() //To reload the page once the form has been submitted.
           handleClose()
-      }).catch(error=> {
-        if(error.message === 'Request failed with status code 500'){
-          setIsError(true)
+        } else {
+          setErrorData(response.data.error)
         }
       })
   }
@@ -139,13 +139,16 @@ export default function ComponentVersionAddButton ({componentTypes,toggleReload}
         color:'red',
         display:'flex',
     }}>
-      {isError ? 
+      {
+        errorData
+        ?
       <>
       <ErrorIcon
       fontSize='small'
-      /> A component version with the same name and component type already exists in the database.
+      /> 
+      {errorData}
       </>
-      : 
+      :
       null}
     </div>
         </DialogContent>

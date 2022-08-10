@@ -43,17 +43,13 @@ const ReplaceButton = styled((props) => (
   // opens and closes the pop up form.
   const [open, setOpen] = useState(false);
 
-  // Cannot add a component without a name
-  const [componentNameError,setComponentNameError] = useState(false)
-
   // stores the component name
   const [name,setName] = useState('')
 
-  /*
-  To display an error message when a user tries to add a new component but a 
-  component with the same name already exists in the database.
+    /*
+  To display an error message when a user tries to add a new component.
   */
-  const [isError,setIsError] = useState(false)
+  const [errorData,setErrorData] = useState(null)
 
   // stores the component type name selected in the pop up form
   const [componentType,setComponentType] = useState('')
@@ -77,8 +73,7 @@ const ReplaceButton = styled((props) => (
   */
   const handleClose = () => {
     setOpen(false);
-    setComponentNameError(false)
-    setIsError(false)
+    setErrorData(null)
     setComponentVersion('')
     setComponentType('')
     setLoading(false)
@@ -95,14 +90,13 @@ const ReplaceButton = styled((props) => (
     input += `&version=${componentVersion}`;
     input += `&component=${nameComponent}`;
     axios.post(input).then((response)=>{
-                toggleReload() //To reload the list of components once the form has been submitted.
-                handleClose()
-    }).catch(error => {
-      if(error.message === 'Request failed with status code 500'){
-        setIsError(true)
+      if(response.data.result){
+        toggleReload() //To reload the list of components once the form has been submitted.
+        handleClose()
+      } else {
+        setErrorData(response.data.error)
       }
     })
-
   }
   
   return (
@@ -179,23 +173,15 @@ const ReplaceButton = styled((props) => (
     display:'flex'
     }}>
       {
-      componentNameError ? 
+        errorData
+        ?
       <>
       <ErrorIcon
       fontSize='small'
       /> 
-      Component name cannot be empty
-      </> 
-      : 
-      isError 
-      ? 
-      <>
-      <ErrorIcon
-      fontSize='small'
-      /> 
-      Components with name {name} already exist in the database.
+      {errorData}
       </>
-      : 
+      :
       null}
     </div>
         </DialogContent>

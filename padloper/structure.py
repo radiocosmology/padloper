@@ -163,7 +163,12 @@ class Vertex(Element):
             Vertex._cache_vertex(self)
 
     def replace(self, id):
-        """Editing the Vertex"""
+        """Replace the vertex in the JanusGraph DB with the new vertex by changing its property 'active' from true to false and transfering all the edges to the new vertex. The old vertex contains the ID of the new vertex as an attribute.
+
+        :param id: ID of the new Vertex.
+        :type id: int
+
+        """
 
         g.V(self.id()).property('replacement', id).iterate()
 
@@ -211,7 +216,11 @@ class Vertex(Element):
                 g.V(self.id()).inE().drop().iterate()
 
     def disable(self, disable_time: int = int(time.time())):
-        """Disabling a vertex"""
+        """Disables the vertex as well all the edges connected to the vertex by setting the property from 'active' from true to false.
+
+        :ivar disable_time: When this vertex was disabled in the database (UNIX time).
+
+        """
 
         g.V(self.id()).property(
             'active', False).property('time_disabled', disable_time).iterate()
@@ -461,7 +470,14 @@ class ComponentType(Vertex):
         Vertex.add(self=self, attributes=attributes)
 
     def replace(self, newVertex, disable_time: int = int(time.time())):
-        """Editing the vertex"""
+        """Replaces the ComponentType vertex in the serverside.
+
+        :param newVertex: The new ComponentType vertex that is replacing the old ComponentType vertex.
+        :type newVertex: ComponentType
+
+        :param disable_time: When this vertex was disabled in the database (UNIX time).
+        :type disable_time: int
+        """
 
         # Step 1
         g.V(self.id()).property(
@@ -773,7 +789,7 @@ class ComponentVersion(Vertex):
         if self.added_to_db():
             raise VertexAlreadyAddedError(
                 f"ComponentVersion with name {self.name} " +
-                f"and allowed type {self.allowed_type} " +
+                f"and allowed type {self.allowed_type.name} " +
                 "already exists in the database."
             )
 
@@ -795,7 +811,14 @@ class ComponentVersion(Vertex):
         e.add()
 
     def replace(self, newVertex, disable_time: int = int(time.time())):
-        """Editing the vertex"""
+        """Replaces the ComponentVersion vertex in the serverside.
+
+        :param newVertex: The new ComponentVersion vertex that is replacing the old ComponentVersion vertex.
+        :type newVertex: ComponentVersion
+
+        :param disable_time: When this vertex was disabled in the database (UNIX time).
+        :type disable_time: int
+        """
 
         # Step 1
         g.V(self.id()).property(
@@ -1223,7 +1246,14 @@ class Component(Vertex):
         type_edge.add()
 
     def replace(self, newVertex, disable_time: int = int(time.time())):
-        """Editing the vertex"""
+        """Replaces the Component vertex in the serverside.
+
+        :param newVertex: The new Component vertex that is replacing the old Component vertex.
+        :type newVertex: Component
+
+        :param disable_time: When this vertex was disabled in the database (UNIX time).
+        :type disable_time: int
+        """
 
         # Step 1
         g.V(self.id()).property(
@@ -1618,9 +1648,27 @@ class Component(Vertex):
             .property('end_edit_time', edit_time) \
             .property('end_comments', comments).iterate()
 
-    def replace_property(self, propertyTypeName, property, time: int,
+    def replace_property(self, propertyTypeName: str, property, time: int,
                          uid: str, comments=""):
-        """
+        """Replaces the Component property vertex in the serverside.
+
+        :param propertyTypeName: The name of the property type being replaced.
+        :type propertyTypeName: str
+
+        :param property: The new property that is replacing the old property.
+        :type property: Property
+
+        :param time: The time at which the property was added (real time)
+        :type time: int
+
+        :param uid: The ID of the user that added the property
+        :type uid: str
+
+        :param comments: Comments to add with property change, defaults to ""
+        :type comments: str, optional
+
+        :param disable_time: When this vertex was disabled in the database (UNIX time).
+        :type disable_time: int
         """
 
         id = g.V(self.id()).bothE(RelationProperty.category).has('active', True).otherV().where(
@@ -1638,7 +1686,15 @@ class Component(Vertex):
         )
 
     def disable_property(self, propertyTypeName, disable_time: int = int(time.time())):
-        """Disabling a property"""
+        """Disables the property in the serverside
+
+        :param propertyTypeName: The name of the property type being replaced.
+        :type propertyTypeName: str
+
+        :param disable_time: When this vertex was disabled in the database (UNIX time).
+        :type disable_time: int
+
+        """
 
         g.V(self.id()).bothE(RelationProperty.category).has('active', True).where(__.otherV().bothE(RelationPropertyType.category).otherV().properties('name').value().is_(propertyTypeName)).property('active', False).property(
             'time_disabled', disable_time).next()
@@ -1805,7 +1861,27 @@ class Component(Vertex):
             )
 
     def replace_connection(self, otherComponent, time, uid, comments, disable_time: int = int(time.time())):
-        """Replacing an edge"""
+        """
+        Given another Component :param component:,
+        replace the existing connection between them.
+
+        :param otherComponent: Another Component that this component has connection with.
+        :type othercomponent: Component
+
+        :param time: The time at which these components were connected 
+        (real time)
+        :type time: int
+
+        :param uid: The ID of the user that connected the components
+        :type uid: str
+
+        :param comments: Comments to add with the connection, defaults to ""
+        :type comments: str, optional
+
+        :param disable_time: When this edge was disabled in the database (UNIX time).
+        :type disable_time: int
+
+        """
 
         # old_edge_id = g.V(self.id()).bothE(RelationConnection.category).where(
         #     __.otherV().hasId(otherComponent.id())).id().next()
@@ -1826,7 +1902,15 @@ class Component(Vertex):
         # g.E(old_edge_id).property('replacement', new_edge_id)
 
     def disable_connection(self, otherComponent, disable_time: int = int(time.time())):
-        """Disabling connection"""
+        """Disables the connection in the serverside
+
+        :param otherComponent: Another Component that this component has connection with.
+        :type othercomponent: Component
+
+        :param disable_time: When this edge was disabled in the database (UNIX time).
+        :type disable_time: int    
+
+        """
 
         g.V(self.id()).bothE(RelationConnection.category).where(
             __.otherV().hasId(otherComponent.id())).property('active', False).property(
@@ -2065,7 +2149,7 @@ class Component(Vertex):
 
         if component_to_subcomponent is not None:
             raise ComponentIsSubcomponentOfOtherComponentError(
-                f"Component {self.name} is already a subcomponent of {component.name}"
+                f"Component {component.name} is already a subcomponent of {self.name}"
             )
 
         if current_subcomponent is not None:
@@ -2116,7 +2200,15 @@ class Component(Vertex):
         )
 
     def disable_subcomponent(self, otherComponent, disable_time: int = int(time.time())):
-        """Disabling an edge for a subcomponent"""
+        """Disabling an edge for a subcomponent
+
+        :param otherComponent: Another Component that this component has connection 'rel_subcomponent' with.
+        :type othercomponent: Component
+
+        :param disable_time: When this edge was disabled in the database (UNIX time).
+        :type disable_time: int
+
+        """
 
         g.V(self.id()).bothE(RelationSubcomponent.category).where(
             __.otherV().hasId(otherComponent.id())).property('active', False).property(
@@ -2715,7 +2807,14 @@ class PropertyType(Vertex):
             e.add()
 
     def replace(self, newVertex, disable_time: int = int(time.time())):
-        """Editing the vertex"""
+        """Replaces the PropertyType vertex in the serverside.
+
+        :param newVertex: The new PropertyType vertex that is replacing the old PropertyType vertex.
+        :type newVertex: PropertyType
+
+        :param disable_time: When this vertex was disabled in the database (UNIX time).
+        :type disable_time: int
+        """
 
         # Step 1
         g.V(self.id()).property(
@@ -3234,7 +3333,14 @@ class FlagType(Vertex):
         Vertex.add(self=self, attributes=attributes)
 
     def replace(self, newVertex, disable_time: int = int(time.time())):
-        """Editing the vertex"""
+        """Replaces the FlagType vertex in the serverside.
+
+        :param newVertex: The new FlagType vertex that is replacing the old FlagType vertex.
+        :type newVertex: FlagType
+
+        :param disable_time: When this vertex was disabled in the database (UNIX time).
+        :type disable_time: int
+        """
 
         # Step 1
         g.V(self.id()).property(
@@ -3507,7 +3613,14 @@ class FlagSeverity(Vertex):
         Vertex.add(self=self, attributes=attributes)
 
     def replace(self, newVertex, disable_time: int = int(time.time())):
-        """Editing the vertex"""
+        """Replaces the FlagSeverity vertex in the serverside.
+
+        :param newVertex: The new FlagSeverity vertex that is replacing the old FlagSeverity vertex.
+        :type newVertex: FlagSeverity
+
+        :param disable_time: When this vertex was disabled in the database (UNIX time).
+        :type disable_time: int
+        """
 
         # Step 1
         g.V(self.id()).property(
@@ -3849,7 +3962,14 @@ class Flag(Vertex):
             e.add()
 
     def replace(self, newVertex, disable_time: int = int(time.time())):
-        """Editing the vertex"""
+        """Replaces the Flag vertex in the serverside.
+
+        :param newVertex: The new Flag vertex that is replacing the old Flag vertex.
+        :type newVertex: Flag
+
+        :param disable_time: When this vertex was disabled in the database (UNIX time).
+        :type disable_time: int
+        """
 
         # Step 1
         g.V(self.id()).property(

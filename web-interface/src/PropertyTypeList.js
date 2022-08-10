@@ -6,27 +6,9 @@ import PropertyTypeFilter from './PropertyTypeFilter.js';
 import Button from '@mui/material/Button'
 import PropertyTypeAddButton from './PropertyTypeAddButton.js';
 import PropertyTypeReplaceButton from './PropertyTypeReplaceButton.js';
-import styled from '@mui/material/styles/styled';
-import DeleteIcon from '@mui/icons-material/Delete';
 
-/*
-A MUI component representing a button for disabling a component version.
- */
-const DisableButton = styled((props) => (
-    <Button 
-    style={{
-        maxWidth: '40px', 
-        maxHeight: '30px', 
-        minWidth: '30px', 
-        minHeight: '30px',
-    }}
-    {...props}
-        variant="outlined">
-        <DeleteIcon/>
-    </Button>
-))(({ theme }) => ({
-    
-}))
+
+
 
 
 /**
@@ -72,29 +54,6 @@ export default function PropertyTypeList() {
     const [filters, setFilters] = useState([]);
 
     
-    /**
-     * Disable a Property Tyep.
-     * @param {string} name - the name of the PropertyType which is being disabled.
-     * @returns 
-     */
-    async function disablePropertyType(name) {
-        
-        // build up the string to query the API
-        let input = `/api/disable_property_type`;
-        input += `?name=${name}`;
-
-        return new Promise((resolve, reject) => {
-            fetch(input).then(
-                res => res.json()
-            ).then(data => {
-                if (data.result) {
-                    toggleReload();
-                }
-                resolve(data.result);
-            });
-        });
-
-    }
 
     /**
      * add an empty filter to filters
@@ -277,10 +236,7 @@ export default function PropertyTypeList() {
         },
         {
 
-        },
-        {
-
-        },
+        }
     ];
 
     /**
@@ -303,14 +259,7 @@ export default function PropertyTypeList() {
         name = {e.name}
         componentTypes={componentTypes}
         toggleReload={toggleReload}
-        />,
-        <DisableButton
-        onClick={
-            ()=>{
-                disablePropertyType(e.name)
-            }
-        }
-        />,
+        />
     ]);
 
 

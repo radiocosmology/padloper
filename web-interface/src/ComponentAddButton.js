@@ -24,9 +24,6 @@ import ErrorIcon from '@mui/icons-material/Error';
   // opens and closes the pop up form.
   const [open, setOpen] = useState(false);
 
-  // Cannot add a component without a name
-  const [componentNameError,setComponentNameError] = useState(false)
-
   // stores the component name
   const [name,setName] = useState('')
 
@@ -35,10 +32,9 @@ import ErrorIcon from '@mui/icons-material/Error';
   const [nameList,setNameList] = useState([])
 
   /*
-  To display an error message when a user tries to add a new component but a 
-  component with the same name already exists in the database.
+  To display an error message when a user tries to add a new component.
   */
-  const [isError,setIsError] = useState(false)
+  const [errorData,setErrorData] = useState(null)
 
   // stores the component type name selected in the pop up form
   const [componentType,setComponentType] = useState('')
@@ -88,9 +84,6 @@ import ErrorIcon from '@mui/icons-material/Error';
  
   // adds the component name in the chipData array of objects and displays the name on the pop up form
   const handleSubmit2 = () => {
-      if(name){
-          setComponentNameError(false)
-          setIsError(false)
           setChipData((prevState)=>{
             return prevState.concat(
               [
@@ -107,9 +100,6 @@ import ErrorIcon from '@mui/icons-material/Error';
                             [...prevState,name]
                         )
                     })
-      } else {
-        setComponentNameError(true)
-      }
             }
 
 
@@ -126,8 +116,7 @@ import ErrorIcon from '@mui/icons-material/Error';
   */
   const handleClose = () => {
     setOpen(false);
-    setComponentNameError(false)
-    setIsError(false)
+    setErrorData(null)
     setName('')
     setComponentVersion('')
     setComponentType('')
@@ -148,15 +137,16 @@ import ErrorIcon from '@mui/icons-material/Error';
     input += `&type=${componentType}`;
     input += `&version=${componentVersion}`;
     axios.post(input).then((response)=>{
-                toggleReload() //To reload the list of components once the form has been submitted.
-                handleClose()
-    }).catch(error => {
-      if(error.message === 'Request failed with status code 500'){
-        setIsError(true)
-        handleAlertClose()
+      if(response.data.result){
+        toggleReload() //To reload the list of components once the form has been submitted.
+        handleClose()
       }
+      else{
+       setErrorData(response.data.error)
+       handleAlertClose()
+      }
+        
     })
-
   }
   
   return (
@@ -215,6 +205,10 @@ import ErrorIcon from '@mui/icons-material/Error';
         }}
         variant = 'contained'
         onClick={handleSubmit2}
+        disableElevation
+        disabled = {
+          name === ''
+        }
         >Add
         </Button>
         </div>
@@ -272,35 +266,15 @@ import ErrorIcon from '@mui/icons-material/Error';
     display:'flex'
     }}>
       {
-      componentNameError ? 
+        errorData
+        ?
       <>
       <ErrorIcon
       fontSize='small'
       /> 
-      Component name cannot be empty
-      </> 
-      : 
-      isError 
-      ? 
-      <>
-      <ErrorIcon
-      fontSize='small'
-      /> 
-      Components with names: {
-        nameList.map((item)=>{
-          return (
-            components.filter((component)=> component.name === item).map((element)=> 
-            {
-              return(
-                  `[${element.name}]`
-              )
-            }
-            )
-            )
-        })
-      } already exist in the database.
+      {errorData}
       </>
-      : 
+      :
       null}
     </div>
         </DialogContent>

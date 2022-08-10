@@ -51,7 +51,7 @@ export default function PropertyTypeAddButton ({componentTypes,toggleReload}) {
   const [loading, setLoading] = useState(false);
 
   /*To display an error message when a user tries to add a new property type but a property tpye with the same name already exists in the database. */
-  const [isError,setIsError] = useState(false)
+  const [errorData,setErrorData] = useState(null)
 
 
   /*
@@ -87,7 +87,7 @@ export default function PropertyTypeAddButton ({componentTypes,toggleReload}) {
   */
   const handleClose = () => {
     setOpen(false);
-    setIsError(false)
+    setErrorData(null)
     setLoading(false)
     setComponentTypeName([])
     setProperty({
@@ -110,13 +110,13 @@ export default function PropertyTypeAddButton ({componentTypes,toggleReload}) {
     input += `&values=${property.values}`;
     input += `&comments=${property.comment}`;
     axios.post(input).then((response)=>{
-          toggleReload() //To reload the page once the form has been submitted.
-          handleClose()
-    }).catch(error=> {
-        if(error.message === 'Request failed with status code 500'){
-          setIsError(true)
-        }
-      })
+      if(response.data.result){
+        toggleReload() //To reload the page once the form has been submitted.
+        handleClose()
+      } else {
+        setErrorData(response.data.error)
+      }
+    })
   }
 
   return (
@@ -246,15 +246,15 @@ export default function PropertyTypeAddButton ({componentTypes,toggleReload}) {
     alignItems:'center'
     }}>
       {
-      isError 
-      ? 
+        errorData
+        ?
       <>
       <ErrorIcon
       fontSize='small'
       /> 
-      A property type with the same name already exists in the database
+      {errorData}
       </>
-      : 
+      :
       null}
     </div>
 

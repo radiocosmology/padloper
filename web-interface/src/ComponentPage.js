@@ -30,6 +30,7 @@ import SettingsInputComponentIcon from '@mui/icons-material/SettingsInputCompone
 import ReportIcon from '@mui/icons-material/Report';
 import EastIcon from '@mui/icons-material/East';
 import KeyboardBackspaceIcon from '@mui/icons-material/KeyboardBackspace';
+import axios from 'axios'
 
 
 
@@ -367,6 +368,16 @@ function ComponentPage() {
         setReloadBool(!reloadBool);
     }
 
+    /*Contains the message when there is an error while adding a new subcomponent connection */
+    const [errorSubcomponentMessage,setErrorSubcomponentMessage] = useState(null)
+
+    /*Contains the message when there is an error while adding a new subcomponent connection */
+    const [errorPropertyMessage,setErrorPropertyMessage] = useState(null)
+
+    /*Contains the message when there is an error while adding a new subcomponent connection */
+    const [errorConnectionMessage,setErrorConnectionMessage] = useState(null)
+
+
     /**
      * Set a property for the component.
      * @param {string} propertyType - the name of the property tyoe
@@ -391,12 +402,17 @@ function ComponentPage() {
         }
         input = input.substring(0, input.length - 1);
 
-        fetch(input).then(
-            res => res.json()
-        ).then(data => {
-            setOpenPropertiesAddPanel(false);
-            toggleReload();
-        });
+        axios.post(input).then(
+            (response) => {
+                if(response.data.result){
+                    setOpenPropertiesAddPanel(false);
+                    setErrorPropertyMessage(null)
+                    toggleReload();
+                } else {
+                    setErrorPropertyMessage(response.data.error)
+                }
+            }
+        )
     }
 
     async function endProperty(time, uid, comments) {
@@ -418,7 +434,7 @@ function ComponentPage() {
     }
 
     /**
-     * Edit a property for the component.
+     * Replace a property for the component.
      * @param {int} time - the time at which to add the property 
      * @param {string} uid - the ID of the user that is adding the property
      * @param {string} comments - the comments associated with the property 
@@ -468,18 +484,17 @@ function ComponentPage() {
         input += `&uid=${uid}`;
         input += `&comments=${comments}`;
 
-        return new Promise((resolve, reject) => {
-            fetch(input).then(
-                res => res.json()
-            ).then(data => {
-                if (data.result) {
+        axios.post(input).then(
+                (response) => {
+                    if(response.data.result) {
                     setOpenConnectionsAddPanel(false);
+                    setErrorConnectionMessage(null)
                     toggleReload();
+                } else {
+                    setErrorConnectionMessage(response.data.error)
+                    console.log(response.data.error)
                 }
-                resolve(data.result);
             });
-        });
-
     }
 
     async function endConnection(time, uid, comments) {
@@ -541,18 +556,16 @@ function ComponentPage() {
         input += `?name1=${name}`;
         input += `&name2=${otherName}`;
 
-        return new Promise((resolve, reject) => {
-            fetch(input).then(
-                res => res.json()
-            ).then(data => {
-                if (data.result) {
+        axios.post(input).then(
+                (response) => {
+                if (response.data.result) {
                     setOpenSubcomponentsAddPanel(false);
+                    setErrorSubcomponentMessage(null)
                     toggleReload();
+                } else {
+                    setErrorSubcomponentMessage(response.data.error)
                 }
-                resolve(data.result);
-            });
-        });
-
+            })
     }
 
     /**
@@ -668,8 +681,9 @@ function ComponentPage() {
         let properties_add_panel_content = (open_properties_add_panel) ? (
             <ComponentPropertyAddPanel 
                 theme={theme} 
-                onClose={() => setOpenPropertiesAddPanel(false)}
+                onClose={() => {setOpenPropertiesAddPanel(false); setErrorPropertyMessage(null)}}
                 onSet={setProperty}
+                errorPropertyMessage={errorPropertyMessage}
             />
         ) : <></>;
         
@@ -806,9 +820,10 @@ function ComponentPage() {
         let connections_add_panel_content = (open_connections_add_panel) ? (
             <ComponentConnectionAddPanel 
                 theme={theme} 
-                onClose={() => setOpenConnectionsAddPanel(false)}
+                onClose={() => {setOpenConnectionsAddPanel(false); setErrorConnectionMessage(null) }}
                 onSet={addConnection}
                 name={name}
+                errorConnectionMessage = {errorConnectionMessage}
             />
         ) : <></>;
 
@@ -950,9 +965,10 @@ function ComponentPage() {
     let subcomponent_add_panel_content = (open_subcomponents_add_panel) ? (
     <ComponentSubcomponentAddPanel 
         theme={theme} 
-        onClose={() => setOpenSubcomponentsAddPanel(false)}
+        onClose={() => {setOpenSubcomponentsAddPanel(false); setErrorSubcomponentMessage(null)}}
         onSet={addSubcomponent}
         name={name}
+        errorSubcomponentMessage = {errorSubcomponentMessage}
     />
         ) : <></>;
 

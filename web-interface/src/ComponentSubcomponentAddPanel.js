@@ -5,7 +5,6 @@ import Button from '@mui/material/Button';
 import Box from '@mui/material/Box';
 import Grid from '@mui/material/Grid';
 import CircularProgress from '@mui/material/CircularProgress';
-import MuiTextField from '@mui/material/TextField';
 
 import CloseIcon from '@mui/icons-material/Close';
 import ErrorIcon from '@mui/icons-material/Error';
@@ -33,17 +32,6 @@ const Panel = styled((props) => (
     padding: theme.spacing(2),
 }));
 
-/**
- * Just a renaming of a filled text field (so no need to type variant="filled"
- * each time)
- */
-const TextField = styled((props) => (
-    <MuiTextField 
-        variant="filled"
-        {...props}
-    />
-))(({ theme }) => ({
-}));
 
 /**
  * Close button used in the panel
@@ -81,7 +69,8 @@ function ComponentSubcomponentAddPanel(
         theme,
         onClose,
         onSet,
-        name
+        name,
+        errorSubcomponentMessage
     }
 ) {
 
@@ -92,9 +81,6 @@ function ComponentSubcomponentAddPanel(
     // whether the panel is loading: usually happens after the "Connect" button
     // is made, waiting for a response from the DB.
     const [loading, setLoading] = useState(false);
-
-    // the body of an error message to display, if any.
-    const [errorMessage, setErrorMessage] = useState("");
 
     // function to select an option. I'm not even sure why I have this...
     function selectOption(option) {
@@ -137,15 +123,17 @@ function ComponentSubcomponentAddPanel(
 
                 </Grid>
 
-                {errorMessage !== "" ? 
-                    <Grid 
-                        container 
+                {
+                errorSubcomponentMessage
+                ? 
+                <Grid 
+                container 
                         style={{
                             marginTop: theme.spacing(1),
                         }}
                         spacing={1}
                         justifyContent="center"
-                    >
+                        >
                         <Grid item>
                             <ErrorIcon sx={{color: 'red'}} />
                         </Grid>
@@ -154,15 +142,14 @@ function ComponentSubcomponentAddPanel(
                                 style={{
                                     color: 'rgb(255,0,0)',
                                 }}
-                            >
-                                {errorMessage}
+                                >
+                                {errorSubcomponentMessage}
                             </Typography>
                         </Grid>
-                    </Grid> : <></>
+                    </Grid> 
+                    : 
+                    <></>
                 }
-
-                
-
                 <Box 
                     style={{
                         textAlign: "right",
@@ -178,19 +165,9 @@ function ComponentSubcomponentAddPanel(
                         }
                         onClick={
                             async () => {
-                                setErrorMessage("");
                                 setLoading(true);
                                 onSet(
                                     selectedOption.name,
-                                ).then(
-                                    successful => {
-                                        if (successful === false) {
-                                            setLoading(false);
-                                            setErrorMessage(`${name} is 
-                                            already a subcomponent of 
-                                            ${selectedOption.name} `);
-                                        }
-                                    }
                                 )
                             }
                         }
@@ -200,6 +177,9 @@ function ComponentSubcomponentAddPanel(
                          * is spinning.
                          */}
                         {loading ? 
+                        errorSubcomponentMessage ?
+                        "Set"
+                        :
                         <CircularProgress
                             size={24}
                             sx={{

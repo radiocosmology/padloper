@@ -12,26 +12,6 @@ import ComponentVersionReplaceButton from './ComponentVersionReplaceButton.js';
 import styled from '@mui/material/styles/styled';
 import DeleteIcon from '@mui/icons-material/Delete';
 
-/*
-A MUI component representing a button for disabling a component version.
- */
-const DisableButton = styled((props) => (
-    <Button 
-    style={{
-        maxWidth: '40px', 
-        maxHeight: '30px', 
-        minWidth: '30px', 
-        minHeight: '30px',
-    }}
-    {...props}
-        variant="outlined">
-        <DeleteIcon/>
-    </Button>
-))(({ theme }) => ({
-    
-}))
-
-
 /**
  * A MUI component that renders a list of component versions.
  */
@@ -146,31 +126,6 @@ function ComponentVersionList() {
     function toggleReload() {
         setReloadBool(!reloadBool);
     }
-
-    /**
-     * Disable a component Version.
-     * @param {string} name - the name of the componentVersion which is being disabled.
-     * @returns 
-     */
-    async function disableComponentVersion(name,allowed_type) {
-        
-        // build up the string to query the API
-        let input = `/api/disable_component_version`;
-        input += `?name=${name}`;
-        input += `&allowed_type=${allowed_type}`;
-
-        return new Promise((resolve, reject) => {
-            fetch(input).then(
-                res => res.json()
-            ).then(data => {
-                if (data.result) {
-                    toggleReload();
-                }
-                resolve(data.result);
-            });
-        });
-
-    }
       
    /**
     * The function that updates the list of component versions when the site is 
@@ -268,10 +223,7 @@ function ComponentVersionList() {
         },
         {
 
-        },
-        {
-
-        },
+        }
     ];
 
     /**
@@ -287,13 +239,6 @@ function ComponentVersionList() {
         componentTypes={componentTypes}
         name = {e.name}
         toggleReload={toggleReload}
-        />,
-        <DisableButton
-        onClick={
-            ()=>{
-                disableComponentVersion(e.name,e.allowed_type.name)
-            }
-        }
         />
     ]);
 

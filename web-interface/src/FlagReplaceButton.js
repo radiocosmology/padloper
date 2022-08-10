@@ -84,7 +84,7 @@ export default function FlagReplaceButton ({flag_types,flag_severities,flag_comp
   /*
    To display an error message when a user tried to add a new flag but a flag with the same name already exists in the database.
    */
-  const [isError,setIsError] = useState(false)
+  const [errorData,setErrorData] = useState(null)
 
 
   // Function that updates the list of component selected by the user in the pop up form.
@@ -119,7 +119,7 @@ export default function FlagReplaceButton ({flag_types,flag_severities,flag_comp
   const handleClose = () => {
     setOpen(false);
     setLoading(false)
-    setIsError(false)
+    setErrorData(null)
     setStartTime(0)
     setComponentName([])
     setProperty({
@@ -150,11 +150,11 @@ export default function FlagReplaceButton ({flag_types,flag_severities,flag_comp
       input += `&flag_components=${componentName.join(';')}`;
       input += `&flag=${nameFlag}`;
       axios.post(input).then((response)=>{
-              toggleReload() //To reload the page once the form has been submitted.
-              handleClose()
-      }).catch(error=> {
-        if(error.message === 'Request failed with status code 500'){
-          setIsError(true)
+        if(response.data.result){
+          toggleReload() //To reload the page once the form has been submitted.
+          handleClose()
+        } else {
+          setErrorData(response.data.error)
         }
       })
     } 
@@ -400,16 +400,16 @@ export default function FlagReplaceButton ({flag_types,flag_severities,flag_comp
     display:'flex',
     alignItems:'center'
     }}>
-      {
-      isError 
-      ? 
+       {
+        errorData
+        ?
       <>
       <ErrorIcon
       fontSize='small'
       /> 
-      A flag with the same name already exists in the database
+      {errorData}
       </>
-      : 
+      :
       null}
     </div>
 
