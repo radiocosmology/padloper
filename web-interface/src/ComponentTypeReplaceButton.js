@@ -74,7 +74,7 @@ export default function ComponentTypeReplaceButton ({toggleReload,name}) {
 
   const handleSubmit = (e) => {
       e.preventDefault() // To preserve the state once the form is submitted.
-      
+      setLoading(true)
       let input = `/api/replace_component_type`;
       input += `?name=${componentType}`;
       input += `&comments=${comment}`;

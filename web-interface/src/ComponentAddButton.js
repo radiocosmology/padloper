@@ -132,6 +132,7 @@ import ErrorIcon from '@mui/icons-material/Error';
    */
   const handleSubmit = (e) => {
     e.preventDefault() // To preserve the state once the form is submitted.
+    setLoading(true)
     let input = `/api/set_component`;
     input += `?name=${nameList.sort().join(';')}`;
     input += `&type=${componentType}`;

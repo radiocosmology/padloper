@@ -52,7 +52,7 @@ export default function ComponentTypeAddButton ({toggleReload}) {
 
   const handleSubmit = (e) => {
       e.preventDefault() // To preserve the state once the form is submitted.
-      
+      setLoading(true)
       let input = `/api/set_component_type`;
       input += `?name=${componentType}`;
       input += `&comments=${comment}`;

@@ -101,7 +101,7 @@ export default function PropertyTypeAddButton ({componentTypes,toggleReload}) {
 
   const handleSubmit = (e) => {
     e.preventDefault() // To preserve the state once the form is submitted.
-
+    setLoading(true)
     let input = `/api/set_property_type`;
     input += `?name=${property.name}`;
     input += `&type=${componentTypeName.join(';')}`;
@@ -173,7 +173,6 @@ export default function PropertyTypeAddButton ({componentTypes,toggleReload}) {
         marginTop:'10px',
     }}>
           <TextField
-            autoFocus
             margin="dense"
             id="units"
             label="Units"
@@ -190,7 +189,6 @@ export default function PropertyTypeAddButton ({componentTypes,toggleReload}) {
         marginBottom:'10px'
     }}>
           <TextField
-            autoFocus
             margin="dense"
             id="Allowed Regex"
             label="Allowed Regex"

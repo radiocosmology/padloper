@@ -67,6 +67,7 @@ export default function FlagTypeReplaceButton ({nameFlagType,toggleReload}) {
 
   const handleSubmit = (e) => {
     e.preventDefault() // To preserve the state once the form is submitted.
+    setLoading(true)
     let input = `/api/replace_flag_type`;
     input += `?name=${name}`;
     input += `&comments=${comment}`;

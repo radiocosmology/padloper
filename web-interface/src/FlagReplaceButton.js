@@ -138,6 +138,7 @@ export default function FlagReplaceButton ({flag_types,flag_severities,flag_comp
 
   const handleSubmit = (e) => {
       e.preventDefault() // To preserve the state once the form is submitted.
+      setLoading(true)
       let input = `/api/replace_flag`;
       input += `?name=${property.name}`;
       input += `&start_time=${startTime}`;

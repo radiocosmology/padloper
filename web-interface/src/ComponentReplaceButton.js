@@ -84,6 +84,7 @@ const ReplaceButton = styled((props) => (
    */
   const handleSubmit = (e) => {
     e.preventDefault() // To preserve the state once the form is submitted.
+    setLoading(true)
     let input = `/api/replace_component`;
     input += `?name=${name}`;
     input += `&type=${componentType}`;

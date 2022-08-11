@@ -77,7 +77,7 @@ export default function FlagEndButton ({toggleReload,name}){
 
   const handleSubmit = (e) => {
       e.preventDefault() // To preserve the state once the form is submitted.
-
+      setLoading(true)
       let input = `/api/unset_flag`;
       input += `?name=${name}`;
       input += `&end_time=${endTime}`;

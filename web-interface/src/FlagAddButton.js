@@ -117,6 +117,7 @@ export default function FlagAddButton ({flag_types,flag_severities,flag_componen
 
   const handleSubmit = (e) => {
       e.preventDefault() // To preserve the state once the form is submitted.
+      setLoading(true)
       let input = `/api/set_flag`;
       input += `?name=${property.name}`;
       input += `&start_time=${startTime}`;

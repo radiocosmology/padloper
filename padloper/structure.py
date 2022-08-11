@@ -172,47 +172,57 @@ class Vertex(Element):
 
         g.V(self.id()).property('replacement', id).iterate()
 
-        traversal1e = g.V(self.id()).outE().valueMap().toList()
-        traversal1v = g.V(self.id()).out().id().toList()
+        o_edges_values_list = g.V(self.id()).outE().valueMap().toList()
+        o_vertices_list = g.V(self.id()).out().id().toList()
 
-        for i in range(len(traversal1v)):
+        for i in range(len(o_vertices_list)):
 
-            if(traversal1e[i]['category'] == RelationVersionAllowedType.category or RelationPropertyAllowedType.category or
-               RelationFlagSeverity.category or
-               RelationFlagType.category or
-               RelationComponentType.category or
-               RelationVersion.category
-               ):
-                pass
+            if o_edges_values_list[i]['category'] == RelationVersionAllowedType.category:
+                continue
+            if o_edges_values_list[i]['category'] == RelationPropertyAllowedType.category:
+                continue
+            if o_edges_values_list[i]['category'] == RelationFlagSeverity.category:
+                continue
+            if o_edges_values_list[i]['category'] == RelationFlagType.category:
+                continue
+            if o_edges_values_list[i]['category'] == RelationComponentType.category:
+                continue
+            if o_edges_values_list[i]['category'] == RelationVersion.category:
+                continue
 
-            else:
-                query1 = g.V(id).addE(traversal1e[i]['category']).to(__.V().hasId(traversal1v[i])).as_(
-                    'e1').select('e1')
+            query1 = g.V(id).addE(o_edges_values_list[i]['category']).to(__.V().hasId(o_vertices_list[i])).as_(
+                'e1').select('e1')
 
-                traversal = g.V(self.id()).outE()[i].properties().toList()
+            traversal = g.V(self.id()).outE()[i].properties().toList()
 
-                for i2 in range(len(traversal)):
-                    query1 = query1.property(
-                        traversal[i2].key, traversal[i2].value).iterate()
+            for i2 in range(len(traversal)):
+                query1 = query1.property(
+                    traversal[i2].key, traversal[i2].value)
 
-            if i == (len(traversal1v)-1):
+                if i2 == (len(traversal)-1):
+                    query1 = query1.next()
+
+            if i == (len(o_vertices_list)-1):
                 g.V(self.id()).outE().drop().iterate()
 
-        traversal2e = g.V(self.id()).inE().valueMap().toList()
-        traversal2v = g.V(self.id()).in_().id().toList()
+        i_edges_values_list = g.V(self.id()).inE().valueMap().toList()
+        i_vertices_list = g.V(self.id()).in_().id().toList()
 
-        for j in range(len(traversal2v)):
+        for j in range(len(i_vertices_list)):
 
-            query2 = g.V(id).addE(traversal2e[j]['category']).from_(__.V().hasId(
-                traversal2v[j])).as_('e2').select('e2')
+            query2 = g.V(id).addE(i_edges_values_list[j]['category']).from_(__.V().hasId(
+                i_vertices_list[j])).as_('e2').select('e2')
 
             traversal = g.V(self.id()).inE()[j].properties().toList()
 
             for j2 in range(len(traversal)):
                 query2 = query2.property(
-                    traversal[j2].key, traversal[j2].value).iterate()
+                    traversal[j2].key, traversal[j2].value)
 
-            if j == (len(traversal2v)-1):
+                if j2 == (len(traversal)-1):
+                    query2 = query2.next()
+
+            if j == (len(i_vertices_list)-1):
                 g.V(self.id()).inE().drop().iterate()
 
     def disable(self, disable_time: int = int(time.time())):

@@ -123,7 +123,7 @@ export default function PropertyTypeReplaceButton ({name,componentTypes,toggleRe
 
   const handleSubmit = (e) => {
     e.preventDefault() // To preserve the state once the form is submitted.
-
+    setLoading(true)
     let input = `/api/replace_property_type`;
     input += `?name=${property.name}`;
     input += `&type=${componentTypeName.join(';')}`;

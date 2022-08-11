@@ -82,7 +82,7 @@ export default function ComponentVersionReplaceButton ({name,allowed_type,compon
 
   const handleSubmit = (e) => {
       e.preventDefault() // To preserve the state once the form is submitted.
-
+      setLoading(true)
       let input = `/api/replace_component_version`;
       input += `?name=${componentVersion}`;
       input += `&type=${inputComponentType}`;
