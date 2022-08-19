@@ -152,6 +152,8 @@ def set_component_type():
     comments - the comments associated with the component type.
 
     :return: A dictionary with a key 'result' of corresponding value True
+    if the request was successful, otherwise, a dictionary with a key 'error'
+    with the corresponding value of appropriate exception.  
     :rtype: dict
     """
     try:
@@ -168,6 +170,7 @@ def set_component_type():
 
     except Exception as e:
 
+        # For printing the exception in the terminal.
         print(e)
 
         return {'error': json.dumps(e, default=str)}
@@ -180,13 +183,15 @@ def replace_component_type():
 
     The URL parameters are:
 
-    name - the name of the component type.
+    name - the name of the new component type.
 
-    comments - the comments associated with the component type.
+    comments - the comments associated with the new component type.
 
-    component_type - the name of the old component type being replaced
+    component_type - the name of the old component type being replaced.
 
     :return: A dictionary with a key 'result' of corresponding value True
+    if the request was successful, otherwise, a dictionary with a key 'error'
+    with the corresponding value of appropriate exception.  
     :rtype: dict
     """
     try:
@@ -195,9 +200,10 @@ def replace_component_type():
         val_comments = escape(request.args.get('comments'))
         val_component_type = escape(request.args.get('component_type'))
 
-        # Need to initialize an instance of a component type first.
+        # Need to initialize an instance of the new component type first.
         component_type_new = ComponentType(val_name, val_comments)
 
+        # Gets the old component type from the database.
         component_type_old = ComponentType.from_db(val_component_type)
 
         component_type_old.replace(component_type_new)
@@ -225,6 +231,8 @@ def set_component_version():
     comments - the comments associated with the component version.
 
     :return: A dictionary with a key 'result' of corresponding value True
+    if the request was successful, otherwise, a dictionary with a key 'error'
+    with the corresponding value of appropriate exception.  
     :rtype: dict
     """
     try:
@@ -233,7 +241,7 @@ def set_component_version():
         val_type = escape(request.args.get('type'))
         val_comments = escape(request.args.get('comments'))
 
-        # Query the database and return a ComponentType instance based on component type.
+        # Query the database and return a ComponentType instance based on component type name.
         component_type = ComponentType.from_db(val_type)
 
         # Need to initialize an instance of a component version first.
@@ -258,17 +266,19 @@ def replace_component_version():
 
     The URL parameters are:
 
-    name - the name of the component version.
+    name - the name of the new component version.
 
     type - the name of the component type.
 
-    comments - the comments associated with the component version.
+    comments - the comments associated with the new component version.
 
     component_version - the name of the old component verson being replaced.
 
     component_version_allowed_type - the name of the component type of the component version being replaced.
 
     :return: A dictionary with a key 'result' of corresponding value True
+    if the request was successful, otherwise, a dictionary with a key 'error'
+    with the corresponding value of appropriate exception.  
     :rtype: dict
     """
     try:
@@ -280,10 +290,10 @@ def replace_component_version():
         val_component_version_allowed_type = escape(
             request.args.get('component_version_allowed_type'))
 
-        # Query the database and return a ComponentType instance based on component type.
+        # Query the database and return a ComponentType instance based on the new component type name.
         component_type_new = ComponentType.from_db(val_type)
 
-        # Query the database and return a ComponentType instance based on component type.
+        # Query the database and return a ComponentType instance based on the old component type name.
         component_type_old = ComponentType.from_db(
             val_component_version_allowed_type)
 
@@ -312,13 +322,15 @@ def set_component():
 
     The URL parameters are:
 
-    name - the name of the component.
+    name - list of names of components.
 
     type - the component type associated with the component type.
 
     version - the version associated with the component.
 
     :return: A dictionary with a key 'result' of corresponding value True
+    if the request was successful, otherwise, a dictionary with a key 'error'
+    with the corresponding value of appropriate exception.  
     :rtype: dict
     """
 
@@ -328,10 +340,11 @@ def set_component():
         val_type = escape(request.args.get('type'))
         val_version = escape(request.args.get('version'))
 
-        # Query the database and return the ComponentType instance based on component type.
+        # Query the database and return the ComponentType instance based on the component type name.
         component_type = ComponentType.from_db(val_type)
 
-        # Query the database and return the ComponentVersion instance based on component type.
+        # Query the database and return the ComponentVersion instance based on component version name and
+        # component type name.
         if val_version:
             component_version = ComponentVersion.from_db(
                 val_version, component_type)
@@ -361,15 +374,17 @@ def replace_component():
 
     The URL parameters are:
 
-    name - the name of the component.
+    name - the name of the new component.
 
-    type - the component type associated with the component type.
+    type - the component type associated with the new component.
 
-    version - the version associated with the component.
+    version - the version associated with the new component.
 
     component - the name of the component being replaced.
 
     :return: A dictionary with a key 'result' of corresponding value True
+    if the request was successful, otherwise, a dictionary with a key 'error'
+    with the corresponding value of appropriate exception.  
     :rtype: dict
     """
     try:
@@ -379,10 +394,11 @@ def replace_component():
         val_version = escape(request.args.get('version'))
         val_component = escape(request.args.get('component'))
 
-        # Query the database and return the ComponentType instance based on component type.
+        # Query the database and return the ComponentType instance based on the component type name.
         component_type = ComponentType.from_db(val_type)
 
-        # Query the database and return the ComponentVersion instance based on component type.
+        # Query the database and return the ComponentVersion instance based on component version name
+        # and component type name.
         if val_version:
             component_version = ComponentVersion.from_db(
                 val_version, component_type)
@@ -412,9 +428,11 @@ def disable_component():
 
     The URL parameters are:
 
-    name - the name of the component type.
+    name - the name of the component.
 
     :return: A dictionary with a key 'result' of corresponding value True
+    if the request was successful, otherwise, a dictionary with a key 'error'
+    with the corresponding value of appropriate exception.  
     :rtype: dict
     """
     val_name = escape(request.args.get('name'))
@@ -436,7 +454,7 @@ def set_property_type():
 
     name - the name of the property type.
 
-    type - the name of the allowed component type.
+    type - list of names of the allowed component types.
 
     units - the units of the property type.
 
@@ -447,6 +465,8 @@ def set_property_type():
     comments - the comments associated with the property type.
 
     :return: A dictionary with a key 'result' of corresponding value True
+    if the request was successful, otherwise, a dictionary with a key 'error'
+    with the corresponding value of appropriate exception.  
     :rtype: dict
     """
     try:
@@ -460,7 +480,7 @@ def set_property_type():
         val_comments = escape(request.args.get('comments'))
 
         allowed_list = []
-        # Query the database and return a list of ComponentType instance based on component type.
+        # Query the database and return a list of ComponentType instance based on component type name.
         for name in val_type:
             allowed_list.append(ComponentType.from_db(name))
         # Need to initialize an instance of a property type first.
@@ -485,21 +505,23 @@ def replace_property_type():
 
     The URL parameters are:
 
-    name - the name of the property type.
+    name - the name of the new property type.
 
-    type - the name of the allowed component type.
+    type - list of the name sof the allowed component types associated with the new property type.
 
-    units - the units of the property type.
+    units - the units of the new property type.
 
-    allowed_reg - the allowed regex of the property type.
+    allowed_reg - the allowed regex of the new property type.
 
-    values - number of values of the property type.
+    values - number of values of the new property type.
 
-    comments - the comments associated with the property type.
+    comments - the comments associated with the new property type.
 
     property_type - the name of the old property type being replaced.
 
     :return: A dictionary with a key 'result' of corresponding value True
+    if the request was successful, otherwise, a dictionary with a key 'error'
+    with the corresponding value of appropriate exception.  
     :rtype: dict
     """
     try:
@@ -514,7 +536,7 @@ def replace_property_type():
         val_property_type = escape(request.args.get('property_type'))
 
         allowed_list = []
-        # Query the database and return a list of ComponentType instance based on component type.
+        # Query the database and return a list of ComponentType instance based on the component type name.
         for name in val_type:
             allowed_list.append(ComponentType.from_db(name))
         # Need to initialize an instance of a property type first.
@@ -856,6 +878,8 @@ def set_component_property():
     valueCount - the number of values of the property.
 
     :return: A dictionary with a key 'result' of corresponding value True
+    if the request was successful, otherwise, a dictionary with a key 'error'
+    with the corresponding value of appropriate exception.  
     :rtype: dict
     """
     try:
@@ -948,18 +972,19 @@ def replace_component_property():
 
     name - the name of the component to replace the property for.
 
-    propertyType - the name of the property type of the property. This attribute remains same for both the old and the new property.
+    propertyType - the name of the property type of the property. 
+    This attribute remains same for both the old and the new property.
 
-    time - the UNIX time for when the property is set.
+    time - the UNIX time for when the new property is set.
 
-    uid - the ID of the user that set the property.
+    uid - the ID of the user that sets the new property.
 
-    comments - the comments associated with the property set.
+    comments - the comments associated with the new property.
 
-    values - the values of the property, of the form "<str>;<str>;...;<str>",
+    values - the values of the new property, of the form "<str>;<str>;...;<str>",
     separated by semicolons.
 
-    valueCount - the number of values of the property.
+    valueCount - the number of values of the new property.
 
     :return: A dictionary with a key 'result' of corresponding value True
     :rtype: dict
@@ -1031,7 +1056,8 @@ def add_component_connection():
 
     :return: Return a dictionary with a key 'result' and value being a boolean
     that is True if and only if the components were not already connected
-    beforehand.
+    beforehand, otherwise, a dictionary with a key 'error'
+    with the corresponding value of appropriate exception.  
     :rtype: dict
     """
     try:
@@ -1059,9 +1085,9 @@ def add_component_connection():
 
 @app.route("/api/component_end_connection")
 def end_component_connection():
-    """Given the names of the two components to connect, the time to make the
-    connection, the ID of the user making this connection, and the comments
-    associated with the connection, connect the two components.
+    """Given the names of the two components that are already connected, the time to end the
+    connection, the ID of the user ending this connection, and the comments
+    associated with ending the connection, end the conenction between the two components.
 
     The URL parameters are:
 
@@ -1069,14 +1095,14 @@ def end_component_connection():
 
     name2 - the name of the second component
 
-    time - the UNIX time for when the connection is made
+    time - the UNIX time for when the connection is ended
 
-    uid - the ID of the user that has made the connection
+    uid - the ID of the user that has ended the connection
 
-    comments - Comments associated with the connection
+    comments - Comments associated with the ending the connection
 
     :return: Return a dictionary with a key 'result' and value being a boolean
-    that is True if and only if the components were not already connected
+    that is True if and only if the components were not already disconnected
     beforehand.
     :rtype: dict
     """
@@ -1141,7 +1167,7 @@ def replace_component_connection():
 
 @app.route("/api/component_disable_connection")
 def disable_component_connection():
-    """Given the names of the two components to replace the connection between, disable the connection between the two components.
+    """Given the names of the two components to disable the connection between, disable the connection between the two components.
 
     The URL parameters are:
 
@@ -1207,7 +1233,8 @@ def add_component_subcomponent():
     name2 - the name of the subcomponent
 
     :return: Return a dictionary with a key 'result' and value being a boolean
-    that is True if and only if the component was not a subcomponent beforehand.
+    that is True if and only if the component was not a subcomponent beforehand,otherwise, a dictionary with a key 'error'
+    with the corresponding value of appropriate exception.  
     :rtype: dict
     """
     try:
@@ -1272,6 +1299,8 @@ def set_flag_type():
     comments - the comments associated with the flag type.
 
     :return: A dictionary with a key 'result' of corresponding value True
+    if the request was successful, otherwise, a dictionary with a key 'error'
+    with the corresponding value of appropriate exception.  
     :rtype: dict
     """
     try:
@@ -1308,6 +1337,8 @@ def replace_flag_type():
     flag_type - the name of the old flag type being replaced.
 
     :return: A dictionary with a key 'result' of corresponding value True
+    if the request was successful, otherwise, a dictionary with a key 'error'
+    with the corresponding value of appropriate exception.  
     :rtype: dict
     """
     try:
@@ -1404,6 +1435,8 @@ def set_flag():
     flag_components - A list of Component instances related to the flag.
 
     :return: A dictionary with a key 'result' of corresponding value True
+    if the request was successful, otherwise, a dictionary with a key 'error'
+    with the corresponding value of appropriate exception.  
     :rtype: dict
     """
     try:
@@ -1428,6 +1461,7 @@ def set_flag():
             for name in val_flag_components:
                 allowed_list.append(Component.from_db(name))
 
+        # This is the case when the user doesn't specify the end time while adding a flag.
         if(val_end_time == str(0)):
             # Need to initialize an instance of Flag first.
             flag = Flag(name=val_name, start_time=val_start_time,
@@ -1435,6 +1469,7 @@ def set_flag():
 
             flag.add()
 
+        # This is the case when the user specifies the end time while adding a flag.
         if(val_end_time != str(0)):
             # Need to initialize an instance of Flag first.
             flag = Flag(name=val_name, start_time=val_start_time,
@@ -1460,11 +1495,11 @@ def unset_flag():
 
     name - The name of the flag.
 
-    uid - The ID of the user adding the new flag.
+    uid - The ID of the user ending the flag.
 
     end_time - The end time of the flag.
 
-    comments - The comments relating to the flag.
+    comments - The comments related to ending the flag.
 
     :return: A dictionary with a key 'result' of corresponding value True
     :rtype: dict
@@ -1494,9 +1529,9 @@ def replace_flag():
 
     uid - The ID of the user adding the new flag.
 
-    start_time - The start time of the flag.
+    start_time - The start time of the new flag.
 
-    comments - The comments relating to the flag.
+    comments - The comments related to the new flag.
 
     flag_severity - The FlagSeverity instance representing the severity of the flag.
 
@@ -1507,6 +1542,8 @@ def replace_flag():
     flag - the name of the old flag being replaced.
 
     :return: A dictionary with a key 'result' of corresponding value True
+    if the request was successful, otherwise, a dictionary with a key 'error'
+    with the corresponding value of appropriate exception.  
     :rtype: dict
     """
     try:

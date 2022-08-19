@@ -77,12 +77,10 @@ function ComponentSubcomponentAddPanel(
     // what the "selected" other component is
     const [selectedOption, setSelectedOption] = useState(null);
 
-
-    // whether the panel is loading: usually happens after the "Connect" button
+    // whether the panel is loading: usually happens after the "Set" button
     // is made, waiting for a response from the DB.
     const [loading, setLoading] = useState(false);
 
-    // function to select an option. I'm not even sure why I have this...
     function selectOption(option) {
         setSelectedOption(option);
     }

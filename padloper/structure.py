@@ -163,18 +163,25 @@ class Vertex(Element):
             Vertex._cache_vertex(self)
 
     def replace(self, id):
-        """Replace the vertex in the JanusGraph DB with the new vertex by changing its property 'active' from true to false and transfering all the edges to the new vertex. The old vertex contains the ID of the new vertex as an attribute.
+        """Replaces the vertex in the JanusGraph DB with the new vertex by changing its property 'active' from true to false and transfering all the edges to the new vertex. The old vertex contains the ID of the new vertex as an attribute.
 
         :param id: ID of the new Vertex.
         :type id: int
 
         """
 
+        # The 'replacement' property now points to the new vertex that replaced the self vertex..
         g.V(self.id()).property('replacement', id).iterate()
 
+        # List of all the properties of the outgoing edges from the self vertex.
         o_edges_values_list = g.V(self.id()).outE().valueMap().toList()
+
+        # List of all the outgoing vertices connected to the self vertex.
         o_vertices_list = g.V(self.id()).out().id().toList()
 
+        # These edges are not copied when replacing a vertex because these edges
+        # are selected by the user while adding a new component version, or a new property type, or a new flag
+        # or a new component respectively.
         for i in range(len(o_vertices_list)):
 
             if o_edges_values_list[i]['category'] == RelationVersionAllowedType.category:
@@ -190,18 +197,22 @@ class Vertex(Element):
             if o_edges_values_list[i]['category'] == RelationVersion.category:
                 continue
 
-            query1 = g.V(id).addE(o_edges_values_list[i]['category']).to(__.V().hasId(o_vertices_list[i])).as_(
+            # Adds an outgoing edge from the new vertex to the vertices in the list o_vertices_list.
+            add_edge_1 = g.V(id).addE(o_edges_values_list[i]['category']).to(__.V().hasId(o_vertices_list[i])).as_(
                 'e1').select('e1')
 
+            # Copies all the properties of an outgoing edge and stores them in a list.
             traversal = g.V(self.id()).outE()[i].properties().toList()
 
             for i2 in range(len(traversal)):
-                query1 = query1.property(
+                add_edge_1 = add_edge_1.property(
                     traversal[i2].key, traversal[i2].value)
 
                 if i2 == (len(traversal)-1):
-                    query1 = query1.next()
+                    add_edge_1 = add_edge_1.next()
 
+            # After all the properties have been copied from all the edges, the edges of the
+            # self vertex are dropped.
             if i == (len(o_vertices_list)-1):
                 g.V(self.id()).outE().drop().iterate()
 
@@ -210,17 +221,17 @@ class Vertex(Element):
 
         for j in range(len(i_vertices_list)):
 
-            query2 = g.V(id).addE(i_edges_values_list[j]['category']).from_(__.V().hasId(
+            add_edge_2 = g.V(id).addE(i_edges_values_list[j]['category']).from_(__.V().hasId(
                 i_vertices_list[j])).as_('e2').select('e2')
 
             traversal = g.V(self.id()).inE()[j].properties().toList()
 
             for j2 in range(len(traversal)):
-                query2 = query2.property(
+                add_edge_2 = add_edge_2.property(
                     traversal[j2].key, traversal[j2].value)
 
                 if j2 == (len(traversal)-1):
-                    query2 = query2.next()
+                    add_edge_2 = add_edge_2.next()
 
             if j == (len(i_vertices_list)-1):
                 g.V(self.id()).inE().drop().iterate()
@@ -232,18 +243,18 @@ class Vertex(Element):
 
         """
 
+        # Sets the active property from true to false and registers the time when
+        # this self vertex was disabled.
         g.V(self.id()).property(
             'active', False).property('time_disabled', disable_time).iterate()
 
+        # Counts the total number of edges connected to this vertex.
         edge_count = g.V(self.id()).bothE().toList()
 
+        # Disables all the conencted edges.
         for i in range(len(edge_count)):
             g.V(self.id()).bothE()[i].property('active', False).property(
                 'time_disabled', disable_time).next()
-
-        # if traversal:
-        #     g.V(self.id()).outE().drop().iterate()
-        #     g.V(self.id()).inE().drop().iterate()
 
     def added_to_db(self) -> bool:
         """Return whether this vertex is added to the database,
@@ -382,12 +393,6 @@ class Edge(Element):
 
             self._set_id(e.id)
 
-    # def disable(self, disable_time: int = int(time.time())):
-    #     """Disabling an edge"""
-
-    #     g.E(self.id()).property('active', False).property(
-    #         'time_disabled', disable_time).iterate()
-
     def added_to_db(self) -> bool:
         """Return whether this edge is added to the database,
         that is, whether the ID is not the virtual ID placeholder, and perform a
@@ -489,16 +494,18 @@ class ComponentType(Vertex):
         :type disable_time: int
         """
 
-        # Step 1
+        # Step 1: Sets the property active from true to false and registers the time when the
+        # vertex was disabled.
         g.V(self.id()).property(
             'active', False).property('time_disabled', disable_time).iterate()
 
-        # Step 2
+        # Step 2: Adds the new vertex in the serverside.
         newVertex.add()
 
         # Step 3
         newVertexId = newVertex.id()
 
+        # Replaces the ComponentType vertex with the new ComponentType vertex.
         Vertex.replace(self=self, id=newVertexId)
 
     def added_to_db(self) -> bool:
@@ -1681,13 +1688,15 @@ class Component(Vertex):
         :type disable_time: int
         """
 
-        id = g.V(self.id()).bothE(RelationProperty.category).has('active', True).otherV().where(
+        # id of the property being replaced.
+        id = g.V(self.id()).bothE(RelationProperty.category).has('active', True).has('end_edit_time', EXISTING_RELATION_END_EDIT_PLACEHOLDER).otherV().where(
             __.outE().otherV().properties('name').value().is_(propertyTypeName)).id().next()
 
         property_vertex = Property.from_id(id)
 
         property_vertex.disable()
 
+        # Sets a new property
         self.set_property(
             property=property,
             time=time,
@@ -1706,7 +1715,7 @@ class Component(Vertex):
 
         """
 
-        g.V(self.id()).bothE(RelationProperty.category).has('active', True).where(__.otherV().bothE(RelationPropertyType.category).otherV().properties('name').value().is_(propertyTypeName)).property('active', False).property(
+        g.V(self.id()).bothE(RelationProperty.category).has('active', True).has('end_edit_time', EXISTING_RELATION_END_EDIT_PLACEHOLDER).where(__.otherV().bothE(RelationPropertyType.category).otherV().properties('name').value().is_(propertyTypeName)).property('active', False).property(
             'time_disabled', disable_time).next()
 
     def connect(
@@ -1893,23 +1902,15 @@ class Component(Vertex):
 
         """
 
-        # old_edge_id = g.V(self.id()).bothE(RelationConnection.category).where(
-        #     __.otherV().hasId(otherComponent.id())).id().next()
-
-        # print(old_edge_id)
-
+        # Disables the current connection.
         g.V(self.id()).bothE(RelationConnection.category).where(
             __.otherV().hasId(otherComponent.id())).property('active', False).property(
             'time_disabled', disable_time).next()
 
+        # Adds the new connection.
         self.connect(
             component=otherComponent, time=time, uid=uid, comments=comments
         )
-
-        # new_edge_id = g.V(self.id()).bothE(RelationConnection.category).where(
-        #     __.otherV().hasId(otherComponent.id())).id()
-
-        # g.E(old_edge_id).property('replacement', new_edge_id)
 
     def disable_connection(self, otherComponent, disable_time: int = int(time.time())):
         """Disables the connection in the serverside

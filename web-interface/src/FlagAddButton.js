@@ -60,7 +60,7 @@ export default function FlagAddButton ({flag_types,flag_severities,flag_componen
   const [loading, setLoading] = useState(false);
 
   /*
-   To display an error message when a user tried to add a new flag but a flag with the same name already exists in the database.
+   To display an error message when a user fails to add a new flag.
    */
   const [errorData,setErrorData] = useState(null)
 
@@ -90,9 +90,7 @@ export default function FlagAddButton ({flag_types,flag_severities,flag_componen
   };
 
   /*
-  This function sets the variables back to empty string once 
-  the form is closed or the user clicks on the cancel button
-  on the pop up form.
+  Function that sets the relevant states back to default once the dialog box is closed or the user clicks on the cancel button.
   */
   const handleClose = () => {
     setOpen(false);

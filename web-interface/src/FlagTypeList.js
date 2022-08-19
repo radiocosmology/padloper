@@ -84,7 +84,7 @@ function FlagTypeList() {
     ]);
 
     /**
-     * function to change the flag count when filters are updated.
+     * function to change the flag type count when filters are updated.
      */
     useEffect(() => {
 

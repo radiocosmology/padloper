@@ -50,7 +50,7 @@ export default function PropertyTypeAddButton ({componentTypes,toggleReload}) {
   // Whether the submit button has been clicked or not.
   const [loading, setLoading] = useState(false);
 
-  /*To display an error message when a user tries to add a new property type but a property tpye with the same name already exists in the database. */
+  /*To display an error message when a user fails to add a new property type. */
   const [errorData,setErrorData] = useState(null)
 
 
@@ -81,9 +81,7 @@ export default function PropertyTypeAddButton ({componentTypes,toggleReload}) {
   };
 
   /*
-  This function sets the variables back to empty string once 
-  the form is closed or the user clicks on the cancel button
-  on the pop up form.
+  Function that sets the relevant states back to default once the dialog box is closed or the user clicks on the cancel button..
   */
   const handleClose = () => {
     setOpen(false);

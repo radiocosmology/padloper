@@ -34,7 +34,7 @@ export default function ComponentVersionAddButton ({componentTypes,toggleReload}
   const [loading, setLoading] = useState(false);
 
   /*
-  To display error when a user tries to add a new component version but a component version with the same name already exists in the database.
+  To display error when a user fails to add a new component version.
   */
   const [errorData,setErrorData] = useState(null)
 
@@ -44,9 +44,7 @@ export default function ComponentVersionAddButton ({componentTypes,toggleReload}
   };
 
   /*
-  This function sets the variables back to empty string once 
-  the form is closed or the user clicks on the cancel button
-  on the pop up form.
+  Function that sets the relevant states back to default once the dialog box is closed or the user clicks on the cancel button.
   */
   const handleClose = () => {
     setOpen(false);

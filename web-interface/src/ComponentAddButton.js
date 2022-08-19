@@ -19,7 +19,7 @@ import AlertDialog from './ComponentAlertDialog.js';
 import ErrorIcon from '@mui/icons-material/Error';
 
 
-  export default function ComponentAddButton ({types_and_versions,components,toggleReload}){
+  export default function ComponentAddButton ({types_and_versions,toggleReload}){
 
   // opens and closes the pop up form.
   const [open, setOpen] = useState(false);
@@ -32,7 +32,7 @@ import ErrorIcon from '@mui/icons-material/Error';
   const [nameList,setNameList] = useState([])
 
   /*
-  To display an error message when a user tries to add a new component.
+  To display an error message when a user fails to add a new component.
   */
   const [errorData,setErrorData] = useState(null)
 
@@ -45,7 +45,6 @@ import ErrorIcon from '@mui/icons-material/Error';
   // whether the submit button has been clicked or not
   const [loading, setLoading] = useState(false);
 
-  
   /*
   Used to open the alert dialog box when the submit button is clicked.
   */
@@ -112,7 +111,7 @@ import ErrorIcon from '@mui/icons-material/Error';
   };
 
   /*
-  Function that sets the relevant form variables back to empty string once the form is closed or the user clicks on the cancel button on the pop up form.
+  Function that sets the relevant states back to default values once the form is closed or the user clicks on the cancel button.
   */
   const handleClose = () => {
     setOpen(false);

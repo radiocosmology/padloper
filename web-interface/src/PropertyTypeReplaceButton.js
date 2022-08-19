@@ -31,7 +31,7 @@ const MenuProps = {
 };
 
 /**
- * A MUI component representing a button for replacing a component version.
+ * A MUI component representing a button for replacing a property type.
  */
 const ReplaceButton = styled((props) => (
     <Button 
@@ -72,7 +72,7 @@ export default function PropertyTypeReplaceButton ({name,componentTypes,toggleRe
   // Whether the submit button has been clicked or not.
   const [loading, setLoading] = useState(false);
 
-  /*To display an error message when a user tries to add a new property type but a property tpye with the same name already exists in the database. */
+  /*To display an error message when a user fails to replace a property type. */
   const [errorData,setErrorData] = useState(null)
 
 

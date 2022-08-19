@@ -6,12 +6,7 @@ import Box from '@mui/material/Box';
 import Grid from '@mui/material/Grid';
 import CircularProgress from '@mui/material/CircularProgress';
 import MuiTextField from '@mui/material/TextField';
-
-
 import CloseIcon from '@mui/icons-material/Close';
-import ErrorIcon from '@mui/icons-material/Error';
-
-
 import ThemeProvider from '@mui/material/styles/ThemeProvider';
 import styled from '@mui/material/styles/styled';
 import { Typography } from '@mui/material';
@@ -66,17 +61,16 @@ const CloseButton = styled((props) => (
 
 /**
  * The MUI component which represents a panel through which connections are
- * ended between components.
+ * replaced between components.
  * 
  * @param {object} theme - A MUI theme object, see 
  * https://mui.com/material-ui/customization/theming/
  * @param {function} onClose - function to call when the close button is pressed
  * @param {function(string, int, string, string)} onSet - function to call when 
- * ending a component connection. The parameters are of the form:
- * onSet(otherName, time, uid, comments), where otherName is the name of the
- * OTHER component you are ending the connection with, time is the Unix time when
- * the connection is being ended, uid is the ID of the user ending the
- * connection, and comments are the comments associated with ending the connection.
+ * replacing a component connection. The parameters are of the form:
+ * onSet(otherName, time, uid, comments), time is the Unix time when
+ * the connection is being set, uid is the ID of the user setting the
+ * connection, and comments are the comments associated with setting the connection.
  */
 function ComponentConnectionReplacePanel(
     {
@@ -86,24 +80,21 @@ function ComponentConnectionReplacePanel(
     }
 ) {
 
-    // the ID of the user ending the connection
+    // the ID of the user setting the connection
     const [uid, setUid] = useState("");
 
     // default time to end the connection
     const defaultTime = 1;
 
-    // time to end the connection
+    // time to make the connection
     const [time, setTime] = useState(defaultTime);
 
-    // comments associated with ending the connection
+    // comments associated with setting the connection
     const [comments, setComments] = useState("");
 
-    // whether the panel is loading: usually happens after the "End" button
-    // is made, waiting for a response from the DB.
+    // whether the panel is loading: usually happens after the "Replace" button
+    // is clicked, waiting for a response from the DB.
     const [loading, setLoading] = useState(false);
-
-    // the body of an error message to display, if any.
-    const [errorMessage, setErrorMessage] = useState("");
 
     // return the MUI component.
     return (
@@ -122,7 +113,7 @@ function ComponentConnectionReplacePanel(
                         <Typography style={{
                             color: 'rgba(0,0,0,0.7)',
                         }}>
-                            Disconnect
+                           Replace
                         </Typography>
                     </Grid>
 
@@ -174,30 +165,6 @@ function ComponentConnectionReplacePanel(
 
                 </Grid>
 
-                {errorMessage !== "" ? 
-                    <Grid 
-                        container 
-                        style={{
-                            marginTop: theme.spacing(1),
-                        }}
-                        spacing={1}
-                        justifyContent="center"
-                    >
-                        <Grid item>
-                            <ErrorIcon sx={{color: 'red'}} />
-                        </Grid>
-                        <Grid item>
-                            <Typography
-                                style={{
-                                    color: 'rgb(255,0,0)',
-                                }}
-                            >
-                                {errorMessage}
-                            </Typography>
-                        </Grid>
-                    </Grid> : <></>
-                }
-
                 <Box 
                     style={{
                         textAlign: "right",
@@ -214,7 +181,6 @@ function ComponentConnectionReplacePanel(
                         }
                         onClick={
                             async () => {
-                                setErrorMessage("");
                                 setLoading(true);
                                 onSet( 
                                     time, 

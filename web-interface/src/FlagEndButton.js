@@ -33,16 +33,16 @@ const EndButton = styled((props) => (
 
 export default function FlagEndButton ({toggleReload,name}){
 
-    // opens and closes the pop up form to add a new flag.
+    // opens and closes the pop up form to end a flag.
     const [open, setOpen] = useState(false);
 
-    // Stores user inputted values for name of the flag, flag severity selected, flag type selected and comments assocaited with the new flag.
+    // Stores user inputted values for ending a flag.
     const [property,setProperty] = useState({
     uid: '',
     comment:''
     })
 
-  // Stores the start time of the flag.
+  // Stores the end time of the flag.
   const [endTime,setEndTime] = useState(0)
 
   // Whether the submit button has been clicked or not and set loading to true.
@@ -61,9 +61,7 @@ export default function FlagEndButton ({toggleReload,name}){
   };
 
   /*
-  This function sets the variables back to empty string once 
-  the form is closed or the user clicks on the cancel button
-  on the pop up form.
+  Function that sets the relevant states back to default once the dialog box is closed or the user clicks on the cancel button.
   */
   const handleClose = () => {
     setOpen(false);

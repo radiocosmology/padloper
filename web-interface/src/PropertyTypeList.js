@@ -247,6 +247,7 @@ export default function PropertyTypeList() {
      * - the allowed regex for the property type,
      * - the number of values a property must have, and
      * - the comments associated with the property type.
+     * - property type replace button.
      */
     let tableRowContent = elements.map((e) => [
         e.name,

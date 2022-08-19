@@ -51,7 +51,7 @@ export default function ComponentTypeReplaceButton ({toggleReload,name}) {
   const [loading, setLoading] = useState(false);
 
   /*
-  To display error when a user tries to add a new component type but a component type with the same name already exists in the database.
+  To display error when a user fails to replace a component type.
    */
   const [errorData,setErrorData] = useState(null)
 
@@ -61,7 +61,7 @@ export default function ComponentTypeReplaceButton ({toggleReload,name}) {
 
 
   /*
-   Function that sets the relevant form variables back to empty strings once the form is closed or the user clicks on the cancel button on the pop up form.
+   Function that sets the relevant states back to default once the dialog box is closed or the user clicks on the cancel button.
    
    */
   const handleClose = () => {

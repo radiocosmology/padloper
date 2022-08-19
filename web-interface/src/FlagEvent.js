@@ -29,14 +29,10 @@ const EntryRowLabel = styled((props) => (
 /**
  * A MUI component representing a single event for a component.
  * @param {string} name - the name of the event
- * @param {int} time - the Unix time of the event (when it actually happened)
- * @param {string} uid - the ID of the user that made the event
- * @param {int} edit_time - the Unix time of when the event was edited
- * @param {string} comments - The comments associated with the event
+ * @param {string} parameter - commnets associated with the event or the associated components.
  * @param {object} theme - The MUI Theme object to inherit a theme 
- * @returns 
  */
-function ComponentEvent(
+function FlagEvent(
     {
         name,
         parameter,
@@ -78,4 +74,4 @@ function ComponentEvent(
     )
 }
 
-export default ComponentEvent;
+export default FlagEvent;

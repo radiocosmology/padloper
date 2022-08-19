@@ -17,7 +17,7 @@ import ErrorIcon from '@mui/icons-material/Error';
 export default function ComponentTypeAddButton ({toggleReload}) {
 
   // Opens and closes the pop up form.
-  const [open, setOpen] = React.useState(false);
+  const [open, setOpen] = useState(false);
 
   // Stores the name of the new component type.
   const [componentType,setComponentType] = useState('')
@@ -29,7 +29,7 @@ export default function ComponentTypeAddButton ({toggleReload}) {
   const [loading, setLoading] = useState(false);
 
   /*
-  To display error when a user tries to add a new component type but a component type with the same name already exists in the database.
+  To display error when a user fails to add a new component type.
    */
   const [errorData,setErrorData] = useState(null)
 

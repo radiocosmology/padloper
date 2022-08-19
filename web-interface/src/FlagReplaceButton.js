@@ -33,7 +33,7 @@ const MenuProps = {
 };
 
 /**
- * A MUI component representing a button for replacing a component type.
+ * A MUI component representing a button for replacing a flag.
  */
 const ReplaceButton = styled((props) => (
     <Button 
@@ -56,7 +56,7 @@ const ReplaceButton = styled((props) => (
 
 export default function FlagReplaceButton ({flag_types,flag_severities,flag_components,toggleReload,nameFlag}){
 
-    // opens and closes the pop up form to add a new flag.
+    // opens and closes the pop up form to replace a flag.
     const [open, setOpen] = useState(false);
 
     // Stores user inputted values for name of the flag, flag severity selected, flag type selected and comments assocaited with the new flag.
@@ -82,7 +82,7 @@ export default function FlagReplaceButton ({flag_types,flag_severities,flag_comp
   const [loading, setLoading] = useState(false);
 
   /*
-   To display an error message when a user tried to add a new flag but a flag with the same name already exists in the database.
+   To display an error message when a user fails to replace a flag.
    */
   const [errorData,setErrorData] = useState(null)
 
@@ -112,9 +112,7 @@ export default function FlagReplaceButton ({flag_types,flag_severities,flag_comp
   };
 
   /*
-  This function sets the variables back to empty string once 
-  the form is closed or the user clicks on the cancel button
-  on the pop up form.
+  Function that sets the relevant states back to default once the dialog box is closed or the user clicks on the cancel button.
   */
   const handleClose = () => {
     setOpen(false);

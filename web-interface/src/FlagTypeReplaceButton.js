@@ -16,7 +16,7 @@ import EditIcon from '@mui/icons-material/Edit';
 import styled from '@mui/material/styles/styled';
 
 /**
- * A MUI component representing a button for replacing a component type.
+ * A MUI component representing a button for replacing a flag type.
  */
 const ReplaceButton = styled((props) => (
     <Button 
@@ -49,7 +49,7 @@ export default function FlagTypeReplaceButton ({nameFlagType,toggleReload}) {
   // Whether the submit button has been clickd or not.
   const [loading, setLoading] = useState(false);
 
-  /*To display an error message when a user tries to add a new flag type but a flag type with the same name already exists in the database. */
+  /*To display an error message when a user fails to replace a flag type. */
   const [errorData,setErrorData] = useState(null)
 
   const handleClickOpen = () => {
@@ -57,7 +57,7 @@ export default function FlagTypeReplaceButton ({nameFlagType,toggleReload}) {
   };
 
    /*
-  Function sets the relevant form variables back to empty string once the form is closed or the user clicks on the cancel button on the pop up form.
+  Function that sets the relevant states back to default once the dialog box is closed or the user clicks on the cancel button.
   */
   const handleClose = () => {
     setErrorData(null)

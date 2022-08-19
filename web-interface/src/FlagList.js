@@ -98,7 +98,7 @@ const AccordionSummary = styled((props) => (
 }));
 
 /*
-A MUI component representing a button for disabling a component type.
+A MUI component representing a button for disabling.
  */
 const DisableButton = styled((props) => (
     <Button 
@@ -236,9 +236,9 @@ export default function FlagList() {
         setReloadBool(!reloadBool);
     }
 
-            /**
+    /**
      * Disable a flag.
-     * @param {string} name - the name of the componentType which is being disabled.
+     * @param {string} name - the name of the flag which is being disabled.
      * @returns 
      */
     async function disableFlag(name) {
@@ -409,10 +409,9 @@ export default function FlagList() {
     /**
      * the rows of the table. We are only putting:
      * - the name,
-     * - the start time,
      * - flag's allowed types,
      * - flag's allowed severity,
-     * - the comments associated with the property type.
+     * - more information accordion
      */
     let tableRowContent = elements.map((flag) => [
         flag.end_uid 

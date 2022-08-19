@@ -47,7 +47,7 @@ const ReplaceButton = styled((props) => (
   const [name,setName] = useState('')
 
     /*
-  To display an error message when a user tries to add a new component.
+  To display an error message when a user tries to replace the component.
   */
   const [errorData,setErrorData] = useState(null)
 
@@ -62,14 +62,14 @@ const ReplaceButton = styled((props) => (
 
   /*
   Function that is used to open the form when the user clicks
-  on the 'add' button.
+  on the 'replace' button.
    */
   const handleClickOpen = () => {
     setOpen(true);
   };
 
   /*
-  Function that sets the relevant form variables back to empty string once the form is closed or the user clicks on the cancel button on the pop up form.
+  Function that sets the relevant states back to default values once the dialog box is closed or the user clicks on the cancel button.
   */
   const handleClose = () => {
     setOpen(false);

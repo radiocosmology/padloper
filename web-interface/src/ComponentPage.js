@@ -1,4 +1,5 @@
 import React, { useState, useEffect } from 'react';
+
 import Paper from '@mui/material/Paper';
 import Stack from '@mui/material/Stack';
 import Button from '@mui/material/Button';
@@ -11,21 +12,21 @@ import ExpandMoreIcon from '@mui/icons-material/ExpandMore';
 import EventIcon from '@mui/icons-material/Event';
 import AddIcon from '@mui/icons-material/Add';
 import EditIcon from '@mui/icons-material/Edit';
-import DeleteIcon from '@mui/icons-material/Delete';
-
 import ThemeProvider from '@mui/material/styles/ThemeProvider';
 import createTheme from '@mui/material/styles/createTheme';
 import styled from '@mui/material/styles/styled';
-
 import Timestamp from './Timestamp.js';
 import ComponentEvent from './ComponentEvent.js';
 import ComponentPropertyAddPanel from './ComponentPropertyAddPanel.js';
 import ComponentPropertyEndPanel from './ComponentPropertyEndPanel.js';
-import ComponentPropertyEditPanel from './ComponentPropertyEditPanel'
+import ComponentPropertyReplacePanel from './ComponentPropertyReplacePanel'
 import ComponentConnectionAddPanel from './ComponentConnectionAddPanel.js';
 import ComponentConnectionEndPanel from './ComponentConnectionEndPanel'
 import ComponentSubcomponentAddPanel from './ComponentSubcomponentAddPanel.js';
 import ComponentConnectionReplacePanel from './ComponentConnectionReplacePanel.js';
+import ComponentPropertyDisableButton from './ComponentPropertyDisableButton'
+import ComponentConnectionDisableButton from './ComponentConnectionDisableButton'
+import ComponentSubcomponentDisableButton from './ComponentSubcomponentDisableButton'
 import SettingsInputComponentIcon from '@mui/icons-material/SettingsInputComponent';
 import ReportIcon from '@mui/icons-material/Report';
 import EastIcon from '@mui/icons-material/East';
@@ -213,9 +214,9 @@ const EndButton = styled((props) => (
 }))
 
 /*
-A MUI component representing a button for editing a component's property or connection.
+A MUI component representing a button for replacing a component's property or connection.
  */
-const EditButton = styled((props) => (
+const ReplaceButton = styled((props) => (
     <Button 
     style={{
         maxWidth: '40px', 
@@ -227,25 +228,6 @@ const EditButton = styled((props) => (
     {...props}
         variant="outlined">
         <EditIcon/>
-    </Button>
-))(({ theme }) => ({
-    
-}))
-
-/*
-A MUI component representing a button for disabling a component's property/connection/subcomponents.
- */
-const DisableButton = styled((props) => (
-    <Button 
-    style={{
-        maxWidth: '40px', 
-        maxHeight: '30px', 
-        minWidth: '30px', 
-        minHeight: '30px',
-    }}
-    {...props}
-        variant="outlined">
-        <DeleteIcon/>
     </Button>
 ))(({ theme }) => ({
     
@@ -277,7 +259,7 @@ function ComponentPage() {
     // Stores the property type selected by the user when adding a new property.
     const [propType,setPropType] = useState('')
 
-    // Stores the name of the other component with which the connection is being made.
+    // Stores the name of the other component with which the connection exists.
     const [otherName,setOtherName] = useState('')
 
     // Opens the property accordion.
@@ -308,7 +290,7 @@ function ComponentPage() {
 
     // Opens/Closes a panel to edit an existing property.
     const [
-        open_properties_edit_panel, setOpenPropertiesEditPanel
+        open_properties_replace_panel, setOpenPropertiesReplacePanel
     ] = useState(false);
 
     // Opens/Closes a panel to add a new connection.
@@ -331,12 +313,20 @@ function ComponentPage() {
         open_subcomponents_add_panel,setOpenSubcomponentsAddPanel
     ] = useState(false);
 
+    // To keep track of which connection from the list of connections is the
+    // user ending and open the relevant panel.
     const [activeIndexConnectionEnd,setActiveIndexConnectionEnd] = useState(null)
 
+    // To keep track of which property from the list of properties is the
+    // user ending and open the relevant panel.
     const [activeIndexPropertyEnd,setActiveIndexPropertyEnd] = useState(null)
 
-    const [activeIndexPropertyEdit,setActiveIndexPropertyEdit] = useState(null)
+    // To keep track of which property from the list of properties is the
+    // user replacing and open the relevant panel.
+    const [activeindexpropertyReplace,setactiveindexpropertyReplace] = useState(null)
 
+    // To keep track of which connection from the list of connections is the
+    // user replacing and open the relevant panel.
     const [activeIndexConnectionReplace,setActiveIndexConnectionReplace] = useState(null)
 
 
@@ -371,10 +361,10 @@ function ComponentPage() {
     /*Contains the message when there is an error while adding a new subcomponent connection */
     const [errorSubcomponentMessage,setErrorSubcomponentMessage] = useState(null)
 
-    /*Contains the message when there is an error while adding a new subcomponent connection */
+    /*Contains the message when there is an error while adding a new property */
     const [errorPropertyMessage,setErrorPropertyMessage] = useState(null)
 
-    /*Contains the message when there is an error while adding a new subcomponent connection */
+    /*Contains the message when there is an error while adding a new connection */
     const [errorConnectionMessage,setErrorConnectionMessage] = useState(null)
 
 
@@ -415,6 +405,12 @@ function ComponentPage() {
         )
     }
 
+    /**
+     * End a property for the component.
+     * @param {int} time - the time at which to end the property 
+     * @param {string} uid - the ID of the user that is ending the property
+     * @param {string} comments - the comments associated with ending the property 
+     */
     async function endProperty(time, uid, comments) {
 
         // build up the string to query the API
@@ -435,17 +431,18 @@ function ComponentPage() {
 
     /**
      * Replace a property for the component.
+     * @param {string} propertyType - the property type to replace 
      * @param {int} time - the time at which to add the property 
      * @param {string} uid - the ID of the user that is adding the property
      * @param {string} comments - the comments associated with the property 
      * @param {Array} values - an array connecting the values of the property. 
      */
-    async function replaceProperty(optionName,time, uid, comments, values) {
+    async function replaceProperty(propertyType,time, uid, comments, values) {
 
         // build up the string to query the API
         let input = `/api/component_replace_property`;
         input += `?name=${name}`;
-        input += `&propertyType=${optionName}`;
+        input += `&propertyType=${propertyType}`;
         input += `&time=${time}`;
         input += `&uid=${uid}`;
         input += `&comments=${comments}`;
@@ -459,7 +456,7 @@ function ComponentPage() {
         fetch(input).then(
             res => res.json()
         ).then(data => {
-            setOpenPropertiesEditPanel(false);
+            setOpenPropertiesReplacePanel(false);
             toggleReload();
         });
     }
@@ -472,7 +469,6 @@ function ComponentPage() {
      * @param {int} time - the time to make the connection at 
      * @param {string} uid - the ID of the user that is making the connection 
      * @param {string} comments - the comments associated with the connection 
-     * @returns 
      */
     async function addConnection(otherName, time, uid, comments) {
         
@@ -492,11 +488,16 @@ function ComponentPage() {
                     toggleReload();
                 } else {
                     setErrorConnectionMessage(response.data.error)
-                    console.log(response.data.error)
                 }
             });
     }
 
+    /**
+     * End the connection to another component.
+     * @param {int} time - the time to end the connection at 
+     * @param {string} uid - the ID of the user that is ending the connection 
+     * @param {string} comments - the comments associated with ending the connection 
+     */
     async function endConnection(time, uid, comments) {
         
         // build up the string to query the API
@@ -521,6 +522,12 @@ function ComponentPage() {
 
     }
 
+    /**
+     * Replace the connection to another component.
+     * @param {int} time - the time to make the connection at 
+     * @param {string} uid - the ID of the user that is making the connection 
+     * @param {string} comments - the comments associated with making the connection 
+     */
     async function replaceConnection(time, uid, comments) {
         
         // build up the string to query the API
@@ -547,7 +554,6 @@ function ComponentPage() {
     /**
      * Add a subcomponent.
      * @param {string} otherName - the name of the other component, which is a subcomponent.
-     * @returns 
      */
     async function addSubcomponent(otherName) {
         
@@ -568,80 +574,6 @@ function ComponentPage() {
             })
     }
 
-    /**
-     * Disable a subcomponent.
-     * @param {string} otherName - the name of the other component, which is a subcomponent.
-     * @returns 
-     */
-    async function disableSubcomponent(otherName) {
-        
-        // build up the string to query the API
-        let input = `/api/component_disable_subcomponent`;
-        input += `?name1=${name}`;
-        input += `&name2=${otherName}`;
-
-        return new Promise((resolve, reject) => {
-            fetch(input).then(
-                res => res.json()
-            ).then(data => {
-                if (data.result) {
-                    toggleReload();
-                }
-                resolve(data.result);
-            });
-        });
-
-    }
-    
-    /**
-     * Disable a property.
-     * @param {string} propertyName - the name of the property to disable.
-     * @returns 
-     */
-    async function disableProperty(propertyName) {
-        
-        // build up the string to query the API
-        let input = `/api/component_disable_property`;
-        input += `?name=${name}`;
-        input += `&propertyType=${propertyName}`;
-
-        return new Promise((resolve, reject) => {
-            fetch(input).then(
-                res => res.json()
-            ).then(data => {
-                if (data.result) {
-                    toggleReload();
-                }
-                resolve(data.result);
-            });
-        });
-
-    }
-
-    /**
-     * Disable a connection.
-     * @param {string} otherComponentName - the name of the other component.
-     * @returns 
-     */    
-    async function disableConnection(otherComponentName) {
-        
-        // build up the string to query the API
-        let input = `/api/component_disable_connection`;
-        input += `?name1=${name}`;
-        input += `&name2=${otherComponentName}`;
-
-        return new Promise((resolve, reject) => {
-            fetch(input).then(
-                res => res.json()
-            ).then(data => {
-                if (data.result) {
-                    setOpenConnectionsReplacePanel(false);
-                    toggleReload();
-                }
-                resolve(data.result);
-            });
-        });
-    }
 
 
     /**
@@ -695,10 +627,10 @@ function ComponentPage() {
             />
         ) : <></>;
 
-        let properties_edit_panel_content = (open_properties_edit_panel) ? (
-            <ComponentPropertyEditPanel 
+        let properties_edit_panel_content = (open_properties_replace_panel) ? (
+            <ComponentPropertyReplacePanel 
                 theme={theme} 
-                onClose={() => setOpenPropertiesEditPanel(false)}
+                onClose={() => setOpenPropertiesReplacePanel(false)}
                 onSet={replaceProperty}
             />
         ) : <></>;
@@ -766,23 +698,22 @@ function ComponentPage() {
                                 }
                             }
                             />
-                        <EditButton 
+                        <ReplaceButton 
                             onClick={
                                 () => 
                                 {
                                   
-                                    setOpenPropertiesEditPanel(true)
-                                    setActiveIndexPropertyEdit(index)
+                                    setOpenPropertiesReplacePanel(true)
+                                    setactiveindexpropertyReplace(index)
                                 }
                             }
                             />
-                            <DisableButton
-                            onClick={
-                                ()=>
-                                {
-                                    disableProperty(prop.type.name)
-                                }
-                            }
+                            <ComponentPropertyDisableButton
+                            name={name}
+                            propertyType={prop.type.name}
+                            propertyValue = {prop.values}
+                            propertyUnit = {prop.type.units}
+                            toggleReload={toggleReload}
                             />
                             </>
     }
@@ -807,7 +738,7 @@ function ComponentPage() {
                          properties_end_panel_content
                         :
                         ''}
-                        {activeIndexPropertyEdit === index 
+                        {activeindexpropertyReplace === index 
                         ?
                          properties_edit_panel_content
                         :
@@ -911,7 +842,7 @@ function ComponentPage() {
                         ""
                         :
                         <>
-                        <EditButton 
+                        <ReplaceButton 
                         onClick={
                                 () => 
                                 {
@@ -921,14 +852,12 @@ function ComponentPage() {
                                 }
                             }
                             />
-                        <DisableButton
-                            onClick={
-                                ()=>
-                                {
-                                    disableConnection(conn.name)
-                                }
-                            }
+                            <ComponentConnectionDisableButton
+                            name={name}
+                            otherComponentName = {conn.name}
+                            toggleReload={toggleReload}
                             />
+                        
                             </>
                             }
                             </Stack>
@@ -1097,13 +1026,10 @@ function ComponentPage() {
                                         marginLeft: theme.spacing(2)
                                     }}
                             > 
-                            <DisableButton
-                            onClick={
-                                ()=>
-                                {
-                                    disableSubcomponent(subcomponent.name)
-                                }
-                            }
+                            <ComponentSubcomponentDisableButton
+                            name={name}
+                            subComponentName={subcomponent.name}
+                            toggleReload={toggleReload}
                             />
                             </Stack>
                         </EntryAccordionSummarySubcomponent>

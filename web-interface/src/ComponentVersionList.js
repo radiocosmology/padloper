@@ -9,8 +9,6 @@ from '@mui/material';
 import ComponentVersionFilter from './ComponentVersionFilter.js';
 import ComponentVersionAddButton from './ComponentVersionAddButton.js';
 import ComponentVersionReplaceButton from './ComponentVersionReplaceButton.js';
-import styled from '@mui/material/styles/styled';
-import DeleteIcon from '@mui/icons-material/Delete';
 
 /**
  * A MUI component that renders a list of component versions.

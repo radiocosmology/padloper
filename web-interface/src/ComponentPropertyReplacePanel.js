@@ -66,21 +66,21 @@ const CloseButton = styled((props) => (
 
 
 /**
- * The MUI component which represents a panel through which properties are
- * added to components.
+ * The MUI component which represents a panel through which component's properties are
+ * replaced.
  * 
  * @param {object} theme - A MUI theme object, see 
  * https://mui.com/material-ui/customization/theming/
  * @param {function} onClose - function to call when the close button is pressed
  * @param {function(string, int, string, string, Array)} onSet - function to 
- * call when setting a component property.
+ * call when replacing a component property.
  * {string} propertyType - the name of the property type
  * {int} time - the time at which to add the property 
  * {string} uid - the ID of the user that is adding the property
  * {string} comments - the comments associated with the property 
  * {Array} values - an array connecting the values of the property. 
  */
-function ComponentPropertyEditPanel(
+function ComponentPropertyReplacePanel(
     {
         theme,
         onClose,
@@ -378,4 +378,4 @@ function ComponentPropertyEditPanel(
     )
 }
 
-export default ComponentPropertyEditPanel;
+export default ComponentPropertyReplacePanel;
