@@ -1407,7 +1407,7 @@ class Component(Vertex):
             )
 
         edges = g.V(self.id()).bothE(
-            RelationProperty.category).has('active', True)
+            RelationProperty.category).has('active', True).has('end_edit_time', EXISTING_RELATION_END_EDIT_PLACEHOLDER)
 
         if to_time < EXISTING_RELATION_END_PLACEHOLDER:
             edges = edges.has('start_time', P.lt(to_time))
