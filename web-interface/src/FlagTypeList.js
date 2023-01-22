@@ -7,6 +7,8 @@ import {
     } 
 from '@mui/material';
 import FlagTypeAddButton from './FlagTypeAddButton.js';
+import FlagTypeReplaceButton from './FlagTypeReplaceButton.js'
+
 
 /**
  * A MUI component that renders a list of flag types.
@@ -82,7 +84,7 @@ function FlagTypeList() {
     ]);
 
     /**
-     * function to change the flag count when filters are updated.
+     * function to change the flag type count when filters are updated.
      */
     useEffect(() => {
 
@@ -113,6 +115,9 @@ function FlagTypeList() {
             label: 'Comments',
             allowOrdering: false,
         },
+        {
+
+        }
     ];
     /**
      * the rows of the table. We are only putting the name and the comments.
@@ -120,6 +125,10 @@ function FlagTypeList() {
     let tableRowContent = elements.map((e) => [
         e.name,
         e.comments,
+        <FlagTypeReplaceButton
+        nameFlagType = {e.name}
+        toggleReload={toggleReload}
+        />
     ]);
     return (
         <>

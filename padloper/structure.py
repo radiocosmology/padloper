@@ -162,6 +162,100 @@ class Vertex(Element):
 
             Vertex._cache_vertex(self)
 
+    def replace(self, id):
+        """Replaces the vertex in the JanusGraph DB with the new vertex by changing its property 'active' from true to false and transfering all the edges to the new vertex. The old vertex contains the ID of the new vertex as an attribute.
+
+        :param id: ID of the new Vertex.
+        :type id: int
+
+        """
+
+        # The 'replacement' property now points to the new vertex that replaced the self vertex..
+        g.V(self.id()).property('replacement', id).iterate()
+
+        # List of all the properties of the outgoing edges from the self vertex.
+        o_edges_values_list = g.V(self.id()).outE().valueMap().toList()
+
+        # List of all the outgoing vertices connected to the self vertex.
+        o_vertices_list = g.V(self.id()).out().id_().toList()
+
+        # These edges are not copied when replacing a vertex because these edges
+        # are selected by the user while adding a new component version, or a new property type, or a new flag
+        # or a new component respectively.
+        for i in range(len(o_vertices_list)):
+
+            if o_edges_values_list[i]['category'] == RelationVersionAllowedType.category:
+                continue
+            if o_edges_values_list[i]['category'] == RelationPropertyAllowedType.category:
+                continue
+            if o_edges_values_list[i]['category'] == RelationFlagSeverity.category:
+                continue
+            if o_edges_values_list[i]['category'] == RelationFlagType.category:
+                continue
+            if o_edges_values_list[i]['category'] == RelationComponentType.category:
+                continue
+            if o_edges_values_list[i]['category'] == RelationVersion.category:
+                continue
+
+            # Adds an outgoing edge from the new vertex to the vertices in the list o_vertices_list.
+            add_edge_1 = g.V(id).addE(o_edges_values_list[i]['category']).to(__.V().hasId(o_vertices_list[i])).as_(
+                'e1').select('e1')
+
+            # Copies all the properties of an outgoing edge and stores them in a list.
+            traversal = g.V(self.id()).outE()[i].properties().toList()
+
+            for i2 in range(len(traversal)):
+                add_edge_1 = add_edge_1.property(
+                    traversal[i2].key, traversal[i2].value)
+
+                if i2 == (len(traversal)-1):
+                    add_edge_1 = add_edge_1.next()
+
+            # After all the properties have been copied from all the edges, the edges of the
+            # self vertex are dropped.
+            if i == (len(o_vertices_list)-1):
+                g.V(self.id()).outE().drop().iterate()
+
+        i_edges_values_list = g.V(self.id()).inE().valueMap().toList()
+        i_vertices_list = g.V(self.id()).in_().id_().toList()
+
+        for j in range(len(i_vertices_list)):
+
+            add_edge_2 = g.V(id).addE(i_edges_values_list[j]['category']).from_(__.V().hasId(
+                i_vertices_list[j])).as_('e2').select('e2')
+
+            traversal = g.V(self.id()).inE()[j].properties().toList()
+
+            for j2 in range(len(traversal)):
+                add_edge_2 = add_edge_2.property(
+                    traversal[j2].key, traversal[j2].value)
+
+                if j2 == (len(traversal)-1):
+                    add_edge_2 = add_edge_2.next()
+
+            if j == (len(i_vertices_list)-1):
+                g.V(self.id()).inE().drop().iterate()
+
+    def disable(self, disable_time: int = int(time.time())):
+        """Disables the vertex as well all the edges connected to the vertex by setting the property from 'active' from true to false.
+
+        :ivar disable_time: When this vertex was disabled in the database (UNIX time).
+
+        """
+
+        # Sets the active property from true to false and registers the time when
+        # this self vertex was disabled.
+        g.V(self.id()).property(
+            'active', False).property('time_disabled', disable_time).iterate()
+
+        # Counts the total number of edges connected to this vertex.
+        edge_count = g.V(self.id()).bothE().toList()
+
+        # Disables all the conencted edges.
+        for i in range(len(edge_count)):
+            g.V(self.id()).bothE()[i].property('active', False).property(
+                'time_disabled', disable_time).next()
+
     def added_to_db(self) -> bool:
         """Return whether this vertex is added to the database,
         that is, whether the ID is not the virtual ID placeholder and perform 
@@ -215,12 +309,20 @@ class Edge(Element):
     :ivar inVertex: The Vertex instance that the Edge is going into.
     :ivar outVertex: The Vertex instance that the Edge is going out of.
     :ivar category: The category of the Edge.
+    :ivar time_added: When this edge was added to the database (UNIX time).
+    :ivar time_disabled: When this edge was disabled in the database (UNIX time).
+    :ivar active: Whether the edge is disabled or not.
+    :ivar replacement: If the edge has been replaced, then this property points towards the edge that replaced it.
     """
 
     inVertex: Vertex
     outVertex: Vertex
 
     category: str
+    time_added: int
+    time_disabled: int
+    active: bool
+    replacement: int
 
     def __init__(
         self, id: int, inVertex: Vertex, outVertex: Vertex
@@ -269,9 +371,20 @@ class Edge(Element):
             )
 
         else:
+
+            # set time added to now.
+            self.time_added = int(time.time())
+
+            self.active = True
+
+            self.replacement = 0
+
+            self.time_disabled = EXISTING_RELATION_END_EDIT_PLACEHOLDER
+
             traversal = g.V(self.outVertex.id()).addE(self.category) \
                 .to(__.V(self.inVertex.id())) \
-                .property('category', self.category)
+                .property('category', self.category).property('time_added', self.time_added).property(
+                'time_disabled', self.time_disabled).property('active', self.active).property('replacement', self.replacement)
 
             for key in attributes:
                 traversal = traversal.property(key, attributes[key])
@@ -371,6 +484,30 @@ class ComponentType(Vertex):
 
         Vertex.add(self=self, attributes=attributes)
 
+    def replace(self, newVertex, disable_time: int = int(time.time())):
+        """Replaces the ComponentType vertex in the serverside.
+
+        :param newVertex: The new ComponentType vertex that is replacing the old ComponentType vertex.
+        :type newVertex: ComponentType
+
+        :param disable_time: When this vertex was disabled in the database (UNIX time).
+        :type disable_time: int
+        """
+
+        # Step 1: Sets the property active from true to false and registers the time when the
+        # vertex was disabled.
+        g.V(self.id()).property(
+            'active', False).property('time_disabled', disable_time).iterate()
+
+        # Step 2: Adds the new vertex in the serverside.
+        newVertex.add()
+
+        # Step 3
+        newVertexId = newVertex.id()
+
+        # Replaces the ComponentType vertex with the new ComponentType vertex.
+        Vertex.replace(self=self, id=newVertexId)
+
     def added_to_db(self) -> bool:
         """Return whether this ComponentType is added to the database,
         that is, whether the ID is not the virtual ID placeholder and perform 
@@ -384,7 +521,7 @@ class ComponentType(Vertex):
         return (
             self.id() != VIRTUAL_ID_PLACEHOLDER or (
                 g.V().has('category', ComponentType.category)
-                .has('name', self.name).count().next() > 0
+                .has('name', self.name).has('active', True).count().next() > 0
             )
         )
 
@@ -400,8 +537,8 @@ class ComponentType(Vertex):
         :rtype: ComponentType
         """
 
-        d = g.V().has('category', ComponentType.category).has('name', name) \
-            .as_('v').valueMap().as_('props').select('v').id().as_('id') \
+        d = g.V().has('active', True).has('category', ComponentType.category).has('name', name) \
+            .as_('v').valueMap().as_('props').select('v').id_().as_('id') \
             .select('props', 'id').next()
 
         props, id_ = d['props'], d['id']
@@ -483,7 +620,7 @@ class ComponentType(Vertex):
         :rtype: list[dict]
         """
 
-        ts = g.V().has('category', ComponentType.category) \
+        ts = g.V().has('active', True).has('category', ComponentType.category) \
             .order().by('name', Order.asc) \
             .project('name', 'versions') \
             .by(__.values('name')) \
@@ -534,7 +671,7 @@ class ComponentType(Vertex):
 
         assert order_by in {'name'}
 
-        traversal = g.V().has('category', ComponentType.category) \
+        traversal = g.V().has('active', True).has('category', ComponentType.category) \
             .has('name', TextP.containing(name_substring))
 
         # if order_direction is not asc or desc, it will just sort by asc.
@@ -558,7 +695,7 @@ class ComponentType(Vertex):
         # Component type query to DB
         cts = traversal.range(range[0], range[1]) \
             .project('id', 'name', 'comments') \
-            .by(__.id()) \
+            .by(__.id_()) \
             .by(__.values('name')) \
             .by(__.values('comments')) \
             .toList()
@@ -592,7 +729,7 @@ class ComponentType(Vertex):
         :rtype: int
         """
 
-        return g.V().has('category', ComponentType.category) \
+        return g.V().has('active', True).has('category', ComponentType.category) \
             .has('name', TextP.containing(name_substring)) \
             .count().next()
 
@@ -669,7 +806,7 @@ class ComponentVersion(Vertex):
         if self.added_to_db():
             raise VertexAlreadyAddedError(
                 f"ComponentVersion with name {self.name} " +
-                f"and allowed type {self.allowed_type} " +
+                f"and allowed type {self.allowed_type.name} " +
                 "already exists in the database."
             )
 
@@ -690,6 +827,28 @@ class ComponentVersion(Vertex):
 
         e.add()
 
+    def replace(self, newVertex, disable_time: int = int(time.time())):
+        """Replaces the ComponentVersion vertex in the serverside.
+
+        :param newVertex: The new ComponentVersion vertex that is replacing the old ComponentVersion vertex.
+        :type newVertex: ComponentVersion
+
+        :param disable_time: When this vertex was disabled in the database (UNIX time).
+        :type disable_time: int
+        """
+
+        # Step 1
+        g.V(self.id()).property(
+            'active', False).property('time_disabled', disable_time).iterate()
+
+        # Step 2
+        newVertex.add()
+
+        # Step 3
+        newVertexId = newVertex.id()
+
+        Vertex.replace(self=self, id=newVertexId)
+
     def added_to_db(self) -> bool:
         """Return whether this ComponentVersion is added to the database,
         that is, whether the ID is not the virtual ID placeholder and perform 
@@ -705,7 +864,7 @@ class ComponentVersion(Vertex):
                 self.allowed_type.added_to_db() and
                 g.V(self.allowed_type.id())
                 .both(RelationVersionAllowedType.category)
-                .has('name', self.name).count().next() > 0
+                .has('name', self.name).has('active', True).count().next() > 0
             )
         )
 
@@ -759,9 +918,9 @@ class ComponentVersion(Vertex):
 
         if allowed_type.added_to_db():
 
-            d = g.V(allowed_type.id()) \
+            d = g.V(allowed_type.id()).has('active', True) \
                 .both(RelationVersionAllowedType.category).has('name', name) \
-                .as_('v').valueMap().as_('attrs').select('v').id().as_('id') \
+                .as_('v').valueMap().as_('attrs').select('v').id_().as_('id') \
                 .select('attrs', 'id').next()
 
             props, id = d['attrs'], d['id']
@@ -798,7 +957,7 @@ class ComponentVersion(Vertex):
         if id not in _vertex_cache:
 
             d = g.V(id).project('attrs', 'type_id').by(__.valueMap()) \
-                .by(__.both(RelationVersionAllowedType.category).id()).next()
+                .by(__.both(RelationVersionAllowedType.category).id_()).next()
 
             t = ComponentType.from_id(d['type_id'])
 
@@ -850,7 +1009,8 @@ class ComponentVersion(Vertex):
 
         assert order_by in {'name', 'allowed_type'}
 
-        traversal = g.V().has('category', ComponentVersion.category)
+        traversal = g.V().has('active', True).has(
+            'category', ComponentVersion.category)
 
         # if order_direction is not asc or desc, it will just sort by asc.
         # Keep like this if removing the assert above only in production.
@@ -908,10 +1068,10 @@ class ComponentVersion(Vertex):
         # Component type query to DB
         cts = traversal.range(range[0], range[1]) \
             .project('id', 'name', 'comments', 'type_id') \
-            .by(__.id()) \
+            .by(__.id_()) \
             .by(__.values('name')) \
             .by(__.values('comments')) \
-            .by(__.both(RelationVersionAllowedType.category).id()) \
+            .by(__.both(RelationVersionAllowedType.category).id_()) \
             .toList()
 
         component_versions = []
@@ -944,7 +1104,8 @@ class ComponentVersion(Vertex):
         :rtype: int
         """
 
-        traversal = g.V().has('category', ComponentVersion.category)
+        traversal = g.V().has('active', True).has(
+            'category', ComponentVersion.category)
 
         if filters is not None:
 
@@ -1101,6 +1262,28 @@ class Component(Vertex):
 
         type_edge.add()
 
+    def replace(self, newVertex, disable_time: int = int(time.time())):
+        """Replaces the Component vertex in the serverside.
+
+        :param newVertex: The new Component vertex that is replacing the old Component vertex.
+        :type newVertex: Component
+
+        :param disable_time: When this vertex was disabled in the database (UNIX time).
+        :type disable_time: int
+        """
+
+        # Step 1
+        g.V(self.id()).property(
+            'active', False).property('time_disabled', disable_time).iterate()
+
+        # Step 2
+        newVertex.add()
+
+        # Step 3
+        newVertexId = newVertex.id()
+
+        Vertex.replace(self=self, id=newVertexId)
+
     def get_property(self, property_type, time: int, kind: bool):
         """
         Given a property type, get a property of this component active at time
@@ -1128,7 +1311,7 @@ class Component(Vertex):
 
         # list of property vertices of this property type
         # and active at this time
-        vs = g.V(self.id()).bothE(RelationProperty.category) \
+        vs = g.V(self.id()).bothE(RelationProperty.category).has('active', True) \
             .has('start_time', P.lte(time)) \
             .has('end_time', P.gt(time)).otherV().as_('v') \
             .both(RelationPropertyType.category) \
@@ -1164,9 +1347,9 @@ class Component(Vertex):
 
         # list of property vertices of this property type
         # and active at this time
-        query = g.V(self.id()).bothE(RelationProperty.category) \
+        query = g.V(self.id()).bothE(RelationProperty.category).has('active', True) \
             .as_('e').valueMap().as_('edge_props') \
-            .select('e').otherV().id().as_('vertex_id') \
+            .select('e').otherV().id_().as_('vertex_id') \
             .select('edge_props', 'vertex_id').toList()
 
         # Build up the result of format (property vertex, relation)
@@ -1223,7 +1406,8 @@ class Component(Vertex):
                 "has not yet been added to the database."
             )
 
-        edges = g.V(self.id()).bothE(RelationProperty.category)
+        edges = g.V(self.id()).bothE(
+            RelationProperty.category).has('active', True).has('end_edit_time', EXISTING_RELATION_END_EDIT_PLACEHOLDER)
 
         if to_time < EXISTING_RELATION_END_PLACEHOLDER:
             edges = edges.has('start_time', P.lt(to_time))
@@ -1233,7 +1417,7 @@ class Component(Vertex):
             .both(RelationPropertyType.category) \
             .has('name', property_type.name) \
             .select('e').order().by(__.values('start_time'), Order.asc) \
-            .project('properties', 'id').by(__.valueMap()).by(__.id()).toList()
+            .project('properties', 'id').by(__.valueMap()).by(__.id_()).toList()
 
         return [RelationProperty(
             inVertex=self, outVertex=property_type,
@@ -1262,7 +1446,7 @@ class Component(Vertex):
         # list of flag vertices of this flag type and flag severity and active at this time.
 
         query = g.V(self.id()).bothE(
-            RelationFlagComponent.category).otherV().id().toList()
+            RelationFlagComponent.category).has('active', True).otherV().id_().toList()
 
         # Build up the result of format (flag vertex)
         result = []
@@ -1285,7 +1469,7 @@ class Component(Vertex):
             )
 
         query = g.V(self.id()).inE(
-            RelationSubcomponent.category).otherV().id().toList()
+            RelationSubcomponent.category).has('active', True).otherV().id_().toList()
 
         # Build up the result of format (flag vertex)
         result = []
@@ -1309,7 +1493,7 @@ class Component(Vertex):
         # Relation as a subcomponent stays the same except now
         # we have outE to distinguish from subcomponents
         query = g.V(self.id()).outE(
-            RelationSubcomponent.category).otherV().id().toList()
+            RelationSubcomponent.category).has('active', True).otherV().id_().toList()
 
         # Build up the result of format (flag vertex)
         result = []
@@ -1481,6 +1665,59 @@ class Component(Vertex):
             .property('end_edit_time', edit_time) \
             .property('end_comments', comments).iterate()
 
+    def replace_property(self, propertyTypeName: str, property, time: int,
+                         uid: str, comments=""):
+        """Replaces the Component property vertex in the serverside.
+
+        :param propertyTypeName: The name of the property type being replaced.
+        :type propertyTypeName: str
+
+        :param property: The new property that is replacing the old property.
+        :type property: Property
+
+        :param time: The time at which the property was added (real time)
+        :type time: int
+
+        :param uid: The ID of the user that added the property
+        :type uid: str
+
+        :param comments: Comments to add with property change, defaults to ""
+        :type comments: str, optional
+
+        :param disable_time: When this vertex was disabled in the database (UNIX time).
+        :type disable_time: int
+        """
+
+        # id of the property being replaced.
+        id = g.V(self.id()).bothE(RelationProperty.category).has('active', True).has('end_edit_time', EXISTING_RELATION_END_EDIT_PLACEHOLDER).otherV().where(
+            __.outE().otherV().properties('name').value().is_(propertyTypeName)).id_().next()
+
+        property_vertex = Property.from_id(id)
+
+        property_vertex.disable()
+
+        # Sets a new property
+        self.set_property(
+            property=property,
+            time=time,
+            uid=uid,
+            comments=comments
+        )
+
+    def disable_property(self, propertyTypeName, disable_time: int = int(time.time())):
+        """Disables the property in the serverside
+
+        :param propertyTypeName: The name of the property type being replaced.
+        :type propertyTypeName: str
+
+        :param disable_time: When this vertex was disabled in the database (UNIX time).
+        :type disable_time: int
+
+        """
+
+        g.V(self.id()).bothE(RelationProperty.category).has('active', True).has('end_edit_time', EXISTING_RELATION_END_EDIT_PLACEHOLDER).where(__.otherV().bothE(RelationPropertyType.category).otherV().properties('name').value().is_(propertyTypeName)).property('active', False).property(
+            'time_disabled', disable_time).next()
+
     def connect(
         self, component, time: int, uid: str,
         end_time: int = EXISTING_RELATION_END_PLACEHOLDER,
@@ -1642,6 +1879,54 @@ class Component(Vertex):
                 end_comments=comments
             )
 
+    def replace_connection(self, otherComponent, time, uid, comments, disable_time: int = int(time.time())):
+        """
+        Given another Component :param component:,
+        replace the existing connection between them.
+
+        :param otherComponent: Another Component that this component has connection with.
+        :type othercomponent: Component
+
+        :param time: The time at which these components were connected 
+        (real time)
+        :type time: int
+
+        :param uid: The ID of the user that connected the components
+        :type uid: str
+
+        :param comments: Comments to add with the connection, defaults to ""
+        :type comments: str, optional
+
+        :param disable_time: When this edge was disabled in the database (UNIX time).
+        :type disable_time: int
+
+        """
+
+        # Disables the current connection.
+        g.V(self.id()).bothE(RelationConnection.category).where(
+            __.otherV().hasId(otherComponent.id())).property('active', False).property(
+            'time_disabled', disable_time).next()
+
+        # Adds the new connection.
+        self.connect(
+            component=otherComponent, time=time, uid=uid, comments=comments
+        )
+
+    def disable_connection(self, otherComponent, disable_time: int = int(time.time())):
+        """Disables the connection in the serverside
+
+        :param otherComponent: Another Component that this component has connection with.
+        :type othercomponent: Component
+
+        :param disable_time: When this edge was disabled in the database (UNIX time).
+        :type disable_time: int    
+
+        """
+
+        g.V(self.id()).bothE(RelationConnection.category).where(
+            __.otherV().hasId(otherComponent.id())).property('active', False).property(
+            'time_disabled', disable_time).next()
+
     def get_all_connections_at_time(
         self, time: int
     ):
@@ -1662,12 +1947,12 @@ class Component(Vertex):
 
         # list of property vertices of this property type
         # and active at this time
-        query = g.V(self.id()).bothE(RelationConnection.category) \
+        query = g.V(self.id()).bothE(RelationConnection.category).has('active', True) \
             .has('start_time', P.lte(time)) \
             .has('end_time', P.gt(time)) \
             .as_('e').valueMap().as_('edge_props') \
-            .select('e').otherV().id().as_('vertex_id') \
-            .select('e').id().as_('edge_id') \
+            .select('e').otherV().id_().as_('vertex_id') \
+            .select('e').id_().as_('edge_id') \
             .select('edge_props', 'vertex_id', 'edge_id').toList()
 
         # Build up the result of format (property vertex, relation)
@@ -1725,7 +2010,8 @@ class Component(Vertex):
                 "been added to the database."
             )
 
-        edges = g.V(self.id()).bothE(RelationConnection.category)
+        edges = g.V(self.id()).bothE(
+            RelationConnection.category).has('active', True)
 
         if to_time < EXISTING_RELATION_END_PLACEHOLDER:
             edges = edges.has('start_time', P.lt(to_time))
@@ -1734,7 +2020,7 @@ class Component(Vertex):
             .as_('e').otherV() \
             .hasId(component.id()).select('e') \
             .order().by(__.values('start_time'), Order.asc) \
-            .project('properties', 'id').by(__.valueMap()).by(__.id()).toList()
+            .project('properties', 'id').by(__.valueMap()).by(__.id_()).toList()
 
         return [RelationConnection(
             inVertex=self, outVertex=component,
@@ -1773,12 +2059,12 @@ class Component(Vertex):
                 "been added to the database."
             )
 
-        e = g.V(self.id()).bothE(RelationConnection.category) \
+        e = g.V(self.id()).bothE(RelationConnection.category).has('active', True) \
             .has('start_time', P.lte(time)) \
             .has('end_time', P.gt(time)) \
             .as_('e').otherV() \
             .hasId(component.id()).select('e') \
-            .project('properties', 'id').by(__.valueMap()).by(__.id()).toList()
+            .project('properties', 'id').by(__.valueMap()).by(__.id_()).toList()
 
         if len(e) == 0:
             return None
@@ -1813,9 +2099,9 @@ class Component(Vertex):
 
         # list of property vertices of this property type
         # and active at this time
-        query = g.V(self.id()).bothE(RelationConnection.category) \
+        query = g.V(self.id()).bothE(RelationConnection.category).has('active', True) \
             .as_('e').valueMap().as_('edge_props') \
-            .select('e').otherV().id().as_('vertex_id') \
+            .select('e').otherV().id_().as_('vertex_id') \
             .select('edge_props', 'vertex_id').toList()
 
         # Build up the result of format (property vertex, relation)
@@ -1874,7 +2160,7 @@ class Component(Vertex):
 
         if component_to_subcomponent is not None:
             raise ComponentIsSubcomponentOfOtherComponentError(
-                f"Component {self.name} is already a subcomponent of {component.name}"
+                f"Component {component.name} is already a subcomponent of {self.name}"
             )
 
         if current_subcomponent is not None:
@@ -1911,8 +2197,8 @@ class Component(Vertex):
                 "been added to the database."
             )
 
-        e = g.V(self.id()).bothE(RelationSubcomponent.category).as_('e').otherV().hasId(
-            component.id()).select('e').project('id').by(__.id()).toList()
+        e = g.V(self.id()).bothE(RelationSubcomponent.category).has('active', True).as_('e').otherV().hasId(
+            component.id()).select('e').project('id').by(__.id_()).toList()
 
         if len(e) == 0:
             return None
@@ -1923,6 +2209,21 @@ class Component(Vertex):
             inVertex=self, outVertex=component,
             id=e[0]['id']['@value']['relationId']
         )
+
+    def disable_subcomponent(self, otherComponent, disable_time: int = int(time.time())):
+        """Disabling an edge for a subcomponent
+
+        :param otherComponent: Another Component that this component has connection 'rel_subcomponent' with.
+        :type othercomponent: Component
+
+        :param disable_time: When this edge was disabled in the database (UNIX time).
+        :type disable_time: int
+
+        """
+
+        g.V(self.id()).bothE(RelationSubcomponent.category).where(
+            __.otherV().hasId(otherComponent.id())).property('active', False).property(
+            'time_disabled', disable_time).next()
 
     def added_to_db(self) -> bool:
         """Return whether this Component is added to the database,
@@ -1937,7 +2238,7 @@ class Component(Vertex):
             self.id() != VIRTUAL_ID_PLACEHOLDER or (
                 g.V()
                 .has('category', Component.category)
-                .has('name', self.name).count().next() > 0
+                .has('name', self.name).has('active', True).count().next() > 0
             )
         )
 
@@ -2000,10 +2301,10 @@ class Component(Vertex):
         :type name: str
         """
 
-        d = g.V().has('category', Component.category).has('name', name) \
+        d = g.V().has('active', True).has('category', Component.category).has('name', name) \
             .project('id', 'type_id', 'rev_ids', 'time_added') \
-            .by(__.id()).by(__.both(RelationComponentType.category).id()) \
-            .by(__.both(RelationVersion.category).id().fold()) \
+            .by(__.id_()).by(__.both(RelationComponentType.category).id_()) \
+            .by(__.both(RelationVersion.category).id_().fold()) \
             .by(__.values('time_added')).next()
 
         id, type_id, rev_ids, time_added = \
@@ -2029,8 +2330,8 @@ class Component(Vertex):
 
             d = g.V(id).project('name', 'type_id', 'rev_ids', 'time_added') \
                 .by(__.values('name')) \
-                .by(__.both(RelationComponentType.category).id()) \
-                .by(__.both(RelationVersion.category).id().fold()) \
+                .by(__.both(RelationComponentType.category).id_()) \
+                .by(__.both(RelationVersion.category).id_().fold()) \
                 .by(__.values('time_added')).next()
 
             name, type_id, rev_ids, time_added = \
@@ -2087,7 +2388,7 @@ class Component(Vertex):
         else:
             direction = Order.asc
 
-        traversal = g.V().has('category', Component.category)
+        traversal = g.V().has('active', True).has('category', Component.category)
 
         # FILTERS
 
@@ -2179,10 +2480,10 @@ class Component(Vertex):
 
         cs = traversal.range(range[0], range[1]) \
             .project('id', 'name', 'type_id', 'rev_ids', 'time_added') \
-            .by(__.id()) \
+            .by(__.id_()) \
             .by(__.values('name')) \
-            .by(__.both(RelationComponentType.category).id()) \
-            .by(__.both(RelationVersion.category).id().fold()) \
+            .by(__.both(RelationComponentType.category).id_()) \
+            .by(__.both(RelationVersion.category).id_().fold()) \
             .by(__.values('time_added')) \
             .toList()
 
@@ -2215,7 +2516,7 @@ class Component(Vertex):
         :rtype: int
         """
 
-        traversal = g.V().has('category', Component.category)
+        traversal = g.V().has('active', True).has('category', Component.category)
 
         # FILTERS
 
@@ -2516,6 +2817,28 @@ class PropertyType(Vertex):
 
             e.add()
 
+    def replace(self, newVertex, disable_time: int = int(time.time())):
+        """Replaces the PropertyType vertex in the serverside.
+
+        :param newVertex: The new PropertyType vertex that is replacing the old PropertyType vertex.
+        :type newVertex: PropertyType
+
+        :param disable_time: When this vertex was disabled in the database (UNIX time).
+        :type disable_time: int
+        """
+
+        # Step 1
+        g.V(self.id()).property(
+            'active', False).property('time_disabled', disable_time).iterate()
+
+        # Step 2
+        newVertex.add()
+
+        # Step 3
+        newVertexId = newVertex.id()
+
+        Vertex.replace(self=self, id=newVertexId)
+
     def added_to_db(self) -> bool:
         """Return whether this PropertyType is added to the database,
         that is, whether the ID is not the virtual ID placeholder and perform a 
@@ -2528,7 +2851,7 @@ class PropertyType(Vertex):
         return (
             self.id() != VIRTUAL_ID_PLACEHOLDER or (
                 g.V().has('category', PropertyType.category)
-                .has('name', self.name).count().next() > 0
+                .has('name', self.name).has('active', True).count().next() > 0
             )
         )
 
@@ -2595,11 +2918,11 @@ class PropertyType(Vertex):
         :type name: str
         """
 
-        d = g.V().has('category', PropertyType.category).has('name', name) \
+        d = g.V().has('active', True).has('category', PropertyType.category).has('name', name) \
             .project('id', 'attrs', 'type_ids') \
-            .by(__.id()) \
+            .by(__.id_()) \
             .by(__.valueMap()) \
-            .by(__.both(RelationPropertyAllowedType.category).id().fold()) \
+            .by(__.both(RelationPropertyAllowedType.category).id_().fold()) \
             .next()
 
         # to access attributes from attrs, do attrs[...][0]
@@ -2641,7 +2964,7 @@ class PropertyType(Vertex):
 
             d = g.V(id).project('attrs', 'type_ids') \
                 .by(__.valueMap()) \
-                .by(__.both(RelationPropertyAllowedType.category).id().fold()) \
+                .by(__.both(RelationPropertyAllowedType.category).id_().fold()) \
                 .next()
 
             # to access attributes from attrs, do attrs[...][0]
@@ -2701,7 +3024,7 @@ class PropertyType(Vertex):
 
         assert order_by in {'name', 'allowed_type'}
 
-        traversal = g.V().has('category', PropertyType.category)
+        traversal = g.V().has('active', True).has('category', PropertyType.category)
 
         # if order_direction is not asc or desc, it will just sort by asc.
         # Keep like this if removing the assert above only in production.
@@ -2759,9 +3082,9 @@ class PropertyType(Vertex):
         # Component type query to DB
         pts = traversal.range(range[0], range[1]) \
             .project('id', 'attrs', 'type_ids') \
-            .by(__.id()) \
+            .by(__.id_()) \
             .by(__.valueMap()) \
-            .by(__.both(RelationPropertyAllowedType.category).id().fold()) \
+            .by(__.both(RelationPropertyAllowedType.category).id_().fold()) \
             .toList()
 
         property_types = []
@@ -2801,7 +3124,7 @@ class PropertyType(Vertex):
         :rtype: int
         """
 
-        traversal = g.V().has('category', PropertyType.category)
+        traversal = g.V().has('active', True).has('category', PropertyType.category)
 
         if filters is not None:
 
@@ -2928,7 +3251,7 @@ class Property(Vertex):
 
             d = g.V(id).project('values', 'ptype_id') \
                 .by(__.properties('values').value().fold()) \
-                .by(__.both(RelationPropertyType.category).id()).next()
+                .by(__.both(RelationPropertyType.category).id_()).next()
 
             values, ptype_id = d['values'], d['ptype_id']
 
@@ -3020,6 +3343,28 @@ class FlagType(Vertex):
 
         Vertex.add(self=self, attributes=attributes)
 
+    def replace(self, newVertex, disable_time: int = int(time.time())):
+        """Replaces the FlagType vertex in the serverside.
+
+        :param newVertex: The new FlagType vertex that is replacing the old FlagType vertex.
+        :type newVertex: FlagType
+
+        :param disable_time: When this vertex was disabled in the database (UNIX time).
+        :type disable_time: int
+        """
+
+        # Step 1
+        g.V(self.id()).property(
+            'active', False).property('time_disabled', disable_time).iterate()
+
+        # Step 2
+        newVertex.add()
+
+        # Step 3
+        newVertexId = newVertex.id()
+
+        Vertex.replace(self=self, id=newVertexId)
+
     def added_to_db(self) -> bool:
         """Return whether this FlagType is added to the database,
         that is, whether the ID is not the virtual ID placeholder and perform a 
@@ -3032,7 +3377,7 @@ class FlagType(Vertex):
         return (
             self.id() != VIRTUAL_ID_PLACEHOLDER or (
                 g.V().has('category', FlagType.category)
-                .has('name', self.name).count().next() == 1
+                .has('name', self.name).has('active', True).count().next() == 1
             )
         )
 
@@ -3049,8 +3394,8 @@ class FlagType(Vertex):
         :rtype: FlagType
         """
 
-        d = g.V().has('category', FlagType.category).has('name', name) \
-            .as_('v').valueMap().as_('props').select('v').id().as_('id') \
+        d = g.V().has('active', True).has('category', FlagType.category).has('name', name) \
+            .as_('v').valueMap().as_('props').select('v').id_().as_('id') \
             .select('props', 'id').next()
 
         props, id = d['props'], d['id']
@@ -3155,7 +3500,7 @@ class FlagType(Vertex):
 
         assert order_by in {'name'}
 
-        traversal = g.V().has('category', FlagType.category) \
+        traversal = g.V().has('active', True).has('category', FlagType.category) \
             .has('name', TextP.containing(name_substring))
 
         # if order_direction is not asc or desc, it will just sort by asc.
@@ -3179,7 +3524,7 @@ class FlagType(Vertex):
         # Component type query to DB
         cts = traversal.range(range[0], range[1]) \
             .project('id', 'name', 'comments') \
-            .by(__.id()) \
+            .by(__.id_()) \
             .by(__.values('name')) \
             .by(__.values('comments')) \
             .toList()
@@ -3213,7 +3558,7 @@ class FlagType(Vertex):
         :rtype: int
         """
 
-        return g.V().has('category', FlagType.category) \
+        return g.V().has('active', True).has('category', FlagType.category) \
             .has('name', TextP.containing(name_substring)) \
             .count().next()
 
@@ -3278,6 +3623,28 @@ class FlagSeverity(Vertex):
 
         Vertex.add(self=self, attributes=attributes)
 
+    def replace(self, newVertex, disable_time: int = int(time.time())):
+        """Replaces the FlagSeverity vertex in the serverside.
+
+        :param newVertex: The new FlagSeverity vertex that is replacing the old FlagSeverity vertex.
+        :type newVertex: FlagSeverity
+
+        :param disable_time: When this vertex was disabled in the database (UNIX time).
+        :type disable_time: int
+        """
+
+        # Step 1
+        g.V(self.id()).property(
+            'active', False).property('time_disabled', disable_time).iterate()
+
+        # Step 2
+        newVertex.add()
+
+        # Step 3
+        newVertexId = newVertex.id()
+
+        Vertex.replace(self=self, id=newVertexId)
+
     def added_to_db(self) -> bool:
         """
         Return whether this FlagSeverity is added to the database, that is, whether the ID is not the virtual ID placeholder and perform a query to the database to determine if the vertex has already been added.
@@ -3289,7 +3656,7 @@ class FlagSeverity(Vertex):
         return (
             self.id() != VIRTUAL_ID_PLACEHOLDER or (
                 g.V().has('category', FlagSeverity.category).has(
-                    'name', self.name).count().next() == 1
+                    'name', self.name).has('active', True).count().next() == 1
             )
         )
 
@@ -3304,8 +3671,8 @@ class FlagSeverity(Vertex):
         :rtype: FlagSeverity.
         """
 
-        d = g.V().has('category', FlagSeverity.category).has('name', name).as_(
-            'v').valueMap().as_('props').select('v').id().as_('id').select('props', 'id').next()
+        d = g.V().has('active', True).has('category', FlagSeverity.category).has('name', name).as_(
+            'v').valueMap().as_('props').select('v').id_().as_('id').select('props', 'id').next()
 
         props, id = d['props'], d['id']
 
@@ -3398,7 +3765,7 @@ class FlagSeverity(Vertex):
 
         assert order_by in {'name'}
 
-        traversal = g.V().has('category', FlagSeverity.category) \
+        traversal = g.V().has('active', True).has('category', FlagSeverity.category) \
 
 
         # if order_direction is not asc or desc, it will just sort by asc.
@@ -3420,7 +3787,7 @@ class FlagSeverity(Vertex):
         # flag severity query to DB
         fs = traversal.range(range[0], range[1]) \
             .project('id', 'name') \
-            .by(__.id()) \
+            .by(__.id_()) \
             .by(__.values('name')) \
             .toList()
 
@@ -3605,6 +3972,28 @@ class Flag(Vertex):
 
             e.add()
 
+    def replace(self, newVertex, disable_time: int = int(time.time())):
+        """Replaces the Flag vertex in the serverside.
+
+        :param newVertex: The new Flag vertex that is replacing the old Flag vertex.
+        :type newVertex: Flag
+
+        :param disable_time: When this vertex was disabled in the database (UNIX time).
+        :type disable_time: int
+        """
+
+        # Step 1
+        g.V(self.id()).property(
+            'active', False).property('time_disabled', disable_time).iterate()
+
+        # Step 2
+        newVertex.add()
+
+        # Step 3
+        newVertexId = newVertex.id()
+
+        Vertex.replace(self=self, id=newVertexId)
+
     def added_to_db(self) -> bool:
         """Return whether this Flag is added to the database,that is, whether the ID is not the virtual ID placeholder and perform a query to the database if the vertex has already been added.
 
@@ -3614,7 +4003,8 @@ class Flag(Vertex):
 
         return (
             self.id() != VIRTUAL_ID_PLACEHOLDER or (
-                g.V().has('category', Flag.category).has('name', self.name).count().next() > 0
+                g.V().has('category', Flag.category).has(
+                    'name', self.name).has('active', True).count().next() > 0
             )
         )
 
@@ -3697,12 +4087,12 @@ class Flag(Vertex):
         :type name: str
         """
 
-        d = g.V().has('category', Flag.category).has('name', name) \
+        d = g.V().has('active', True).has('category', Flag.category).has('name', name) \
             .project('id', 'attrs', 'type_id', 'severity_id', 'component_ids') \
-            .by(__.id()) \
+            .by(__.id_()) \
             .by(__.valueMap()) \
-            .by(__.both(RelationFlagType.category).id()).by(__.both(RelationFlagSeverity.category).id()) \
-            .by(__.both(RelationFlagComponent.category).id().fold()).next()
+            .by(__.both(RelationFlagType.category).id_()).by(__.both(RelationFlagSeverity.category).id_()) \
+            .by(__.both(RelationFlagComponent.category).id_().fold()).next()
 
         id, attrs, type_id, severity_id, component_ids = d['id'], d['attrs'], \
             d['type_id'], d['severity_id'], d['component_ids']
@@ -3746,8 +4136,8 @@ class Flag(Vertex):
 
         if id not in _vertex_cache:
 
-            d = g.V(id).project('attrs', 'fseverity_id', 'ftype_id', 'fcomponent_ids').by(__.valueMap()).by(__.both(RelationFlagSeverity.category).id()).by(
-                __.both(RelationFlagType.category).id()).by(__.both(RelationFlagComponent.category).id().fold()).next()
+            d = g.V(id).project('attrs', 'fseverity_id', 'ftype_id', 'fcomponent_ids').by(__.valueMap()).by(__.both(RelationFlagSeverity.category).id_()).by(
+                __.both(RelationFlagType.category).id_()).by(__.both(RelationFlagComponent.category).id_().fold()).next()
 
             # to access attributes from attrs, do attrs[...][0]
             attrs, fseverity_id, ftype_id, fcomponent_ids = d['attrs'], d[
@@ -3814,7 +4204,7 @@ class Flag(Vertex):
 
         assert order_by in {'name', 'flag_type', 'flag_severity'}
 
-        traversal = g.V().has('category', Flag.category)
+        traversal = g.V().has('active', True).has('category', Flag.category)
 
         # if order_direction is not asc or desc, it will just sort by asc.
         # Keep like this if removing the assert above only in production.
@@ -3899,9 +4289,9 @@ class Flag(Vertex):
         # flag query to DB
         fs = traversal.range(range[0], range[1]) \
             .project('id', 'attrs', 'ftype_id', 'fseverity_id', 'fcomponent_ids') \
-            .by(__.id()) \
+            .by(__.id_()) \
             .by(__.valueMap()) \
-            .by(__.both(RelationFlagType.category).id()).by(__.both(RelationFlagSeverity.category).id()).by(__.both(RelationFlagComponent.category).id().fold()) \
+            .by(__.both(RelationFlagType.category).id_()).by(__.both(RelationFlagSeverity.category).id_()).by(__.both(RelationFlagComponent.category).id_().fold()) \
             .toList()
 
         flags = []
@@ -3946,7 +4336,7 @@ class Flag(Vertex):
         :return: The number of flags.
         :rtype: int
         """
-        traversal = g.V().has('category', Flag.category)
+        traversal = g.V().has('active', True).has('category', Flag.category)
 
         # FILTERS
 
@@ -4118,7 +4508,7 @@ class Permission(Vertex):
         """
 
         d = g.V().has('category', Permission.category).has('name', name).as_(
-            'v').valueMap().as_('props').select('v').id().as_('id').select('props', 'id').next()
+            'v').valueMap().as_('props').select('v').id_().as_('id').select('props', 'id').next()
 
         props, id = d['props'], d['id']
 
@@ -4237,7 +4627,7 @@ class UserGroup(Vertex):
         """
 
         d = g.V().has('category', UserGroup.category).has('name', name).project('id', 'attrs', 'permission_ids').by(
-            __.id()).by(__.valueMap()).by(__.both(RelationGroupAllowedPermission.category).id().fold()).next()
+            __.id_()).by(__.valueMap()).by(__.both(RelationGroupAllowedPermission.category).id_().fold()).next()
 
         id, attrs, perimssion_ids = d['id'], d['attrs'], d['permission_ids']
 
@@ -4421,7 +4811,7 @@ class User(Vertex):
         """
 
         d = g.V().has('category', User.category).has('uname', uname).project('id', 'attrs', 'group_ids').by(
-            __.id()).by(__.valueMap()).by(__.both(RelationUserAllowedGroup.category).id().fold()).next()
+            __.id_()).by(__.valueMap()).by(__.both(RelationUserAllowedGroup.category).id_().fold()).next()
 
         # to access attributes from attrs, do attrs[...][0]
         id, attrs, gtype_ids = d['id'], d['attrs'], d['group_ids']
@@ -4458,7 +4848,7 @@ class User(Vertex):
         if id not in _vertex_cache:
 
             d = g.V(id).project('attrs', 'group_ids').by(__.valueMap()).by(
-                __.both(RelationUserAllowedGroup.category).id().fold()).next()
+                __.both(RelationUserAllowedGroup.category).id_().fold()).next()
 
             # to access attributes from attrs, do attrs[...][0]
 
@@ -4625,8 +5015,8 @@ class RelationProperty(Edge):
     :ivar end_time: The end time of the relation. 
     :ivar start_uid: The ID of the user that started the relation.
     :ivar end_uid: The ID of the user that ended the relation.
-    :ivar start_edit_time: The time that the relation was started at.
     :ivar end_edit_time: The time that the relation was ended at.
+    :ivar start_edit_time: The time that the relation was started at.
     :ivar start_comments: Comments about starting the relation.
     :ivar end_comments: Comments about ending the relation.
     """

@@ -5,14 +5,11 @@ import Button from '@mui/material/Button';
 import Box from '@mui/material/Box';
 import Grid from '@mui/material/Grid';
 import CircularProgress from '@mui/material/CircularProgress';
-
+import MuiTextField from '@mui/material/TextField';
 import CloseIcon from '@mui/icons-material/Close';
-import ErrorIcon from '@mui/icons-material/Error';
-
 import ThemeProvider from '@mui/material/styles/ThemeProvider';
 import styled from '@mui/material/styles/styled';
 import { Typography } from '@mui/material';
-import ComponentAutocomplete from './ComponentAutocomplete.js';
 
 /**
  * A styled "panel" component, used as the background for the panel.
@@ -24,7 +21,7 @@ const Panel = styled((props) => (
     <Paper 
         elevation={0}
         {...props}
-        sx={{margin:-1}}
+        sx={{marginTop:2}}
     />
 ))(({ theme }) => ({
     backgroundColor: 'rgb(240, 240, 255)',
@@ -32,6 +29,17 @@ const Panel = styled((props) => (
     padding: theme.spacing(2),
 }));
 
+/**
+ * Just a renaming of a filled text field (so no need to type variant="filled"
+ * each time)
+ */
+const TextField = styled((props) => (
+    <MuiTextField 
+        variant="filled"
+        {...props}
+    />
+))(({ theme }) => ({
+}));
 
 /**
  * Close button used in the panel
@@ -52,38 +60,41 @@ const CloseButton = styled((props) => (
 }));
 
 /**
- * The MUI component which represents a panel through which relation between two components where one is a subcomponent of another can be established.
+ * The MUI component which represents a panel through which connections are
+ * replaced between components.
  * 
  * @param {object} theme - A MUI theme object, see 
  * https://mui.com/material-ui/customization/theming/
  * @param {function} onClose - function to call when the close button is pressed
- * @param {function(string)} onSet - function to call when 
- * setting a component subcomponent connection. The parameters are of the form:
- * onSet(otherName), where otherName is the name of the
- * subcomponent you are connecting this one to.
- * @param {string} name - the name of the component you are connecting another
- * subcomponent to.
+ * @param {function(string, int, string, string)} onSet - function to call when 
+ * replacing a component connection. The parameters are of the form:
+ * onSet(otherName, time, uid, comments), time is the Unix time when
+ * the connection is being set, uid is the ID of the user setting the
+ * connection, and comments are the comments associated with setting the connection.
  */
-function ComponentSubcomponentAddPanel(
+function ComponentConnectionReplacePanel(
     {
         theme,
         onClose,
         onSet,
-        name,
-        errorSubcomponentMessage
     }
 ) {
 
-    // what the "selected" other component is
-    const [selectedOption, setSelectedOption] = useState(null);
+    // the ID of the user setting the connection
+    const [uid, setUid] = useState("");
 
-    // whether the panel is loading: usually happens after the "Set" button
-    // is made, waiting for a response from the DB.
+    // default time to end the connection
+    const defaultTime = 1;
+
+    // time to make the connection
+    const [time, setTime] = useState(defaultTime);
+
+    // comments associated with setting the connection
+    const [comments, setComments] = useState("");
+
+    // whether the panel is loading: usually happens after the "Replace" button
+    // is clicked, waiting for a response from the DB.
     const [loading, setLoading] = useState(false);
-
-    function selectOption(option) {
-        setSelectedOption(option);
-    }
 
     // return the MUI component.
     return (
@@ -102,7 +113,7 @@ function ComponentSubcomponentAddPanel(
                         <Typography style={{
                             color: 'rgba(0,0,0,0.7)',
                         }}>
-                            Connect a subcomponent
+                           Replace
                         </Typography>
                     </Grid>
 
@@ -112,42 +123,48 @@ function ComponentSubcomponentAddPanel(
                 </Grid>
 
                 <Grid container spacing={2} justifyContent="space-around">
+
                     <Grid item>
-                        <ComponentAutocomplete 
-                            onSelect={selectOption} 
-                            excludeName={name}
+                        <TextField 
+                            required
+                            label="User" 
+                            sx={{ width: 150 }}
+                            onChange={(event) => setUid(event.target.value)}
+                        />
+                    </Grid>
+
+                    <Grid item>
+                        <TextField
+                            required
+                            id="datetime-local"
+                            label="Time"
+                            type="datetime-local"
+                            sx={{ width: 240 }}
+                            InputLabelProps={{
+                                shrink: true,
+                            }}
+                            size="large"
+                            onChange={(event) => {
+                                let date = new Date(event.target.value);
+                                setTime(Math.round(date.getTime() / 1000));
+                            }}
+                        />
+                    </Grid>
+
+                    <Grid item>
+                        <TextField
+                            id="outlined-multiline-static"
+                            label="Comments"
+                            multiline
+                            sx={{ width: 260 }}
+                            onChange={(event) => {
+                                setComments(event.target.value)
+                            }}
                         />
                     </Grid>
 
                 </Grid>
 
-                {
-                errorSubcomponentMessage
-                ? 
-                <Grid 
-                container 
-                        style={{
-                            marginTop: theme.spacing(1),
-                        }}
-                        spacing={1}
-                        justifyContent="center"
-                        >
-                        <Grid item>
-                            <ErrorIcon sx={{color: 'red'}} />
-                        </Grid>
-                        <Grid item>
-                            <Typography
-                                style={{
-                                    color: 'rgb(255,0,0)',
-                                }}
-                                >
-                                {errorSubcomponentMessage}
-                            </Typography>
-                        </Grid>
-                    </Grid> 
-                    : 
-                    <></>
-                }
                 <Box 
                     style={{
                         textAlign: "right",
@@ -159,13 +176,23 @@ function ComponentSubcomponentAddPanel(
                         size="large"
                         disableElevation
                         disabled={
-                            selectedOption === null  
+                            uid === "" ||
+                            time === defaultTime    
                         }
                         onClick={
                             async () => {
                                 setLoading(true);
-                                onSet(
-                                    selectedOption.name,
+                                onSet( 
+                                    time, 
+                                    uid, 
+                                    comments
+                                ).then(
+                                    successful => {
+                                        if (successful === false) {
+                                            setLoading(false);
+                                            ;
+                                        }
+                                    }
                                 )
                             }
                         }
@@ -175,15 +202,12 @@ function ComponentSubcomponentAddPanel(
                          * is spinning.
                          */}
                         {loading ? 
-                        errorSubcomponentMessage ?
-                        "Set"
-                        :
                         <CircularProgress
                             size={24}
                             sx={{
                                 color: 'white',
                             }}
-                        /> : "Set"}
+                        /> : "Update"}
                     </Button>
                 </Box>
             </Panel>
@@ -191,4 +215,4 @@ function ComponentSubcomponentAddPanel(
     )
 }
 
-export default ComponentSubcomponentAddPanel;
+export default ComponentConnectionReplacePanel;

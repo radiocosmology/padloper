@@ -21,8 +21,7 @@ random.seed()
 if False:
     ComponentType("dish", "a radio dish").add()
     ComponentType("antenna", "a dual polarisation antenna").add()
-    ComponentType(
-        "antenna-pol", "one of the polarisations of an antenna").add()
+    ComponentType("antenna-pol", "one of the polarisations of an antenna").add()
     ComponentType("coax", "coaxial cable").add()
     ComponentType("rfof-tx", "RFoF transmitter").add()
     ComponentType("fibre", "fibre optic cable").add()
@@ -59,7 +58,8 @@ if False:
     PropertyType("pointing", "deg", "^[\-]?\d*[.]?\d*$", 2, [t_dish],
                  comments="alt/az of telescope pointing").add()
     PropertyType("pol-orientation", "deg", "^[\-]?\d*[.]?\d*$", 1, [t_ant],
-                 comments="degrees clockwise from north of H polarisation").add()
+                 comments="degrees clockwise from north of H "\
+                          "polarisation").add()
     PropertyType("pol-type", "", "[HV]", 1, [t_pol],
                  comments="one of H or V").add()
     PropertyType("attenuation", "dB", "^\d*[.]?\d*$", 1,

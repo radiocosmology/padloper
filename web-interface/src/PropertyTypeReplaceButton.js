@@ -15,6 +15,8 @@ import OutlinedInput from '@mui/material/OutlinedInput';
 import axios from 'axios'
 import ErrorIcon from '@mui/icons-material/Error'
 import { Checkbox, ListItemText } from '@mui/material';
+import EditIcon from '@mui/icons-material/Edit';
+import styled from '@mui/material/styles/styled';
 
 
 const ITEM_HEIGHT = 48;
@@ -28,9 +30,29 @@ const MenuProps = {
   },
 };
 
+/**
+ * A MUI component representing a button for replacing a property type.
+ */
+const ReplaceButton = styled((props) => (
+    <Button 
+    style={{
+        maxWidth: '40px', 
+        maxHeight: '25px', 
+        minWidth: '30px', 
+        minHeight: '30px',
+        marginLeft:'10px'
+    }}
+    {...props}
+        variant="outlined">
+        <EditIcon/>
+    </Button>
+))(({ theme }) => ({
+    
+}))
 
 
-export default function PropertyTypeAddButton ({componentTypes,toggleReload}) {
+
+export default function PropertyTypeReplaceButton ({name,componentTypes,toggleReload}) {
 
   // Opens and closes the pop up form.
   const [open, setOpen] = useState(false);
@@ -50,7 +72,7 @@ export default function PropertyTypeAddButton ({componentTypes,toggleReload}) {
   // Whether the submit button has been clicked or not.
   const [loading, setLoading] = useState(false);
 
-  /*To display an error message when a user fails to add a new property type. */
+  /*To display an error message when a user fails to replace a property type. */
   const [errorData,setErrorData] = useState(null)
 
 
@@ -81,11 +103,13 @@ export default function PropertyTypeAddButton ({componentTypes,toggleReload}) {
   };
 
   /*
-  Function that sets the relevant states back to default once the dialog box is closed or the user clicks on the cancel button..
+  This function sets the variables back to empty string once 
+  the form is closed or the user clicks on the cancel button
+  on the pop up form.
   */
   const handleClose = () => {
     setOpen(false);
-    setErrorData(null)
+    setErrorData(false)
     setLoading(false)
     setComponentTypeName([])
     setProperty({
@@ -100,13 +124,14 @@ export default function PropertyTypeAddButton ({componentTypes,toggleReload}) {
   const handleSubmit = (e) => {
     e.preventDefault() // To preserve the state once the form is submitted.
     setLoading(true)
-    let input = `/api/set_property_type`;
+    let input = `/api/replace_property_type`;
     input += `?name=${property.name}`;
     input += `&type=${componentTypeName.join(';')}`;
     input += `&units=${property.units}`;
     input += `&allowed_reg=${property.allowed_regex}`;
     input += `&values=${property.values}`;
     input += `&comments=${property.comment}`;
+    input += `&property_type=${name}`;
     axios.post(input).then((response)=>{
       if(response.data.result){
         toggleReload() //To reload the page once the form has been submitted.
@@ -119,9 +144,9 @@ export default function PropertyTypeAddButton ({componentTypes,toggleReload}) {
 
   return (
     <>
-        <Button variant="contained" onClick={handleClickOpen}>Add Property Type</Button>
+        <ReplaceButton variant="contained" onClick={handleClickOpen}/>
       <Dialog open={open} onClose={handleClose}>
-        <DialogTitle>Add Property Type</DialogTitle>
+        <DialogTitle>Replace Property Type '{name}'</DialogTitle>
         <DialogContent>
     <div style={{
         marginTop:'10px',

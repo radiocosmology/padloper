@@ -4,83 +4,99 @@ import {
     TextField, 
     } 
 from '@mui/material';
-
 import Button from '@mui/material/Button'
 import Dialog from '@mui/material/Dialog';
 import DialogActions from '@mui/material/DialogActions';
 import DialogContent from '@mui/material/DialogContent';
 import DialogTitle from '@mui/material/DialogTitle';
 import CircularProgress from '@mui/material/CircularProgress';
-import axios from 'axios'
 import ErrorIcon from '@mui/icons-material/Error';
+import axios from 'axios'
+import EditIcon from '@mui/icons-material/Edit';
+import styled from '@mui/material/styles/styled';
 
-export default function ComponentTypeAddButton ({toggleReload}) {
+/**
+ * A MUI component representing a button for replacing a flag type.
+ */
+const ReplaceButton = styled((props) => (
+    <Button 
+    style={{
+        maxWidth: '40px', 
+        maxHeight: '25px', 
+        minWidth: '30px', 
+        minHeight: '30px',
+        marginLeft:'10px'
+    }}
+    {...props}
+        variant="outlined">
+        <EditIcon/>
+    </Button>
+))(({ theme }) => ({
+    
+}))
+
+export default function FlagTypeReplaceButton ({nameFlagType,toggleReload}) {
 
   // Opens and closes the pop up form.
   const [open, setOpen] = useState(false);
 
-  // Stores the name of the new component type.
-  const [componentType,setComponentType] = useState('')
+  // Name of the new flag type to be added.
+  const [name,setName] = useState('')
 
-  // Stores the comments assocaited with the new component type.
+  // Comments associated with the new flag type.
   const [comment,setComment] = useState('')
 
-  // Whether the submit button has been clicked or not.
+  // Whether the submit button has been clickd or not.
   const [loading, setLoading] = useState(false);
 
-  /*
-  To display error when a user fails to add a new component type.
-   */
+  /*To display an error message when a user fails to replace a flag type. */
   const [errorData,setErrorData] = useState(null)
 
   const handleClickOpen = () => {
     setOpen(true);
   };
 
-
-  /*
-   Function that sets the relevant form variables back to empty strings once the form is closed or the user clicks on the cancel button on the pop up form.
-   
-   */
+   /*
+  Function that sets the relevant states back to default once the dialog box is closed or the user clicks on the cancel button.
+  */
   const handleClose = () => {
-    setComment('')
     setErrorData(null)
-    setComponentType('')
     setOpen(false);
     setLoading(false)
   };
 
   const handleSubmit = (e) => {
-      e.preventDefault() // To preserve the state once the form is submitted.
-      setLoading(true)
-      let input = `/api/set_component_type`;
-      input += `?name=${componentType}`;
-      input += `&comments=${comment}`;
-      axios.post(input).then((response)=>{
-        if(response.data.result){
-          handleClose()
-          toggleReload() //To reload the page once the form has been submitted.
-        } else {
-          setErrorData(response.data.error)
-        }
-      })
+    e.preventDefault() // To preserve the state once the form is submitted.
+    setLoading(true)
+    let input = `/api/replace_flag_type`;
+    input += `?name=${name}`;
+    input += `&comments=${comment}`;
+    input += `&flag_type=${nameFlagType}`;
+    axios.post(input).then((response)=>{
+      if(response.data.result){
+        toggleReload() //To reload the page once the form has been submitted.
+        handleClose()
+      } else {
+        setErrorData(response.data.error)
+      }
+    })
   }
 
   return (
     <div>
-        <Button variant="contained" onClick={handleClickOpen}>Add Component Type</Button>
+        <ReplaceButton onClick={handleClickOpen}/>
       <Dialog open={open} onClose={handleClose}>
-        <DialogTitle>Add Component Type</DialogTitle>
+        <DialogTitle>Replace Flag Type '{nameFlagType}'</DialogTitle>
         <DialogContent>
           <TextField
             autoFocus
             margin="dense"
-            id="Component Type"
-            label="Component Type"
+            id="name"
+            label="Flag Type"
             type='text'
             fullWidth
             variant="standard"
-            onChange={(e)=>setComponentType(e.target.value)}
+            onChange={(e)=>setName(e.target.value)}
           />
           <TextField
             margin="dense"
@@ -91,7 +107,7 @@ export default function ComponentTypeAddButton ({toggleReload}) {
             variant="standard"
             onChange={(e)=>setComment(e.target.value)}
           />
-           <div 
+    <div 
     style={{
     marginTop:'15px',
     marginBottom:'5px',
@@ -111,12 +127,12 @@ export default function ComponentTypeAddButton ({toggleReload}) {
       :
       null}
     </div>
+
         </DialogContent>
         <DialogActions>
           <Button onClick={handleClose}>Cancel</Button>
-          {
-            componentType 
-            ?
+          { name 
+          ?
             <Button onClick={handleSubmit}>
               {loading ? <CircularProgress
                             size={24}
@@ -126,9 +142,10 @@ export default function ComponentTypeAddButton ({toggleReload}) {
                         /> : "Submit"}
               </Button>
               :
-              <Button disabled>
+               <Button disabled>
               Submit
-              </Button>}
+              </Button>
+              }
         </DialogActions>
       </Dialog>
     </div>

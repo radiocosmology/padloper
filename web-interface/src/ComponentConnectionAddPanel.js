@@ -84,7 +84,8 @@ function ComponentConnectionAddPanel(
         theme,
         onClose,
         onSet,
-        name
+        name,
+        errorConnectionMessage
     }
 ) {
 
@@ -107,8 +108,6 @@ function ComponentConnectionAddPanel(
     // is made, waiting for a response from the DB.
     const [loading, setLoading] = useState(false);
 
-    // the body of an error message to display, if any.
-    const [errorMessage, setErrorMessage] = useState("");
 
     // function to select an option. I'm not even sure why I have this...
     function selectOption(option) {
@@ -190,15 +189,17 @@ function ComponentConnectionAddPanel(
 
                 </Grid>
 
-                {errorMessage !== "" ? 
-                    <Grid 
-                        container 
+                {
+                errorConnectionMessage
+                ? 
+                <Grid 
+                container 
                         style={{
                             marginTop: theme.spacing(1),
                         }}
                         spacing={1}
                         justifyContent="center"
-                    >
+                        >
                         <Grid item>
                             <ErrorIcon sx={{color: 'red'}} />
                         </Grid>
@@ -207,11 +208,13 @@ function ComponentConnectionAddPanel(
                                 style={{
                                     color: 'rgb(255,0,0)',
                                 }}
-                            >
-                                {errorMessage}
+                                >
+                                {errorConnectionMessage}
                             </Typography>
                         </Grid>
-                    </Grid> : <></>
+                    </Grid> 
+                    : 
+                    <></>
                 }
 
                 
@@ -233,23 +236,12 @@ function ComponentConnectionAddPanel(
                         }
                         onClick={
                             async () => {
-                                setErrorMessage("");
                                 setLoading(true);
                                 onSet(
                                     selectedOption.name, 
                                     time, 
                                     uid, 
                                     comments
-                                ).then(
-                                    successful => {
-                                        if (successful === false) {
-                                            setLoading(false);
-                                            setErrorMessage(`${name} is 
-                                            already connected to 
-                                            ${selectedOption.name} 
-                                            at this time.`);
-                                        }
-                                    }
                                 )
                             }
                         }
@@ -259,6 +251,9 @@ function ComponentConnectionAddPanel(
                          * is spinning.
                          */}
                         {loading ? 
+                        errorConnectionMessage ?
+                        "Set"
+                        :
                         <CircularProgress
                             size={24}
                             sx={{

@@ -8,6 +8,8 @@ import {
 from '@mui/material';
 
 import ComponentTypeAddButton from './ComponentTypeAddButton'
+import ComponentTypeReplaceButton from './ComponentTypeReplaceButton.js';
+
 
 /**
  * A MUI component that renders a list of component types.
@@ -114,6 +116,9 @@ function ComponentTypeList() {
             label: 'Comments',
             allowOrdering: false,
         },
+        {
+
+        }
     ];
     /**
      * the rows of the table. We are only putting the name and the comments.
@@ -121,6 +126,10 @@ function ComponentTypeList() {
     let tableRowContent = elements.map((e) => [
         e.name,
         e.comments,
+        <ComponentTypeReplaceButton
+        name = {e.name}
+        toggleReload={toggleReload}
+        />
     ]);
 
     return (

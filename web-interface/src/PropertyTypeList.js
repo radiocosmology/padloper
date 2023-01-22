@@ -5,6 +5,11 @@ import ElementRangePanel from './ElementRangePanel.js';
 import PropertyTypeFilter from './PropertyTypeFilter.js';
 import Button from '@mui/material/Button'
 import PropertyTypeAddButton from './PropertyTypeAddButton.js';
+import PropertyTypeReplaceButton from './PropertyTypeReplaceButton.js';
+
+
+
+
 
 /**
  * A MUI component that renders a list of property types.
@@ -47,6 +52,8 @@ export default function PropertyTypeList() {
         ]
     */
     const [filters, setFilters] = useState([]);
+
+    
 
     /**
      * add an empty filter to filters
@@ -226,6 +233,9 @@ export default function PropertyTypeList() {
             id: 'comments', 
             label: 'Comments',
             allowOrdering: false,
+        },
+        {
+
         }
     ];
 
@@ -237,6 +247,7 @@ export default function PropertyTypeList() {
      * - the allowed regex for the property type,
      * - the number of values a property must have, and
      * - the comments associated with the property type.
+     * - property type replace button.
      */
     let tableRowContent = elements.map((e) => [
         e.name,
@@ -244,7 +255,12 @@ export default function PropertyTypeList() {
         e.units,
         e.allowed_regex,
         e.n_values,
-        e.comments
+        e.comments,
+        <PropertyTypeReplaceButton
+        name = {e.name}
+        componentTypes={componentTypes}
+        toggleReload={toggleReload}
+        />
     ]);
 
 

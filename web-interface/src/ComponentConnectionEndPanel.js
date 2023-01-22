@@ -6,12 +6,8 @@ import Box from '@mui/material/Box';
 import Grid from '@mui/material/Grid';
 import CircularProgress from '@mui/material/CircularProgress';
 import MuiTextField from '@mui/material/TextField';
-
-
 import CloseIcon from '@mui/icons-material/Close';
 import ErrorIcon from '@mui/icons-material/Error';
-
-
 import ThemeProvider from '@mui/material/styles/ThemeProvider';
 import styled from '@mui/material/styles/styled';
 import { Typography } from '@mui/material';
@@ -73,8 +69,7 @@ const CloseButton = styled((props) => (
  * @param {function} onClose - function to call when the close button is pressed
  * @param {function(string, int, string, string)} onSet - function to call when 
  * ending a component connection. The parameters are of the form:
- * onSet(otherName, time, uid, comments), where otherName is the name of the
- * OTHER component you are ending the connection with, time is the Unix time when
+ * onSet(time, uid, comments), time is the Unix time when
  * the connection is being ended, uid is the ID of the user ending the
  * connection, and comments are the comments associated with ending the connection.
  */

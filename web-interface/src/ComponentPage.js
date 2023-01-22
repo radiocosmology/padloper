@@ -1,4 +1,5 @@
 import React, { useState, useEffect } from 'react';
+
 import Paper from '@mui/material/Paper';
 import Stack from '@mui/material/Stack';
 import Button from '@mui/material/Button';
@@ -11,23 +12,26 @@ import ExpandMoreIcon from '@mui/icons-material/ExpandMore';
 import EventIcon from '@mui/icons-material/Event';
 import AddIcon from '@mui/icons-material/Add';
 import EditIcon from '@mui/icons-material/Edit';
-
 import ThemeProvider from '@mui/material/styles/ThemeProvider';
 import createTheme from '@mui/material/styles/createTheme';
 import styled from '@mui/material/styles/styled';
-
 import Timestamp from './Timestamp.js';
 import ComponentEvent from './ComponentEvent.js';
 import ComponentPropertyAddPanel from './ComponentPropertyAddPanel.js';
 import ComponentPropertyEndPanel from './ComponentPropertyEndPanel.js';
-import ComponentPropertyEditPanel from './ComponentPropertyEditPanel'
+import ComponentPropertyReplacePanel from './ComponentPropertyReplacePanel'
 import ComponentConnectionAddPanel from './ComponentConnectionAddPanel.js';
 import ComponentConnectionEndPanel from './ComponentConnectionEndPanel'
 import ComponentSubcomponentAddPanel from './ComponentSubcomponentAddPanel.js';
+import ComponentConnectionReplacePanel from './ComponentConnectionReplacePanel.js';
+import ComponentPropertyDisableButton from './ComponentPropertyDisableButton'
+import ComponentConnectionDisableButton from './ComponentConnectionDisableButton'
+import ComponentSubcomponentDisableButton from './ComponentSubcomponentDisableButton'
 import SettingsInputComponentIcon from '@mui/icons-material/SettingsInputComponent';
 import ReportIcon from '@mui/icons-material/Report';
 import EastIcon from '@mui/icons-material/East';
 import KeyboardBackspaceIcon from '@mui/icons-material/KeyboardBackspace';
+import axios from 'axios'
 
 
 
@@ -210,15 +214,16 @@ const EndButton = styled((props) => (
 }))
 
 /*
-A MUI component representing a button for editing a component's property or connection.
+A MUI component representing a button for replacing a component's property or connection.
  */
-const EditButton = styled((props) => (
+const ReplaceButton = styled((props) => (
     <Button 
     style={{
         maxWidth: '40px', 
         maxHeight: '30px', 
         minWidth: '30px', 
         minHeight: '30px',
+        marginRight:'5px'
     }}
     {...props}
         variant="outlined">
@@ -254,7 +259,7 @@ function ComponentPage() {
     // Stores the property type selected by the user when adding a new property.
     const [propType,setPropType] = useState('')
 
-    // Stores the name of the other component with which the connection is being made.
+    // Stores the name of the other component with which the connection exists.
     const [otherName,setOtherName] = useState('')
 
     // Opens the property accordion.
@@ -285,12 +290,17 @@ function ComponentPage() {
 
     // Opens/Closes a panel to edit an existing property.
     const [
-        open_properties_edit_panel, setOpenPropertiesEditPanel
+        open_properties_replace_panel, setOpenPropertiesReplacePanel
     ] = useState(false);
 
     // Opens/Closes a panel to add a new connection.
     const [
         open_connections_add_panel, setOpenConnectionsAddPanel
+    ] = useState(false);
+
+    // Opens/Closes a panel to replace a new connection.
+    const [
+        open_connections_replace_panel, setOpenConnectionsReplacePanel
     ] = useState(false);
 
     // Opens/Closes a panel to end an existing connection.
@@ -303,11 +313,21 @@ function ComponentPage() {
         open_subcomponents_add_panel,setOpenSubcomponentsAddPanel
     ] = useState(false);
 
-    const [activeIndexConnection,setActiveIndexConnection] = useState(null)
+    // To keep track of which connection from the list of connections is the
+    // user ending and open the relevant panel.
+    const [activeIndexConnectionEnd,setActiveIndexConnectionEnd] = useState(null)
 
+    // To keep track of which property from the list of properties is the
+    // user ending and open the relevant panel.
     const [activeIndexPropertyEnd,setActiveIndexPropertyEnd] = useState(null)
 
-    const [activeIndexPropertyEdit,setActiveIndexPropertyEdit] = useState(null)
+    // To keep track of which property from the list of properties is the
+    // user replacing and open the relevant panel.
+    const [activeindexpropertyReplace,setactiveindexpropertyReplace] = useState(null)
+
+    // To keep track of which connection from the list of connections is the
+    // user replacing and open the relevant panel.
+    const [activeIndexConnectionReplace,setActiveIndexConnectionReplace] = useState(null)
 
 
     // toggle the properties accordion.
@@ -338,6 +358,16 @@ function ComponentPage() {
         setReloadBool(!reloadBool);
     }
 
+    /*Contains the message when there is an error while adding a new subcomponent connection */
+    const [errorSubcomponentMessage,setErrorSubcomponentMessage] = useState(null)
+
+    /*Contains the message when there is an error while adding a new property */
+    const [errorPropertyMessage,setErrorPropertyMessage] = useState(null)
+
+    /*Contains the message when there is an error while adding a new connection */
+    const [errorConnectionMessage,setErrorConnectionMessage] = useState(null)
+
+
     /**
      * Set a property for the component.
      * @param {string} propertyType - the name of the property tyoe
@@ -362,14 +392,25 @@ function ComponentPage() {
         }
         input = input.substring(0, input.length - 1);
 
-        fetch(input).then(
-            res => res.json()
-        ).then(data => {
-            setOpenPropertiesAddPanel(false);
-            toggleReload();
-        });
+        axios.post(input).then(
+            (response) => {
+                if(response.data.result){
+                    setOpenPropertiesAddPanel(false);
+                    setErrorPropertyMessage(null)
+                    toggleReload();
+                } else {
+                    setErrorPropertyMessage(response.data.error)
+                }
+            }
+        )
     }
 
+    /**
+     * End a property for the component.
+     * @param {int} time - the time at which to end the property 
+     * @param {string} uid - the ID of the user that is ending the property
+     * @param {string} comments - the comments associated with ending the property 
+     */
     async function endProperty(time, uid, comments) {
 
         // build up the string to query the API
@@ -388,19 +429,20 @@ function ComponentPage() {
         });
     }
 
-        /**
-     * Edit a property for the component.
+    /**
+     * Replace a property for the component.
+     * @param {string} propertyType - the property type to replace 
      * @param {int} time - the time at which to add the property 
      * @param {string} uid - the ID of the user that is adding the property
      * @param {string} comments - the comments associated with the property 
      * @param {Array} values - an array connecting the values of the property. 
      */
-    async function editProperty(time, uid, comments, values) {
+    async function replaceProperty(propertyType,time, uid, comments, values) {
 
         // build up the string to query the API
-        let input = `/api/component_edit_property`;
+        let input = `/api/component_replace_property`;
         input += `?name=${name}`;
-        input += `&propertyType=${propType}`;
+        input += `&propertyType=${propertyType}`;
         input += `&time=${time}`;
         input += `&uid=${uid}`;
         input += `&comments=${comments}`;
@@ -414,11 +456,10 @@ function ComponentPage() {
         fetch(input).then(
             res => res.json()
         ).then(data => {
-            setOpenPropertiesEditPanel(false);
+            setOpenPropertiesReplacePanel(false);
             toggleReload();
         });
     }
-
 
 
     /**
@@ -428,7 +469,6 @@ function ComponentPage() {
      * @param {int} time - the time to make the connection at 
      * @param {string} uid - the ID of the user that is making the connection 
      * @param {string} comments - the comments associated with the connection 
-     * @returns 
      */
     async function addConnection(otherName, time, uid, comments) {
         
@@ -440,20 +480,24 @@ function ComponentPage() {
         input += `&uid=${uid}`;
         input += `&comments=${comments}`;
 
-        return new Promise((resolve, reject) => {
-            fetch(input).then(
-                res => res.json()
-            ).then(data => {
-                if (data.result) {
+        axios.post(input).then(
+                (response) => {
+                    if(response.data.result) {
                     setOpenConnectionsAddPanel(false);
+                    setErrorConnectionMessage(null)
                     toggleReload();
+                } else {
+                    setErrorConnectionMessage(response.data.error)
                 }
-                resolve(data.result);
             });
-        });
-
     }
 
+    /**
+     * End the connection to another component.
+     * @param {int} time - the time to end the connection at 
+     * @param {string} uid - the ID of the user that is ending the connection 
+     * @param {string} comments - the comments associated with ending the connection 
+     */
     async function endConnection(time, uid, comments) {
         
         // build up the string to query the API
@@ -478,10 +522,38 @@ function ComponentPage() {
 
     }
 
-        /**
+    /**
+     * Replace the connection to another component.
+     * @param {int} time - the time to make the connection at 
+     * @param {string} uid - the ID of the user that is making the connection 
+     * @param {string} comments - the comments associated with making the connection 
+     */
+    async function replaceConnection(time, uid, comments) {
+        
+        // build up the string to query the API
+        let input = `/api/component_replace_connection`;
+        input += `?name1=${name}`;
+        input += `&name2=${otherName}`;
+        input += `&time=${time}`;
+        input += `&uid=${uid}`;
+        input += `&comments=${comments}`;
+
+        return new Promise((resolve, reject) => {
+            fetch(input).then(
+                res => res.json()
+            ).then(data => {
+                if (data.result) {
+                    setOpenConnectionsReplacePanel(false);
+                    toggleReload();
+                }
+                resolve(data.result);
+            });
+        });
+    }
+
+    /**
      * Add a subcomponent.
      * @param {string} otherName - the name of the other component, which is a subcomponent.
-     * @returns 
      */
     async function addSubcomponent(otherName) {
         
@@ -490,19 +562,18 @@ function ComponentPage() {
         input += `?name1=${name}`;
         input += `&name2=${otherName}`;
 
-        return new Promise((resolve, reject) => {
-            fetch(input).then(
-                res => res.json()
-            ).then(data => {
-                if (data.result) {
+        axios.post(input).then(
+                (response) => {
+                if (response.data.result) {
                     setOpenSubcomponentsAddPanel(false);
+                    setErrorSubcomponentMessage(null)
                     toggleReload();
+                } else {
+                    setErrorSubcomponentMessage(response.data.error)
                 }
-                resolve(data.result);
-            });
-        });
-
+            })
     }
+
 
 
     /**
@@ -542,8 +613,9 @@ function ComponentPage() {
         let properties_add_panel_content = (open_properties_add_panel) ? (
             <ComponentPropertyAddPanel 
                 theme={theme} 
-                onClose={() => setOpenPropertiesAddPanel(false)}
+                onClose={() => {setOpenPropertiesAddPanel(false); setErrorPropertyMessage(null)}}
                 onSet={setProperty}
+                errorPropertyMessage={errorPropertyMessage}
             />
         ) : <></>;
         
@@ -555,11 +627,11 @@ function ComponentPage() {
             />
         ) : <></>;
 
-        let properties_edit_panel_content = (open_properties_edit_panel) ? (
-            <ComponentPropertyEditPanel 
+        let properties_edit_panel_content = (open_properties_replace_panel) ? (
+            <ComponentPropertyReplacePanel 
                 theme={theme} 
-                onClose={() => setOpenPropertiesEditPanel(false)}
-                onSet={editProperty}
+                onClose={() => setOpenPropertiesReplacePanel(false)}
+                onSet={replaceProperty}
             />
         ) : <></>;
         let properties_content = (
@@ -626,14 +698,22 @@ function ComponentPage() {
                                 }
                             }
                             />
-                        <EditButton 
+                        <ReplaceButton 
                             onClick={
                                 () => 
                                 {
-                                    setOpenPropertiesEditPanel(true)
-                                    setActiveIndexPropertyEdit(index)
+                                  
+                                    setOpenPropertiesReplacePanel(true)
+                                    setactiveindexpropertyReplace(index)
                                 }
                             }
+                            />
+                            <ComponentPropertyDisableButton
+                            name={name}
+                            propertyType={prop.type.name}
+                            propertyValue = {prop.values}
+                            propertyUnit = {prop.type.units}
+                            toggleReload={toggleReload}
                             />
                             </>
     }
@@ -658,7 +738,7 @@ function ComponentPage() {
                          properties_end_panel_content
                         :
                         ''}
-                        {activeIndexPropertyEdit === index 
+                        {activeindexpropertyReplace === index 
                         ?
                          properties_edit_panel_content
                         :
@@ -671,9 +751,10 @@ function ComponentPage() {
         let connections_add_panel_content = (open_connections_add_panel) ? (
             <ComponentConnectionAddPanel 
                 theme={theme} 
-                onClose={() => setOpenConnectionsAddPanel(false)}
+                onClose={() => {setOpenConnectionsAddPanel(false); setErrorConnectionMessage(null) }}
                 onSet={addConnection}
                 name={name}
+                errorConnectionMessage = {errorConnectionMessage}
             />
         ) : <></>;
 
@@ -683,6 +764,14 @@ function ComponentPage() {
                 onClose={() => setOpenConnectionsEndPanel(false)}
                 onSet={endConnection}
                 name={name}
+            />
+        ) : <></>;
+
+        let connections_replace_panel_content = (open_connections_replace_panel) ? (
+            <ComponentConnectionReplacePanel 
+                theme={theme} 
+                onClose={() => setOpenConnectionsReplacePanel(false)}
+                onSet={replaceConnection}
             />
         ) : <></>;
 
@@ -743,7 +832,7 @@ function ComponentPage() {
                                             ()=>{
                                                 setOpenConnectionsEndPanel(true)
                                                 setOtherName(conn.name)
-                                                setActiveIndexConnection(index)
+                                                setActiveIndexConnectionEnd(index)
                                             }
                                         }
                                         />
@@ -752,8 +841,25 @@ function ComponentPage() {
                         ?
                         ""
                         :
-                        <EditButton 
-                            />}
+                        <>
+                        <ReplaceButton 
+                        onClick={
+                                () => 
+                                {
+                                    setOtherName(conn.name)
+                                    setOpenConnectionsReplacePanel(true)
+                                    setActiveIndexConnectionReplace(index)
+                                }
+                            }
+                            />
+                            <ComponentConnectionDisableButton
+                            name={name}
+                            otherComponentName = {conn.name}
+                            toggleReload={toggleReload}
+                            />
+                        
+                            </>
+                            }
                             </Stack>
                             </Stack>
                                 {
@@ -770,9 +876,14 @@ function ComponentPage() {
                                 }
                             </Stack>
                         </EntryAccordionDetails>
-                        {activeIndexConnection === index 
+                        {activeIndexConnectionEnd === index 
                         ? 
                         connections_end_panel_content 
+                        :
+                        ''}
+                         {activeIndexConnectionReplace === index 
+                        ?
+                         connections_replace_panel_content
                         :
                         ''}
                     </EntryAccordion>
@@ -783,9 +894,10 @@ function ComponentPage() {
     let subcomponent_add_panel_content = (open_subcomponents_add_panel) ? (
     <ComponentSubcomponentAddPanel 
         theme={theme} 
-        onClose={() => setOpenSubcomponentsAddPanel(false)}
+        onClose={() => {setOpenSubcomponentsAddPanel(false); setErrorSubcomponentMessage(null)}}
         onSet={addSubcomponent}
         name={name}
+        errorSubcomponentMessage = {errorSubcomponentMessage}
     />
         ) : <></>;
 
@@ -878,7 +990,10 @@ function ComponentPage() {
                 {component.subcomponents.map((subcomponent,index) => (
                     <EntryAccordion key={index}>
                         <EntryAccordionSummarySubcomponent>
-                            <Stack spacing={2} direction="row">
+                            <Stack 
+                            spacing={2} 
+                            direction="row"
+                            >
                                 <SettingsInputComponentIcon/>
                                 <Typography
                                     variant="body2"
@@ -906,6 +1021,16 @@ function ComponentPage() {
                                     </Stack>
 
                                 </Typography>
+                            </Stack>
+                            <Stack style={{
+                                        marginLeft: theme.spacing(2)
+                                    }}
+                            > 
+                            <ComponentSubcomponentDisableButton
+                            name={name}
+                            subComponentName={subcomponent.name}
+                            toggleReload={toggleReload}
+                            />
                             </Stack>
                         </EntryAccordionSummarySubcomponent>
                     </EntryAccordion>
@@ -935,11 +1060,11 @@ function ComponentPage() {
                                         marginRight: theme.spacing(2)
                                     }}>
                                 <KeyboardBackspaceIcon/> 
+                        
                                     </Stack>
                                     <Stack>
                                 {name}
                                     </Stack>
-
                                 </Typography>
                             </Stack>
                         </EntryAccordionSummarySubcomponent>

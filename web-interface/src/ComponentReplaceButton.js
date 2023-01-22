@@ -12,14 +12,33 @@ import MenuItem from '@mui/material/MenuItem';
 import FormControl from '@mui/material/FormControl';
 import Select from '@mui/material/Select';
 import axios from 'axios'
-import { styled } from '@mui/material/styles';
-import Chip from '@mui/material/Chip';
-import Paper from '@mui/material/Paper';
-import AlertDialog from './ComponentAlertDialog.js';
 import ErrorIcon from '@mui/icons-material/Error';
+import EditIcon from '@mui/icons-material/Edit';
+import styled from '@mui/material/styles/styled';
+import CircularProgress from '@mui/material/CircularProgress';
+
+/**
+ * A MUI component representing a button for replacing a component type.
+ */
+const ReplaceButton = styled((props) => (
+    <Button 
+    style={{
+        maxWidth: '40px', 
+        maxHeight: '25px', 
+        minWidth: '30px', 
+        minHeight: '30px',
+        marginLeft:'10px'
+    }}
+    {...props}
+        variant="outlined">
+        <EditIcon/>
+    </Button>
+))(({ theme }) => ({
+    
+}))
 
 
-  export default function ComponentAddButton ({types_and_versions,toggleReload}){
+  export default function ComponentReplaceButton ({types_and_versions,toggleReload,nameComponent}){
 
   // opens and closes the pop up form.
   const [open, setOpen] = useState(false);
@@ -27,12 +46,8 @@ import ErrorIcon from '@mui/icons-material/Error';
   // stores the component name
   const [name,setName] = useState('')
 
-  // when adding components in bulk, this state stores all
-  // the names 
-  const [nameList,setNameList] = useState([])
-
-  /*
-  To display an error message when a user fails to add a new component.
+    /*
+  To display an error message when a user tries to replace the component.
   */
   const [errorData,setErrorData] = useState(null)
 
@@ -46,84 +61,22 @@ import ErrorIcon from '@mui/icons-material/Error';
   const [loading, setLoading] = useState(false);
 
   /*
-  Used to open the alert dialog box when the submit button is clicked.
-  */
-  const [alertOpen, setAlertOpen] = useState(false);
-
-  /*
-  Function that is used to open the alert dialog box when the user clicks on the 'submit' button in the form.
-  */
-  const handleClickAlertOpen = () => {
-        setAlertOpen(true)
-    };
-
-  /*Function that closes the alert dialog box*/
-  const handleAlertClose = () => {
-    setAlertOpen(false);
-  };
-
-
-  // Style for displaying all the components being selected to add in bulk
-  const ListItem = styled('li')(({ theme }) => ({
-    margin: theme.spacing(0.5),
-    }));
-  
-  // to increase the key count in the chipData array of objects
-  const [keyCount,setKeyCount] = useState(1)
-
-  // dummy array containing all the component names to be added 
-  const [chipData, setChipData] = useState([
-    { key: 0, label: 'i.e. ANT0001' },
-  ]);
-
-  // handles removing a selected component name in the pop up form
-  const handleDelete = (chipToDelete) => () => {
-    setChipData((chips) => chips.filter((chip) => chip.key !== chipToDelete.key));
-  };
- 
-  // adds the component name in the chipData array of objects and displays the name on the pop up form
-  const handleSubmit2 = () => {
-          setChipData((prevState)=>{
-            return prevState.concat(
-              [
-              {
-              key: keyCount,
-              label : name
-            }
-          ]
-            )
-          })
-          setKeyCount((prevState)=> prevState + 1)
-          setNameList(prevState => {
-                        return (
-                            [...prevState,name]
-                        )
-                    })
-            }
-
-
-  /*
   Function that is used to open the form when the user clicks
-  on the 'add' button.
+  on the 'replace' button.
    */
   const handleClickOpen = () => {
     setOpen(true);
   };
 
   /*
-  Function that sets the relevant states back to default values once the form is closed or the user clicks on the cancel button.
+  Function that sets the relevant states back to default values once the dialog box is closed or the user clicks on the cancel button.
   */
   const handleClose = () => {
     setOpen(false);
     setErrorData(null)
-    setName('')
     setComponentVersion('')
     setComponentType('')
     setLoading(false)
-    setNameList([])
-    setChipData([
-    { key: 0, label: 'i.e. ANT0001' },
-  ])
   };
 
   /*
@@ -132,58 +85,31 @@ import ErrorIcon from '@mui/icons-material/Error';
   const handleSubmit = (e) => {
     e.preventDefault() // To preserve the state once the form is submitted.
     setLoading(true)
-    let input = `/api/set_component`;
-    input += `?name=${nameList.sort().join(';')}`;
+    let input = `/api/replace_component`;
+    input += `?name=${name}`;
     input += `&type=${componentType}`;
     input += `&version=${componentVersion}`;
+    input += `&component=${nameComponent}`;
     axios.post(input).then((response)=>{
       if(response.data.result){
         toggleReload() //To reload the list of components once the form has been submitted.
         handleClose()
+      } else {
+        setErrorData(response.data.error)
       }
-      else{
-       setErrorData(response.data.error)
-       handleAlertClose()
-      }
-        
     })
   }
   
   return (
     <>
-        <Button variant="contained" onClick={handleClickOpen}>Add Component</Button>
+        <ReplaceButton onClick={handleClickOpen}/>
       <Dialog open={open} onClose={handleClose}>
-        <DialogTitle>Add Component</DialogTitle>
+        <DialogTitle>Replace Component '{nameComponent}'</DialogTitle>
         <DialogContent>
     <div style={{
         marginTop:'10px',
         marginBottom:'10px',
     }}>
-    <Paper
-    style={{
-        marginBottom: '10px'
-    }}
-      sx={{
-        display: 'flex',
-        justifyContent: 'center',
-        flexWrap: 'wrap',
-        listStyle: 'none',
-        p: 0.5,
-        m: 0,
-      }}
-      component="ul"
-    >
-      {chipData.map((data) => {
-      return (
-          <ListItem key={data.key}>
-            <Chip
-              label={data.label}
-              onDelete={data.label === 'i.e. ANT0001' ? undefined : handleDelete(data)}
-            />
-          </ListItem>
-        );
-      })}
-    </Paper>
       <TextField
             autoFocus
             margin="dense"
@@ -194,24 +120,6 @@ import ErrorIcon from '@mui/icons-material/Error';
             variant="outlined"
             onChange={(e)=>setName(e.target.value)}
             />
-            <div style={{
-                display:'flex',
-                alignItems:'center',
-                justifyContent: 'center',
-            }}>
-      <Button  
-      style={{
-          marginTop: '10px'
-        }}
-        variant = 'contained'
-        onClick={handleSubmit2}
-        disableElevation
-        disabled = {
-          name === ''
-        }
-        >Add
-        </Button>
-        </div>
     </div>
 
     <div style={{
@@ -280,16 +188,21 @@ import ErrorIcon from '@mui/icons-material/Error';
         </DialogContent>
         <DialogActions>
           <Button onClick={handleClose}>Cancel</Button>
-          <AlertDialog 
-          handleSubmit={handleSubmit}
-          nameList={nameList}
-          componentVersion={componentVersion}
-          componentType={componentType}
-          loading={loading}
-          alertOpen={alertOpen}
-          handleAlertClose={handleAlertClose}
-          handleClickAlertOpen={handleClickAlertOpen}
-          />
+          {
+            name && componentType
+            ?
+            <Button onClick={handleSubmit}>
+              {loading ? <CircularProgress
+                            size={24}
+                            sx={{
+                                color: 'blue',
+                            }}
+                        /> : "Submit"}
+              </Button>
+              :
+              <Button disabled>
+              Submit
+              </Button>}
         </DialogActions>
       </Dialog>
     </>

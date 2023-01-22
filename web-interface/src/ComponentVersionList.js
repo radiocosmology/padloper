@@ -8,6 +8,7 @@ import {
 from '@mui/material';
 import ComponentVersionFilter from './ComponentVersionFilter.js';
 import ComponentVersionAddButton from './ComponentVersionAddButton.js';
+import ComponentVersionReplaceButton from './ComponentVersionReplaceButton.js';
 
 /**
  * A MUI component that renders a list of component versions.
@@ -217,6 +218,9 @@ function ComponentVersionList() {
             id: 'comments', 
             label: 'Comments',
             allowOrdering: false,
+        },
+        {
+
         }
     ];
 
@@ -227,7 +231,13 @@ function ComponentVersionList() {
     let tableRowContent = elements.map((e) => [
         e.name,
         e.allowed_type.name,
-        e.comments
+        e.comments,
+        <ComponentVersionReplaceButton
+        allowed_type = {e.allowed_type.name}
+        componentTypes={componentTypes}
+        name = {e.name}
+        toggleReload={toggleReload}
+        />
     ]);
 
     return (

@@ -27,35 +27,36 @@ export default function FlagTypeAddButton ({toggleReload}) {
   // Whether the submit button has been clickd or not.
   const [loading, setLoading] = useState(false);
 
-  /*To display an error message when a user tries to add a new flag type but a flag type with the same name already exists in the database. */
-  const [isError,setIsError] = useState(false)
+  /*To display an error message when a user fails to add a new flag type. */
+  const [errorData,setErrorData] = useState(null)
 
   const handleClickOpen = () => {
     setOpen(true);
   };
 
    /*
-  Function sets the relevant form variables back to empty string once the form is closed or the user clicks on the cancel button on the pop up form.
+  Function that sets the relevant states back to default once the dialog box is closed or the user clicks on the cancel button..
   */
   const handleClose = () => {
-    setIsError(false)
+    setErrorData(null)
     setOpen(false);
     setLoading(false)
   };
 
   const handleSubmit = (e) => {
     e.preventDefault() // To preserve the state once the form is submitted.
+    setLoading(true)
     let input = `/api/set_flag_type`;
     input += `?name=${name}`;
     input += `&comments=${comment}`;
     axios.post(input).then((response)=>{
+      if(response.data.result){
         toggleReload() //To reload the page once the form has been submitted.
         handleClose()
-    }).catch(error=> {
-        if(error.message === 'Request failed with status code 500'){
-          setIsError(true)
-        }
-      })
+      } else {
+        setErrorData(response.data.error)
+      }
+    })
   }
 
   return (
@@ -92,15 +93,15 @@ export default function FlagTypeAddButton ({toggleReload}) {
     alignItems:'center'
     }}>
       {
-      isError 
-      ? 
+        errorData
+        ?
       <>
       <ErrorIcon
       fontSize='small'
       /> 
-      A flag type with the same name already exists in the database
+      {errorData}
       </>
-      : 
+      :
       null}
     </div>
 

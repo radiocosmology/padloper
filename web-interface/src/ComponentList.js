@@ -6,6 +6,8 @@ import ComponentFilter from './ComponentFilter.js';
 import { Link } from "react-router-dom";
 import Button from '@mui/material/Button';
 import ComponentAddButton from './ComponentAddButton.js';
+import ComponentReplaceButton from './ComponentReplaceButton.js';
+import AlertDialog from './ComponentDisableButton'
 
 /**
  * A MUI component that represents a list of components.
@@ -50,6 +52,7 @@ function ComponentList() {
     // 'asc' or 'desc'
     const [orderDirection,
         setOrderDirection] = useState('asc');
+
 
     /* filters stored as 
     [
@@ -102,10 +105,8 @@ function ComponentList() {
     /*
     To send the filters to the URL, create a string that contains all the
     filter information.
-
     The string is of the format
     "<name>,<ctype_name>,<rev_name>;...;<name>,<ctype_name>,<rev_name>"
-
     */
     const createFilterString = () => {
 
@@ -211,6 +212,12 @@ function ComponentList() {
             label: 'Version',
             allowOrdering: true,
         },
+        {
+
+        },
+        {
+
+        },
     ];
 
     // What to display in each row.
@@ -220,6 +227,15 @@ function ComponentList() {
         </Link>,
         c.type.name,
         c.version.name,
+        <ComponentReplaceButton
+        types_and_versions={types_and_versions}
+        nameComponent= {c.name}
+        toggleReload={toggleReload}
+        />,
+        <AlertDialog
+        name={c.name}
+        toggleReload={toggleReload}
+        />
     ]);
 
 

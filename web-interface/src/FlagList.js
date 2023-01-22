@@ -4,10 +4,117 @@ import ElementList from './ElementList.js';
 import ElementRangePanel from './ElementRangePanel.js';
 import FlagFilter from './FlagFilter.js';
 import Button from '@mui/material/Button'
-import Timestamp from './Timestamp.js';
 import FlagAddButton from './FlagAddButton.js';
-import { Typography } from '@mui/material';
 import FlagEndButton from './FlagEndButton.js';
+import FlagReplaceButton from './FlagReplaceButton.js';
+import { ThemeProvider, Typography } from '@mui/material';
+import ExpandMoreIcon from '@mui/icons-material/ExpandMore';
+import styled from '@mui/material/styles/styled';
+import MuiAccordion from '@mui/material/Accordion';
+import MuiAccordionSummary from '@mui/material/AccordionSummary';
+import MuiAccordionDetails from '@mui/material/AccordionDetails';
+import createTheme from '@mui/material/styles/createTheme';
+import Stack from '@mui/material/Stack';
+import ComponentEvent from './ComponentEvent.js';
+import FlagEvent from './FlagEvent.js';
+import DeleteIcon from '@mui/icons-material/Delete';
+
+
+/**
+ * A styling for an MUI Accordion component.
+ */
+const Accordion = styled((props) => (
+    <MuiAccordion 
+        disableGutters 
+        elevation={0} 
+        defaultExpanded
+        {...props} 
+    />
+))(({ theme }) => ({
+    borderBottom: `1px solid ${theme.palette.divider}`,
+    
+}));
+
+/**
+ * An even more styled Accordion component.
+ */
+const EntryAccordion = styled((props) => (
+    <Accordion 
+        defaultExpanded={false}
+        {...props}
+    />
+))(({ theme }) => ({
+    borderBottom: `0`,
+    
+}));
+
+const AccordionDetails = styled(MuiAccordionDetails)(({ theme }) => ({
+    padding: theme.spacing(2),
+    borderTop: '1px solid rgba(0, 0, 0, .125)',
+    
+}));
+
+const EntryAccordionDetails = styled(AccordionDetails)(({ theme }) => ({
+    backgroundColor: 'rgba(0, 0, 0, .015)',
+    
+}));
+
+/**
+ * Custom MUI theme, see 
+ * https://mui.com/customization/theming/#theme-configuration-variables
+ */
+const theme = createTheme({
+    typography: {
+        body2: {
+            fontWeight: 800,
+            fontSize: 16,
+        },
+    }
+});
+
+/**
+ * A styled MUI AccordionSummary component
+ */
+const AccordionSummary = styled((props) => (
+    <MuiAccordionSummary
+        expandIcon={
+            <ExpandMoreIcon 
+                sx={{
+                    color: "rgba(0,0,0, 0.4)",
+                    padding: "4px",
+                }}
+                onClick={props.expandOnClick}
+            />
+        }
+      {...props}
+    />
+))(({ theme }) => ({
+    backgroundColor: 'rgba(0, 0, 0, .06)',
+    flexDirection: 'row-reverse',
+    '& .MuiAccordionSummary-content': {
+      marginLeft: theme.spacing(1),
+    },
+    lineHeight: '100%',
+}));
+
+/*
+A MUI component representing a button for disabling.
+ */
+const DisableButton = styled((props) => (
+    <Button 
+    style={{
+        maxWidth: '40px', 
+        maxHeight: '30px', 
+        minWidth: '30px', 
+        minHeight: '30px',
+    }}
+    {...props}
+        variant="outlined">
+        <DeleteIcon/>
+    </Button>
+))(({ theme }) => ({
+    
+}))
 
 
 /**
@@ -127,6 +234,30 @@ export default function FlagList() {
     const [reloadBool, setReloadBool] = useState(false);
     function toggleReload() {
         setReloadBool(!reloadBool);
+    }
+
+    /**
+     * Disable a flag.
+     * @param {string} name - the name of the flag which is being disabled.
+     * @returns 
+     */
+    async function disableFlag(name) {
+        
+        // build up the string to query the API
+        let input = `/api/disable_flag`;
+        input += `?name=${name}`;
+
+        return new Promise((resolve, reject) => {
+            fetch(input).then(
+                res => res.json()
+            ).then(data => {
+                if (data.result) {
+                    toggleReload();
+                }
+                resolve(data.result);
+            });
+        });
+
     }
    /**
     * The function that updates the list of flags when the site is 
@@ -253,16 +384,6 @@ export default function FlagList() {
             allowOrdering: true,
         },
         {
-            id: 'start_time', 
-            label: 'Start Time',
-            allowOrdering: true,
-        },
-        {
-            id: 'end_time', 
-            label: 'End Time',
-            allowOrdering: true,
-        },
-        {
             id: 'Type', 
             label: 'Flag Type',
             allowOrdering: false,
@@ -273,50 +394,128 @@ export default function FlagList() {
             allowOrdering: false,
         },
         {
-            id: 'Components', 
-            label: 'Component List',
+            id: 'More Information', 
+            label: '',
             allowOrdering: false,
-        }
+        },
+        {
+
+        },
+        {
+
+        },
     ];
 
     /**
      * the rows of the table. We are only putting:
      * - the name,
-     * - the start time,
      * - flag's allowed types,
      * - flag's allowed severity,
-     * - the comments associated with the property type.
+     * - more information accordion
      */
-    let tableRowContent = elements.map((e) => [
-        e.end_uid 
+    let tableRowContent = elements.map((flag) => [
+        flag.end_uid 
         ?
-        e.name
+        flag.name
         :
         <Typography
         style={{
             display:'flex'
         }}>
-        {e.name}
+        {flag.name}
         {
         <FlagEndButton
-        name = {e.name}
+        name = {flag.name}
         toggleReload={toggleReload}
         />}
+        <FlagReplaceButton 
+        nameFlag = {flag.name}
+        flag_types={flag_types} 
+        flag_severities={flag_severities} 
+        flag_components={flag_components}
+        toggleReload={toggleReload}
+    />
         </Typography>
         ,
-       <Timestamp unixTime={e.start_time}/>,
-       e.end_time !== 9223372036854776000 ? <Timestamp unixTime={e.end_time}/> : 'Ongoing',
-        e.flag_type.name,
-        e.flag_severity.name,
-        e.flag_components != ''
-        ? 
-        e.flag_components.map((item,index)=>{
-                return (
-                    <li key={index}>{item}</li>
-                )
-        })
-        :
-        'Global'
+        flag.flag_type.name,
+        flag.flag_severity.name,
+        ,
+        <ThemeProvider theme={theme}>
+        <Accordion>
+        <AccordionSummary
+          expandIcon={<ExpandMoreIcon />}
+          aria-controls="panel1a-content"
+          id="panel1a-header"
+          >
+            <Typography>
+                More Information
+            </Typography>
+        </AccordionSummary>
+        <AccordionDetails>
+            <Stack spacing={1}>
+          <EntryAccordion>
+
+        <EntryAccordionDetails>
+            <Stack spacing={1}>
+                <Stack 
+                direction='row'
+                justifyContent='space-between'
+                alignItems='center'
+                >
+                <ComponentEvent
+                    name="Start"
+                    time={flag.start_time}
+                    uid={flag.start_uid}
+                    edit_time={flag.start_edit_time}
+                    comments={flag.start_comments}
+                    theme={theme} />
+            </Stack>
+                {
+                    flag.end_time <= 
+                    Number.MAX_SAFE_INTEGER ?
+                    <ComponentEvent
+                    name="End"
+                    time={flag.end_time}
+                    uid={flag.end_uid}
+                    edit_time={flag.end_edit_time}
+                    comments={flag.end_comments}
+                    theme={theme} />
+                    : ""
+                }
+                {
+                    <FlagEvent
+                        name="Comments"
+                        parameter = {flag.comments}
+                        theme={theme}
+                        />
+                    }
+                {
+                    <FlagEvent
+                        name="Components"
+                        parameter={
+                            flag.flag_components.length != 0
+                            ? 
+                            flag.flag_components.map((item)=>item + ' | ')
+                            :
+                            'Global'
+                        }
+                        theme={theme}
+                        />
+                    }
+                            </Stack>
+                        </EntryAccordionDetails>
+                    </EntryAccordion>
+        </Stack>
+        </AccordionDetails>
+      </Accordion>
+    </ThemeProvider>,
+     <DisableButton
+        onClick={
+            ()=>{
+                disableFlag(flag.name)
+            }
+        }
+        />
     ]);
 
     return (
@@ -367,7 +566,7 @@ export default function FlagList() {
             }
 
             <ElementList
-                width='800px'
+                width='1300px'
                 tableRowContent={tableRowContent}
                 loaded={loaded}
                 orderBy={orderBy}

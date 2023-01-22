@@ -13,11 +13,33 @@ import DialogTitle from '@mui/material/DialogTitle';
 import CircularProgress from '@mui/material/CircularProgress';
 import axios from 'axios'
 import ErrorIcon from '@mui/icons-material/Error';
+import EditIcon from '@mui/icons-material/Edit';
+import styled from '@mui/material/styles/styled';
 
-export default function ComponentTypeAddButton ({toggleReload}) {
+/**
+ * A MUI component representing a button for replacing a component type.
+ */
+const ReplaceButton = styled((props) => (
+    <Button 
+    style={{
+        maxWidth: '40px', 
+        maxHeight: '25px', 
+        minWidth: '30px', 
+        minHeight: '30px',
+        marginLeft:'10px'
+    }}
+    {...props}
+        variant="outlined">
+        <EditIcon/>
+    </Button>
+))(({ theme }) => ({
+    
+}))
+
+export default function ComponentTypeReplaceButton ({toggleReload,name}) {
 
   // Opens and closes the pop up form.
-  const [open, setOpen] = useState(false);
+  const [open, setOpen] = React.useState(false);
 
   // Stores the name of the new component type.
   const [componentType,setComponentType] = useState('')
@@ -29,7 +51,7 @@ export default function ComponentTypeAddButton ({toggleReload}) {
   const [loading, setLoading] = useState(false);
 
   /*
-  To display error when a user fails to add a new component type.
+  To display error when a user fails to replace a component type.
    */
   const [errorData,setErrorData] = useState(null)
 
@@ -39,7 +61,7 @@ export default function ComponentTypeAddButton ({toggleReload}) {
 
 
   /*
-   Function that sets the relevant form variables back to empty strings once the form is closed or the user clicks on the cancel button on the pop up form.
+   Function that sets the relevant states back to default once the dialog box is closed or the user clicks on the cancel button.
    
    */
   const handleClose = () => {
@@ -53,9 +75,10 @@ export default function ComponentTypeAddButton ({toggleReload}) {
   const handleSubmit = (e) => {
       e.preventDefault() // To preserve the state once the form is submitted.
       setLoading(true)
-      let input = `/api/set_component_type`;
+      let input = `/api/replace_component_type`;
       input += `?name=${componentType}`;
       input += `&comments=${comment}`;
+      input += `&component_type=${name}`;
       axios.post(input).then((response)=>{
         if(response.data.result){
           handleClose()
@@ -68,9 +91,9 @@ export default function ComponentTypeAddButton ({toggleReload}) {
 
   return (
     <div>
-        <Button variant="contained" onClick={handleClickOpen}>Add Component Type</Button>
+        <ReplaceButton onClick={handleClickOpen}/>
       <Dialog open={open} onClose={handleClose}>
-        <DialogTitle>Add Component Type</DialogTitle>
+        <DialogTitle>Replace Component Type '{name}'</DialogTitle>
         <DialogContent>
           <TextField
             autoFocus

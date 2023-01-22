@@ -82,16 +82,16 @@ function ComponentPropertyEndPanel(
     }
 ) {
 
-    // the ID of the user setting the property
+    // the ID of the user ending the property
     const [uid, setUid] = useState("");
 
-    // the default time to set the property
+    // the default time to end the property
     const defaultTime = 1;
 
-    // time to set the property (NOT the edit time)
+    // time to end the property (NOT the edit time)
     const [time, setTime] = useState(defaultTime);
 
-    // the comments associated with setting the property
+    // the comments associated with ending the property
     const [comments, setComments] = useState("");
 
     // whether the panel is loading: usually happens after the "END" button

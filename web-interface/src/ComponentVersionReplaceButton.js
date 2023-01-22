@@ -14,11 +14,33 @@ import Select from '@mui/material/Select';
 import ErrorIcon from '@mui/icons-material/Error';
 import Button from '@mui/material/Button'
 import axios from 'axios'
+import EditIcon from '@mui/icons-material/Edit';
+import styled from '@mui/material/styles/styled';
 
-
-export default function ComponentVersionAddButton ({componentTypes,toggleReload}) {
+/**
+ * A MUI component representing a button for replacing a component version.
+ */
+const ReplaceButton = styled((props) => (
+    <Button 
+    style={{
+        maxWidth: '40px', 
+        maxHeight: '25px', 
+        minWidth: '30px', 
+        minHeight: '30px',
+        marginLeft:'10px'
+    }}
+    {...props}
+        variant="outlined">
+        <EditIcon/>
+    </Button>
+))(({ theme }) => ({
     
-  // opens and closes the pop up form to add a new component version.
+}))
+
+
+export default function ComponentVersionReplaceButton ({name,allowed_type,componentTypes,toggleReload}) {
+    
+  // opens and closes the pop up form to replace a component version.
   const [open, setOpen] = useState(false);
 
   // Name of the new component version.
@@ -34,7 +56,7 @@ export default function ComponentVersionAddButton ({componentTypes,toggleReload}
   const [loading, setLoading] = useState(false);
 
   /*
-  To display error when a user fails to add a new component version.
+  To display error when a user fails to replace a component version.
   */
   const [errorData,setErrorData] = useState(null)
 
@@ -59,10 +81,12 @@ export default function ComponentVersionAddButton ({componentTypes,toggleReload}
   const handleSubmit = (e) => {
       e.preventDefault() // To preserve the state once the form is submitted.
       setLoading(true)
-      let input = `/api/set_component_version`;
+      let input = `/api/replace_component_version`;
       input += `?name=${componentVersion}`;
       input += `&type=${inputComponentType}`;
       input += `&comments=${comment}`;
+      input += `&component_version=${name}`;
+      input += `&component_version_allowed_type=${allowed_type}`;
       axios.post(input).then((response)=>{
         if(response.data.result){
           toggleReload() //To reload the page once the form has been submitted.
@@ -74,9 +98,9 @@ export default function ComponentVersionAddButton ({componentTypes,toggleReload}
   }
   return (
     <>
-        <Button variant="contained" onClick={handleClickOpen}>Add Component Version</Button>
+        <ReplaceButton variant="contained" onClick={handleClickOpen}/>
       <Dialog open={open} onClose={handleClose}>
-        <DialogTitle>Add Component Version</DialogTitle>
+        <DialogTitle>Replace Component Version '{name}'</DialogTitle>
         <DialogContent>
     <div style={{
         marginTop:'10px',

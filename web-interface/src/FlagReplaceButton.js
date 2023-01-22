@@ -17,6 +17,8 @@ import OutlinedInput from '@mui/material/OutlinedInput';
 import Checkbox from '@mui/material/Checkbox';
 import ListItemText from '@mui/material/ListItemText';
 import ErrorIcon from '@mui/icons-material/Error';
+import EditIcon from '@mui/icons-material/Edit';
+import styled from '@mui/material/styles/styled';
 
 
 const ITEM_HEIGHT = 48;
@@ -30,11 +32,31 @@ const MenuProps = {
   },
 };
 
+/**
+ * A MUI component representing a button for replacing a flag.
+ */
+const ReplaceButton = styled((props) => (
+    <Button 
+    style={{
+        maxWidth: '40px', 
+        maxHeight: '25px', 
+        minWidth: '30px', 
+        minHeight: '30px',
+        marginLeft:'10px'
+    }}
+    {...props}
+        variant="outlined">
+        <EditIcon/>
+    </Button>
+))(({ theme }) => ({
+    
+}))
 
 
-export default function FlagAddButton ({flag_types,flag_severities,flag_components,toggleReload}){
 
-    // opens and closes the pop up form to add a new flag.
+export default function FlagReplaceButton ({flag_types,flag_severities,flag_components,toggleReload,nameFlag}){
+
+    // opens and closes the pop up form to replace a flag.
     const [open, setOpen] = useState(false);
 
     // Stores user inputted values for name of the flag, flag severity selected, flag type selected and comments assocaited with the new flag.
@@ -60,7 +82,7 @@ export default function FlagAddButton ({flag_types,flag_severities,flag_componen
   const [loading, setLoading] = useState(false);
 
   /*
-   To display an error message when a user fails to add a new flag.
+   To display an error message when a user fails to replace a flag.
    */
   const [errorData,setErrorData] = useState(null)
 
@@ -97,7 +119,6 @@ export default function FlagAddButton ({flag_types,flag_severities,flag_componen
     setLoading(false)
     setErrorData(null)
     setStartTime(0)
-    setEndTime(0)
     setComponentName([])
     setProperty({
     name: '',
@@ -116,7 +137,7 @@ export default function FlagAddButton ({flag_types,flag_severities,flag_componen
   const handleSubmit = (e) => {
       e.preventDefault() // To preserve the state once the form is submitted.
       setLoading(true)
-      let input = `/api/set_flag`;
+      let input = `/api/replace_flag`;
       input += `?name=${property.name}`;
       input += `&start_time=${startTime}`;
       input += `&end_time=${endTime}`;
@@ -126,6 +147,7 @@ export default function FlagAddButton ({flag_types,flag_severities,flag_componen
       input += `&comments=${property.comments}`;
       input += `&start_comments=${property.start_comment}`;
       input += `&flag_components=${componentName.join(';')}`;
+      input += `&flag=${nameFlag}`;
       axios.post(input).then((response)=>{
         if(response.data.result){
           toggleReload() //To reload the page once the form has been submitted.
@@ -138,12 +160,12 @@ export default function FlagAddButton ({flag_types,flag_severities,flag_componen
 
   return (
     <>
-        <Button variant="contained" onClick={handleClickOpen}>Add Flag</Button>
+        <ReplaceButton onClick={handleClickOpen}/>
       <Dialog 
       fullWidth
       open={open} 
       onClose={handleClose}>
-        <DialogTitle>Add A Flag</DialogTitle>
+        <DialogTitle>Replace Flag '{nameFlag}'</DialogTitle>
         <DialogContent>
     <div style={{
         marginTop:'10px',
@@ -377,7 +399,7 @@ export default function FlagAddButton ({flag_types,flag_severities,flag_componen
     display:'flex',
     alignItems:'center'
     }}>
-      {
+       {
         errorData
         ?
       <>
