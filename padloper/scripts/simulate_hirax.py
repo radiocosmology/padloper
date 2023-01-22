@@ -19,18 +19,16 @@ curr_time = int(datetime(2022, 6, 1, 12, 0, 0).timestamp())
 random.seed()
 
 if False:
-    pass
-ComponentType("dish", "a radio dish").add()
-ComponentType("antenna", "a dual polarisation antenna").add()
-ComponentType(
-    "antenna-pol", "one of the polarisations of an antenna").add()
-ComponentType("coax", "coaxial cable").add()
-ComponentType("rfof-tx", "RFoF transmitter").add()
-ComponentType("fibre", "fibre optic cable").add()
-ComponentType("rfof-rx", "RFoF receiver").add()
-ComponentType("bulkhead-plug", "bulkhead feedthrough").add()
-ComponentType("adc", "analogue-to-digital converter").add()
-ComponentType("iceboard", "ICE board").add()
+    ComponentType("dish", "a radio dish").add()
+    ComponentType("antenna", "a dual polarisation antenna").add()
+    ComponentType("antenna-pol", "one of the polarisations of an antenna").add()
+    ComponentType("coax", "coaxial cable").add()
+    ComponentType("rfof-tx", "RFoF transmitter").add()
+    ComponentType("fibre", "fibre optic cable").add()
+    ComponentType("rfof-rx", "RFoF receiver").add()
+    ComponentType("bulkhead-plug", "bulkhead feedthrough").add()
+    ComponentType("adc", "analogue-to-digital converter").add()
+    ComponentType("iceboard", "ICE board").add()
 t_dish = ComponentType.from_db("dish")
 t_ant = ComponentType.from_db("antenna")
 t_pol = ComponentType.from_db("antenna-pol")
@@ -43,12 +41,11 @@ t_adc = ComponentType.from_db("adc")
 t_ice = ComponentType.from_db("iceboard")
 
 if False:
-    pass
-ComponentVersion("A", t_ant).add()
-ComponentVersion("B", t_ant).add()
-ComponentVersion("10cm", t_coax, comments="10cm coax cable length").add()
-ComponentVersion("50cm", t_coax, comments="50cm coax cable length").add()
-ComponentVersion("L", t_fibre, comments="long run between RX and TX").add()
+    ComponentVersion("A", t_ant).add()
+    ComponentVersion("B", t_ant).add()
+    ComponentVersion("10cm", t_coax, comments="10cm coax cable length").add()
+    ComponentVersion("50cm", t_coax, comments="50cm coax cable length").add()
+    ComponentVersion("L", t_fibre, comments="long run between RX and TX").add()
 v_ant_a = ComponentVersion.from_db("A", t_ant)
 v_ant_b = ComponentVersion.from_db("B", t_ant)
 v_coax_10cm = ComponentVersion.from_db("10cm", t_coax)
@@ -56,18 +53,18 @@ v_coax_50cm = ComponentVersion.from_db("50cm", t_coax)
 v_fibre_l = ComponentVersion.from_db("L", t_fibre)
 
 if False:
-    pass
-PropertyType("location", "deg", "^[\-]?\d*[.]?\d*$", 2, [t_dish],
-             comments="latitude and longitude of dish centre").add()
-PropertyType("pointing", "deg", "^[\-]?\d*[.]?\d*$", 2, [t_dish],
-             comments="alt/az of telescope pointing").add()
-PropertyType("pol-orientation", "deg", "^[\-]?\d*[.]?\d*$", 1, [t_ant],
-             comments="degrees clockwise from north of H polarisation").add()
-PropertyType("pol-type", "", "[HV]", 1, [t_pol],
-             comments="one of H or V").add()
-PropertyType("attenuation", "dB", "^\d*[.]?\d*$", 1,
-             [t_pol, t_rft, t_rfr, t_bulk, t_adc],
-             comments="additional attenuation of component").add()
+    PropertyType("location", "deg", "^[\-]?\d*[.]?\d*$", 2, [t_dish],
+                 comments="latitude and longitude of dish centre").add()
+    PropertyType("pointing", "deg", "^[\-]?\d*[.]?\d*$", 2, [t_dish],
+                 comments="alt/az of telescope pointing").add()
+    PropertyType("pol-orientation", "deg", "^[\-]?\d*[.]?\d*$", 1, [t_ant],
+                 comments="degrees clockwise from north of H "\
+                          "polarisation").add()
+    PropertyType("pol-type", "", "[HV]", 1, [t_pol],
+                 comments="one of H or V").add()
+    PropertyType("attenuation", "dB", "^\d*[.]?\d*$", 1,
+                 [t_pol, t_rft, t_rfr, t_bulk, t_adc],
+                 comments="additional attenuation of component").add()
 p_loc = PropertyType.from_db("location")
 p_point = PropertyType.from_db("pointing")
 p_orient = PropertyType.from_db("pol-orientation")

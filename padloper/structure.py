@@ -177,7 +177,7 @@ class Vertex(Element):
         o_edges_values_list = g.V(self.id()).outE().valueMap().toList()
 
         # List of all the outgoing vertices connected to the self vertex.
-        o_vertices_list = g.V(self.id()).out().id().toList()
+        o_vertices_list = g.V(self.id()).out().id_().toList()
 
         # These edges are not copied when replacing a vertex because these edges
         # are selected by the user while adding a new component version, or a new property type, or a new flag
@@ -217,7 +217,7 @@ class Vertex(Element):
                 g.V(self.id()).outE().drop().iterate()
 
         i_edges_values_list = g.V(self.id()).inE().valueMap().toList()
-        i_vertices_list = g.V(self.id()).in_().id().toList()
+        i_vertices_list = g.V(self.id()).in_().id_().toList()
 
         for j in range(len(i_vertices_list)):
 
@@ -538,7 +538,7 @@ class ComponentType(Vertex):
         """
 
         d = g.V().has('active', True).has('category', ComponentType.category).has('name', name) \
-            .as_('v').valueMap().as_('props').select('v').id().as_('id') \
+            .as_('v').valueMap().as_('props').select('v').id_().as_('id') \
             .select('props', 'id').next()
 
         props, id_ = d['props'], d['id']
@@ -695,7 +695,7 @@ class ComponentType(Vertex):
         # Component type query to DB
         cts = traversal.range(range[0], range[1]) \
             .project('id', 'name', 'comments') \
-            .by(__.id()) \
+            .by(__.id_()) \
             .by(__.values('name')) \
             .by(__.values('comments')) \
             .toList()
@@ -920,7 +920,7 @@ class ComponentVersion(Vertex):
 
             d = g.V(allowed_type.id()).has('active', True) \
                 .both(RelationVersionAllowedType.category).has('name', name) \
-                .as_('v').valueMap().as_('attrs').select('v').id().as_('id') \
+                .as_('v').valueMap().as_('attrs').select('v').id_().as_('id') \
                 .select('attrs', 'id').next()
 
             props, id = d['attrs'], d['id']
@@ -957,7 +957,7 @@ class ComponentVersion(Vertex):
         if id not in _vertex_cache:
 
             d = g.V(id).project('attrs', 'type_id').by(__.valueMap()) \
-                .by(__.both(RelationVersionAllowedType.category).id()).next()
+                .by(__.both(RelationVersionAllowedType.category).id_()).next()
 
             t = ComponentType.from_id(d['type_id'])
 
@@ -1068,10 +1068,10 @@ class ComponentVersion(Vertex):
         # Component type query to DB
         cts = traversal.range(range[0], range[1]) \
             .project('id', 'name', 'comments', 'type_id') \
-            .by(__.id()) \
+            .by(__.id_()) \
             .by(__.values('name')) \
             .by(__.values('comments')) \
-            .by(__.both(RelationVersionAllowedType.category).id()) \
+            .by(__.both(RelationVersionAllowedType.category).id_()) \
             .toList()
 
         component_versions = []
@@ -1349,7 +1349,7 @@ class Component(Vertex):
         # and active at this time
         query = g.V(self.id()).bothE(RelationProperty.category).has('active', True) \
             .as_('e').valueMap().as_('edge_props') \
-            .select('e').otherV().id().as_('vertex_id') \
+            .select('e').otherV().id_().as_('vertex_id') \
             .select('edge_props', 'vertex_id').toList()
 
         # Build up the result of format (property vertex, relation)
@@ -1417,7 +1417,7 @@ class Component(Vertex):
             .both(RelationPropertyType.category) \
             .has('name', property_type.name) \
             .select('e').order().by(__.values('start_time'), Order.asc) \
-            .project('properties', 'id').by(__.valueMap()).by(__.id()).toList()
+            .project('properties', 'id').by(__.valueMap()).by(__.id_()).toList()
 
         return [RelationProperty(
             inVertex=self, outVertex=property_type,
@@ -1446,7 +1446,7 @@ class Component(Vertex):
         # list of flag vertices of this flag type and flag severity and active at this time.
 
         query = g.V(self.id()).bothE(
-            RelationFlagComponent.category).has('active', True).otherV().id().toList()
+            RelationFlagComponent.category).has('active', True).otherV().id_().toList()
 
         # Build up the result of format (flag vertex)
         result = []
@@ -1469,7 +1469,7 @@ class Component(Vertex):
             )
 
         query = g.V(self.id()).inE(
-            RelationSubcomponent.category).has('active', True).otherV().id().toList()
+            RelationSubcomponent.category).has('active', True).otherV().id_().toList()
 
         # Build up the result of format (flag vertex)
         result = []
@@ -1493,7 +1493,7 @@ class Component(Vertex):
         # Relation as a subcomponent stays the same except now
         # we have outE to distinguish from subcomponents
         query = g.V(self.id()).outE(
-            RelationSubcomponent.category).has('active', True).otherV().id().toList()
+            RelationSubcomponent.category).has('active', True).otherV().id_().toList()
 
         # Build up the result of format (flag vertex)
         result = []
@@ -1690,7 +1690,7 @@ class Component(Vertex):
 
         # id of the property being replaced.
         id = g.V(self.id()).bothE(RelationProperty.category).has('active', True).has('end_edit_time', EXISTING_RELATION_END_EDIT_PLACEHOLDER).otherV().where(
-            __.outE().otherV().properties('name').value().is_(propertyTypeName)).id().next()
+            __.outE().otherV().properties('name').value().is_(propertyTypeName)).id_().next()
 
         property_vertex = Property.from_id(id)
 
@@ -1951,8 +1951,8 @@ class Component(Vertex):
             .has('start_time', P.lte(time)) \
             .has('end_time', P.gt(time)) \
             .as_('e').valueMap().as_('edge_props') \
-            .select('e').otherV().id().as_('vertex_id') \
-            .select('e').id().as_('edge_id') \
+            .select('e').otherV().id_().as_('vertex_id') \
+            .select('e').id_().as_('edge_id') \
             .select('edge_props', 'vertex_id', 'edge_id').toList()
 
         # Build up the result of format (property vertex, relation)
@@ -2020,7 +2020,7 @@ class Component(Vertex):
             .as_('e').otherV() \
             .hasId(component.id()).select('e') \
             .order().by(__.values('start_time'), Order.asc) \
-            .project('properties', 'id').by(__.valueMap()).by(__.id()).toList()
+            .project('properties', 'id').by(__.valueMap()).by(__.id_()).toList()
 
         return [RelationConnection(
             inVertex=self, outVertex=component,
@@ -2064,7 +2064,7 @@ class Component(Vertex):
             .has('end_time', P.gt(time)) \
             .as_('e').otherV() \
             .hasId(component.id()).select('e') \
-            .project('properties', 'id').by(__.valueMap()).by(__.id()).toList()
+            .project('properties', 'id').by(__.valueMap()).by(__.id_()).toList()
 
         if len(e) == 0:
             return None
@@ -2101,7 +2101,7 @@ class Component(Vertex):
         # and active at this time
         query = g.V(self.id()).bothE(RelationConnection.category).has('active', True) \
             .as_('e').valueMap().as_('edge_props') \
-            .select('e').otherV().id().as_('vertex_id') \
+            .select('e').otherV().id_().as_('vertex_id') \
             .select('edge_props', 'vertex_id').toList()
 
         # Build up the result of format (property vertex, relation)
@@ -2198,7 +2198,7 @@ class Component(Vertex):
             )
 
         e = g.V(self.id()).bothE(RelationSubcomponent.category).has('active', True).as_('e').otherV().hasId(
-            component.id()).select('e').project('id').by(__.id()).toList()
+            component.id()).select('e').project('id').by(__.id_()).toList()
 
         if len(e) == 0:
             return None
@@ -2303,8 +2303,8 @@ class Component(Vertex):
 
         d = g.V().has('active', True).has('category', Component.category).has('name', name) \
             .project('id', 'type_id', 'rev_ids', 'time_added') \
-            .by(__.id()).by(__.both(RelationComponentType.category).id()) \
-            .by(__.both(RelationVersion.category).id().fold()) \
+            .by(__.id_()).by(__.both(RelationComponentType.category).id_()) \
+            .by(__.both(RelationVersion.category).id_().fold()) \
             .by(__.values('time_added')).next()
 
         id, type_id, rev_ids, time_added = \
@@ -2330,8 +2330,8 @@ class Component(Vertex):
 
             d = g.V(id).project('name', 'type_id', 'rev_ids', 'time_added') \
                 .by(__.values('name')) \
-                .by(__.both(RelationComponentType.category).id()) \
-                .by(__.both(RelationVersion.category).id().fold()) \
+                .by(__.both(RelationComponentType.category).id_()) \
+                .by(__.both(RelationVersion.category).id_().fold()) \
                 .by(__.values('time_added')).next()
 
             name, type_id, rev_ids, time_added = \
@@ -2480,10 +2480,10 @@ class Component(Vertex):
 
         cs = traversal.range(range[0], range[1]) \
             .project('id', 'name', 'type_id', 'rev_ids', 'time_added') \
-            .by(__.id()) \
+            .by(__.id_()) \
             .by(__.values('name')) \
-            .by(__.both(RelationComponentType.category).id()) \
-            .by(__.both(RelationVersion.category).id().fold()) \
+            .by(__.both(RelationComponentType.category).id_()) \
+            .by(__.both(RelationVersion.category).id_().fold()) \
             .by(__.values('time_added')) \
             .toList()
 
@@ -2920,9 +2920,9 @@ class PropertyType(Vertex):
 
         d = g.V().has('active', True).has('category', PropertyType.category).has('name', name) \
             .project('id', 'attrs', 'type_ids') \
-            .by(__.id()) \
+            .by(__.id_()) \
             .by(__.valueMap()) \
-            .by(__.both(RelationPropertyAllowedType.category).id().fold()) \
+            .by(__.both(RelationPropertyAllowedType.category).id_().fold()) \
             .next()
 
         # to access attributes from attrs, do attrs[...][0]
@@ -2964,7 +2964,7 @@ class PropertyType(Vertex):
 
             d = g.V(id).project('attrs', 'type_ids') \
                 .by(__.valueMap()) \
-                .by(__.both(RelationPropertyAllowedType.category).id().fold()) \
+                .by(__.both(RelationPropertyAllowedType.category).id_().fold()) \
                 .next()
 
             # to access attributes from attrs, do attrs[...][0]
@@ -3082,9 +3082,9 @@ class PropertyType(Vertex):
         # Component type query to DB
         pts = traversal.range(range[0], range[1]) \
             .project('id', 'attrs', 'type_ids') \
-            .by(__.id()) \
+            .by(__.id_()) \
             .by(__.valueMap()) \
-            .by(__.both(RelationPropertyAllowedType.category).id().fold()) \
+            .by(__.both(RelationPropertyAllowedType.category).id_().fold()) \
             .toList()
 
         property_types = []
@@ -3251,7 +3251,7 @@ class Property(Vertex):
 
             d = g.V(id).project('values', 'ptype_id') \
                 .by(__.properties('values').value().fold()) \
-                .by(__.both(RelationPropertyType.category).id()).next()
+                .by(__.both(RelationPropertyType.category).id_()).next()
 
             values, ptype_id = d['values'], d['ptype_id']
 
@@ -3395,7 +3395,7 @@ class FlagType(Vertex):
         """
 
         d = g.V().has('active', True).has('category', FlagType.category).has('name', name) \
-            .as_('v').valueMap().as_('props').select('v').id().as_('id') \
+            .as_('v').valueMap().as_('props').select('v').id_().as_('id') \
             .select('props', 'id').next()
 
         props, id = d['props'], d['id']
@@ -3524,7 +3524,7 @@ class FlagType(Vertex):
         # Component type query to DB
         cts = traversal.range(range[0], range[1]) \
             .project('id', 'name', 'comments') \
-            .by(__.id()) \
+            .by(__.id_()) \
             .by(__.values('name')) \
             .by(__.values('comments')) \
             .toList()
@@ -3672,7 +3672,7 @@ class FlagSeverity(Vertex):
         """
 
         d = g.V().has('active', True).has('category', FlagSeverity.category).has('name', name).as_(
-            'v').valueMap().as_('props').select('v').id().as_('id').select('props', 'id').next()
+            'v').valueMap().as_('props').select('v').id_().as_('id').select('props', 'id').next()
 
         props, id = d['props'], d['id']
 
@@ -3787,7 +3787,7 @@ class FlagSeverity(Vertex):
         # flag severity query to DB
         fs = traversal.range(range[0], range[1]) \
             .project('id', 'name') \
-            .by(__.id()) \
+            .by(__.id_()) \
             .by(__.values('name')) \
             .toList()
 
@@ -4089,10 +4089,10 @@ class Flag(Vertex):
 
         d = g.V().has('active', True).has('category', Flag.category).has('name', name) \
             .project('id', 'attrs', 'type_id', 'severity_id', 'component_ids') \
-            .by(__.id()) \
+            .by(__.id_()) \
             .by(__.valueMap()) \
-            .by(__.both(RelationFlagType.category).id()).by(__.both(RelationFlagSeverity.category).id()) \
-            .by(__.both(RelationFlagComponent.category).id().fold()).next()
+            .by(__.both(RelationFlagType.category).id_()).by(__.both(RelationFlagSeverity.category).id_()) \
+            .by(__.both(RelationFlagComponent.category).id_().fold()).next()
 
         id, attrs, type_id, severity_id, component_ids = d['id'], d['attrs'], \
             d['type_id'], d['severity_id'], d['component_ids']
@@ -4136,8 +4136,8 @@ class Flag(Vertex):
 
         if id not in _vertex_cache:
 
-            d = g.V(id).project('attrs', 'fseverity_id', 'ftype_id', 'fcomponent_ids').by(__.valueMap()).by(__.both(RelationFlagSeverity.category).id()).by(
-                __.both(RelationFlagType.category).id()).by(__.both(RelationFlagComponent.category).id().fold()).next()
+            d = g.V(id).project('attrs', 'fseverity_id', 'ftype_id', 'fcomponent_ids').by(__.valueMap()).by(__.both(RelationFlagSeverity.category).id_()).by(
+                __.both(RelationFlagType.category).id_()).by(__.both(RelationFlagComponent.category).id_().fold()).next()
 
             # to access attributes from attrs, do attrs[...][0]
             attrs, fseverity_id, ftype_id, fcomponent_ids = d['attrs'], d[
@@ -4289,9 +4289,9 @@ class Flag(Vertex):
         # flag query to DB
         fs = traversal.range(range[0], range[1]) \
             .project('id', 'attrs', 'ftype_id', 'fseverity_id', 'fcomponent_ids') \
-            .by(__.id()) \
+            .by(__.id_()) \
             .by(__.valueMap()) \
-            .by(__.both(RelationFlagType.category).id()).by(__.both(RelationFlagSeverity.category).id()).by(__.both(RelationFlagComponent.category).id().fold()) \
+            .by(__.both(RelationFlagType.category).id_()).by(__.both(RelationFlagSeverity.category).id_()).by(__.both(RelationFlagComponent.category).id_().fold()) \
             .toList()
 
         flags = []
@@ -4508,7 +4508,7 @@ class Permission(Vertex):
         """
 
         d = g.V().has('category', Permission.category).has('name', name).as_(
-            'v').valueMap().as_('props').select('v').id().as_('id').select('props', 'id').next()
+            'v').valueMap().as_('props').select('v').id_().as_('id').select('props', 'id').next()
 
         props, id = d['props'], d['id']
 
@@ -4627,7 +4627,7 @@ class UserGroup(Vertex):
         """
 
         d = g.V().has('category', UserGroup.category).has('name', name).project('id', 'attrs', 'permission_ids').by(
-            __.id()).by(__.valueMap()).by(__.both(RelationGroupAllowedPermission.category).id().fold()).next()
+            __.id_()).by(__.valueMap()).by(__.both(RelationGroupAllowedPermission.category).id_().fold()).next()
 
         id, attrs, perimssion_ids = d['id'], d['attrs'], d['permission_ids']
 
@@ -4811,7 +4811,7 @@ class User(Vertex):
         """
 
         d = g.V().has('category', User.category).has('uname', uname).project('id', 'attrs', 'group_ids').by(
-            __.id()).by(__.valueMap()).by(__.both(RelationUserAllowedGroup.category).id().fold()).next()
+            __.id_()).by(__.valueMap()).by(__.both(RelationUserAllowedGroup.category).id_().fold()).next()
 
         # to access attributes from attrs, do attrs[...][0]
         id, attrs, gtype_ids = d['id'], d['attrs'], d['group_ids']
@@ -4848,7 +4848,7 @@ class User(Vertex):
         if id not in _vertex_cache:
 
             d = g.V(id).project('attrs', 'group_ids').by(__.valueMap()).by(
-                __.both(RelationUserAllowedGroup.category).id().fold()).next()
+                __.both(RelationUserAllowedGroup.category).id_().fold()).next()
 
             # to access attributes from attrs, do attrs[...][0]
 
