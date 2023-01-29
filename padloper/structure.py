@@ -537,9 +537,13 @@ class ComponentType(Vertex):
         :rtype: ComponentType
         """
 
-        d = g.V().has('active', True).has('category', ComponentType.category).has('name', name) \
-            .as_('v').valueMap().as_('props').select('v').id_().as_('id') \
-            .select('props', 'id').next()
+        try:
+            d = g.V().has('active', True) \
+                .has('category', ComponentType.category) \
+                .has('name', name).as_('v').valueMap().as_('props') \
+                .select('v').id_().as_('id').select('props', 'id').next()
+        except:
+            raise ComponentTypeNotAddedError
 
         props, id_ = d['props'], d['id']
 
@@ -918,10 +922,13 @@ class ComponentVersion(Vertex):
 
         if allowed_type.added_to_db():
 
-            d = g.V(allowed_type.id()).has('active', True) \
-                .both(RelationVersionAllowedType.category).has('name', name) \
-                .as_('v').valueMap().as_('attrs').select('v').id_().as_('id') \
-                .select('attrs', 'id').next()
+            try:
+                d = g.V(allowed_type.id()).has('active', True) \
+                    .both(RelationVersionAllowedType.category) \
+                    .has('name', name).as_('v').valueMap().as_('attrs') \
+                    .select('v').id_().as_('id').select('attrs', 'id').next()
+            except StopIteration:
+                raise ComponentVersionNotAddedError
 
             props, id = d['attrs'], d['id']
 
@@ -2301,11 +2308,16 @@ class Component(Vertex):
         :type name: str
         """
 
-        d = g.V().has('active', True).has('category', Component.category).has('name', name) \
-            .project('id', 'type_id', 'rev_ids', 'time_added') \
-            .by(__.id_()).by(__.both(RelationComponentType.category).id_()) \
-            .by(__.both(RelationVersion.category).id_().fold()) \
-            .by(__.values('time_added')).next()
+        try:
+            d = g.V().has('active', True).has('category', Component.category) \
+                .has('name', name) \
+                .project('id', 'type_id', 'rev_ids', 'time_added') \
+                .by(__.id_()) \
+                .by(__.both(RelationComponentType.category).id_()) \
+                .by(__.both(RelationVersion.category).id_().fold()) \
+                .by(__.values('time_added')).next()
+        except StopIteration:
+            raise ComponentNotAddedError
 
         id, type_id, rev_ids, time_added = \
             d['id'], d['type_id'], d['rev_ids'], d['time_added']
@@ -2918,12 +2930,17 @@ class PropertyType(Vertex):
         :type name: str
         """
 
-        d = g.V().has('active', True).has('category', PropertyType.category).has('name', name) \
-            .project('id', 'attrs', 'type_ids') \
-            .by(__.id_()) \
-            .by(__.valueMap()) \
-            .by(__.both(RelationPropertyAllowedType.category).id_().fold()) \
-            .next()
+        try:
+            d = g.V().has('active', True) \
+                .has('category', PropertyType.category).has('name', name) \
+                .project('id', 'attrs', 'type_ids') \
+                .by(__.id_()) \
+                .by(__.valueMap()) \
+                .by(__.both(RelationPropertyAllowedType.category) \
+                .id_().fold()) \
+                .next()
+        except StopIteration:
+            raise PropertyTypeNotAddedError
 
         # to access attributes from attrs, do attrs[...][0]
         id, attrs, ctype_ids = d['id'], d['attrs'], d['type_ids']
@@ -3394,9 +3411,12 @@ class FlagType(Vertex):
         :rtype: FlagType
         """
 
-        d = g.V().has('active', True).has('category', FlagType.category).has('name', name) \
-            .as_('v').valueMap().as_('props').select('v').id_().as_('id') \
-            .select('props', 'id').next()
+        try:
+            d = g.V().has('active', True).has('category', FlagType.category) \
+                .has('name', name).as_('v').valueMap().as_('props') \
+                .select('v').id_().as_('id').select('props', 'id').next()
+        except StopIteration:
+            raise FlagTypeNotAddedError
 
         props, id = d['props'], d['id']
 
@@ -3671,8 +3691,13 @@ class FlagSeverity(Vertex):
         :rtype: FlagSeverity.
         """
 
-        d = g.V().has('active', True).has('category', FlagSeverity.category).has('name', name).as_(
-            'v').valueMap().as_('props').select('v').id_().as_('id').select('props', 'id').next()
+        try:
+            d = g.V().has('active', True) \
+                .has('category', FlagSeverity.category).has('name', name) \
+                .as_('v').valueMap().as_('props').select('v').id_().as_('id') \
+                .select('props', 'id').next()
+        except StopIteration:
+            raise FlagSeverityNotAddedError
 
         props, id = d['props'], d['id']
 
@@ -4087,12 +4112,18 @@ class Flag(Vertex):
         :type name: str
         """
 
-        d = g.V().has('active', True).has('category', Flag.category).has('name', name) \
-            .project('id', 'attrs', 'type_id', 'severity_id', 'component_ids') \
-            .by(__.id_()) \
-            .by(__.valueMap()) \
-            .by(__.both(RelationFlagType.category).id_()).by(__.both(RelationFlagSeverity.category).id_()) \
-            .by(__.both(RelationFlagComponent.category).id_().fold()).next()
+        try:
+            d = g.V().has('active', True).has('category', Flag.category) \
+                .has('name', name) \
+                .project('id', 'attrs', 'type_id', 'severity_id',
+                         'component_ids') \
+                .by(__.id_()) \
+                .by(__.valueMap()) \
+                .by(__.both(RelationFlagType.category).id_()) \
+                .by(__.both(RelationFlagSeverity.category).id_()) \
+                .by(__.both(RelationFlagComponent.category).id_().fold()).next()
+        except StopIteration:
+            raise FlagNotAddedError
 
         id, attrs, type_id, severity_id, component_ids = d['id'], d['attrs'], \
             d['type_id'], d['severity_id'], d['component_ids']
@@ -4507,8 +4538,12 @@ class Permission(Vertex):
         :rtype: Permission
         """
 
-        d = g.V().has('category', Permission.category).has('name', name).as_(
-            'v').valueMap().as_('props').select('v').id_().as_('id').select('props', 'id').next()
+        try:
+            d = g.V().has('category', Permission.category).has('name', name) \
+                .as_('v').valueMap().as_('props').select('v').id_().as_('id') \
+                .select('props', 'id').next()
+        except StopIteration:
+            raise PermissionNotAddedError
 
         props, id = d['props'], d['id']
 
@@ -4626,8 +4661,14 @@ class UserGroup(Vertex):
         :type name: str
         """
 
-        d = g.V().has('category', UserGroup.category).has('name', name).project('id', 'attrs', 'permission_ids').by(
-            __.id_()).by(__.valueMap()).by(__.both(RelationGroupAllowedPermission.category).id_().fold()).next()
+        try:
+            d = g.V().has('category', UserGroup.category).has('name', name) \
+                .project('id', 'attrs', 'permission_ids').by(__.id_()) \
+                .by(__.valueMap()) \
+                .by(__.both(RelationGroupAllowedPermission.category).id_() \
+                .fold()).next()
+        except StopIteration:
+            raise UserGroupNotAddedError
 
         id, attrs, perimssion_ids = d['id'], d['attrs'], d['permission_ids']
 
@@ -4810,8 +4851,14 @@ class User(Vertex):
         :type uname: str 
         """
 
-        d = g.V().has('category', User.category).has('uname', uname).project('id', 'attrs', 'group_ids').by(
-            __.id_()).by(__.valueMap()).by(__.both(RelationUserAllowedGroup.category).id_().fold()).next()
+        try:
+            d = g.V().has('category', User.category).has('uname', uname) \
+                .project('id', 'attrs', 'group_ids').by(__.id_()) \
+                .by(__.valueMap()) \
+                .by(__.both(RelationUserAllowedGroup.category).id_().fold()) \
+                .next()
+        except StopIteration:
+            raise UserNotAddedError
 
         # to access attributes from attrs, do attrs[...][0]
         id, attrs, gtype_ids = d['id'], d['attrs'], d['group_ids']

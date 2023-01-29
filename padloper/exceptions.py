@@ -65,6 +65,41 @@ class FlagNotAddedError(Error):
     pass
 
 
+class FlagTypeNotAddedError(Error):
+    """
+    Exception raised when trying to access a flag type from the database that is not added to the database.
+    """
+    pass
+
+
+class FlagSeverityNotAddedError(Error):
+    """
+    Exception raised when trying to access a flag severity from the database that is not added to the database.
+    """
+    pass
+
+
+class PermissionNotAddedError(Error):
+    """
+    Exception raised when trying to access a permission from the database that is not added to the database.
+    """
+    pass
+
+
+class UserNotAddedError(Error):
+    """
+    Exception raised when trying to access a user from the database that is not added to the database.
+    """
+    pass
+
+
+class UserGroupNotAddedError(Error):
+    """
+    Exception raised when trying to access a user group from the database that is not added to the database.
+    """
+    pass
+
+
 class ComponentsAlreadyConnectedError(Error):
     """
     Exception raised when trying to connect two components when they are already

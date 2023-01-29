@@ -52,7 +52,7 @@ v_coax_10cm = ComponentVersion.from_db("10cm", t_coax)
 v_coax_50cm = ComponentVersion.from_db("50cm", t_coax)
 v_fibre_l = ComponentVersion.from_db("L", t_fibre)
 
-if False:
+if True:
     PropertyType("location", "deg", "^[\-]?\d*[.]?\d*$", 2, [t_dish],
                  comments="latitude and longitude of dish centre").add()
     PropertyType("pointing", "deg", "^[\-]?\d*[.]?\d*$", 2, [t_dish],
