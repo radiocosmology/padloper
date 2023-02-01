@@ -86,7 +86,12 @@ We can also access the JanusGraph server from a Python interface. First, we inst
 pip install gremlinpython
 ```
 
-Note that a minimum `gremlinpython` version of `3.4.7` must be used for full functionality. Now, we may create a Python file to connect to and query the graph:
+*Important*: make sure the version of `gremlinpython` is supported by your version of Janusgraph. For instance, for v0.6.2 of Janusgraph, more recent versions of `gremlinpython` are not supported and you have to do:
+```
+pip install gremlinpython==3.5.3
+```
+
+Now, we may create a Python file to connect to and query the graph:
 ```py
 # Import full gremlinpython functionality
 from gremlin_python import statics
@@ -106,13 +111,15 @@ print(g.V().toList())
 
 This code will print a list of the vertices of the graph.
 
-## RECOMMENDED: Update Netty version
+## Recommendation (deprecated): Update Netty version
 
-Using JanusGraph 0.5.3 or later versions, it is possible that a Netty version between 4.1.44 and 4.1.46 is used. To check, navigate to `lib/` and check the version numbers of `netty-all`, `netty-common`, `netty-buffer`, `netty-codec`, `netty-handler`, `netty-resolver`, and `netty-transport` files. These versions have a bug that may cause intermittent Apache Cassandra exceptions that become more frequent as the number of vertices and edges gets larger. Read [this GitHub issue](https://github.com/netty/netty/issues/10070) for more details.
+*As of at least Janusgraph 0.6.2, this recommendation is deprecated, but is left here in case a similar issue arises in the future.*
 
-If your Netty version is newer than 4.1.46, this section may be skipped. 
-
-Otherwise, head to the [Maven repository for Netty](https://mvnrepository.com/artifact/io.netty) and download the latest (stable) versions for `netty-all`, `netty-common`, `netty-buffer`, `netty-codec`, `netty-handler`, `netty-resolver`, and `netty-transport`, and replace the old .jar files in `lib/` with these new files.
+> Using JanusGraph 0.5.3 or later versions, it is possible that a Netty version between 4.1.44 and 4.1.46 is used. To check, navigate to `lib/` and check the version numbers of `netty-all`, `netty-common`, `netty-buffer`, `netty-codec`, `netty-handler`, `netty-resolver`, and `netty-transport` files. These versions have a bug that may cause intermittent Apache Cassandra exceptions that become more frequent as the number of vertices and edges gets larger. Read [this GitHub issue](https://github.com/netty/netty/issues/10070) for more details.
+> 
+> If your Netty version is newer than 4.1.46, this section may be skipped. 
+> 
+> Otherwise, head to the [Maven repository for Netty](https://mvnrepository.com/artifact/io.netty) and download the latest (stable) versions for `netty-all`, `netty-common`, `netty-buffer`, `netty-codec`, `netty-handler`, `netty-resolver`, and `netty-transport`, and replace the old .jar files in `lib/` with these new files.
 
 ## Installing Flask
 
@@ -129,6 +136,6 @@ In `web-interface`, run `npm install` to install all dependencies. However, `rea
 
 ## More Setup
 
-### RECOMMENDED: Set up indexing
+### Set up indexing
 
-To make certain queries faster, it is recommended that graph indexes are added. Follow the [JanusGraph documentation](https://docs.janusgraph.org/index-management/index-performance/#mixed-index) for more details. To add a composite index (extremely efficient for equality checks), first we connect to **a fresh installation** of the Gremlin server through the Gremlin console. Then, perform the queries in `index_setup.txt`.
+To make certain queries faster, graph indexes should be added. Run the commands in the `index_setup.txt` file in a Gremlin console to add indexing suitable for Padloper. This is best done on a *fresh install*.
