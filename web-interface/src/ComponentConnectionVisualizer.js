@@ -1,6 +1,6 @@
 import React, { useState, useEffect, useRef, useCallback } from 'react';
 import ReactFlow, { 
-    Controls, Background, Handle, ControlButton, isNode,
+    Controls, Background, Handle, ControlButton, isNode, MarkerType
 } from 'react-flow-renderer';
 import styled from '@mui/material/styles/styled';
 import createTheme from '@mui/material/styles/createTheme';
@@ -291,7 +291,7 @@ export default function ComponentConnectionVisualizer() {
             id: name,
             connectable: false,
             type: 'component',
-            dragHandle: '.drag-handle',
+//            dragHandle: '.drag-handle',
             data: { name: name },
             position: { x: x, y: y },
         }
@@ -309,24 +309,37 @@ export default function ComponentConnectionVisualizer() {
      * edge starts at.
      * @param {string} target - the name of the component that the
      * edge ends at. 
+     * @param {bool} subcomponent - indicates whether this is a
+     * sub/supercomponent.
      * @returns Return whether the edge was successfully added.
      */
-    const addEdge = (id, source, target) => {
+    const addEdge = (id, source, target, subcomponent) => {
+        var e_style, e_arrow, e_type;
 
         // catch it
         if (elementIds.current[id]) {
             return false;
         }
 
+        if (subcomponent) {
+            e_style = {stroke: '#555555', strokeWidth: 3, strokeDashArray: '2,2'};
+            e_arrow = 'arrowclosed';
+            e_type = 'straight';
+        } else {
+            e_style = {stroke: '#555555', strokeWidth: 1};
+            e_arrow = null;
+            e_type = 'smoothstep';
+        }
+
         let newElement = {
             id: id,
             source: source,
             target: target,
-            type: 'smoothstep',
-            style: {
-                stroke: '#555555',
-                strokeWidth: 1,
-            }
+            type: e_type,
+            style: e_style,
+            arrowHeadType: e_arrow,
+//            markerStart: {type: 'arrow', width: 100, height: 100, strokeWidth: 4, color: '#ffff00'}, //e_marker,
+//            markerEnd: {type: 'arrow', strokeWidth: 4, color: '#00ff00'}, //e_marker,
         }
         addElementId(id);
         setElements((nodes) => nodes.concat(newElement));
@@ -469,7 +482,6 @@ export default function ComponentConnectionVisualizer() {
                     }}
                 />
                 <ComponentNodeWrapper>
-                    <ComponentNodeDragHandle />
                     <Grid
                         container
                         justifyContent="center"
@@ -536,7 +548,8 @@ export default function ComponentConnectionVisualizer() {
                         addEdge(
                             edge.id, 
                             edge.outVertexName, 
-                            edge.inVertexName
+                            edge.inVertexName,
+                            edge.subcomponent
                         );
         
                         if (added) {

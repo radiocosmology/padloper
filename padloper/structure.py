@@ -141,8 +141,11 @@ class Vertex(Element):
 
             self.time_disabled = EXISTING_RELATION_END_EDIT_PLACEHOLDER
 
-            traversal = g.addV().property('category', self.category).property('time_added', self.time_added).property(
-                'time_disabled', self.time_disabled).property('active', self.active).property('replacement', self.replacement)
+            traversal = g.addV().property('category', self.category) \
+                         .property('time_added', self.time_added) \
+                         .property('time_disabled', self.time_disabled) \
+                         .property('active', self.active) \
+                         .property('replacement', self.replacement)
 
             for key in attributes:
 
@@ -1318,12 +1321,13 @@ class Component(Vertex):
 
         # list of property vertices of this property type
         # and active at this time
-        vs = g.V(self.id()).bothE(RelationProperty.category).has('active', True) \
-            .has('start_time', P.lte(time)) \
-            .has('end_time', P.gt(time)).otherV().as_('v') \
-            .both(RelationPropertyType.category) \
-            .has('name', property_type.name) \
-            .select('v').toList()
+        vs = g.V(self.id()).bothE(RelationProperty.category) \
+              .has('active', True) \
+              .has('start_time', P.lte(time)) \
+              .has('end_time', P.gt(time)).otherV().as_('v') \
+              .both(RelationPropertyType.category) \
+              .has('name', property_type.name) \
+              .select('v').toList()
 
         # If no such vertices found
         if len(vs) == 0:
@@ -1331,7 +1335,9 @@ class Component(Vertex):
                 return None
             else:
                 raise ComponentPropertyStartTimeExceedsInputtedTime(
-                    f"{self.name} has no property with the given combination of time and property type. Make sure time inputted is later than property start time."
+                    f"{self.name} has no property with the given combination " \
+                     "of time and property type. Make sure time inputted is " \
+                     "later than property start time."
                 )
 
         # There should be only one!
@@ -1465,7 +1471,8 @@ class Component(Vertex):
         return result
 
     def get_all_subcomponents(self):
-        """Return all subcomponents connected to this component of the form (Component)
+        """Return all subcomponents connected to this component of the form
+        (Component)
 
         :rtype: [Component]
         """
@@ -1475,8 +1482,8 @@ class Component(Vertex):
                 f"Component {self.name} has not yet been added to the database."
             )
 
-        query = g.V(self.id()).inE(
-            RelationSubcomponent.category).has('active', True).otherV().id_().toList()
+        query = g.V(self.id()).inE(RelationSubcomponent.category) \
+                 .has('active', True).otherV().id_().toList()
 
         # Build up the result of format (flag vertex)
         result = []
@@ -1488,7 +1495,8 @@ class Component(Vertex):
         return result
 
     def get_all_supercomponents(self):
-        """Return all supercomponents connected to this component of the form (Component)
+        """Return all supercomponents connected to this component of the form
+        (Component)
 
         :rtype: [Component]
         """
@@ -1499,8 +1507,8 @@ class Component(Vertex):
             )
         # Relation as a subcomponent stays the same except now
         # we have outE to distinguish from subcomponents
-        query = g.V(self.id()).outE(
-            RelationSubcomponent.category).has('active', True).otherV().id_().toList()
+        query = g.V(self.id()).outE(RelationSubcomponent.category) \
+                 .has('active', True).otherV().id_().toList()
 
         # Build up the result of format (flag vertex)
         result = []
@@ -1552,7 +1560,6 @@ class Component(Vertex):
         )
 
         if current_property is not None:
-
             if current_property.values == property.values:
                 raise PropertyIsSameError(
                     "An identical property of type " +
@@ -1919,7 +1926,8 @@ class Component(Vertex):
             component=otherComponent, time=time, uid=uid, comments=comments
         )
 
-    def disable_connection(self, otherComponent, disable_time: int = int(time.time())):
+    def disable_connection(self, otherComponent,
+                           disable_time: int = int(time.time())):
         """Disables the connection in the serverside
 
         :param otherComponent: Another Component that this component has connection with.
@@ -1931,20 +1939,21 @@ class Component(Vertex):
         """
 
         g.V(self.id()).bothE(RelationConnection.category).where(
-            __.otherV().hasId(otherComponent.id())).property('active', False).property(
-            'time_disabled', disable_time).next()
+            __.otherV().hasId(otherComponent.id())).property('active', False) \
+              .property('time_disabled', disable_time).next()
 
     def get_all_connections_at_time(
-        self, time: int
+        self, time: int, exclude_subcomponents: bool = False
     ):
         """
         Given a component, return all connections between this Component and 
         all other components.
 
         :param time: Time to check connections at. 
-        :type from_time: int, optional
+        :param exclude_subcomponents: If True, then do not return connections
+            to subcomponents or supercomponents.
 
-        :rtype: list[RelationConnection]
+        :rtype: list[RelationConnection/RelationSubcomponent]
         """
 
         if not self.added_to_db():
@@ -1952,18 +1961,48 @@ class Component(Vertex):
                 f"Component {self.name} has not yet been added to the database."
             )
 
-        # list of property vertices of this property type
-        # and active at this time
-        query = g.V(self.id()).bothE(RelationConnection.category).has('active', True) \
+        # Build up the result of format (property vertex, relation)
+        result = []
+
+        if not exclude_subcomponents:
+            # First do subcomponents.
+            for q in g.V(self.id()).inE(RelationSubcomponent.category) \
+                      .has('active', True).as_('e') \
+                      .otherV().id_().as_('vertex_id') \
+                      .select('e').id_().as_('edge_id') \
+                      .select('vertex_id', 'edge_id').toList():
+                c = Component.from_id(q['vertex_id'])
+                edge = RelationSubcomponent(
+                    inVertex=self,
+                    outVertex=c,
+                    id=q['edge_id']['@value']['relationId']
+                )
+                result.append(edge)
+
+            # Now supercomponents.
+            for q in g.V(self.id()).outE(RelationSubcomponent.category) \
+                      .has('active', True).as_('e') \
+                      .otherV().id_().as_('vertex_id') \
+                      .select('e').id_().as_('edge_id') \
+                      .select('vertex_id', 'edge_id').toList():
+                c = Component.from_id(q['vertex_id'])
+                edge = RelationSubcomponent(
+                    inVertex=c,
+                    outVertex=self,
+                    id=q['edge_id']['@value']['relationId']
+                )
+                result.append(edge)
+
+        # List of property vertices of this property type and active at this
+        # time
+        query = g.V(self.id()).bothE(RelationConnection.category) \
+            .has('active', True) \
             .has('start_time', P.lte(time)) \
             .has('end_time', P.gt(time)) \
             .as_('e').valueMap().as_('edge_props') \
             .select('e').otherV().id_().as_('vertex_id') \
             .select('e').id_().as_('edge_id') \
             .select('edge_props', 'vertex_id', 'edge_id').toList()
-
-        # Build up the result of format (property vertex, relation)
-        result = []
 
         for q in query:
             c = Component.from_id(q['vertex_id'])
@@ -3214,13 +3253,12 @@ class Property(Vertex):
         self, values: List[str], property_type: PropertyType,
         id: int = VIRTUAL_ID_PLACEHOLDER
     ):
+        # If the user passes a string rather than a list of strings, fix it.
+        if isinstance(values, str):
+            values = [values]
 
-        # if len(values) != property_type.n_values:
-
-        # print(len(values), property_type.n_values)
-
-        # TODO: This isn't working for some reason.....!!!!!!!!!!!
-        # raise PropertyWrongNValuesError
+        if len(values) != property_type.n_values:
+            raise PropertyWrongNValuesError
 
         for val in values:
 

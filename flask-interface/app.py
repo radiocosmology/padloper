@@ -1215,6 +1215,8 @@ def get_all_connections_at_time():
             {
                 'inVertexName': conn.inVertex.name,
                 'outVertexName': conn.outVertex.name,
+                'subcomponent': True if isinstance(conn, RelationSubcomponent) \
+                                else False,
                 'id': conn.id(),
             }
             for conn in connections
