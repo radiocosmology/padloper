@@ -8,7 +8,7 @@ Assuming that JanusGraph, Flask, and React are installed and configured (see sec
 
 To start the JanusGraph server, do
 ```
-cd janusgraph-full-0.5.3/
+cd janusgraph-full-0.x.xx/
 bin/janusgraph.sh start
 ```
 
