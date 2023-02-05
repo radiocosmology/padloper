@@ -63,14 +63,14 @@ function ComponentFilter(
      * change of the TextField.
      */
     const filterUpdateType = (event) => {
-        if (event.target.value !== -1) {
+        if (event.target.value !== "") {
 
             filterUpdateKey(
                 'type', 
-                types_and_versions[event.target.value]['name']
+                event.target.value
             );
 
-            setVersions(types_and_versions[event.target.value]['versions'])
+            setVersions(types_and_versions[event.target.value])
         }
         else {
             filterUpdateKey(
@@ -130,18 +130,13 @@ function ComponentFilter(
                         onChange={filterUpdateType}
                         displayEmpty
                     >
-                        <option aria-label="None" value={-1} selected>
+                        <option aria-label="None" value={""} selected>
                             All types
                         </option>
                         {
-                            types_and_versions.map((t, index) =>
-                                <option 
-                                    value={index}
-                                    key={index}
-                                >
-                                    {t['name']}
-                                </option>
-                            )
+                          Object.keys(types_and_versions).map((t) =>
+                            <option value={t} key={t}>{t}</option>
+                          )
                         }
                     </Select>
 

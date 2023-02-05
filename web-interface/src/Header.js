@@ -30,10 +30,10 @@ function Header() {
                 {/*Pass in the names of the links along with their paths*/}
                 
                 <HeaderMenuButton
-                    name={"Lists"}
+                    name={"Components"}
                     links={[
                         {
-                            name: 'Components', 
+                            name: 'Component List', 
                             link: `/list/component`
                         },
                         {
@@ -44,10 +44,22 @@ function Header() {
                             name: 'Component Versions', 
                             link: `/list/component-versions`
                         },
+                    ]}
+                />
+
+                <HeaderMenuButton
+                    name={"Properties"}
+                    links={[
                         {
                             name: 'Property Types', 
                             link: `/list/property-types`
-                        },
+                        }
+                    ]}
+                />
+
+                <HeaderMenuButton
+                    name={"Flags"}
+                    links={[
                         {
                             name: 'Flag Types', 
                             link: `/list/flag-types`
