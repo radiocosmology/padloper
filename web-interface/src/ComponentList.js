@@ -190,6 +190,7 @@ function ComponentList() {
         fetch("/api/component_types_and_versions").then(
             res => res.json()
         ).then(data => {
+            console.log(data.result);
             setTypesAndVersions(data.result);
         });
     }, []);

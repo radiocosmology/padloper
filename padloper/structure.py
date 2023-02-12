@@ -631,11 +631,9 @@ class ComponentType(Vertex):
             .order().by('name', Order.asc) \
             .project('name', 'versions') \
             .by(__.values('name')) \
-            .by(
-                __.both(RelationVersionAllowedType.category)
-            .order().by('name', Order.asc).values('name').fold()
-        ) \
-            .toList()
+            .by(__.both(RelationVersionAllowedType.category)
+                .order().by('name', Order.asc).values('name').fold()
+            ).toList()
 
         return ts
 

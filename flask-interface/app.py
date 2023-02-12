@@ -595,8 +595,11 @@ def get_component_types_and_versions():
     """
 
     types = ComponentType.get_names_of_types_and_versions()
+    ret = {}
+    for t in types:
+        ret[t["name"]] = t["versions"]
 
-    return {'result': types}
+    return {'result': ret}
 
 
 @app.route("/api/component_type_list")

@@ -138,9 +138,9 @@ const ReplaceButton = styled((props) => (
           label="Component Type"
           onChange={(e)=> setComponentType(e.target.value)}
           >
-            {types_and_versions.map((item,index)=>{
+            {Object.keys(types_and_versions).map((item)=>{
                 return (
-                    <MenuItem key={index} value={item.name}>{item.name}
+                    <MenuItem key={item} value={item}>{item}
                     </MenuItem>
                     )
                 })}

@@ -44,10 +44,10 @@ export default function HeaderMenuButton({name, links}) {
                 aria-haspopup="true"
                 aria-expanded={open ? 'true' : undefined}
                 onClick={handleClick}
-                variant="outlined" 
+    //            variant="outlined" 
                 color="inherit" 
             >
-                {name}
+                {name}&nbsp;&#9660;
             </Button>
             <Menu
                 id="basic-menu"
