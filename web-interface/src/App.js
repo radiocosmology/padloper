@@ -8,7 +8,7 @@ import FlagTypeList from './FlagTypeList.js'
 import FlagList from './FlagList.js';
 import Header from './Header.js';
 
-import { ReactFlowProvider } from 'react-flow-renderer';
+import { ReactFlowProvider } from 'reactflow';
 
 import {
   BrowserRouter as Router,
