@@ -1,6 +1,8 @@
-import React, { useState, useEffect, useRef, useCallback } from 'react';
+import React, { useState, useEffect, useRef, useCallback,
+                useMemo } from 'react';
 import ReactFlow, { 
-    Controls, Background, Handle, ControlButton, isNode, MarkerType
+    Controls, Background, Handle, ControlButton, isNode, MarkerType,
+    applyNodeChanges, applyEdgeChanges
 } from 'reactflow';
 import 'reactflow/dist/style.css';
 import styled from '@mui/material/styles/styled';
@@ -97,7 +99,7 @@ const ComponentNodeWrapper = styled((props) => (
     background: 'white',
     borderColor: '#777777',
     borderWidth: '2px',
-    width: '160px',
+    width: '250px',
     height: '50px',
     textAlign: 'center',
 }));
@@ -245,6 +247,11 @@ export default function ComponentConnectionVisualizer() {
     // value that the depth-input will show
     const [depthInputValue, setDepthInputValue] = useState(0);
 
+    const onNodesChange = useCallback((changes) => setNodes((nds) =>
+                                      applyNodeChanges(changes, nds)), []);
+  const onEdgesChange = useCallback((changes) => setEdges((eds) => 
+                                    applyEdgeChanges(changes, eds)), [] );
+
     /**
      * The useRef hook is used as doing
      * setToggleLayoutBool(!toggleLayoutBool) will use the old value of
@@ -298,11 +305,11 @@ export default function ComponentConnectionVisualizer() {
 
         let newNode = {
             id: name,
-//            connectable: false,
-//            type: 'component',
+            connectable: false,
+            type: 'component',
 //            dragHandle: '.drag-handle',
-//            data: { name: name },
-            data: {label: name},
+            data: { name: name },
+//            data: {label: name},
             position: { x: x, y: y },
 //            position: { x: 10, y: 10 },
         }
@@ -590,6 +597,10 @@ export default function ComponentConnectionVisualizer() {
         
     }
 
+    const nodeTypes = useMemo(
+      () => ({component: ComponentNode}), []
+    );
+
     return (
         <Grid 
             container 
@@ -701,6 +712,9 @@ export default function ComponentConnectionVisualizer() {
                     <ReactFlow 
                         nodes={nodes}
                         edges={edges}
+                        onNodesChange={onNodesChange}
+                        onEdgesChange={onEdgesChange}
+                        nodeTypes={nodeTypes}
                         nodesConnectable={false}
                     >
                         <Background

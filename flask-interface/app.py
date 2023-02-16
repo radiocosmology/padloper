@@ -1212,6 +1212,7 @@ def get_all_connections_at_time():
     c = Component.from_db(val_name)
 
     connections = c.get_all_connections_at_time(val_time)
+#    print(conn.inVertex)
 
     return {
         'result': [
