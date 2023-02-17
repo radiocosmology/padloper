@@ -81,6 +81,10 @@ class Element:
         return self._id != VIRTUAL_ID_PLACEHOLDER
 
 
+    def __repr__(self):
+        return str(self._id)
+
+
 class Vertex(Element):
     """
     The representation of a vertex. Can contain attributes.
@@ -127,9 +131,8 @@ class Vertex(Element):
         # If already added.
         if self.added_to_db():
             raise VertexAlreadyAddedError(
-                f"Vertex already exists in the database."
-            )
-
+                    f"Vertex already exists in the database."
+                )
         else:
 
             # set time added to now.
@@ -737,6 +740,9 @@ class ComponentType(Vertex):
         return g.V().has('active', True).has('category', ComponentType.category) \
             .has('name', TextP.containing(name_substring)) \
             .count().next()
+
+    def __repr__(self):
+        return f"{self.category}: {self.name} ({self._id})"
 
 
 class ComponentVersion(Vertex):
@@ -2714,6 +2720,9 @@ class Component(Vertex):
             'subcomponents': subcomponent_dicts,
             'supercomponents': supercomponent_dicts
         }
+
+    def __repr__(self):
+        return f"{self.category} {self.type.name}: {self.name} ({self._id})"
 
 
 class PropertyType(Vertex):
@@ -4953,6 +4962,86 @@ class User(Vertex):
             )
 
         return _vertex_cache[id]
+
+
+'''Some Convenience Functions
+        to make building up structures easier / more readable
+'''
+
+def _tryadd(self):
+    """
+    Utility function to try adding nodes and simply print 
+    already added messages rather than raising errors.
+
+    Returns either added new object, or gets existing one from db.
+    """
+    try:
+        self.add()
+        print(f'added: {self}')
+        return self
+    except VertexAlreadyAddedError as e:
+        print(e)
+        return self.from_db(self.name)
+
+ComponentType.tryadd = _tryadd
+Component.tryadd = _tryadd
+PropertyType.tryadd = _tryadd
+
+def _tryadd_version(self):
+    """
+    modified tryadd function but for ComponentVersion
+    which needs an allowed_type for db lookup 
+    """
+    try:
+        self.add()
+        print(f'added: {self}')
+        return self
+    except VertexAlreadyAddedError as e:
+        print(e)
+        return self.from_db(self.name, self.allowed_type)
+
+ComponentVersion.tryadd = _tryadd_version
+
+
+def _try_subcomponent_connect(self, other):
+    """
+    Utility function to try subcomponent connection and simply print 
+    already added messages rather than raising errors.
+    """
+    try:
+        self.subcomponent_connect(other)
+        print(f'subcomponent connected: {self} -> {other}')
+    except ComponentIsSubcomponentOfOtherComponentError as e:
+        print(e)
+
+Component.try_subcomponent_connect = _try_subcomponent_connect
+
+
+def _tryconnect(self, other, t, uid):
+    """
+    Utility function to try subcomponent connection and simply print 
+    already added messages rather than raising errors.
+    """
+    try:
+        self.connect(other, t, uid)
+        print(f'connected: {self} -> {other}  ({uid} {t})')
+    except ComponentsAlreadyConnectedError as e:
+        print(e)
+
+Component.tryconnect = _tryconnect
+
+def _try_set_property(self, prop, t, uid):
+    """
+    Utility function to try setting property simply print 
+    already added messages rather than raising errors.
+    """
+    try:
+        self.set_property(prop, t, uid)
+        print(f'property of {self} set: {prop}  ({uid} {t})')
+    except PropertyIsSameError as e:
+        print(e)
+
+Component.try_set_property = _try_set_property
 
 
 ###############################################################################
