@@ -34,6 +34,13 @@ VIRTUAL_ID_PLACEHOLDER = -1
 _vertex_cache = dict()
 
 
+def strictraise(strict, err, msg):
+    if strict:
+        raise err(msg)
+    else:
+        print(msg)
+
+
 class Element:
     """
     The simplest element. Contains an ID.
@@ -472,16 +479,15 @@ class ComponentType(Vertex):
         self.comments = comments
         Vertex.__init__(self, id=id)
 
-    def add(self):
+    def add(self, strict_add=False):
         """Add this ComponentType vertex to the serverside.
         """
 
         # If already added.
         if self.added_to_db():
-            raise VertexAlreadyAddedError(
-                f"ComponentType with name {self.name} " +
-                "already exists in the database."
-            )
+            strictraise(strict_add, VertexAlreadyAddedError, f"ComponentType with name {self.name} " +
+                "already exists in the database.")
+            return self.from_db(self.name)
 
         attributes = {
             'name': self.name,
@@ -489,6 +495,8 @@ class ComponentType(Vertex):
         }
 
         Vertex.add(self=self, attributes=attributes)
+        print(f"Added {self}")
+        return self
 
     def replace(self, newVertex, disable_time: int = int(time.time())):
         """Replaces the ComponentType vertex in the serverside.
@@ -809,17 +817,18 @@ class ComponentVersion(Vertex):
 
         Vertex.__init__(self, id=id)
 
-    def add(self):
+    def add(self, strict_add=False):
         """Add this ComponentVersion vertex to the serverside.
         """
 
         # If already added.
         if self.added_to_db():
-            raise VertexAlreadyAddedError(
+            strictraise(strict_add, VertexAlreadyAddedError, 
                 f"ComponentVersion with name {self.name} " +
                 f"and allowed type {self.allowed_type.name} " +
                 "already exists in the database."
             )
+            return self.from_db(self.name, self.allowed_type)
 
         attributes = {
             'name': self.name,
@@ -837,6 +846,8 @@ class ComponentVersion(Vertex):
         )
 
         e.add()
+        print(f"Added {self}")
+        return self
 
     def replace(self, newVertex, disable_time: int = int(time.time())):
         """Replaces the ComponentVersion vertex in the serverside.
@@ -1152,6 +1163,9 @@ class ComponentVersion(Vertex):
 
         return traversal.count().next()
 
+    def __repr__(self):
+        return f"{self.category}: {self.name}"
+
 
 class Component(Vertex):
     """
@@ -1239,15 +1253,17 @@ class Component(Vertex):
             type "{self.type.name}", \
             {version_text}, id {self.id()}'
 
-    def add(self):
+    def add(self, strict_add=False):
         """Add this Component to the serverside.
         """
 
         if self.added_to_db():
-            raise VertexAlreadyAddedError(
+            strictraise(strict_add, VertexAlreadyAddedError, 
                 f"Component with name {self.name} " +
                 "already exists in the database."
             )
+            return self.from_db(self.name)
+
 
         attributes = {
             'name': self.name
@@ -1275,6 +1291,9 @@ class Component(Vertex):
         )
 
         type_edge.add()
+
+        print(f"Added {self}")
+        return self
 
     def replace(self, newVertex, disable_time: int = int(time.time())):
         """Replaces the Component vertex in the serverside.
@@ -1527,7 +1546,8 @@ class Component(Vertex):
         self, property, time: int,
         uid: str, end_time: int = EXISTING_RELATION_END_PLACEHOLDER,
         edit_time: int = int(time.time()), comments="",
-        force_property: bool = False
+        force_property: bool = False,
+        strict_add: bool = False
     ):
         """
         Given a property :param property:, MAKE A VIRTUAL COPY of it,
@@ -1565,11 +1585,12 @@ class Component(Vertex):
 
         if current_property is not None:
             if current_property.values == property.values:
-                raise PropertyIsSameError(
+                strictraise(strict_add, PropertyIsSameError, 
                     "An identical property of type " +
                     f"{property.property_type.name} for component {self.name} " +
                     f"is already set with values {property.values}."
                 )
+                return
 
             else:
                 # end that property.
@@ -1740,7 +1761,8 @@ class Component(Vertex):
         self, component, time: int, uid: str,
         end_time: int = EXISTING_RELATION_END_PLACEHOLDER,
         edit_time: int = int(time.time()), comments="",
-        force_connection: bool = False
+        force_connection: bool = False,
+        strict_add: bool = False
     ):
         """Given another Component :param component:,
         connect the two components.
@@ -1793,11 +1815,11 @@ class Component(Vertex):
         if current_connection is not None:
 
             # Already connected!
-            raise ComponentsAlreadyConnectedError(
+            strictraise(strict_add, ComponentsAlreadyConnectedError, 
                 f"Components {self.name} and {component.name} " +
                 "are already connected."
             )
-
+            return
         else:
 
             existing_connections = self.get_all_connections_with(
@@ -1841,6 +1863,8 @@ class Component(Vertex):
             )
 
             current_connection.add()
+            print(f'connected: {self} -> {component}  ({uid} {time})')
+
 
     def disconnect(
         self, component, time: int, uid: str,
@@ -2176,7 +2200,7 @@ class Component(Vertex):
         return result
 
     def subcomponent_connect(
-            self, component):
+            self, component, strict_add=False):
         """
         Given another Component :param component:, make it a subcomponent of the current component.
 
@@ -2209,17 +2233,17 @@ class Component(Vertex):
         )
 
         if component_to_subcomponent is not None:
-            raise ComponentIsSubcomponentOfOtherComponentError(
+            strictraise(strict_add, ComponentIsSubcomponentOfOtherComponentError,
                 f"Component {component.name} is already a subcomponent of {self.name}"
             )
-
+            return
         if current_subcomponent is not None:
 
             # Already a subcomponent!
-            raise ComponentAlreadySubcomponentError(
-                f"component {component.name} is already a subcomponent of component {self.name}"
+            strictraise(strict_add, ComponentAlreadySubcomponentError,
+                f"component {self.name} is already a subcomponent of component {component.name}"
             )
-
+            return
         else:
             current_subcomponent = RelationSubcomponent(
                 inVertex=self,
@@ -2227,6 +2251,8 @@ class Component(Vertex):
             )
 
             current_subcomponent.add()
+            print(f'subcomponent connected: {self} -> {other}')
+
 
     def get_subcomponent(self, component):
         """Given the component itself and its subcomponent, return the edge between them.
@@ -2842,16 +2868,18 @@ class PropertyType(Vertex):
 
         Vertex.__init__(self, id=id)
 
-    def add(self):
+    def add(self, strict_add=False):
         """Add this PropertyType to the serverside.
         """
 
         # If already added, raise an error!
         if self.added_to_db():
-            raise VertexAlreadyAddedError(
+            strictraise(strict_add, VertexAlreadyAddedError,
                 f"PropertyType with name {self.name} " +
                 "already exists in the database."
             )
+            return self.from_db(self.name)
+
 
         attributes = {
             'name': self.name,
@@ -2874,6 +2902,9 @@ class PropertyType(Vertex):
             )
 
             e.add()
+
+        print(f"Added {self}")
+        return self
 
     def replace(self, newVertex, disable_time: int = int(time.time())):
         """Replaces the PropertyType vertex in the serverside.
@@ -3242,6 +3273,8 @@ class PropertyType(Vertex):
 
         # return property_types
 
+    def __repr__(self):
+        return f"{self.category}: {self.name}"
 
 class Property(Vertex):
     """The representation of a property.
@@ -3330,6 +3363,8 @@ class Property(Vertex):
 
         return _vertex_cache[id]
 
+    def __repr__(self):
+        return f"{self.category}: {self.property_type.name} ({self.values})"
 
 class FlagType(Vertex):
     """The representation of a flag type. 
@@ -3387,16 +3422,17 @@ class FlagType(Vertex):
 
         Vertex.__init__(self, id=id)
 
-    def add(self):
+    def add(self, strict_add=False):
         """Add this FlagType to the database.
         """
 
         # If already added.
         if self.added_to_db():
-            raise VertexAlreadyAddedError(
+            strictraise(strict_add, VertexAlreadyAddedError,
                 f"FlagType with name {self.name} " +
                 "already exists in the database."
             )
+            return self.from_db(self.name)
 
         attributes = {
             'name': self.name,
@@ -3404,6 +3440,9 @@ class FlagType(Vertex):
         }
 
         Vertex.add(self=self, attributes=attributes)
+
+        print(f"Added {self}")
+        return self
 
     def replace(self, newVertex, disable_time: int = int(time.time())):
         """Replaces the FlagType vertex in the serverside.
@@ -3672,21 +3711,26 @@ class FlagSeverity(Vertex):
 
         Vertex.__init__(self, id=id)
 
-    def add(self):
+    def add(self, strict_add=False):
         """Add this FlagSeverity to the database."""
 
         # If already added.
         if self.added_to_db():
-            raise VertexAlreadyAddedError(
+            strictraise(strict_add, VertexAlreadyAddedError,
                 f"FlagSeverity with name {self.name}" +
                 "already exists in the database."
             )
+            return self.from_db(self.name)
+
 
         attributes = {
             'name': self.name
         }
 
         Vertex.add(self=self, attributes=attributes)
+
+        print(f"Added {self}")
+        return self
 
     def replace(self, newVertex, disable_time: int = int(time.time())):
         """Replaces the FlagSeverity vertex in the serverside.
@@ -3984,16 +4028,18 @@ class Flag(Vertex):
 
         Vertex.__init__(self=self, id=id)
 
-    def add(self):
+    def add(self, strict_add=False):
         """
         Add this Flag instance to the database.
         """
 
         if self.added_to_db():
-            raise VertexAlreadyAddedError(
+            strictraise(strict_add, VertexAlreadyAddedError,
                 f"Flag with name {self.name}" +
                 "already exists in the database."
             )
+            return self.from_db(self.name)
+
 
         attributes = {
             'name': self.name,
@@ -4041,6 +4087,9 @@ class Flag(Vertex):
             )
 
             e.add()
+
+        print(f"Added {self}")
+        return self
 
     def replace(self, newVertex, disable_time: int = int(time.time())):
         """Replaces the Flag vertex in the serverside.
@@ -4540,15 +4589,16 @@ class Permission(Vertex):
 
         Vertex.__init__(self, id=id)
 
-    def add(self):
+    def add(self, strict_add=False):
         """Add this permission to the database."""
 
         # if already added, raise an error!
         if self.added_to_db():
-            raise VertexAlreadyAddedError(
+            strictraise(strict_add,VertexAlreadyAddedError,
                 f"Permission with name {self.name}" +
                 "already exists in the database."
             )
+            return self.from_db(self.name)
 
         attributes = {
             'name': self.name,
@@ -4556,6 +4606,9 @@ class Permission(Vertex):
         }
 
         Vertex.add(self=self, attributes=attributes)
+
+        print(f"Added {self}")
+        return self
 
     def added_to_db(self) -> bool:
         """
@@ -4654,16 +4707,18 @@ class UserGroup(Vertex):
 
         Vertex.__init__(self=self, id=id)
 
-    def add(self):
+    def add(self, strict_add=False):
         """
         Add this UserGroup instance to the database.
         """
 
         if self.added_to_db():
-            raise VertexAlreadyAddedError(
+            strictraise(strict_add, VertexAlreadyAddedError,
                 f"UserGroup with name {self.name}" +
                 "already exists in the database."
             )
+            return self.from_db(self.name)
+
 
         attributes = {
             'name': self.name,
@@ -4683,6 +4738,8 @@ class UserGroup(Vertex):
             )
 
             e.add()
+        print(f"Added {self}")
+        return self
 
     def added_to_db(self) -> bool:
         """Return whether this UserGroup is added to the database, that is, whether the ID is not the virtual ID placeholder and perform a query to the database to determine if the vertex has already been added.
@@ -4807,16 +4864,18 @@ class User(Vertex):
 
         Vertex.__init__(self, id=id)
 
-    def add(self):
+    def add(self, strict_add=False):
         """Add this user to the serverside.
         """
 
         # If already added, raise an error!
         if self.added_to_db():
-            raise VertexAlreadyAddedError(
+            strictraise(strict_add,VertexAlreadyAddedError,
                 f"User with username {self.uname}" +
                 "already exists in the database."
             )
+            return self.from_db(self.name)
+
 
         attributes = {
             'uname': self.uname,
@@ -4839,6 +4898,10 @@ class User(Vertex):
                 )
 
                 e.add()
+
+        print(f"Added {self}")
+        return self
+
 
     def added_to_db(self) -> bool:
         """Return whether this User is added to the database, that is, whether the ID is not the virtual ID placeholder and perform a query to the database if the vertex has already been added.
