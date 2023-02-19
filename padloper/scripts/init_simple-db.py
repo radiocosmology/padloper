@@ -1,5 +1,5 @@
 from datetime import datetime
-from structure import *
+from padloper import *
 
 # In this example, make a graph for a few computers connected on a network.
 uid = "ahincks"

@@ -410,6 +410,114 @@ class Edge(Element):
             g.E(self.id()).count().next() > 0
         )
 
+class Timestamp:
+    """A timestamp for starting or ending connections, properties, etc.
+    :ivar time: The time of the timestamp, in UNIX time.
+    :ivar uid: The user who made the timestamp. (Can be an integer, not a
+               string).
+    :ivar edit_time: The time of when the timestamp was created, in UNIX time.
+    :ivar comments: Any comments about this timestamp.
+    """
+    time: float
+    uid: str
+    edit_time: float
+    comments: str
+
+    def __init__(self, time, uid, edit_time, comments=""):
+        self.time = time
+        self.uid = uid
+        self.edit_time = edit_time
+        self.comments = comments
+
+    def as_dict(self):
+        return {
+            "time": self.time,
+            "uid": self.uid,
+            "edit_time": self.edit_time,
+            "comments": self.comments
+        }
+
+
+class TimestampedEdge(Edge):
+    """An edge that has a timestamp."""
+    """Representation of a "rel_connection" edge.
+
+    :ivar start: The starting timestamp, as a `Timestamp` instance.
+    :ivar end: The ending timestamp, as a `Timestamp` instance.
+    """
+
+    start: Timestamp
+    end: Timestamp
+
+    def __init__(
+        self, inVertex: Vertex, outVertex: Vertex, start: Timestamp,
+        end: Timestamp = None, id: int = VIRTUAL_ID_PLACEHOLDER
+    ):
+        """Initialize the connection.
+
+        :param inVertex: The Vertex that the edge is going into.
+        :type inVertex: Vertex
+        :param outVertex: The Vertex that the edge is going out of.
+        :type outVertex: Vertex
+        :param start: The starting timestamp.
+        :type start: Timestamp
+        :param end: The ending timestamp.
+        :type end: Timestamp or None
+        """
+
+        self.start = start
+        if end:
+            self.end = end
+        else:
+            self.end = Timestamp(EXISTING_RELATION_END_PLACEHOLDER, "",
+                                 EXISTING_RELATION_END_EDIT_PLACEHOLDER, "")
+        Edge.__init__(self=self, id=id, inVertex=inVertex, outVertex=outVertex)
+
+    def as_dict(self):
+        """Return a dictionary representation."""
+        return {
+            "start": self.start.as_dict(),
+            "end": self.end.as_dict()
+        }
+
+    def add(self):
+        """Add this timestamped edge to the database.
+        """
+
+        attributes = {
+            "start_time": self.start.time,
+            "start_uid": self.start.uid,
+            "start_edit_time": self.start.edit_time,
+            "start_comments": self.start.comments,
+            "end_time": self.end.time,
+            "end_uid": self.end.uid,
+            "end_edit_time": self.end.edit_time,
+            "end_comments": self.end.comments
+        }
+
+        Edge.add(self, attributes=attributes)
+
+    def _end(self, end: Timestamp):
+        """Set the end timestamp.
+
+        :param end: The ending timestamp of the connection. 
+        :type end: Timestamp
+        """
+
+        if not self.added_to_db():
+            # Edge not added to DB!
+            raise EdgeNotAddedError(
+                f"Edge between {self.inVertex} and {self.outVertex} " +
+                "does not exist in the database."
+            )
+
+        self.end = end
+
+        g.E(self.id()).property('end_time', end.time) \
+            .property('end_uid', end.uid) \
+            .property('end_edit_time', end.edit_time) \
+            .property('end_comments', end.comments).iterate()
+
 
 ###############################################################################
 #                                   NODES                                     #
@@ -468,6 +576,10 @@ class ComponentType(Vertex):
         self.name = name
         self.comments = comments
         Vertex.__init__(self, id=id)
+
+    def as_dict(self):
+        """Return a dictionary representation."""
+        return {"name": self.name, "comments": self.comments}
 
     def add(self):
         """Add this ComponentType vertex to the serverside.
@@ -802,6 +914,10 @@ class ComponentVersion(Vertex):
         self.allowed_type = allowed_type
 
         Vertex.__init__(self, id=id)
+
+    def as_dict(self):
+        """Return a dictionary representation."""
+        return {"name": self.name, "comments": self.comments}
 
     def add(self):
         """Add this ComponentVersion vertex to the serverside.
@@ -1292,18 +1408,17 @@ class Component(Vertex):
 
         Vertex.replace(self=self, id=newVertexId)
 
-    def get_property(self, property_type, time: int, kind: bool):
+    def get_property(self, type, time: int):
         """
         Given a property type, get a property of this component active at time
         :param time:. 
 
-        :param property_type: The type of the property to extract
-        :type property_type: PropertyType
+        :param type: The type of the property to extract
+        :type type: PropertyType
         :param time: The time to check the active property at.
         :type time: int
 
-        :param kind: This parameter controls what kind of output is returned contingent on whether the get_property method is being called by set_property method or unset_property method. If it is true, then that means set_property method is calling the get_property method and if it is false, then unset_property method is calling the get_property method.
-        :type kind: boolean
+        :rtype: Property or None
         """
 
         if not self.added_to_db():
@@ -1311,9 +1426,10 @@ class Component(Vertex):
                 f"Component {self.name} has not yet been added to the database."
             )
 
-        if not property_type.added_to_db():
+        if not type.added_to_db():
             raise PropertyTypeNotAddedError(
-                f"Property type {property_type.name} of component {self.name} " +
+                f"Property type {type.name} of component " +
+                 "{self.name} " +
                 "has not yet been added to the database."
             )
 
@@ -1324,19 +1440,12 @@ class Component(Vertex):
               .has('start_time', P.lte(time)) \
               .has('end_time', P.gt(time)).otherV().as_('v') \
               .both(RelationPropertyType.category) \
-              .has('name', property_type.name) \
+              .has('name', type.name) \
               .select('v').toList()
 
         # If no such vertices found
         if len(vs) == 0:
-            if kind:
-                return None
-            else:
-                raise ComponentPropertyStartTimeExceedsInputtedTime(
-                    f"{self.name} has no property with the given combination " \
-                     "of time and property type. Make sure time inputted is " \
-                     "later than property start time."
-                )
+            return None
 
         # There should be only one!
 
@@ -1371,21 +1480,25 @@ class Component(Vertex):
             edge = RelationProperty(
                 inVertex=prop,
                 outVertex=self,
-                start_time=q['edge_props']['start_time'],
-                start_uid=q['edge_props']['start_uid'],
-                start_edit_time=q['edge_props']['start_edit_time'],
-                start_comments=q['edge_props']['start_comments'],
-                end_time=q['edge_props']['end_time'],
-                end_uid=q['edge_props']['end_uid'],
-                end_edit_time=q['edge_props']['end_edit_time'],
-                end_comments=q['edge_props']['end_comments'],
+                start=Timestamp(
+                    q['edge_props']['start_time'],
+                    q['edge_props']['start_uid'],
+                    q['edge_props']['start_edit_time'],
+                    q['edge_props']['start_comments']
+                ),
+                end=Timestamp(
+                    q['edge_props']['end_time'],
+                    q['edge_props']['end_uid'],
+                    q['edge_props']['end_edit_time'],
+                    q['edge_props']['end_comments']
+                )
             )
             result.append((prop, edge))
 
         return result
 
     def get_all_properties_of_type(
-        self, property_type,
+        self, type,
         from_time: int = -1,
         to_time: int = EXISTING_RELATION_END_PLACEHOLDER
     ):
@@ -1393,8 +1506,7 @@ class Component(Vertex):
         Given a property type, return all edges that connected them between time
         :param from_time: and to time :param to_time: as a list.
 
-        :param property_type: The property type of the desired properties
-        to consider.
+        :param type: The property type of the desired properties to consider.
         :type component: PropertyType
         :param from_time: Lower bound for time range to consider properties, 
         defaults to -1
@@ -1411,14 +1523,15 @@ class Component(Vertex):
                 f"Component {self.name} has not yet been added to the database."
             )
 
-        if not property_type.added_to_db():
+        if not type.added_to_db():
             raise PropertyTypeNotAddedError(
-                f"Property type {property_type.name} of component {self.name} " +
+                f"Property type {type.name} of component {self.name} " +
                 "has not yet been added to the database."
             )
 
-        edges = g.V(self.id()).bothE(
-            RelationProperty.category).has('active', True).has('end_edit_time', EXISTING_RELATION_END_EDIT_PLACEHOLDER)
+        edges = g.V(self.id()).bothE(RelationProperty.category) \
+                 .has('active', True) \
+                 .has('end_edit_time', EXISTING_RELATION_END_EDIT_PLACEHOLDER)
 
         if to_time < EXISTING_RELATION_END_PLACEHOLDER:
             edges = edges.has('start_time', P.lt(to_time))
@@ -1426,20 +1539,26 @@ class Component(Vertex):
         edges = edges.has('end_time', P.gt(from_time)) \
             .as_('e').otherV().as_('v') \
             .both(RelationPropertyType.category) \
-            .has('name', property_type.name) \
+            .has('name', type.name) \
             .select('e').order().by(__.values('start_time'), Order.asc) \
             .project('properties', 'id').by(__.valueMap()).by(__.id_()).toList()
 
+        print("Warning: RelationProperty not initialised properly! "\
+              "outVertex should not = type but the property vertex …")
         return [RelationProperty(
-            inVertex=self, outVertex=property_type,
-            start_time=e['properties']['start_time'],
-            start_uid=e['properties']['start_uid'],
-            start_edit_time=e['properties']['start_edit_time'],
-            start_comments=e['properties']['start_comments'],
-            end_time=e['properties']['end_time'],
-            end_uid=e['properties']['end_uid'],
-            end_edit_time=e['properties']['end_edit_time'],
-            end_comments=e['properties']['end_comments'],
+            inVertex=self, outVertex=type,
+            start=Timestamp(
+                e['properties']['start_time'],
+                e['properties']['start_uid'],
+                e['properties']['start_edit_time'],
+                e['properties']['start_comments']
+            ),
+            end=Timestamp(
+                e['properties']['end_time'],
+                e['properties']['end_uid'],
+                e['properties']['end_edit_time'],
+                e['properties']['end_comments']
+            ),
             id=e['id']['@value']['relationId']  # weird but you have to
         ) for e in edges]
 
@@ -1546,6 +1665,7 @@ class Component(Vertex):
 
         end_edit_time = EXISTING_RELATION_END_EDIT_PLACEHOLDER
         end_uid = ""
+        end_comments = ""
 
         if not self.added_to_db():
             raise ComponentNotAddedError(
@@ -1553,15 +1673,14 @@ class Component(Vertex):
             )
 
         current_property = self.get_property(
-            property_type=property.property_type,
-            time=time, kind=True
+            type=property.type, time=time
         )
 
         if current_property is not None:
             if current_property.values == property.values:
                 raise PropertyIsSameError(
                     "An identical property of type " +
-                    f"{property.property_type.name} for component {self.name} " +
+                    f"{property.type.name} for component {self.name} " +
                     f"is already set with values {property.values}."
                 )
 
@@ -1578,7 +1697,7 @@ class Component(Vertex):
         else:
 
             existing_properties = self.get_all_properties_of_type(
-                property_type=property.property_type,
+                type=property.type,
                 from_time=time
             )
 
@@ -1587,7 +1706,7 @@ class Component(Vertex):
                     if end_time != EXISTING_RELATION_END_PLACEHOLDER:
                         raise ComponentPropertiesOverlappingError(
                             "Trying to set property of type " +
-                            f"{property.property_type.name} for component " +
+                            f"{property.type.name} for component " +
                             f"{self.name} " +
                             "before an existing property of the same type " +
                             "but with a specified end time; " +
@@ -1598,10 +1717,11 @@ class Component(Vertex):
                         end_time = existing_properties[0].start_time
                         end_edit_time = edit_time
                         end_uid = uid
+                        end_comments = comments
                 else:
                     raise ComponentSetPropertyBeforeExistingPropertyError(
                         "Trying to set property of type " +
-                        f"{property.property_type.name} for component " +
+                        f"{property.type.name} for component " +
                         f"{self.name} " +
                         "before an existing property of the same type; " +
                         "set 'force_property' parameter to True to bypass."
@@ -1609,7 +1729,7 @@ class Component(Vertex):
 
         prop_copy = Property(
             values=property.values,
-            property_type=property.property_type
+            type=property.type
         )
 
         prop_copy._add()
@@ -1617,13 +1737,8 @@ class Component(Vertex):
         e = RelationProperty(
             inVertex=prop_copy,
             outVertex=self,
-            start_time=time,
-            end_time=end_time,
-            start_uid=uid,
-            end_uid=end_uid,
-            start_edit_time=edit_time,
-            end_edit_time=end_edit_time,
-            start_comments=comments
+            start=Timestamp(time, uid, edit_time, comments),
+            end=Timestamp(end_time, end_uid, end_edit_time, end_comments)
         )
 
         e.add()
@@ -1716,19 +1831,25 @@ class Component(Vertex):
             comments=comments
         )
 
-    def disable_property(self, propertyTypeName, disable_time: int = int(time.time())):
+    def disable_property(self, propertyTypeName,
+                         disable_time: int = int(time.time())):
         """Disables the property in the serverside
 
         :param propertyTypeName: The name of the property type being replaced.
         :type propertyTypeName: str
 
-        :param disable_time: When this vertex was disabled in the database (UNIX time).
+        :param disable_time: When this vertex was disabled in the database
+            (UNIX time).
         :type disable_time: int
 
         """
 
-        g.V(self.id()).bothE(RelationProperty.category).has('active', True).has('end_edit_time', EXISTING_RELATION_END_EDIT_PLACEHOLDER).where(__.otherV().bothE(RelationPropertyType.category).otherV().properties('name').value().is_(propertyTypeName)).property('active', False).property(
-            'time_disabled', disable_time).next()
+        g.V(self.id()).bothE(RelationProperty.category).has('active', True)\
+         .has('end_edit_time', EXISTING_RELATION_END_EDIT_PLACEHOLDER)\
+         .where(__.otherV().bothE(RelationPropertyType.category).otherV()\
+         .properties('name').value().is_(propertyTypeName))\
+         .property('active', False).property('time_disabled', disable_time)\
+         .next()
 
     def connect(
         self, component, time: int, uid: str,
@@ -1762,6 +1883,7 @@ class Component(Vertex):
 
         end_edit_time = EXISTING_RELATION_END_EDIT_PLACEHOLDER
         end_uid = ""
+        end_comments = ""
 
         if not self.added_to_db():
             raise ComponentNotAddedError(
@@ -1814,6 +1936,7 @@ class Component(Vertex):
                         end_time = existing_connections[0].start_time
                         end_edit_time = edit_time
                         end_uid = uid
+                        end_comments = comments
                 else:
                     raise ComponentsConnectBeforeExistingConnectionError(
                         "Trying to connect components " +
@@ -1825,13 +1948,8 @@ class Component(Vertex):
             current_connection = RelationConnection(
                 inVertex=self,
                 outVertex=component,
-                start_time=time,
-                end_time=end_time,
-                start_uid=uid,
-                end_uid=end_uid,
-                start_edit_time=edit_time,
-                end_edit_time=end_edit_time,
-                start_comments=comments
+                start=Timestamp(time, uid, edit_time, comments),
+                end=Timestamp(end_time, end_uid, end_edit_time, end_comments)
             )
 
             current_connection.add()
@@ -1884,12 +2002,7 @@ class Component(Vertex):
             )
 
         else:
-            current_connection._end_connection(
-                end_time=time,
-                end_uid=uid,
-                end_edit_time=edit_time,
-                end_comments=comments
-            )
+            current_connection._end(Timestamp(time, uid, edit_time, comments))
 
     def replace_connection(self, otherComponent, time, uid, comments, disable_time: int = int(time.time())):
         """
@@ -2007,14 +2120,18 @@ class Component(Vertex):
             edge = RelationConnection(
                 inVertex=c,
                 outVertex=self,
-                start_time=q['edge_props']['start_time'],
-                start_uid=q['edge_props']['start_uid'],
-                start_edit_time=q['edge_props']['start_edit_time'],
-                start_comments=q['edge_props']['start_comments'],
-                end_time=q['edge_props']['end_time'],
-                end_uid=q['edge_props']['end_uid'],
-                end_edit_time=q['edge_props']['end_edit_time'],
-                end_comments=q['edge_props']['end_comments'],
+                start=Timestamp(
+                    q['edge_props']['start_time'],
+                    q['edge_props']['start_uid'],
+                    q['edge_props']['start_edit_time'],
+                    q['edge_props']['start_comments']
+                ),
+                end=Timestamp(
+                    q['edge_props']['end_time'],
+                    q['edge_props']['end_uid'],
+                    q['edge_props']['end_edit_time'],
+                    q['edge_props']['end_comments']
+                ),
                 # weird but you have to
                 id=q['edge_id']['@value']['relationId']
             )
@@ -2068,14 +2185,18 @@ class Component(Vertex):
 
         return [RelationConnection(
             inVertex=self, outVertex=component,
-            start_time=e['properties']['start_time'],
-            start_uid=e['properties']['start_uid'],
-            start_edit_time=e['properties']['start_edit_time'],
-            start_comments=e['properties']['start_comments'],
-            end_time=e['properties']['end_time'],
-            end_uid=e['properties']['end_uid'],
-            end_edit_time=e['properties']['end_edit_time'],
-            end_comments=e['properties']['end_comments'],
+            start=Timestamp(
+                e['properties']['start_time'],
+                e['properties']['start_uid'],
+                e['properties']['start_edit_time'],
+                e['properties']['start_comments']
+            ),
+            end=Timestamp(
+                e['properties']['end_time'],
+                e['properties']['end_uid'],
+                e['properties']['end_edit_time'],
+                e['properties']['end_comments']
+            ),
             id=e['id']['@value']['relationId']  # weird but you have to
         ) for e in edges]
 
@@ -2117,14 +2238,18 @@ class Component(Vertex):
 
         return RelationConnection(
             inVertex=self, outVertex=component,
-            start_time=e[0]['properties']['start_time'],
-            start_uid=e[0]['properties']['start_uid'],
-            start_edit_time=e[0]['properties']['start_edit_time'],
-            start_comments=e[0]['properties']['start_comments'],
-            end_time=e[0]['properties']['end_time'],
-            end_uid=e[0]['properties']['end_uid'],
-            end_edit_time=e[0]['properties']['end_edit_time'],
-            end_comments=e[0]['properties']['end_comments'],
+            start=Timestamp(
+                e[0]['properties']['start_time'],
+                e[0]['properties']['start_uid'],
+                e[0]['properties']['start_edit_time'],
+                e[0]['properties']['start_comments']
+            ),
+            end=Timestamp(
+                e[0]['properties']['end_time'],
+                e[0]['properties']['end_uid'],
+                e[0]['properties']['end_edit_time'],
+                e[0]['properties']['end_comments']
+            ),
             id=e[0]['id']['@value']['relationId']  # weird but you have to
         )
 
@@ -2156,14 +2281,18 @@ class Component(Vertex):
             edge = RelationConnection(
                 inVertex=prop,
                 outVertex=self,
-                start_time=q['edge_props']['start_time'],
-                start_uid=q['edge_props']['start_uid'],
-                start_edit_time=q['edge_props']['start_edit_time'],
-                start_comments=q['edge_props']['start_comments'],
-                end_time=q['edge_props']['end_time'],
-                end_uid=q['edge_props']['end_uid'],
-                end_edit_time=q['edge_props']['end_edit_time'],
-                end_comments=q['edge_props']['end_comments'],
+                start=Timestamp(
+                    q['edge_props']['start_time'],
+                    q['edge_props']['start_uid'],
+                    q['edge_props']['start_edit_time'],
+                    q['edge_props']['start_comments']
+                ),
+                end=Timestamp(
+                    q['edge_props']['end_time'],
+                    q['edge_props']['end_uid'],
+                    q['edge_props']['end_edit_time'],
+                    q['edge_props']['end_comments']
+                )
             )
             result.append((prop, edge))
 
@@ -2610,106 +2739,44 @@ class Component(Vertex):
 
         return traversal.count().next()
 
-    @classmethod
-    def get_as_dict(cls, name: str):
+    def as_dict(self, time: int = None):
         """Return a dictionary representation of this Component at time
         :param time:.
 
-        :param name: The name attribute of the Component
-        :type name: str
-
-        :param time: The time to check the component at.
-        :type time: int
+        :param time: The time to check the component at. Pass `None` to get
+        properties/flags/connexions at all times.
+        :type time: int or None
 
         :return: A dictionary representation of this Components's attributes.
         :rtype: dict
         """
 
-        c = Component.from_db(name)
+        prop_dicts = [{**prop.as_dict(), **rel.as_dict()} \
+            for (prop, rel) in self.get_all_properties()
+        ]
+        print(prop_dicts)
 
-        prop_dicts = []
+        conn_dicts = [{**{"name": comp.name}, **rel.as_dict()} \
+            for (comp, rel) in self.get_all_connections()
+        ]
 
-        for (prop, rel) in c.get_all_properties():
-            prop_dicts.append({
-                'values': prop.values,
-                'type': {
-                    'name': prop.property_type.name,
-                    'units': prop.property_type.units
-                },
-                'start_time': rel.start_time,
-                'end_time': rel.end_time,
-                'start_uid': rel.start_uid,
-                'end_uid': rel.end_uid,
-                'start_edit_time': rel.start_edit_time,
-                'end_edit_time': rel.end_edit_time,
-                'start_comments': rel.start_comments,
-                'end_comments': rel.end_comments
-            })
+        flag_dicts = [flag.as_dict() for flag in self.get_all_flags()]
 
-        connection_dicts = []
-
-        for (comp, rel) in c.get_all_connections():
-            connection_dicts.append({
-                'name': comp.name,
-                'id': comp.id(),
-                'start_time': rel.start_time,
-                'end_time': rel.end_time,
-                'start_uid': rel.start_uid,
-                'end_uid': rel.end_uid,
-                'start_edit_time': rel.start_edit_time,
-                'end_edit_time': rel.end_edit_time,
-                'start_comments': rel.start_comments,
-                'end_comments': rel.end_comments
-            })
-
-        flag_dicts = []
-
-        for (flag) in c.get_all_flags():
-            flag_dicts.append({
-                'name': flag.name,
-                'comments': flag.comments,
-                'start_time': flag.start_time,
-                'start_uid': flag.start_uid,
-                'start_edit_time': flag.start_edit_time,
-                'start_comments': flag.start_comments,
-                'end_time': flag.end_time,
-                'end_uid': flag.end_uid,
-                'end_edit_time': flag.end_edit_time,
-                'end_comments': flag.end_comments,
-                'type': {
-                    'name': flag.flag_type.name,
-                    'comments': flag.flag_type.comments
-                },
-                'severity': {
-                    'name': flag.flag_severity.name
-                }
-            })
-
-        subcomponent_dicts = []
-
-        for (subcomponent) in c.get_all_subcomponents():
-            subcomponent_dicts.append({
-                'name': subcomponent.name
-            })
-
-        supercomponent_dicts = []
-
-        for (supercomponent) in c.get_all_supercomponents():
-            supercomponent_dicts.append({
-                'name': supercomponent.name
-            })
+        subcomponent_dicts = [{"name": subcomponents.name} \
+            for subcomponents in self.get_all_subcomponents()
+        ]
+        
+        supercomponent_dicts = [{"name": supercomponents.name} \
+            for supercomponents in self.get_all_supercomponents()
+        ]
 
         return {
-            'name': c.name,
-            'type': {
-                'name': c.type.name,
-            },
-            'version': {
-                'name': c.version.name if c.version is not None else ''
-            },
-            'time_added': c.time_added,
+            'name': self.name,
+            'type': self.type.as_dict(),
+            'version': self.version.as_dict() if self.version else {},
+            'time_added': self.time_added,
             'properties': prop_dicts,
-            'connections': connection_dicts,
+            'connections': conn_dicts,
             'flags': flag_dicts,
             'subcomponents': subcomponent_dicts,
             'supercomponents': supercomponent_dicts
@@ -2833,6 +2900,14 @@ class PropertyType(Vertex):
 
         Vertex.__init__(self, id=id)
 
+    def as_dict(self):
+        """Return dictionary representation."""
+        return {
+            'name': self.name,
+            'units': self.units,
+            'comments': self.comments
+        }
+
     def add(self):
         """Add this PropertyType to the serverside.
         """
@@ -2905,7 +2980,7 @@ class PropertyType(Vertex):
         )
 
     @classmethod
-    def _attrs_to_property_type(
+    def _attrs_to_type(
         cls,
         name: str, units: str, allowed_regex: str,
         n_values: int, allowed_types: List[ComponentType], comments: str = "",
@@ -3141,7 +3216,7 @@ class PropertyType(Vertex):
             .by(__.both(RelationPropertyAllowedType.category).id_().fold()) \
             .toList()
 
-        property_types = []
+        types = []
 
         for entry in pts:
             id, ctype_ids, attrs = entry['id'], entry['type_ids'], \
@@ -3152,8 +3227,8 @@ class PropertyType(Vertex):
             for ctype_id in ctype_ids:
                 ctypes.append(ComponentType.from_id(ctype_id))
 
-            property_types.append(
-                PropertyType._attrs_to_property_type(
+            types.append(
+                PropertyType._attrs_to_type(
                     id=id,
                     name=attrs['name'][0],
                     units=attrs['units'][0],
@@ -3164,7 +3239,7 @@ class PropertyType(Vertex):
                 )
             )
 
-        return property_types
+        return types
 
     @classmethod
     def get_count(cls, filters: list):
@@ -3238,38 +3313,38 @@ class Property(Vertex):
     """The representation of a property.
 
     :ivar values: The values contained within the property.
-    :ivar property_type: The PropertyType instance representing the property
+    :ivar type: The PropertyType instance representing the property
     type of this property.
     """
 
     category: str = "property"
 
     values: List[str]
-    property_type: PropertyType
+    type: PropertyType
 
     def __init__(
-        self, values: List[str], property_type: PropertyType,
+        self, values: List[str], type: PropertyType,
         id: int = VIRTUAL_ID_PLACEHOLDER
     ):
         # If the user passes a string rather than a list of strings, fix it.
         if isinstance(values, str):
             values = [values]
 
-        if len(values) != property_type.n_values:
+        if len(values) != type.n_values:
             raise PropertyWrongNValuesError
 
         for val in values:
 
             # If the value does not match the property type's regex
-            if not bool(re.fullmatch(property_type.allowed_regex, val)):
+            if not bool(re.fullmatch(type.allowed_regex, val)):
                 raise PropertyNotMatchRegexError(
                     f"Property with values {values} of type " +
-                    f"{property_type.name} does not match regex " +
-                    f"{property_type.allowed_regex} for value {val}."
+                    f"{type.name} does not match regex " +
+                    f"{type.allowed_regex} for value {val}."
                 )
 
         self.values = values
-        self.property_type = property_type
+        self.type = type
 
         Vertex.__init__(self, id=id)
 
@@ -3284,15 +3359,22 @@ class Property(Vertex):
 
         Vertex.add(self, attributes)
 
-        if not self.property_type.added_to_db():
-            self.property_type.add()
+        if not self.type.added_to_db():
+            self.type.add()
 
         e = RelationPropertyType(
-            inVertex=self.property_type,
+            inVertex=self.type,
             outVertex=self
         )
 
         e.add()
+
+    def as_dict(self):
+        """Return a dictionary representation of this property."""
+        return {
+            'values': self.values,
+            'type': self.type.as_dict()
+        }
 
     @classmethod
     def from_id(cls, id: int):
@@ -3314,7 +3396,7 @@ class Property(Vertex):
             Vertex._cache_vertex(
                 Property(
                     values=values,
-                    property_type=PropertyType.from_id(ptype_id),
+                    type=PropertyType.from_id(ptype_id),
                     id=id
                 )
             )
@@ -3377,6 +3459,13 @@ class FlagType(Vertex):
         self.comments = comments
 
         Vertex.__init__(self, id=id)
+
+    def as_dict(self):
+        """Return a dictionary representation."""
+        return {
+            "name": self.name,
+            "comments": self.comments
+        }
 
     def add(self):
         """Add this FlagType to the database.
@@ -3663,6 +3752,10 @@ class FlagSeverity(Vertex):
 
         Vertex.__init__(self, id=id)
 
+    def as_dict(self):
+        """Return a dictionary representation."""
+        return {"name": self.name}
+
     def add(self):
         """Add this FlagSeverity to the database."""
 
@@ -3874,106 +3967,93 @@ class Flag(Vertex):
 
     :ivar name: The name of the flag.
     :ivar comments: Comments associated with the flag in general.
-    :ivar start_time: The start time of the flag.
-    :ivar end_time: The end time of the flag.
-    :ivar start_uid: The ID of the user that created the flag.
-    :ivar end_uid: The ID of the user that ended the flag.
-    :ivar start_edit_time: The time that the flag was started at.
-    :ivar end_edit_time: The time that the flag was ended at.
-    :ivar start_comments: The comments about starting the flag.
-    :ivar end_comments: The comments about ending the flag.
-    :ivar flag_severity: The FlagSeverity instance representing the severity of the flag.
-    :ivar flag_type: The FlagType instance representing the type of the flag.
-    :ivar flag_components: A list of Component instances related to the flag.
+    :ivar start: The starting timestamp of the flag.
+    :ivar end: The ending timestamp of the flag.
+    :ivar severity: The FlagSeverity instance representing the severity of the
+        flag.
+    :ivar type: The FlagType instance representing the type of the flag.
+    :ivar components: A list of Component instances related to the flag.
     """
 
     category: str = "flag"
 
     name: str
     comments: str
-    start_time: int
-    end_time: int
-    start_uid: str
-    end_uid: str
-    start_edit_time: int
-    end_edit_time: int
-    start_comments: str
-    end_comments: str
-    flag_severity: FlagSeverity
-    flag_type: FlagType
-    flag_components: List[Component]
+    start: Timestamp
+    end: Timestamp
+    severity: FlagSeverity
+    type: FlagType
+    components: List[Component]
 
-    def __new__(cls, name: str, start_time: int, start_uid: str, flag_severity: FlagSeverity, flag_type: FlagType,
-                start_edit_time: int = int(time.time()), comments: str = "", start_comments: str = "", flag_components: List[Component] = [], end_time: float = EXISTING_RELATION_END_PLACEHOLDER, end_uid: str = "", end_edit_time: float = -1, end_comments: str = "", id: int = VIRTUAL_ID_PLACEHOLDER):
+    def __new__(cls, name: str, start: Timestamp, severity: FlagSeverity, 
+                type: FlagType, comments: str = "", end: Timestamp = None, 
+                components: List[Component] = [],
+                id: int = VIRTUAL_ID_PLACEHOLDER):
         """
-        Return a Flag instance given the desired name,start time, end time, start_uid, end_uid, start_edit_time,end_edit_time, comments,start_comments, end_comments, flag severity instance, flag type instance, component instance and id.
+        Return a Flag instance with the specified properties.
 
         :param name: The name of the flag.
         :type name: str
-
-        :param comments: Comments associated with the flag in general, defaults to ""
+        :param comments: Comments associated with the flag in general,
+            defaults to ""
         :type comments: str, optional
-
-        :param start_time: The (physical) start time of the flag.
-        :type start_time: int
-
-        :param start_uid: The ID of  the user that started the flag.
-        :type start_uid: str
-
-        :param start_edit_time: When the flag start event was entered, defaults to int(time.time())
-        type: start_edit_time: int
-
-        :param start_comments: Comments associated with starting the flag, defaults to ""
-        :type comments: str, optional
-
-        :param flag_severity: The flag severity that indicates the severity of the flag.
-        :type flag_severity: FlagSeverity
-
-        :param flag_type: The flag type that indicates the type of the flag.
-        :type flag_severity: FlagType
-
-        :param flag_components: A list of The flag components that have this flag.
-        :type flag_components: List[Component]
-
-        :param end_time: The (physical) end time of the flag, defaults to EXISTING_RELATION_END_PLACEHOLDER
-        :type end_time: int, optional
-
-        :param end_uid: The ID of the user that ended the flag, defaults to ""
-        :type end_uid: str, optional
-
-        :param end_edit_time: When the flag end event was entered, defaults to EXISTING_RELATION_END_EDIT_PLACEHOLDER
-        :type end_edit_time: int, optional
-
-        :param end_comments: Comments regarding the ending of the flag, defaults to ""
-        :type end_comments: str, optional
-
+        :param start: The starting timestamp of the flag.
+        :type start: Timestamp
+        :param severity: The flag severity that indicates the severity of the
+            flag.
+        :type severity: FlagSeverity
+        :param type: The flag type that indicates the type of the flag.
+        :type type: FlagType
+        :param components: A list of The flag components that have this flag.
+        :type components: List[Component]
+        :param end: The ending timestamp of the flag.
+        :type end: Timestamp or None.
         """
-
         if id is not VIRTUAL_ID_PLACEHOLDER and id in _vertex_cache:
             return _vertex_cache[id]
 
         else:
             return object.__new__(cls)
 
-    def __init__(
-        self, name: str, start_time: int, start_uid: str, flag_severity: FlagSeverity, flag_type: FlagType,
-        start_edit_time: int = int(time.time()), comments: str = "", start_comments: str = "", flag_components: List[Component] = [], end_time: float = EXISTING_RELATION_END_PLACEHOLDER, end_uid: str = "", end_edit_time: float = -1, end_comments: str = "", id: int = VIRTUAL_ID_PLACEHOLDER
-    ):
+    def __init__(cls, name: str, start: Timestamp, severity: FlagSeverity, 
+                type: FlagType, comments: str = "", end: Timestamp = None, 
+                components: List[Component] = [],
+                id: int = VIRTUAL_ID_PLACEHOLDER):
         self.name = name
         self.comments = comments
-        self.start_time = start_time
-        self.start_uid = start_uid
-        self.start_edit_time = start_edit_time
-        self.start_comments = start_comments
-        self.flag_severity = flag_severity
-        self.flag_type = flag_type
-        self.flag_components = flag_components
-        self.end_time = end_time
-        self.end_uid = end_uid
-        self.end_edit_time = end_edit_time
-        self.end_comments = end_comments
+        self.start = start
+        self.severity = severity
+        self.type = type
+        self.components = components
+        if end:
+            self.end = end
+        else:
+            self.end = Timestamp(EXISTING_RELATION_END_PLACEHOLDER, "",
+                                 EXISTING_RELATION_END_EDIT_PLACEHOLDER, "")
 
         Vertex.__init__(self=self, id=id)
+
+    def as_dict(self):
+        """Return a dictionary representation."""
+        return {
+            "name": self.name,
+            "comments": self.comments,
+            "type": self.type.as_dict(),
+            "severity": self.severity.as_dict(),
+            "start": {
+                "time": self.start.time,
+                "uid": self.start.uid,
+                "edit_time": self.start.edit_time,
+                "comments": self.start.comments
+            },
+            "end": {
+                "time": self.end.time,
+                "uid": self.end.uid,
+                "edit_time": self.end.edit_time,
+                "comments": self.end.comments
+            }
+        }
+
 
     def add(self):
         """
@@ -3989,39 +4069,39 @@ class Flag(Vertex):
         attributes = {
             'name': self.name,
             'comments': self.comments,
-            'start_time': self.start_time,
-            'start_uid': self.start_uid,
-            'start_edit_time': self.start_edit_time,
-            'start_comments': self.start_comments,
-            'end_time': self.end_time,
-            'end_uid': self.end_uid,
-            'end_edit_time': self.end_edit_time,
-            'end_comments': self.end_comments
+            'start_time': self.start.time,
+            'start_uid': self.start.uid,
+            'start_edit_time': self.start.edit_time,
+            'start_comments': self.start.comments,
+            'end_time': self.end.time,
+            'end_uid': self.end.uid,
+            'end_edit_time': self.end.edit_time,
+            'end_comments': self.end.comments
         }
 
         Vertex.add(self=self, attributes=attributes)
 
-        if not self.flag_type.added_to_db():
-            self.flag_type.add()
+        if not self.type.added_to_db():
+            self.type.add()
 
         e = RelationFlagType(
-            inVertex=self.flag_type,
+            inVertex=self.type,
             outVertex=self
         )
 
         e.add()
 
-        if not self.flag_severity.added_to_db():
-            self.flag_severity.add()
+        if not self.severity.added_to_db():
+            self.severity.add()
 
         e = RelationFlagSeverity(
-            inVertex=self.flag_severity,
+            inVertex=self.severity,
             outVertex=self
         )
 
         e.add()
 
-        for c in self.flag_components:
+        for c in self.components:
 
             if not c.added_to_db():
                 c.add()
@@ -4070,50 +4150,31 @@ class Flag(Vertex):
         )
 
     @classmethod
-    def _attrs_to_flag(
-            cls, name: str, start_time: int, start_uid: str, flag_severity: FlagSeverity, flag_type: FlagType, start_edit_time: int = int(time.time()), comments: str = "", start_comments: str = "", flag_components: List[Component] = [], end_time: float = EXISTING_RELATION_END_PLACEHOLDER, end_uid: str = "", end_edit_time: float = -1, end_comments: str = "", id: int = VIRTUAL_ID_PLACEHOLDER):
-        """Given the id and attributes of a Flag, see if one exists in the cache. If so, return the cached Flag. Otherwise, create a new one, cache it, and return it.
+    def __attrs_to_flag__(cls, name: str, start: Timestamp,
+                          severity: FlagSeverity, type: FlagType,
+                          comments: str = "", end: Timestamp = None, 
+                          components: List[Component] = [],
+                          id: int = VIRTUAL_ID_PLACEHOLDER):
+        """Given the id and attributes of a Flag, see if one exists in the
+        cache. If so, return the cached Flag. Otherwise, create a new one,
+        cache it, and return it.
 
         :param name: The name of the flag.
         :type name: str
-
-        :param comments: Comments associated with the flag in general, defaults to ""
+        :param comments: Comments associated with the flag in general,
+            defaults to ""
         :type comments: str, optional
-
-        :param start_time: The (physical) start time of the flag.
-        :type start_time: int
-
-        :param start_uid: The ID of  the user that started the flag.
-        :type start_uid: str
-
-        :param start_edit_time: When the flag start event was entered, defaults to int(time.time())
-        type: start_edit_time: int
-
-
-        :param start_comments: Comments associated with starting the flag, defaults to ""
-        :type start_comments: str, optional
-
-        :param flag_severity: The flag severity that indicates the severity of the flag.
-        :type flag_severity: FlagSeverity
-
-        :param flag_type: The flag type that indicates the type of the flag.
-        :type flag_severity: FlagType
-
-        :param flag_components: A list of The flag components that have this flag.
-        :type flag_components: List[Component]
-
-        :param end_time: The (physical) end time of the flag, defaults to EXISTING_RELATION_END_PLACEHOLDER
-        :type end_time: int, optional
-
-        :param end_uid: The ID of the user that ended the flag, defaults to ""
-        :type end_uid: str, optional
-
-        :param end_edit_time: When the flag end event was entered, defaults to EXISTING_RELATION_END_EDIT_PLACEHOLDER
-        :type end_edit_time: int, optional
-
-        :param end_comments: Comments regarding the ending of the flag, defaults to ""
-        :type end_comments: str, optional
-
+        :param start: The starting timestamp of the flag.
+        :type start: Timestamp
+        :param severity: The flag severity that indicates the severity of the
+            flag.
+        :type severity: FlagSeverity
+        :param type: The flag type that indicates the type of the flag.
+        :type type: FlagType
+        :param components: A list of The flag components that have this flag.
+        :type components: List[Component]
+        :param end: The ending timestamp of the flag.
+        :type end: Timestamp or None.
         """
 
         if id not in _vertex_cache:
@@ -4121,17 +4182,11 @@ class Flag(Vertex):
                 Flag(
                     name=name,
                     comments=comments,
-                    start_time=start_time,
-                    start_uid=start_uid,
-                    start_edit_time=start_edit_time,
-                    start_comments=start_comments,
-                    flag_severity=flag_severity,
-                    flag_type=flag_type,
-                    flag_components=flag_components,
-                    end_time=end_time,
-                    end_uid=end_uid,
-                    end_edit_time=end_edit_time,
-                    end_comments=end_comments,
+                    start=start,
+                    severity=severity,
+                    type=type,
+                    components=components,
+                    end=end,
                     id=id
                 )
             )
@@ -4179,17 +4234,21 @@ class Flag(Vertex):
                 Flag(
                     name=name,
                     comments=attrs['comments'][0],
-                    start_time=attrs['start_time'][0],
-                    start_uid=attrs['start_uid'][0],
-                    start_edit_time=attrs['start_edit_time'][0],
-                    start_comments=attrs['start_comments'][0],
-                    flag_severity=_vertex_cache[severity_id],
-                    flag_type=_vertex_cache[type_id],
-                    flag_components=components,
-                    end_time=attrs['end_time'][0],
-                    end_uid=attrs['end_uid'][0],
-                    end_edit_time=attrs['end_edit_time'][0],
-                    end_comments=attrs['end_comments'][0],
+                    start=Timestamp(
+                        attrs['start_time'][0],
+                        attrs['start_uid'][0],
+                        attrs['start_edit_time'][0],
+                        attrs['start_comments'][0]
+                    ),
+                    severity=_vertex_cache[severity_id],
+                    type=_vertex_cache[type_id],
+                    components=components,
+                    end=Timestamp(
+                        attrs['end_time'][0],
+                        attrs['end_uid'][0],
+                        attrs['end_edit_time'][0],
+                        attrs['end_comments'][0]
+                    ),
                     id=id
                 )
             )
@@ -4219,17 +4278,21 @@ class Flag(Vertex):
                 Flag(
                     name=attrs['name'][0],
                     comments=attrs['comments'][0],
-                    start_time=attrs['start_time'][0],
-                    start_uid=attrs['start_uid'][0],
-                    start_edit_time=attrs['start_edit_time'][0],
-                    start_comments=attrs['start_comments'][0],
-                    flag_severity=FlagSeverity.from_id(fseverity_id),
-                    flag_type=FlagType.from_id(ftype_id),
-                    flag_components=components,
-                    end_time=attrs['end_time'][0],
-                    end_uid=attrs['end_uid'][0],
-                    end_edit_time=attrs['end_edit_time'][0],
-                    end_comments=attrs['end_comments'][0],
+                    start=Timestamp(
+                        attrs['start_time'][0],
+                        attrs['start_uid'][0],
+                        attrs['start_edit_time'][0],
+                        attrs['start_comments'][0]
+                    ),
+                    severity=FlagSeverity.from_id(fseverity_id),
+                    type=FlagType.from_id(ftype_id),
+                    components=components,
+                    end=Timestamp(
+                        attrs['end_time'][0],
+                        attrs['end_uid'][0],
+                        attrs['end_edit_time'][0],
+                        attrs['end_comments'][0]
+                    ),
                     id=id
                 )
             )
@@ -4252,7 +4315,7 @@ class Flag(Vertex):
         :type range: tuple[int, int]
 
         :param order_by: What to order the Flag by. Must be in
-        {'name', 'flag_type','flag_severity'}
+        {'name', 'type','severity'}
         :type order_by: str
 
         :param order_direction: Order the Flag by 
@@ -4269,7 +4332,7 @@ class Flag(Vertex):
 
         assert order_direction in {'asc', 'desc'}
 
-        assert order_by in {'name', 'flag_type', 'flag_severity'}
+        assert order_by in {'name', 'type', 'severity'}
 
         traversal = g.V().has('active', True).has('category', Flag.category)
 
@@ -4331,7 +4394,7 @@ class Flag(Vertex):
                     'name'), Order.asc
             )
 
-        elif order_by == 'flag_type':
+        elif order_by == 'type':
             traversal = traversal.order().by(
                 __.both(
                     RelationFlagType.category
@@ -4343,7 +4406,7 @@ class Flag(Vertex):
                 ).values('name'), Order.asc
             )
 
-        elif order_by == 'flag_severity':
+        elif order_by == 'severity':
             traversal = traversal.order().by(
                 __.both(
                     RelationFlagSeverity.category
@@ -4377,17 +4440,21 @@ class Flag(Vertex):
                     id=id,
                     name=attrs['name'][0],
                     comments=attrs['comments'][0],
-                    start_time=attrs['start_time'][0],
-                    start_uid=attrs['start_uid'][0],
-                    start_edit_time=attrs['start_edit_time'][0],
-                    start_comments=attrs['start_comments'][0],
-                    flag_severity=FlagSeverity.from_id(fseverity_id),
-                    flag_type=FlagType.from_id(ftype_id),
-                    flag_components=fcomponents,
-                    end_time=attrs['end_time'][0],
-                    end_uid=attrs['end_uid'][0],
-                    end_edit_time=attrs['end_edit_time'][0],
-                    end_comments=attrs['end_comments'][0],
+                    start=Timestamp(
+                        attrs['start_time'][0],
+                        attrs['start_uid'][0],
+                        attrs['start_edit_time'][0],
+                        attrs['start_comments'][0]
+                    ),
+                    severity=FlagSeverity.from_id(fseverity_id),
+                    type=FlagType.from_id(ftype_id),
+                    components=fcomponents,
+                    end=Timestamp(
+                        attrs['end_time'][0],
+                        attrs['end_uid'][0],
+                        attrs['end_edit_time'][0],
+                        attrs['end_comments'][0]
+                    )
                 )
             )
 
@@ -4960,254 +5027,15 @@ class User(Vertex):
 ###############################################################################
 
 
-class RelationConnection(Edge):
+class RelationConnection(TimestampedEdge):
     """Representation of a "rel_connection" edge.
-
-    :ivar start_time: The start time of the connection.
-    :ivar end_time: The end time of the connection. 
-    :ivar start_uid: The ID of the user that started the connection.
-    :ivar end_uid: The ID of the user that ended the connection.
-    :ivar start_edit_time: The time that the connection was started at.
-    :ivar end_edit_time: The time that the connection was ended at.
-    :ivar start_comments: Comments about starting the connection.
-    :ivar end_comments: Comments about ending the connection.
-    :ivar permanent: Whether the connection is permanent.
-
-    # TODO: Make permanent edges a separate edge category.
-    # User ID can be an integer, not a string.
     """
-
     category: str = "rel_connection"
 
-    start_time: float
-    end_time: float
-    start_uid: str
-    end_uid: str
-    start_edit_time: float
-    end_edit_time: float
-    start_comments: str
-    end_comments: str
-
-    def __init__(
-        self, inVertex: Vertex, outVertex: Vertex, start_time: float,
-        start_uid: str, start_edit_time: float, start_comments: str = "",
-        end_time: float = EXISTING_RELATION_END_PLACEHOLDER, end_uid: str = "",
-        end_edit_time: float = EXISTING_RELATION_END_EDIT_PLACEHOLDER,
-        end_comments: str = "",
-        id: int = VIRTUAL_ID_PLACEHOLDER
-    ):
-        """Initialize the connection.
-
-        :param inVertex: The Vertex that the edge is going into.
-        :type inVertex: Vertex
-        :param outVertex: The Vertex that the edge is going out of.
-        :type outVertex: Vertex
-        :param start_time: The (physical) start time of the connection.
-        :type start_time: float
-        :param start_uid: The ID of the user that started the connection.
-        :type start_uid: str
-        :param start_edit_time: When the connection start event was entered.
-        :type start_edit_time: float
-        :param start_comments: Comments regarding the starting of 
-        the connection, defaults to ""
-        :type start_comments: str, optional
-        :param end_time: The (physical) end time of the connection, 
-        defaults to EXISTING_CONNECTION_END_PLACEHOLDER
-        :type end_time: float, optional
-        :param end_uid: The ID of the user that ended the connection, 
-        defaults to ""
-        :type end_uid: str, optional
-        :param end_edit_time: When the connection end event was entered, 
-        defaults to 
-        :type end_edit_time: float, optional
-        :param end_comments: Comments regarding the ending of 
-        the connection, defaults to ""
-        :type end_comments: str, optional
-        :param permanent: Whether the connection is to be permanent.
-        """
-
-        self.start_time = start_time
-        self.start_uid = start_uid
-        self.start_edit_time = start_edit_time
-        self.start_comments = start_comments
-
-        self.end_time = end_time
-        self.end_uid = end_uid
-        self.end_edit_time = end_edit_time
-        self.end_comments = end_comments
-
-        Edge.__init__(self=self, id=id, inVertex=inVertex, outVertex=outVertex)
-
-    def add(self):
-        """Add this connection as an edge to the database.
-        """
-
-        attributes = {
-            "start_time": self.start_time,
-            "start_uid": self.start_uid,
-            "start_edit_time": self.start_edit_time,
-            "start_comments": self.start_comments,
-            "end_time": self.end_time,
-            "end_uid": self.end_uid,
-            "end_edit_time": self.end_edit_time,
-            "end_comments": self.end_comments
-        }
-
-        Edge.add(self, attributes=attributes)
-
-    def _end_connection(
-        self, end_time: float,
-        end_uid: str, end_edit_time: float, end_comments: str = ""
-    ):
-        """End the connection if the connection is not permanent.
-
-        :param end_time: The (physical) end time of the connection. 
-        :type end_time: float
-        :param end_uid: The ID of the user that ended the connection.
-        :type end_uid: str
-        :param end_edit_time: When the connection ending was entered. 
-        :type end_edit_time: float
-        :param end_comments: Comments regarding the ending of the connection,
-        defaults to ""
-        :type end_comments: str, optional
-        """
-
-        if not self.added_to_db():
-
-            # Edge not added to DB!
-            raise EdgeNotAddedError(
-                f"Connection between {self.inVertex} and {self.outVertex} " +
-                "does not exist in the database."
-            )
-
-        self.end_time = end_time
-        self.end_uid = end_uid
-        self.end_edit_time = end_edit_time
-        self.end_comments = end_comments
-
-        g.E(self.id()).property('end_time', end_time) \
-            .property('end_uid', end_uid) \
-            .property('end_edit_time', end_edit_time) \
-            .property('end_comments', end_comments).iterate()
-
-
-class RelationProperty(Edge):
+class RelationProperty(TimestampedEdge):
     """Representation of a "rel_property" edge.
-
-    :ivar start_time: The start time of the relation.
-    :ivar end_time: The end time of the relation. 
-    :ivar start_uid: The ID of the user that started the relation.
-    :ivar end_uid: The ID of the user that ended the relation.
-    :ivar end_edit_time: The time that the relation was ended at.
-    :ivar start_edit_time: The time that the relation was started at.
-    :ivar start_comments: Comments about starting the relation.
-    :ivar end_comments: Comments about ending the relation.
     """
-
     category: str = "rel_property"
-
-    start_time: float
-    end_time: float
-    start_uid: str
-    end_uid: str
-    start_edit_time: float
-    end_edit_time: float
-    start_comments: str
-    end_comments: str
-
-    def __init__(
-        self, inVertex: Vertex, outVertex: Vertex, start_time: float,
-        start_uid: str, start_edit_time: float, start_comments: str = "",
-        end_time: float = EXISTING_RELATION_END_PLACEHOLDER, end_uid: str = "",
-        end_edit_time: float = -1, end_comments: str = "",
-        id: int = VIRTUAL_ID_PLACEHOLDER
-    ):
-        """Initialize the relation.
-
-        :param inVertex: The Vertex that the edge is going into.
-        :type inVertex: Vertex
-
-        :param outVertex: The Vertex that the edge is going out of.
-        :type outVertex: Vertex
-
-        :param start_time: The (physical) start time of the relation.
-        :type start_time: float
-
-        :param start_uid: The ID of the user that started the relation.
-        :type start_uid: str
-
-        :param start_edit_time: When the relation start event was entered.
-        :type start_edit_time: float
-
-        :param start_comments: Comments regarding the starting of 
-        the relation, defaults to ""
-        :type start_comments: str, optional
-
-        :param end_time: The (physical) end time of the relation, 
-        defaults to EXISTING_RELATION_END_PLACEHOLDER
-        :type end_time: float, optional
-
-        :param end_uid: The ID of the user that ended the relation, 
-        defaults to ""
-        :type end_uid: str, optional
-
-        :param end_edit_time: When the relation end event was entered, 
-        defaults to EXISTING_RELATION_END_EDIT_PLACEHOLDER
-        :type end_edit_time: float, optional
-
-        :param end_comments: Comments regarding the ending of 
-        the relation, defaults to ""
-        :type end_comments: str, optional
-        """
-
-        self.start_time = start_time
-        self.start_uid = start_uid
-        self.start_edit_time = start_edit_time
-        self.start_comments = start_comments
-        self.end_time = end_time
-        self.end_uid = end_uid
-        self.end_edit_time = end_edit_time
-        self.end_comments = end_comments
-
-        Edge.__init__(self=self, id=id, inVertex=inVertex,
-                      outVertex=outVertex)
-
-    def add(self):
-        """Add this relation to the serverside.
-        """
-
-        Edge.add(self, attributes={
-            "start_time": self.start_time,
-            "start_uid": self.start_uid,
-            "start_edit_time": self.start_edit_time,
-            "start_comments": self.start_comments,
-            "end_time": self.end_time,
-            "end_uid": self.end_uid,
-            "end_edit_time": self.end_edit_time,
-            "end_comments": self.end_comments
-        })
-
-    def end_relation(
-        self, end_time: float,
-        end_uid: str, end_edit_time: float, end_comments: str = ""
-    ):
-        """End the relation.
-
-        :param end_time: The (physical) end time of the relation. 
-        :type end_time: float
-        :param end_uid: The ID of the user that ended the relation.
-        :type end_uid: str
-        :param end_edit_time: When the relation ending was entered. 
-        :type end_edit_time: float
-        :param end_comments: Comments regarding the ending of the relation,
-        defaults to ""
-        :type end_comments: str, optional
-        """
-        self.end_time = end_time
-        self.end_uid = end_uid
-        self.end_edit_time = end_edit_time
-        self.end_comments = end_comments
-
 
 class RelationVersion(Edge):
     """

@@ -56,7 +56,7 @@ def get_component_by_name(name):
     :rtype: dict
     """
     return {
-        'result': Component.get_as_dict(str(escape(name)))
+        'result': Component.from_db(str(escape(name))).as_dict()
     }
 
 
@@ -904,7 +904,7 @@ def set_component_property():
 
         component = Component.from_db(val_name)
 
-        property = Property(values=values, property_type=property_type)
+        property = Property(values=values, type=property_type)
 
         component.set_property(
             property=property,
@@ -950,10 +950,17 @@ def end_component_property():
 
     property_type = PropertyType.from_db(val_property_type)
 
-    # Initializing the component instance from the name provided as the url parameter.
+    # Initializing the component instance from the name provided as the url
+    # parameter.
     component = Component.from_db(val_name)
 
-    property = component.get_property(property_type, val_time, False)
+    property = component.get_property(property_type, val_time)
+    if property == None:
+        raise ComponentPropertyStartTimeExceedsInputtedTime(
+                    f"{component.name} has no property with the given "\
+                     "combination of time and property type. Make sure time "\
+                     "inputted is later than property start time."
+                )
 
     component.unset_property(
         property=property,
@@ -1010,7 +1017,7 @@ def replace_component_property():
 
     component = Component.from_db(val_name)
 
-    property_new = Property(values=values, property_type=property_type)
+    property_new = Property(values=values, type=property_type)
 
     component.replace_property(
         propertyTypeName=val_property_type,
@@ -1189,8 +1196,8 @@ def disable_component_connection():
     return {'result': True}
 
 
-@app.route("/api/get_all_connections_at_time")
-def get_all_connections_at_time():
+@app.route("/api/get_connections")
+def get_connections():
     """Given a component name and a time to check all connections, return all 
     connections of the component at a certain time in dictionary format.
 
@@ -1212,13 +1219,22 @@ def get_all_connections_at_time():
     c = Component.from_db(val_name)
 
     connections = c.get_all_connections_at_time(val_time)
-#    print(conn.inVertex)
 
     return {
         'result': [
             {
-                'inVertexName': conn.inVertex.name,
-                'outVertexName': conn.outVertex.name,
+                'inVertex': {
+                    'name': conn.inVertex.name,
+                    'type': conn.inVertex.type.name,
+                    'version': conn.inVertex.version.name \
+                        if conn.inVertex.version else ""
+                },
+                'outVertex': {
+                    'name': conn.outVertex.name,
+                    'type': conn.outVertex.type.name,
+                    'version': conn.outVertex.version.name \
+                        if conn.outVertex.version else ""
+                },
                 'subcomponent': True if isinstance(conn, RelationSubcomponent) \
                                 else False,
                 'id': conn.id(),

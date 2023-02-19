@@ -297,24 +297,25 @@ export default function ComponentConnectionVisualizer() {
      * @returns A Boolean indicating whether the component 
      * was successfully added.
      */
-    async function addComponent(name, x, y) {
+    async function addComponent(comp, x, y) {
         // catch it
-        if (nodeIds.current[name]) {
+        console.log(comp);
+        if (nodeIds.current[comp.name]) {
             return false;
         }
 
         let newNode = {
-            id: name,
+            id: comp.name,
             connectable: false,
             type: 'component',
 //            dragHandle: '.drag-handle',
-            data: { name: name },
+            data: { name: comp.name, ctype: comp.type, version: comp.version },
 //            data: {label: name},
             position: { x: x, y: y },
 //            position: { x: 10, y: 10 },
         }
         
-        addNodeId(name);
+        addNodeId(comp.name);
         setNodes((els) => els.concat(newNode));
 
         return true;
@@ -423,7 +424,7 @@ export default function ComponentConnectionVisualizer() {
          * other components.
          */
         addComponent(
-            component.name, 
+            component, 
             defaultViewport.x - nodeWidth / 2, 
             defaultViewport.y - nodeHeight / 2
         );
@@ -531,6 +532,7 @@ export default function ComponentConnectionVisualizer() {
                                 <Link to={`/component/${data.name}`}>
                                     {data.name}
                                 </Link>
+                                <br/>{data.ctype}
                             </Typography>
                         </Grid>
                         <Grid item>
@@ -557,7 +559,7 @@ export default function ComponentConnectionVisualizer() {
     async function expandConnections(name, time) {
 
         // construct the query string
-        let input = `/api/get_all_connections_at_time`;
+        let input = `/api/get_connections`;
         input += `?name=${name}`;
         input += `&time=${time}`;
 
@@ -574,20 +576,20 @@ export default function ComponentConnectionVisualizer() {
                 ).then(data => {
                     for (const edge of data.result) {
         
-                        let otherName = (name === edge.inVertexName) ? 
-                            edge.outVertexName : edge.inVertexName;
+                        let other = (name === edge.inVertex.name) ? 
+                            edge.outVertex : edge.inVertex;
         
                         // TODO: Change the default position.
-                        let added = addComponent(otherName, 0, 0);
+                        let added = addComponent(other, 0, 0);
                         addEdge(
                             edge.id, 
-                            edge.outVertexName, 
-                            edge.inVertexName,
+                            edge.outVertex.name, 
+                            edge.inVertex.name,
                             edge.subcomponent
                         );
         
                         if (added) {
-                            componentsAdded.push(otherName);
+                            componentsAdded.push(other);
                         }
                     }
                     resolve(componentsAdded);
