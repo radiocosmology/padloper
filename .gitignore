@@ -10,3 +10,4 @@ node_modules/
 package*
 subgraph.pdf
 *.swp
+*.egg-info
