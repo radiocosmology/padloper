@@ -22,11 +22,11 @@ from typing import Optional, List
 
 # A placeholder value for the end_time attribute for a
 # relation that is still ongoing.
-EXISTING_RELATION_END_PLACEHOLDER = 2**63 - 1
+_TIMESTAMP_NO_ENDTIME_VALUE = 2**63 - 1
 
 # A placeholder value for the end_edit_time attribute for a relation
 # that is still ongoing.
-EXISTING_RELATION_END_EDIT_PLACEHOLDER = -1
+_TIMESTAMP_NO_EDITTIME_VALUE = -1
 
 # Placeholder for the ID of an element that does not exist serverside.
 VIRTUAL_ID_PLACEHOLDER = -1
@@ -139,7 +139,7 @@ class Vertex(Element):
 
             self.replacement = 0
 
-            self.time_disabled = EXISTING_RELATION_END_EDIT_PLACEHOLDER
+            self.time_disabled = _TIMESTAMP_NO_EDITTIME_VALUE
 
             traversal = g.addV().property('category', self.category) \
                          .property('time_added', self.time_added) \
@@ -382,7 +382,7 @@ class Edge(Element):
 
             self.replacement = 0
 
-            self.time_disabled = EXISTING_RELATION_END_EDIT_PLACEHOLDER
+            self.time_disabled = _TIMESTAMP_NO_EDITTIME_VALUE
 
             traversal = g.V(self.outVertex.id()).addE(self.category) \
                 .to(__.V(self.inVertex.id())) \
@@ -469,8 +469,8 @@ class TimestampedEdge(Edge):
         if end:
             self.end = end
         else:
-            self.end = Timestamp(EXISTING_RELATION_END_PLACEHOLDER, "",
-                                 EXISTING_RELATION_END_EDIT_PLACEHOLDER, "")
+            self.end = Timestamp(_TIMESTAMP_NO_ENDTIME_VALUE, "",
+                                 _TIMESTAMP_NO_EDITTIME_VALUE, "")
         Edge.__init__(self=self, id=id, inVertex=inVertex, outVertex=outVertex)
 
     def as_dict(self):
@@ -1500,7 +1500,7 @@ class Component(Vertex):
     def get_all_properties_of_type(
         self, type,
         from_time: int = -1,
-        to_time: int = EXISTING_RELATION_END_PLACEHOLDER
+        to_time: int = _TIMESTAMP_NO_ENDTIME_VALUE
     ):
         """
         Given a property type, return all edges that connected them between time
@@ -1512,7 +1512,7 @@ class Component(Vertex):
         defaults to -1
         :type from_time: int, optional
         :param to_time: Upper bound for time range to consider properties, 
-        defaults to EXISTING_RELATION_END_PLACEHOLDER
+        defaults to _TIMESTAMP_NO_ENDTIME_VALUE
         :type to_time: int, optional
 
         :rtype: list[RelationProperty]
@@ -1531,9 +1531,9 @@ class Component(Vertex):
 
         edges = g.V(self.id()).bothE(RelationProperty.category) \
                  .has('active', True) \
-                 .has('end_edit_time', EXISTING_RELATION_END_EDIT_PLACEHOLDER)
+                 .has('end_edit_time', _TIMESTAMP_NO_EDITTIME_VALUE)
 
-        if to_time < EXISTING_RELATION_END_PLACEHOLDER:
+        if to_time < _TIMESTAMP_NO_ENDTIME_VALUE:
             edges = edges.has('start_time', P.lt(to_time))
 
         edges = edges.has('end_time', P.gt(from_time)) \
@@ -1638,7 +1638,7 @@ class Component(Vertex):
 
     def set_property(
         self, property, time: int,
-        uid: str, end_time: int = EXISTING_RELATION_END_PLACEHOLDER,
+        uid: str, end_time: int = _TIMESTAMP_NO_ENDTIME_VALUE,
         edit_time: int = int(time.time()), comments="",
         force_property: bool = False
     ):
@@ -1654,7 +1654,7 @@ class Component(Vertex):
         :param uid: The ID of the user that added the property
         :type uid: str
         :param end_time: The time at which the property was unset
-        (real time), defaults to EXISTING_RELATION_END_PLACEHOLDER
+        (real time), defaults to _TIMESTAMP_NO_ENDTIME_VALUE
         :type time: int, optional
         :param edit_time: The time at which the user made the change,
         defaults to int(time.time())
@@ -1663,7 +1663,7 @@ class Component(Vertex):
         :type comments: str, optional
         """
 
-        end_edit_time = EXISTING_RELATION_END_EDIT_PLACEHOLDER
+        end_edit_time = _TIMESTAMP_NO_EDITTIME_VALUE
         end_uid = ""
         end_comments = ""
 
@@ -1690,7 +1690,7 @@ class Component(Vertex):
                     f"is already set with values {property.values}."
                 )
 
-#            elif current_property.end.time != EXISTING_RELATION_END_PLACEHOLDER:
+#            elif current_property.end.time != _TIMESTAMP_NO_ENDTIME_VALUE:
 #                raise PropertyIsSameError(
 #                    "Property of type {property.type.name} for component "\
 #                    "{self.name} is already set at this time with an end "\
@@ -1715,7 +1715,7 @@ class Component(Vertex):
 
             if len(existing_properties) > 0:
                 if force_property:
-                    if end_time != EXISTING_RELATION_END_PLACEHOLDER:
+                    if end_time != _TIMESTAMP_NO_ENDTIME_VALUE:
                         raise ComponentPropertiesOverlappingError(
                             "Trying to set property of type " +
                             f"{property.type.name} for component " +
@@ -1813,7 +1813,7 @@ class Component(Vertex):
             )
         assert(len(vs) == 1)
         print(vs[0])
-        if vs[0]['end_time'] < EXISTING_RELATION_END_PLACEHOLDER:
+        if vs[0]['end_time'] < _TIMESTAMP_NO_ENDTIME_VALUE:
             raise PropertyIsSameError(
                 f"Property of type {property.type.name} cannot be unset for "\
                 f"component {self.name} because it is set at this time and "\
@@ -1823,7 +1823,7 @@ class Component(Vertex):
 
         g.V(property.id()).bothE(RelationProperty.category).as_('e').otherV() \
             .hasId(self.id()).select('e') \
-            .has('end_time', EXISTING_RELATION_END_PLACEHOLDER) \
+            .has('end_time', _TIMESTAMP_NO_ENDTIME_VALUE) \
             .property('end_time', time).property('end_uid', uid) \
             .property('end_edit_time', edit_time) \
             .property('end_comments', comments).iterate()
@@ -1852,7 +1852,7 @@ class Component(Vertex):
         """
 
         # id of the property being replaced.
-        id = g.V(self.id()).bothE(RelationProperty.category).has('active', True).has('end_edit_time', EXISTING_RELATION_END_EDIT_PLACEHOLDER).otherV().where(
+        id = g.V(self.id()).bothE(RelationProperty.category).has('active', True).has('end_edit_time', _TIMESTAMP_NO_EDITTIME_VALUE).otherV().where(
             __.outE().otherV().properties('name').value().is_(propertyTypeName)).id_().next()
 
         property_vertex = Property.from_id(id)
@@ -1881,7 +1881,7 @@ class Component(Vertex):
         """
 
         g.V(self.id()).bothE(RelationProperty.category).has('active', True)\
-         .has('end_edit_time', EXISTING_RELATION_END_EDIT_PLACEHOLDER)\
+         .has('end_edit_time', _TIMESTAMP_NO_EDITTIME_VALUE)\
          .where(__.otherV().bothE(RelationPropertyType.category).otherV()\
          .properties('name').value().is_(propertyTypeName))\
          .property('active', False).property('time_disabled', disable_time)\
@@ -1889,7 +1889,7 @@ class Component(Vertex):
 
     def connect(
         self, component, time: int, uid: str,
-        end_time: int = EXISTING_RELATION_END_PLACEHOLDER,
+        end_time: int = _TIMESTAMP_NO_ENDTIME_VALUE,
         edit_time: int = int(time.time()), comments="",
         force_connection: bool = False
     ):
@@ -1904,7 +1904,7 @@ class Component(Vertex):
         :param uid: The ID of the user that connected the components
         :type uid: str
         :param end_time: The time at which these components were disconnected
-        (real time), defaults to EXISTING_RELATION_END_PLACEHOLDER
+        (real time), defaults to _TIMESTAMP_NO_ENDTIME_VALUE
         :type time: int, optional
         :param edit_time: The time at which the user made the change,
         defaults to int(time.time())
@@ -1917,7 +1917,7 @@ class Component(Vertex):
         :type force_connection: bool, optional
         """
 
-        end_edit_time = EXISTING_RELATION_END_EDIT_PLACEHOLDER
+        end_edit_time = _TIMESTAMP_NO_EDITTIME_VALUE
         end_uid = ""
         end_comments = ""
 
@@ -1959,7 +1959,7 @@ class Component(Vertex):
 
             if len(existing_connections) > 0:
                 if force_connection:
-                    if end_time != EXISTING_RELATION_END_PLACEHOLDER:
+                    if end_time != _TIMESTAMP_NO_ENDTIME_VALUE:
                         raise ComponentsOverlappingConnectionError(
                             "Trying to connect components " +
                             f"{self.name} and {component.name} " +
@@ -2175,7 +2175,7 @@ class Component(Vertex):
 
     def get_all_connections_with(
         self, component, from_time: int = -1,
-        to_time: int = EXISTING_RELATION_END_PLACEHOLDER
+        to_time: int = _TIMESTAMP_NO_ENDTIME_VALUE
     ):
         """
         Given two components, return all edges that connected them between time
@@ -2187,7 +2187,7 @@ class Component(Vertex):
         defaults to -1
         :type from_time: int, optional
         :param to_time: Upper bound for time range to consider connections, 
-        defaults to EXISTING_RELATION_END_PLACEHOLDER
+        defaults to _TIMESTAMP_NO_ENDTIME_VALUE
         :type to_time: int, optional
 
         :rtype: list[RelationConnection]
@@ -2208,7 +2208,7 @@ class Component(Vertex):
         edges = g.V(self.id()).bothE(
             RelationConnection.category).has('active', True)
 
-        if to_time < EXISTING_RELATION_END_PLACEHOLDER:
+        if to_time < _TIMESTAMP_NO_ENDTIME_VALUE:
             edges = edges.has('start_time', P.lt(to_time))
 
         edges = edges.has('end_time', P.gt(from_time)) \
@@ -4061,8 +4061,8 @@ class Flag(Vertex):
         if end:
             self.end = end
         else:
-            self.end = Timestamp(EXISTING_RELATION_END_PLACEHOLDER, "",
-                                 EXISTING_RELATION_END_EDIT_PLACEHOLDER, "")
+            self.end = Timestamp(_TIMESTAMP_NO_ENDTIME_VALUE, "",
+                                 _TIMESTAMP_NO_EDITTIME_VALUE, "")
 
         Vertex.__init__(self=self, id=id)
 
