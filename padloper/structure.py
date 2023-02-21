@@ -1684,6 +1684,12 @@ class Component(Vertex):
                     f"is already set with values {property.values}."
                 )
 
+#            elif current_property.end.time != EXISTING_RELATION_END_PLACEHOLDER:
+#                raise PropertyIsSameError(
+#                    "Property of type {property.type.name} for component "\
+#                    "{self.name} is already set at this time with an end "\
+#                    "time after this time."
+#                )
             else:
                 # end that property.
                 self.unset_property(
@@ -1784,6 +1790,30 @@ class Component(Vertex):
                 f"of values {property.values} being unset " +
                 "has not been added to the database."
             )
+
+        # Check to see if the property already has an end time.
+        vs = g.V(self.id()).bothE(RelationProperty.category) \
+              .has('active', True) \
+              .has('start_time', P.lte(time)) \
+              .has('end_time', P.gt(time)) \
+              .as_('e').valueMap().as_('edge_props').select('e') \
+              .otherV().as_('v').both(RelationPropertyType.category) \
+              .has('name', property.type.name) \
+              .select('edge_props').toList()
+        if len(vs) == 0:
+            raise PropertyNotAddedError(
+                "Property of type {property.type.name} cannot be unset for "\
+                "component {this.name} because it has not been set yet."
+            )
+        assert(len(vs) == 1)
+        print(vs[0])
+        if vs[0]['end_time'] < EXISTING_RELATION_END_PLACEHOLDER:
+            raise PropertyIsSameError(
+                f"Property of type {property.type.name} cannot be unset for "\
+                f"component {self.name} because it is set at this time and "\
+                f"already has an end time."
+            )
+        print("slkdjflskdjfslkdjfslkdfjslkdjf")
 
         g.V(property.id()).bothE(RelationProperty.category).as_('e').otherV() \
             .hasId(self.id()).select('e') \
@@ -2754,7 +2784,6 @@ class Component(Vertex):
         prop_dicts = [{**prop.as_dict(), **rel.as_dict()} \
             for (prop, rel) in self.get_all_properties()
         ]
-        print(prop_dicts)
 
         conn_dicts = [{**{"name": comp.name}, **rel.as_dict()} \
             for (comp, rel) in self.get_all_connections()
