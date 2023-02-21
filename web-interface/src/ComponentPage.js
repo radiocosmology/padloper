@@ -116,7 +116,7 @@ const AccordionSummary = styled((props) => (
                     color: "rgba(0,0,0, 0.4)",
                     padding: "4px",
                 }}
-                onClick={props.expandOnClick}
+                onClick={props.expandonClick}
             />
         }
       {...props}
@@ -613,7 +613,8 @@ function ComponentPage() {
         let properties_add_panel_content = (open_properties_add_panel) ? (
             <ComponentPropertyAddPanel 
                 theme={theme} 
-                onClose={() => {setOpenPropertiesAddPanel(false); setErrorPropertyMessage(null)}}
+                onClose={() => {setOpenPropertiesAddPanel(false);
+                                setErrorPropertyMessage(null)}}
                 onSet={setProperty}
                 errorPropertyMessage={errorPropertyMessage}
             />
@@ -1121,7 +1122,7 @@ function ComponentPage() {
                     expanded={open_properties_accordion}
                 >
                     <AccordionSummary
-                        expandOnClick={toggleOpenPropertiesAccordion}
+                        expandonClick={toggleOpenPropertiesAccordion}
                     >
                         
                         <Typography style={{ flex: 1 }} align='left'>
@@ -1151,7 +1152,7 @@ function ComponentPage() {
                     expanded={open_connections_accordion}
                 >
                     <AccordionSummary
-                        expandOnClick={toggleOpenConnectionsAccordion}
+                        expandonClick={toggleOpenConnectionsAccordion}
                     >
                         <Typography style={{ flex: 1 }} align='left'>
                             Connections
@@ -1181,7 +1182,7 @@ function ComponentPage() {
                     expanded={open_subcomponents_accordion}
                 >
                     <AccordionSummary
-                        expandOnClick={toggleOpenSubcomponentsAccordion}
+                        expandonClick={toggleOpenSubcomponentsAccordion}
                     >
                            <Typography style={{ flex: 1 }} align='left'>
                             Subcomponents
@@ -1207,7 +1208,7 @@ function ComponentPage() {
                     expanded={open_flags_accordion}
                 >
                     <AccordionSummary
-                        expandOnClick={toggleOpenFlagsAccordion}
+                        expandonClick={toggleOpenFlagsAccordion}
                     >
                            <Typography style={{ flex: 1 }} align='left'>
                             Flags

@@ -1672,6 +1672,12 @@ class Component(Vertex):
                 f"Component {self.name} has not yet been added to the database."
             )
 
+        if (self.type not in property.type.allowed_types):
+            raise PropertyWrongType(
+                f"Property type {property.type.name} is not applicable to "\
+                f"component type {self.type.name}."
+            )
+
         current_property = self.get_property(
             type=property.type, time=time
         )
@@ -2006,7 +2012,6 @@ class Component(Vertex):
         """
 
         # Done for troubleshooting (so you know which component is not added?)
-
         if not self.added_to_db():
             raise ComponentNotAddedError(
                 f"Component {self.name} has not yet been added to the database."
@@ -2024,11 +2029,10 @@ class Component(Vertex):
         )
 
         if current_connection is None:
-
             # Not connected yet!
             raise ComponentsAlreadyDisconnectedError(
                 f"Components {self.name} and {component.name} " +
-                "are already disconnected."
+                "are already disconnected at this time."
             )
 
         else:

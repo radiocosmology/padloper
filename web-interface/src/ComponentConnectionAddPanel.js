@@ -1,4 +1,4 @@
-import React, { useState } from 'react';
+import React, { useState, useEffect } from 'react';
 
 import Paper from '@mui/material/Paper';
 import Button from '@mui/material/Button';
@@ -14,6 +14,8 @@ import ThemeProvider from '@mui/material/styles/ThemeProvider';
 import styled from '@mui/material/styles/styled';
 import { Typography } from '@mui/material';
 import ComponentAutocomplete from './ComponentAutocomplete.js';
+
+import moment from "moment";
 
 /**
  * A styled "panel" component, used as the background for the panel.
@@ -95,11 +97,21 @@ function ComponentConnectionAddPanel(
     // the ID of the user making the connection
     const [uid, setUid] = useState("");
 
-    // default time to make the connection
-    const defaultTime = 1;
+    // Default time is now; set the display time and the internal time variable
+    // to this to start with.
+    const defaultTime = new Date();
+    const [time, setTime] = useState(Math.round(defaultTime.getTime() / 1000));
+    const [displayTime, setDisplayTime] = useState(defaultTime);
+    useEffect(() => {
+      setDisplayTime(moment(displayTime).format("YYYY-MM-DD[T]HH:mm:ss"));
+    }, []);
 
-    // time to make the connection
-    const [time, setTime] = useState(defaultTime);
+    // When the user changes the time.
+    const handleTimeChange = (e) => {
+      let date = new Date(e.target.value);
+      setTime(Math.round(date.getTime() / 1000));
+      setDisplayTime(moment(e.target.value).format("YYYY-MM-DD[T]HH:mm:ss"));
+    };
 
     // comments associated with the connection
     const [comments, setComments] = useState("");
@@ -168,10 +180,8 @@ function ComponentConnectionAddPanel(
                                 shrink: true,
                             }}
                             size="large"
-                            onChange={(event) => {
-                                let date = new Date(event.target.value);
-                                setTime(Math.round(date.getTime() / 1000));
-                            }}
+                            value={displayTime}
+                            onChange={(e) => handleTimeChange(e)}
                         />
                     </Grid>
 
