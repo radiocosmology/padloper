@@ -752,6 +752,8 @@ class ComponentType(Vertex):
     def __repr__(self):
         return f"{self.category}: {self.name} ({self._id})"
 
+    def __call__(self, name):
+        return Component(name, self)
 
 class ComponentVersion(Vertex):
     """
@@ -1516,6 +1518,7 @@ class Component(Vertex):
             result.append((subcomponent))
 
         return result
+    subs = property(get_all_subcomponents)
 
     def get_all_supercomponents(self):
         """Return all supercomponents connected to this component of the form
@@ -2251,7 +2254,7 @@ class Component(Vertex):
             )
 
             current_subcomponent.add()
-            print(f'subcomponent connected: {self} -> {other}')
+            print(f'subcomponent connected: {self} -> {component}')
 
 
     def get_subcomponent(self, component):
