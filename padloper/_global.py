@@ -1,7 +1,8 @@
 """
-graph_connection.py
+_global.py
 
-Contains declarations and methods for graph connections.
+Contains declarations and methods for graph connections. Also holds our global
+variables.
 """
 
 from gremlin_python.process.graph_traversal import GraphTraversalSource
@@ -13,7 +14,26 @@ _conn: DriverRemoteConnection
 
 _graph = gremlin_graph.Graph()
 
-g: GraphTraversalSource
+t: GraphTraversalSource
+
+# A placeholder value for the end_time attribute for a
+# relation that is still ongoing.
+_TIMESTAMP_NO_ENDTIME_VALUE = 2**63 - 1
+
+# A placeholder value for the end_edit_time attribute for a relation
+# that is still ongoing.
+_TIMESTAMP_NO_EDITTIME_VALUE = -1
+
+# Placeholder for the ID of an element that does not exist serverside.
+_VIRTUAL_ID_PLACEHOLDER = -1
+
+# A cache to prevent querying the DB more than necessary.
+_vertex_cache = dict()
+
+# For storing the user for when that needs to get tracked.
+_user = None
+
+
 
 def start_connection(port: int=8182, traversal_source: str='g') -> None:
     """Start a connection on localhost with port :param port: 
@@ -27,14 +47,14 @@ def start_connection(port: int=8182, traversal_source: str='g') -> None:
     """
 
     global _conn
-    global g
+    global t
 
     _conn = DriverRemoteConnection(
         f'ws://localhost:{port}/gremlin', 
         traversal_source
     )
 
-    g = _graph.traversal().withRemote(_conn)
+    t = _graph.traversal().withRemote(_conn)
 
 
 def end_connection() -> None:
@@ -47,7 +67,6 @@ def end_connection() -> None:
     global _conn
 
     _conn.close()
-
 
 # Start the default connection when this module is loaded.
 start_connection()

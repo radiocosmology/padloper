@@ -3,24 +3,22 @@ permissions.py
 
 Classes for managing users and permissions.
 """
-import time
-import re
-from unicodedata import name
-
-import warnings
-from xmlrpc.client import boolean
-from attr import attr, attributes
-
-from gremlin_python.process.traversal import Order, P, TextP
-from sympy import true
-from graph_connection import g
-from gremlin_python.process.graph_traversal import __, constant
-
-from exceptions import *
 
 from typing import Optional, List
+import _global as g
+from _base import Vertex 
+from _exceptions import *
 
-from base import *
+#import time
+#import re
+#from unicodedata import name
+
+#import warnings
+#from xmlrpc.client import boolean
+#from attr import attr, attributes
+#from gremlin_python.process.traversal import Order, P, TextP
+#from sympy import true
+#from gremlin_python.process.graph_traversal import __, constant
 
 class Permission(Vertex):
     """ The representation of a permission.
@@ -34,8 +32,8 @@ class Permission(Vertex):
     name: str
     comments: str
 
-    def __new__(
-            cls, name: str, comments: str = '', id: int = VIRTUAL_ID_PLACEHOLDER):
+    def __new__(cls, name: str, comments: str = '',
+                id: int = g._VIRTUAL_ID_PLACEHOLDER):
         """
         Return a Permission instance given the desired attributes.
 
@@ -45,17 +43,19 @@ class Permission(Vertex):
         :param comments: The comments attached to this permission, defaults to ""
         :type comments: str
 
-        :param id: The serverside ID of the permission, defaults to VIRTUAL_ID_PLACEHOLDER
+        :param id: The serverside ID of the permission, defaults to
+          _VIRTUAL_ID_PLACEHOLDER
         :type id: int, optional
         """
 
-        if id is not VIRTUAL_ID_PLACEHOLDER and id in _vertex_cache:
-            return _vertex_cache[id]
+        if id is not g._VIRTUAL_ID_PLACEHOLDER and id in g._vertex_cache:
+            return g._vertex_cache[id]
 
         else:
             return object.__new__(cls)
 
-    def __init__(self, name: str, comments: str = " ", id: int = VIRTUAL_ID_PLACEHOLDER):
+    def __init__(self, name: str, comments: str = " ",
+                 id: int = g._VIRTUAL_ID_PLACEHOLDER):
         """
         Initialize a Permission instance given the desired attributes.
 
@@ -65,7 +65,8 @@ class Permission(Vertex):
         :param comments: The comments attached to this permission, defaults to ""
         :type comments: str
 
-        :param id: The serverside ID of the permission, defaults to VIRTUAL_ID_PLACEHOLDER
+        :param id: The serverside ID of the permission, defaults to 
+          _VIRTUAL_ID_PLACEHOLDER
         :type id: int, optional
         """
 
@@ -104,9 +105,9 @@ class Permission(Vertex):
         """
 
         return (
-            self.id() != VIRTUAL_ID_PLACEHOLDER or (
-                g.V().has('category', Permission.category).has(
-                    'name', self.name).count().next() == 1
+            self.id() != g._VIRTUAL_ID_PLACEHOLDER or (\
+                g.t.V().has('category', Permission.category)\
+                   .has('name', self.name).count().next() == 1 \
             )
         )
 
@@ -122,9 +123,11 @@ class Permission(Vertex):
         """
 
         try:
-            d = g.V().has('category', Permission.category).has('name', name) \
-                .as_('v').valueMap().as_('props').select('v').id_().as_('id') \
-                .select('props', 'id').next()
+            d = g.t.V().has('category', Permission.category)\
+                   .has('name', name) \
+                   .as_('v').valueMap().as_('props')\
+                   .select('v').id_().as_('id') \
+                   .select('props', 'id').next()
         except StopIteration:
             raise PermissionNotAddedError
 
@@ -138,7 +141,7 @@ class Permission(Vertex):
             )
         )
 
-        return _vertex_cache[id]
+        return g._vertex_cache[id]
 
     @classmethod
     def from_id(cls, id: int):
@@ -151,8 +154,8 @@ class Permission(Vertex):
         :rtype: Permission
         """
 
-        if id not in _vertex_cache:
-            d = g.V(id).valueMap().next()
+        if id not in g._vertex_cache:
+            d = g.t.V(id).valueMap().next()
 
             Vertex._cache_vertex(
                 Permission(
@@ -162,7 +165,7 @@ class Permission(Vertex):
                 )
             )
 
-        return _vertex_cache[id]
+        return g._vertex_cache[id]
 
 
 class UserGroup(Vertex):
@@ -179,7 +182,8 @@ class UserGroup(Vertex):
     comments: str
     permission: List[Permission]
 
-    def __init__(self, name: str, comments: str, permission: List[Permission], id: int = VIRTUAL_ID_PLACEHOLDER):
+    def __init__(self, name: str, comments: str, permission: List[Permission],
+                 id: int = g._VIRTUAL_ID_PLACEHOLDER):
 
         self.name = name
         self.comments = comments
@@ -234,9 +238,9 @@ class UserGroup(Vertex):
         """
 
         return (
-            self.id() != VIRTUAL_ID_PLACEHOLDER or (
-                g.V().has('category', UserGroup.category).has(
-                    'name', self.name).count().next() == 1
+            self.id() != g._VIRTUAL_ID_PLACEHOLDER or (\
+                g.t.V().has('category', UserGroup.category)\
+                    .has('name', self.name).count().next() == 1 \
             )
         )
 
@@ -249,17 +253,17 @@ class UserGroup(Vertex):
         """
 
         try:
-            d = g.V().has('category', UserGroup.category).has('name', name) \
-                .project('id', 'attrs', 'permission_ids').by(__.id_()) \
-                .by(__.valueMap()) \
-                .by(__.both(RelationGroupAllowedPermission.category).id_() \
-                .fold()).next()
+            d = g.t.V().has('category', UserGroup.category).has('name', name) \
+                   .project('id', 'attrs', 'permission_ids').by(__.id_()) \
+                   .by(__.valueMap()) \
+                   .by(__.both(RelationGroupAllowedPermission.category).id_() \
+                   .fold()).next()
         except StopIteration:
             raise UserGroupNotAddedError
 
         id, attrs, perimssion_ids = d['id'], d['attrs'], d['permission_ids']
 
-        if id not in _vertex_cache:
+        if id not in g._vertex_cache:
 
             permissions = []
 
@@ -275,7 +279,7 @@ class UserGroup(Vertex):
                 )
             )
 
-        return _vertex_cache[id]
+        return g._vertex_cache[id]
 
 
 class User(Vertex):
@@ -295,9 +299,9 @@ class User(Vertex):
     institution: str
     allowed_group: List[UserGroup] = None
 
-    def __new__(
-        cls, uname: str, pwd_hash: str, institution: str, allowed_group: List[UserGroup] = None, id: int = VIRTUAL_ID_PLACEHOLDER
-    ):
+    def __new__(cls, uname: str, pwd_hash: str, institution: str,
+                allowed_group: List[UserGroup] = None,
+                id: int = g._VIRTUAL_ID_PLACEHOLDER):
         """
         Return a User instance given the desired attributes.
 
@@ -310,20 +314,23 @@ class User(Vertex):
         :param institution: Name of the institution of the user.
         :type institution: str
 
-        :param allowed_group: The UserGroup instance representing the groups the user is in.
+        :param allowed_group: The UserGroup instance representing the groups
+          the user is in.
         :type user_group: List[UserGroup]
 
-        :param id: The serverside ID of the User, defaults to VIRTUAL_ID_PLACEHOLDER
+        :param id: The serverside ID of the User, defaults to
+          _VIRTUAL_ID_PLACEHOLDER
         :type id: int,optional 
         """
-        if id is not VIRTUAL_ID_PLACEHOLDER and id in _vertex_cache:
-            return _vertex_cache[id]
+        if id is not g._VIRTUAL_ID_PLACEHOLDER and id in g._vertex_cache:
+            return g._vertex_cache[id]
 
         else:
             return object.__new__(cls)
 
-    def __init__(
-            self, uname: str, pwd_hash: str, institution: str, allowed_group: List[UserGroup] = None, id: int = VIRTUAL_ID_PLACEHOLDER):
+    def __init__(self, uname: str, pwd_hash: str, institution: str,
+                 allowed_group: List[UserGroup] = None,
+                 id: int = g._VIRTUAL_ID_PLACEHOLDER):
         """
         Initialize a User instance given the desired attributes.
 
@@ -339,7 +346,8 @@ class User(Vertex):
         :param allowed_group: The UserGroup instance representing the groups the user is in.
         :type user_group: List[UserGroup]
 
-        :param id: The serverside ID of the User, defaults to VIRTUAL_ID_PLACEHOLDER
+        :param id: The serverside ID of the User, defaults to 
+          _VIRTUAL_ID_PLACEHOLDER
         :type id: int,optional 
         """
 
@@ -397,15 +405,16 @@ class User(Vertex):
         """
 
         return (
-            self.id() != VIRTUAL_ID_PLACEHOLDER or (
-                g.V().has('category', User.category).has(
-                    'uname', self.uname).count().next() > 0
+            self.id() != g._VIRTUAL_ID_PLACEHOLDER or (
+                g.t.V().has('category', User.category)\
+                   .has('uname', self.uname).count().next() > 0
             )
         )
 
     @classmethod
-    def _attrs_to_user(
-            cls, uname: str, pwd_hash: str, institution: str, allowed_group: List[UserGroup] = None, id: int = VIRTUAL_ID_PLACEHOLDER):
+    def _attrs_to_user(cls, uname: str, pwd_hash: str, institution: str,
+                       allowed_group: List[UserGroup] = None,
+                       id: int = g._VIRTUAL_ID_PLACEHOLDER):
         """Given the id and attributes of a User, see if one exists in the cache. If so, return the cached User. Otherwise, create a new one, cache it, and return it.
 
         :param uname: Name used by the user to login.
@@ -420,11 +429,12 @@ class User(Vertex):
         :param allowed_group: The UserGroup instance representing the groups the user is in.
         :type user_group: List[UserGroup]
 
-        :param id: The serverside ID of the User, defaults to VIRTUAL_ID_PLACEHOLDER
+        :param id: The serverside ID of the User, defaults to 
+          _VIRTUAL_ID_PLACEHOLDER
         :type id: int,optional 
         """
 
-        if id not in _vertex_cache:
+        if id not in g._vertex_cache:
             Vertex._cache_vertex(
                 User(
                     uname=uname,
@@ -435,7 +445,7 @@ class User(Vertex):
                 )
             )
 
-        return _vertex_cache[id]
+        return g._vertex_cache[id]
 
     @classmethod
     def from_db(cls, uname: str):
@@ -446,18 +456,18 @@ class User(Vertex):
         """
 
         try:
-            d = g.V().has('category', User.category).has('uname', uname) \
-                .project('id', 'attrs', 'group_ids').by(__.id_()) \
-                .by(__.valueMap()) \
-                .by(__.both(RelationUserAllowedGroup.category).id_().fold()) \
-                .next()
+            d = g.t.V().has('category', User.category).has('uname', uname) \
+                   .project('id', 'attrs', 'group_ids').by(__.id_()) \
+                   .by(__.valueMap()) \
+                   .by(__.both(RelationUserAllowedGroup.category).id_().fold())\
+                   .next()
         except StopIteration:
             raise UserNotAddedError
 
         # to access attributes from attrs, do attrs[...][0]
         id, attrs, gtype_ids = d['id'], d['attrs'], d['group_ids']
 
-        if id not in _vertex_cache:
+        if id not in g._vertex_cache:
 
             gtypes = []
 
@@ -474,7 +484,7 @@ class User(Vertex):
                 )
             )
 
-        return _vertex_cache[id]
+        return g._vertex_cache[id]
 
     @classmethod
     def from_id(cls, id: int):
@@ -486,10 +496,11 @@ class User(Vertex):
         rtype: User
         """
 
-        if id not in _vertex_cache:
+        if id not in g._vertex_cache:
 
-            d = g.V(id).project('attrs', 'group_ids').by(__.valueMap()).by(
-                __.both(RelationUserAllowedGroup.category).id_().fold()).next()
+            d = g.t.V(id).project('attrs', 'group_ids').by(__.valueMap())\
+                   .by(__.both(RelationUserAllowedGroup.category).id_().fold())\
+                   .next()
 
             # to access attributes from attrs, do attrs[...][0]
 
@@ -510,4 +521,4 @@ class User(Vertex):
                 )
             )
 
-        return _vertex_cache[id]
+        return g._vertex_cache[id]
