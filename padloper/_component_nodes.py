@@ -1,3 +1,5 @@
+#CONTINUE HERE: now test with init_simple-db.py starting from scratch; then test
+#web interface
 """
 _component_nodes.py
 
@@ -14,8 +16,6 @@ from _edges import RelationVersionAllowedType, RelationVersion,\
                    RelationComponentType, RelationSubcomponent,\
                    RelationProperty, RelationPropertyType,\
                    RelationFlagComponent, RelationConnection
-CONTINUE HERE: fix circular importing
-from _property_nodes import Property
 
 print(g._user)
 
@@ -947,6 +947,7 @@ class Component(Vertex):
 
         :rtype: Property or None
         """
+        from _property_nodes import Property
 
         if not self.added_to_db():
             raise ComponentNotAddedError(
@@ -986,6 +987,7 @@ class Component(Vertex):
 
         :rtype: tuple[Property, RelationProperty]
         """
+        from _property_nodes import Property
 
         if not self.added_to_db():
             raise ComponentNotAddedError(
@@ -1155,6 +1157,7 @@ class Component(Vertex):
         :start_time:. Return the Property instance that was added.
 
         """
+        from _property_nodes import Property
 
         if not self.added_to_db():
             raise ComponentNotAddedError(
@@ -1172,6 +1175,8 @@ class Component(Vertex):
         )
 
         if current_property is not None:
+    CONTINUE HERE: see if behaviour is correct (when this trips in
+            init_simple-db.py).
             if current_property.values == property.values:
                 strictraise(strict_add, PropertyIsSameError, 
                     "An identical property of type " +
@@ -1188,19 +1193,13 @@ class Component(Vertex):
 #                )
             else:
                 # end that property.
-                self.unset_property(
-                    property=current_property,
-                    at_time=start_time,
-                    uid=uid,
-                    edit_time=edit_time,
-                    comments=comments
-                )
+                self.unset_property(current_property, start)
 
         else:
 
             existing_properties = self.get_all_properties_of_type(
                 type=property.type,
-                from_time=start_time
+                from_time=start.time
             )
 
             if len(existing_properties) > 0:
@@ -1468,7 +1467,7 @@ class Component(Vertex):
         )
 
         current_connection.add()
-        print(f'connected: {self} -> {component}  ({uid} {time})')
+        print(f'connected: {self} -> {component}  ({start.uid} {start.time})')
 
 
     def disconnect(self, component, end: Timestamp):
@@ -1789,8 +1788,7 @@ class Component(Vertex):
             )
 
             current_subcomponent.add()
-#    CONTINUE HERE: bug on "other" when init_simple-db.py is run.
-            print(f'subcomponent connected: {self} -> {other}')
+            print(f'subcomponent connected: {self} -> {component}')
 
 
     def get_subcomponent(self, component):
