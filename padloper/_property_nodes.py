@@ -145,6 +145,9 @@ class PropertyType(Vertex):
         return {
             'name': self.name,
             'units': self.units,
+            'allowed_regex': self.allowed_regex,
+            'n_values': self.n_values,
+            'allowed_types': [t.name for t in self.allowed_types],
             'comments': self.comments
         }
 

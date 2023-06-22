@@ -27,6 +27,14 @@ function App() {
    * URL matches one of the paths below, it will display its corresponding
    * component, giving the multi-page behaviour.
    */
+
+  window.addEventListener("error", (e) => {
+    if (e.message === 'ResizeObserver loop completed with undelivered notifications.' || e.message === 'ResizeObserver loop limit exceeded') {
+      console.log("Oh, yeah!!!!");
+//      e.stopImmediatePropagation();
+    }
+  });
+
   return (
     <div className="App">
 

@@ -19,6 +19,7 @@ import _global as g
 from _base import Vertex, Timestamp, _RawTimestamp, strictraise
 from _component_nodes import Component
 from _exceptions import *
+from _edges import RelationFlagType, RelationFlagComponent, RelationFlagSeverity
 
 from typing import Optional, List
 
@@ -110,10 +111,12 @@ class FlagType(Vertex):
     def replace(self, newVertex, disable_time: int = int(time.time())):
         """Replaces the FlagType vertex in the serverside.
 
-        :param newVertex: The new FlagType vertex that is replacing the old FlagType vertex.
+        :param newVertex: The new FlagType vertex that is replacing the old
+             FlagType vertex.
         :type newVertex: FlagType
 
-        :param disable_time: When this vertex was disabled in the database (UNIX time).
+        :param disable_time: When this vertex was disabled in the database (UNIX
+            time).
         :type disable_time: int
         """
 
@@ -646,7 +649,7 @@ class Flag(Vertex):
         else:
             return object.__new__(cls)
 
-    def __init__(cls, name: str, start: Timestamp, severity: FlagSeverity, 
+    def __init__(self, name: str, start: Timestamp, severity: FlagSeverity, 
                 type: FlagType, comments: str = "", end: Timestamp = None, 
                 components: List[Component] = [],
                 id: int = g._VIRTUAL_ID_PLACEHOLDER):
@@ -681,7 +684,8 @@ class Flag(Vertex):
                 "uid": self.end.uid,
                 "edit_time": self.end.edit_time,
                 "comments": self.end.comments
-            }
+            },
+            "components": [c.as_dict(bare=True) for c in self.components]
         }
 
 
@@ -786,11 +790,11 @@ class Flag(Vertex):
         )
 
     @classmethod
-    def __attrs_to_flag__(cls, name: str, start: Timestamp,
-                          severity: FlagSeverity, type: FlagType,
-                          comments: str = "", end: Timestamp = None, 
-                          components: List[Component] = [],
-                          id: int = g._VIRTUAL_ID_PLACEHOLDER):
+    def _attrs_to_flag(cls, name: str, start: Timestamp,
+                       severity: FlagSeverity, type: FlagType,
+                       comments: str = "", end: Timestamp = None, 
+                       components: List[Component] = [],
+                       id: int = g._VIRTUAL_ID_PLACEHOLDER):
         """Given the id and attributes of a Flag, see if one exists in the
         cache. If so, return the cached Flag. Otherwise, create a new one,
         cache it, and return it.
@@ -1126,22 +1130,13 @@ class Flag(Vertex):
 
         return traversal.count().next()
 
-    def end_flag(
-            self, end_time: int, end_uid: str, end_edit_time: int = int(time.time()), end_comments=""):
+    def end_flag(self, end : Timestamp):
         """
-        Given a flag, set the "end" attributes of the flag to indicate that this flag has been ended.
+        Given a flag, set the "end" attributes of the flag to indicate that this
+        flag has been ended.
 
-        :param time: The time at which the flag was ended (real time). This value has to be provided.
-        :type time: int
-
-        :param uid: The user that ended the flag.
-        :type uid: str
-
-        :param edit_time: The time at which the user made the change, defaults to int(time.time())
-        :type edit_time: int, optional
-
-        :param comments: Comments associated with ending the flag.
-        :type comments: str, optional
+        :param end: The timestamp for the end of the flag.
+        :type end: Timestamp
         """
 
         if not self.added_to_db():
@@ -1149,12 +1144,9 @@ class Flag(Vertex):
                 f"Flag {self.name} has not yet been added to the database."
             )
 
-        self.end_time = end_time
-        self.end_uid = end_uid
-        self.end_edit_time = end_edit_time
-        self.end_comments = end_comments
+        self.end = end
 
-        g.t.V(self.id()).property('end_time', end_time)\
-           .property('end_uid', end_uid)\
-           .property('end_edit_time', end_edit_time)\
-           .property('end_comments', end_comments).iterate()
+        g.t.V(self.id()).property('end_time', end.time)\
+           .property('end_uid', end.uid)\
+           .property('end_edit_time', end.edit_time)\
+           .property('end_comments', end.comments).iterate()

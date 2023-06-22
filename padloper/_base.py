@@ -16,6 +16,7 @@ import time
 import _global as g
 from _exceptions import *
 
+
 #import re
 #from unicodedata import name
 #import warnings
@@ -193,6 +194,10 @@ class Vertex(Element):
         :type id: int
 
         """
+        from _edges import RelationVersionAllowedType, \
+                           RelationPropertyAllowedType, RelationFlagSeverity, \
+                           RelationFlagType, RelationComponentType, \
+                           RelationVersion
 
         # The 'replacement' property now points to the new vertex that replaced
         # the self vertex..
@@ -456,7 +461,7 @@ class _RawTimestamp:
     load the module should use the public the `Timestamp` class that inherits
     it.
 
-    :ivar time: The time of the timestamp, in UNIX time.
+    :ivar at_time: The time of the timestamp, in UNIX time.
     :ivar uid: The user who made the timestamp. It is set automatically when the
         instance is created.
     :ivar edit_time: The time of when the timestamp was created, in UNIX time.
@@ -468,8 +473,8 @@ class _RawTimestamp:
     edit_time: float
     comments: str
 
-    def __init__(self, time, uid, edit_time, comments=""):
-        self.time = time
+    def __init__(self, at_time, uid, edit_time, comments=""):
+        self.time = at_time
         self.uid = uid
         self.edit_time = edit_time
         self.comments = comments

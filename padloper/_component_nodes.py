@@ -1,5 +1,3 @@
-#CONTINUE HERE: now test with init_simple-db.py starting from scratch; then test
-#web interface
 """
 _component_nodes.py
 
@@ -108,20 +106,22 @@ class ComponentType(Vertex):
     def replace(self, newVertex, disable_time: int = int(time.time())):
         """Replaces the ComponentType vertex in the serverside.
 
-        :param newVertex: The new ComponentType vertex that is replacing the old ComponentType vertex.
+        :param newVertex: The new ComponentType vertex that is replacing the old
+            ComponentType vertex.
         :type newVertex: ComponentType
 
-        :param disable_time: When this vertex was disabled in the database (UNIX time).
+        :param disable_time: When this vertex was disabled in the database (UNIX
+            time).
         :type disable_time: int
         """
 
-        # Step 1: Sets the property active from true to false and registers the time when the
-        # vertex was disabled.
+        # Step 1: Sets the property active from true to false and registers the
+        # time when the vertex was disabled.
         g.t.V(self.id()).property(
             'active', False).property('time_disabled', disable_time).iterate()
 
         # Step 2: Adds the new vertex in the serverside.
-        newVertex.add()
+        newVertex.add(strict_add=True)
 
         # Step 3
         newVertexId = newVertex.id()
@@ -431,7 +431,8 @@ class ComponentVersion(Vertex):
 
     def as_dict(self):
         """Return a dictionary representation."""
-        return {"name": self.name, "comments": self.comments}
+        return {"name": self.name, "comments": self.comments,
+                "allowed_type": self.allowed_type.as_dict()}
 
     def add(self, strict_add=False):
         """Add this ComponentVersion vertex to the serverside.
@@ -468,10 +469,12 @@ class ComponentVersion(Vertex):
     def replace(self, newVertex, disable_time: int = int(time.time())):
         """Replaces the ComponentVersion vertex in the serverside.
 
-        :param newVertex: The new ComponentVersion vertex that is replacing the old ComponentVersion vertex.
+        :param newVertex: The new ComponentVersion vertex that is replacing the
+            old ComponentVersion vertex.
         :type newVertex: ComponentVersion
 
-        :param disable_time: When this vertex was disabled in the database (UNIX time).
+        :param disable_time: When this vertex was disabled in the database (UNIX
+            time).
         :type disable_time: int
         """
 
@@ -480,7 +483,7 @@ class ComponentVersion(Vertex):
            .property('time_disabled', disable_time).iterate()
 
         # Step 2
-        newVertex.add()
+        newVertex.add(strict_add=True)
 
         # Step 3
         newVertexId = newVertex.id()
@@ -916,10 +919,12 @@ class Component(Vertex):
     def replace(self, newVertex, disable_time: int = int(time.time())):
         """Replaces the Component vertex in the serverside.
 
-        :param newVertex: The new Component vertex that is replacing the old Component vertex.
+        :param newVertex: The new Component vertex that is replacing the old
+            Component vertex.
         :type newVertex: Component
 
-        :param disable_time: When this vertex was disabled in the database (UNIX time).
+        :param disable_time: When this vertex was disabled in the database (UNIX
+            time).
         :type disable_time: int
         """
 
@@ -928,7 +933,7 @@ class Component(Vertex):
            .property('time_disabled', disable_time).iterate()
 
         # Step 2
-        newVertex.add()
+        newVertex.add(strict_add=True)
 
         # Step 3
         newVertexId = newVertex.id()
@@ -1175,8 +1180,8 @@ class Component(Vertex):
         )
 
         if current_property is not None:
-    CONTINUE HERE: see if behaviour is correct (when this trips in
-            init_simple-db.py).
+#    CONTINUE HERE: see if behaviour is correct (when this trips in
+#            init_simple-db.py).
             if current_property.values == property.values:
                 strictraise(strict_add, PropertyIsSameError, 
                     "An identical property of type " +
@@ -1333,6 +1338,7 @@ class Component(Vertex):
         """
 
         # id of the property being replaced.
+        print("This method needs to be updated to use the Timestamp class.")
         id = g.t.V(self.id()).bothE(RelationProperty.category)\
                 .has('active', True)\
                 .has('end_edit_time', g._TIMESTAMP_NO_EDITTIME_VALUE)\
@@ -2189,49 +2195,57 @@ class Component(Vertex):
 
         return traversal.count().next()
 
-    def as_dict(self, at_time: int = None):
+    def as_dict(self, at_time: int = None, bare = False):
         """Return a dictionary representation of this Component at time
-        :param at_time:.
-
         :param at_time: The time to check the component at. Pass `None` to get
           properties/flags/connexions at all times.
         :type at_time: int or None
+
+        :param bare: If True, then only return a dictionary with the name and
+        type and version and comments; if False, then also return all the
+        properties, flags and connexions.
+        :type bare: bool
 
         :return: A dictionary representation of this Components's attributes.
         :rtype: dict
         """
         # at_time has not yet been implemented!
         assert(at_time == None)
-
-        prop_dicts = [{**prop.as_dict(), **rel.as_dict()} \
-            for (prop, rel) in self.get_all_properties()
-        ]
-
-        conn_dicts = [{**{"name": comp.name}, **rel.as_dict()} \
-            for (comp, rel) in self.get_all_connections()
-        ]
-
-        flag_dicts = [flag.as_dict() for flag in self.get_all_flags()]
-
-        subcomponent_dicts = [{"name": subcomponents.name} \
-            for subcomponents in self.get_all_subcomponents()
-        ]
         
-        supercomponent_dicts = [{"name": supercomponents.name} \
-            for supercomponents in self.get_all_supercomponents()
-        ]
+        base = {'name': self.name,
+                'type': self.type.as_dict(),
+                'version': self.version.as_dict() if self.version else {},
+                'time_added': self.time_added}
 
-        return {
-            'name': self.name,
-            'type': self.type.as_dict(),
-            'version': self.version.as_dict() if self.version else {},
-            'time_added': self.time_added,
-            'properties': prop_dicts,
-            'connections': conn_dicts,
-            'flags': flag_dicts,
-            'subcomponents': subcomponent_dicts,
-            'supercomponents': supercomponent_dicts
-        }
+        if not bare:
+            prop_dicts = [{**prop.as_dict(), **rel.as_dict()} \
+                for (prop, rel) in self.get_all_properties()
+            ]
+
+            conn_dicts = [{**{"name": comp.name}, **rel.as_dict()} \
+                for (comp, rel) in self.get_all_connections()
+            ]
+
+            flag_dicts = [flag.as_dict() for flag in self.get_all_flags()]
+
+            subcomponent_dicts = [{"name": subcomponents.name} \
+                for subcomponents in self.get_all_subcomponents()
+            ]
+        
+            supercomponent_dicts = [{"name": supercomponents.name} \
+                for supercomponents in self.get_all_supercomponents()
+            ]
+            extra = {
+                'properties': prop_dicts,
+                'connections': conn_dicts,
+                'flags': flag_dicts,
+                'subcomponents': subcomponent_dicts,
+                'supercomponents': supercomponent_dicts
+            }
+        else:
+            extra = {}
+
+        return {**base, **extra}
 
     def __repr__(self):
         return f"{self.category} {self.type.name}: {self.name} ({self._id})"

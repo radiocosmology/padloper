@@ -30,6 +30,13 @@ import { ThemeProvider } from '@emotion/react';
 
 import { unixTimeToISOString } from './utility/utility.js';
 
+    window.addEventListener("error", (e) => {
+      if (e.message === 'ResizeObserver loop completed with undelivered notifications.' || e.message === 'ResizeObserver loop limit exceeded') {
+        console.log("Oh, yeah × 22!!!!");
+        e.stopImmediatePropagation();
+      }
+    });
+
 /**
  * MUI custom theme
  * See https://mui.com/customization/theming/#theme-configuration-variables
@@ -224,8 +231,6 @@ export default function ComponentConnectionVisualizer() {
     // https://reactrouter.com/docs/en/v6/api#usesearchparams
     const [searchParams, setSearchParams] = useSearchParams();
 
-    // console.log(searchParams.get("edges"));
-
     // the React Flow nodes to be used in the visualization
     const [nodes, setNodes] = useState([]);
 
@@ -299,7 +304,6 @@ export default function ComponentConnectionVisualizer() {
      */
     async function addComponent(comp, x, y) {
         // catch it
-        console.log(comp);
         if (nodeIds.current[comp.name]) {
             return false;
         }
@@ -462,10 +466,10 @@ export default function ComponentConnectionVisualizer() {
             );
 
             if (queue[queueFrontIndex].currDepth + 1 < depth) {
-                for (let compName of newComponents) {
-                    if (!visited[compName]) {
+                for (let thisComp of newComponents) {
+                    if (!visited[thisComp.name]) {
                         queue.push({
-                            name: compName, 
+                            name: thisComp.name,
                             currDepth: queue[queueFrontIndex].currDepth + 1
                         })
                     }
@@ -532,7 +536,7 @@ export default function ComponentConnectionVisualizer() {
                                 <Link to={`/component/${data.name}`}>
                                     {data.name}
                                 </Link>
-                                <br/>{data.ctype}
+                                <br/>{data.ctype.name}
                             </Typography>
                         </Grid>
                         <Grid item>
@@ -558,6 +562,18 @@ export default function ComponentConnectionVisualizer() {
      */
     async function expandConnections(name, time) {
 
+// BUUGGGGG: why does the development npm throw a "ResizeObserver loop
+// completed with undelivered notifications" error (in Firefox)?
+// ANSWER: it seems to only do this when there are multiple nodes added; doesn't
+// happen at all in Chromebut does happen in KDE "web browser"; Konqeror not
+// sure. Found this; not sure if relevant.
+//
+// https://stackoverflow.com/questions/76187282/react-resizeobserver-loop-completed-with-undelivered-notifications
+// 
+// If you are only connected to two, though, it is OK.
+//
+// I am trying to get them to stop propagating: see App.py and this one with the
+// addEventListener(), but it doesn't work!
         // construct the query string
         let input = `/api/get_connections`;
         input += `?name=${name}`;
@@ -602,6 +618,13 @@ export default function ComponentConnectionVisualizer() {
     const nodeTypes = useMemo(
       () => ({component: ComponentNode}), []
     );
+
+    window.addEventListener("error", (e) => {
+      if (e.message === 'ResizeObserver loop completed with undelivered notifications.' || e.message === 'ResizeObserver loop limit exceeded') {
+        console.log("Oh, yeah × 2!!!!");
+        e.stopImmediatePropagation();
+      }
+    });
 
     return (
         <Grid 

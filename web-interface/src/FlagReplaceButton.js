@@ -54,7 +54,7 @@ const ReplaceButton = styled((props) => (
 
 
 
-export default function FlagReplaceButton ({flag_types,flag_severities,flag_components,toggleReload,nameFlag}){
+export default function FlagReplaceButton ({type,severities,components,toggleReload,nameFlag}){
 
     // opens and closes the pop up form to replace a flag.
     const [open, setOpen] = useState(false);
@@ -63,8 +63,8 @@ export default function FlagReplaceButton ({flag_types,flag_severities,flag_comp
     const [property,setProperty] = useState({
     name: '',
     uid: '',
-    flag_severity:'',
-    flag_type:'',
+    severity:'',
+    type:'',
     start_comment:'',
     comments: ''
   })
@@ -123,8 +123,8 @@ export default function FlagReplaceButton ({flag_types,flag_severities,flag_comp
     setProperty({
     name: '',
     uid: '',
-    flag_severity:'',
-    flag_type:'',
+    severity:'',
+    type:'',
     start_comment:'',
     comments:''
   })
@@ -143,7 +143,7 @@ export default function FlagReplaceButton ({flag_types,flag_severities,flag_comp
       input += `&end_time=${endTime}`;
       input += `&uid=${property.uid}`;
       input += `&flag_severity=${property.flag_severity}`;
-      input += `&flag_type=${property.flag_type}`;
+      input += `&flag_type=${property.type}`;
       input += `&comments=${property.comments}`;
       input += `&start_comments=${property.start_comment}`;
       input += `&flag_components=${componentName.join(';')}`;
@@ -220,12 +220,12 @@ export default function FlagReplaceButton ({flag_types,flag_severities,flag_comp
           labelId="Flag-Type-label"
           id="Flag-Type"
           fullWidth
-          value={property.flag_type}
+          value={property.type}
           name='flag_type'
           label='Flag Type'
           onChange={handleChange}
          >
-          {flag_types.map((item) => {
+          {type.map((item) => {
             return (
               <MenuItem
               key={item.name}
@@ -247,12 +247,12 @@ export default function FlagReplaceButton ({flag_types,flag_severities,flag_comp
           labelId="Flag-Severity-label"
           id="Flag-Severity"
           fullWidth
-          value={property.flag_severity}
+          value={property.severity}
           name = 'flag_severity'
           label='Flag Severity'
           onChange={handleChange}
          >
-          {flag_severities.map((item) => {
+          {severities.map((item) => {
             return (
               <MenuItem
               key={item.name}
@@ -296,7 +296,7 @@ export default function FlagReplaceButton ({flag_types,flag_severities,flag_comp
           )
           )
           :
-          flag_components.map((item,index) => (
+          components.map((item,index) => (
             <MenuItem key={index} value={item.name}>
               <Checkbox checked={componentName.indexOf(item.name) > -1} />
               <ListItemText primary={item.name} />
@@ -416,7 +416,7 @@ export default function FlagReplaceButton ({flag_types,flag_severities,flag_comp
         <DialogActions>
           <Button onClick={handleClose}>Cancel</Button>
           {
-             componentName.length !== 0 && property.name && property.flag_type && property.flag_severity && startTime && property.uid
+             componentName.length !== 0 && property.name && property.type && property.severity && startTime && property.uid
             ?
             <Button onClick={handleSubmit}>
               {loading ? <CircularProgress
