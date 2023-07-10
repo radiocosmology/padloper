@@ -1,11 +1,18 @@
 import React, { useState, useEffect, useRef, useCallback } from 'react';
 import ReactFlow, { 
-    Controls, Background, Handle, ControlButton, isNode, MarkerType
-} from 'react-flow-renderer';
+    Controls, Background, Handle, ControlButton, isNode, MarkerType} from 'react-flow-renderer';
+import {ReactFlowProvider,
+        useNodesState,
+        useEdgesState,
+        addEdge,
+        useReactFlow,
+        Panel,
+        useNodes
+} from 'reactflow'
+import 'reactflow/dist/style.css';
 import styled from '@mui/material/styles/styled';
 import createTheme from '@mui/material/styles/createTheme';
 import { Link, useSearchParams } from "react-router-dom";
-
 import dagre from 'dagre';
 
 import Paper from '@mui/material/Paper';
@@ -26,6 +33,8 @@ import ComponentAutocomplete from './ComponentAutocomplete.js';
 import { ThemeProvider } from '@emotion/react';
 
 import { unixTimeToISOString } from './utility/utility.js';
+
+const reactFlowWrapper = React.createRef(); // Move this closer to reactflowwrapper.
 
 /**
  * MUI custom theme
@@ -313,6 +322,7 @@ export default function ComponentConnectionVisualizer() {
      * sub/supercomponent.
      * @returns Return whether the edge was successfully added.
      */
+
     const addEdge = (id, source, target, subcomponent) => {
         var e_style, e_arrow, e_type;
 
@@ -320,7 +330,6 @@ export default function ComponentConnectionVisualizer() {
         if (elementIds.current[id]) {
             return false;
         }
-
         if (subcomponent) {
             e_style = {stroke: '#555555', strokeWidth: 3, strokeDashArray: '2,2'};
             e_arrow = 'arrowclosed';
@@ -338,11 +347,31 @@ export default function ComponentConnectionVisualizer() {
             type: e_type,
             style: e_style,
             arrowHeadType: e_arrow,
+            data: {},
 //            markerStart: {type: 'arrow', width: 100, height: 100, strokeWidth: 4, color: '#ffff00'}, //e_marker,
 //            markerEnd: {type: 'arrow', strokeWidth: 4, color: '#00ff00'}, //e_marker,
-        }
+        };
+// Check if it's a group node
+    if (subcomponent) {
+    const inVertexNode = elements.find((element) => element.data.label === 'inVertex');
+    const groupNodeId = inVertexNode ? inVertexNode.id : source;
+
+    const groupNode = {
+      id: groupNodeId,
+      type: 'group',
+      data: {},
+      position: { x: 0, y: 0 },
+      children: [newElement.id],
+    };
+
+
+        setElements((elements) => [...elements, newElement, groupNode]);
+        } else {
         addElementId(id);
-        setElements((nodes) => nodes.concat(newElement));
+        setElements((elements) => [...elements, newElement]);
+        }
+        /// ZANNATUL addElementId(id);
+        /// setElements((nodes) => nodes.concat(newElement));
 
         return true;
     }
@@ -388,10 +417,12 @@ export default function ComponentConnectionVisualizer() {
          * TODO: Change the position of the component so it appears below the
          * other components.
          */
+        const verticalY = 50;
         addComponent(
             component.name, 
             defaultPosition.x - nodeWidth / 2, 
-            defaultPosition.y - nodeHeight / 2
+            defaultPosition.y - nodeHeight / 2 - verticalY,
+        
         );
 
         // depth will be decremented by 1 each time, like BFS.
@@ -425,7 +456,7 @@ export default function ComponentConnectionVisualizer() {
                 queue[queueFrontIndex].name, 
                 time.current
             );
-
+            
             if (queue[queueFrontIndex].currDepth + 1 < depth) {
                 for (let compName of newComponents) {
                     if (!visited[compName]) {
@@ -459,12 +490,61 @@ export default function ComponentConnectionVisualizer() {
         onLayout();
     }, [toggleLayoutBool]);
 
+    //ZANNATUL
+   // const flowKey = 'example-flow';
+    // const getNodeId = () => `randomnode_${+new Date()}`;
+
+    // const SaveRestore = () => {
+       // const [nodes, setNodes, onNodesChange] = useNodesState([]);
+        //const [edges, setEdges, onEdgesChange] = useEdgesState([]);
+        //const [rfInstance, setRfInstance] = useState(null);
+        //const { setViewport } = useReactFlow();
+      
+  //  const onConnect = useCallback((params) => setEdges((eds) => addEdge(params, eds)), [setEdges]);
+    //const onSave = useCallback(() => {
+      //  if (rfInstance) {
+        //    const flow = rfInstance.toObject();
+          //  localStorage.setItem(flowKey, JSON.stringify(flow));
+        //}
+   // }, [rfInstance]);
+      
+   // const onRestore = useCallback(() => {
+     //   const restoreFlow = async () => {
+       //     const flow = JSON.parse(localStorage.getItem(flowKey));
+      
+         //   if (flow) {
+           //   const { x = 0, y = 0, zoom = 1 } = flow.viewport;
+             // setNodes(flow.nodes || []);
+              //setEdges(flow.edges || []);
+              //setViewport({ x, y, zoom });
+            //}
+        //};
+      
+     //     restoreFlow();
+       // }, [setNodes, setEdges, setViewport]);
+      
+        //const onAdd = useCallback(() => {
+          //const newNode = {
+            //id: getNodeId(),
+            //data: { label: 'Added node' },
+            //position: {
+              //x: Math.random() * window.innerWidth - 100,
+              //y: Math.random() * window.innerHeight,
+            //},
+          //};
+      //    setNodes((nds) => nds.concat(newNode));
+        //}, [setNodes]);
+    //};
+    //return {
+
+    //}
     /**
      * A MUI component representing a component node.
      * @param {*} data - data for the React Flow component.
      * Really only need data.name from here.
      */
     function ComponentNode({ data }) {
+        
         return (
             <ThemeProvider theme={theme}>
                 <Handle 
@@ -501,8 +581,10 @@ export default function ComponentConnectionVisualizer() {
                         </Grid>
                         <Grid item>
                             <ExpandConnectionsButton 
-                                onClick={() => expandConnections(
-                                    data.name, time.current)}
+                                onClick={async () => {
+                                    await expandConnections(data.name, time.current);
+                                    toggleLayout();
+                            }}
                             />
                         </Grid>
                     </Grid>
@@ -520,6 +602,12 @@ export default function ComponentConnectionVisualizer() {
      * @returns A Promise, which, when resolved, returns the array of the names
      * of the components added.
      */
+
+    let nodeCounter = 0;
+    // Assume a node's size is 50x50 and offset is 10
+    const NODE_SIZE = 80;
+    const OFFSET = 5;
+
     async function expandConnections(name, time) {
 
         // construct the query string
@@ -542,9 +630,42 @@ export default function ComponentConnectionVisualizer() {
         
                         let otherName = (name === edge.inVertexName) ? 
                             edge.outVertexName : edge.inVertexName;
-        
+                        
+                        // Fetch the container dimensions
+                        const containerWidth = reactFlowWrapper.current.offsetWidth;
+                        const containerHeight = reactFlowWrapper.current.offsetHeight;
+                    
+                        // Calculate the center
+                        const centerX = containerWidth / 2;
+                        const centerY = containerHeight / 2;
+                        // Calculate the offset
+                        const offsetX = (NODE_SIZE + OFFSET) * (nodeCounter % 5);
+                        const offsetY = (NODE_SIZE + OFFSET) * Math.floor(nodeCounter / 5);
+                        //Todo if ed sub :True
+
+                        //If False add component
+                        let added = addComponent(otherName, centerX + offsetX, centerY + offsetY);
+                        nodeCounter++; //Add group instead of node
+                        //
+                        // Check if the added node is a subcomponent
+                        // (If subcomponent) False add component then an edge 
+                        if (edge.subcomponent) { //Remove inVertexName
+                        const parentElement = elements.find((el) => el.data.label === edge.outVertexName); //Find element for OutVerte
+                        if (parentElement) {
+                        const groupNodeId = parentElement.id;
+
+                        const groupNode = {
+                        id: groupNodeId,
+                        type: 'group',
+                        data: {},
+                        position: { x: 0, y: 0 },
+                        children: [edge.id],
+                        };
+                    // Set the parent-child relationship
+                    setElements((elements) => [...elements, groupNode]);
+                    }
+                    }
                         // TODO: Change the default position.
-                        let added = addComponent(otherName, 0, 0);
                         addEdge(
                             edge.id, 
                             edge.outVertexName, 
@@ -665,7 +786,14 @@ export default function ComponentConnectionVisualizer() {
                         >
                             Visualize
                         </Button>
-                        
+            
+                        <Button
+                            variant="contained"
+                            onClick={toggleLayout}
+                            disabled={component === undefined}
+                        >
+                            Reset
+                        </Button>
                     </Stack>
                 </OptionsPanel>
             </Grid>
@@ -676,6 +804,13 @@ export default function ComponentConnectionVisualizer() {
                         elements={elements}
                         nodesConnectable={false}
                         nodeTypes={{component: ComponentNode}}
+                        ref={reactFlowWrapper}
+                        //nodes={nodes}
+                        //edges={edges}
+                        //onNodesChange={onNodesChange}
+                        //onEdgesChange={onEdgesChange}
+                        //onConnect={onConnect}
+                        //onInit={setRfInstance}
                     >
                         <Background
                             variant="dots"
@@ -686,7 +821,6 @@ export default function ComponentConnectionVisualizer() {
                             <ControlButton 
                                 onClick={() => {onLayout()}}
                             >
-                                <SortIcon />
                             </ControlButton>
                         </Controls>
                     </ReactFlow>
