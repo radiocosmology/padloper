@@ -311,6 +311,31 @@ export default function ComponentConnectionVisualizer() {
         return true;
     }
 
+    async function addGroupComponent(name, x, y) {
+
+        // catch it
+        if (elementIds.current[name]) {
+            return false;
+        }
+
+        let newElement = {
+            id: name,
+            connectable: false,
+            type: 'group',
+            data: { name: name },
+            position: { x: x, y: y },
+            style: {
+                width: 170,
+                height: 140,
+            },
+        }
+        
+        addElementId(name);
+        setElements((els) => els.concat(newElement));
+
+        return true;
+    }
+
     /**
      * Add an edge to the React Flow graph.
      * @param {string} id - the ID of the edge to add 
@@ -351,28 +376,28 @@ export default function ComponentConnectionVisualizer() {
 //            markerStart: {type: 'arrow', width: 100, height: 100, strokeWidth: 4, color: '#ffff00'}, //e_marker,
 //            markerEnd: {type: 'arrow', strokeWidth: 4, color: '#00ff00'}, //e_marker,
         };
-// Check if it's a group node
-    if (subcomponent) {
-    const inVertexNode = elements.find((element) => element.data.label === 'inVertex');
-    const groupNodeId = inVertexNode ? inVertexNode.id : source;
+        // Check if it's a group node
+        if (subcomponent) {
+            const inVertexNode = elements.find((element) => element.data.label === 'inVertex');
+            const groupNodeId = inVertexNode ? inVertexNode.id : source;
 
-    const groupNode = {
-      id: groupNodeId,
-      type: 'group',
-      data: {},
-      position: { x: 0, y: 0 },
-      children: [newElement.id],
-    };
+            const groupNode = {
+            id: groupNodeId,
+            type: 'group',
+            data: {},
+            position: { x: 0, y: 0 },
+            children: [newElement.id],
+            };
 
 
-        setElements((elements) => [...elements, newElement, groupNode]);
+            setElements((elements) => [...elements, newElement, groupNode]);
+            
         } else {
-        addElementId(id);
-        setElements((elements) => [...elements, newElement]);
+            addElementId(id);
+            setElements((elements) => [...elements, newElement]);
         }
-        /// ZANNATUL addElementId(id);
-        /// setElements((nodes) => nodes.concat(newElement));
-
+            /// ZANNATUL addElementId(id);
+            /// setElements((nodes) => nodes.concat(newElement));
         return true;
     }
 
@@ -626,8 +651,8 @@ export default function ComponentConnectionVisualizer() {
                 fetch(input).then(
                     res => res.json()
                 ).then(data => {
+                    let groupNodeExists = false;
                     for (const edge of data.result) {
-        
                         let otherName = (name === edge.inVertexName) ? 
                             edge.outVertexName : edge.inVertexName;
                         
@@ -643,39 +668,57 @@ export default function ComponentConnectionVisualizer() {
                         const offsetY = (NODE_SIZE + OFFSET) * Math.floor(nodeCounter / 5);
                         //Todo if ed sub :True
 
+                        // check if the component has a sub / super component
+                        if (edge.subcomponent) {
+                            const parentElement = elements.find((el) => el.data.label === otherName); //Find element for OutVerte
+                            if (!parentElement) {
+                                const groupNodeId = otherName;
+                                // Set the parent-child relationship
+                                // setElements((elements) => [...elements, groupNode]);
+                                let added = addGroupComponent(groupNodeId, centerX + offsetX, centerY + offsetY);
+                                if (added) {  // if the component was added
+                                    componentsAdded.push(groupNodeId);
+                                    nodeCounter++; //Add group instead of node
+                                }
+                            }
+                        } else {
+                            let added = addComponent(otherName, centerX + offsetX, centerY + offsetY);
+                            if (added) {  // if the component was added
+                                componentsAdded.push(otherName);
+                                nodeCounter++; //Add group instead of node
+                            }
+                            addEdge(
+                                edge.id, 
+                                edge.outVertexName, 
+                                edge.inVertexName,
+                                edge.subcomponent
+                            );
+                        }
                         //If False add component
-                        let added = addComponent(otherName, centerX + offsetX, centerY + offsetY);
-                        nodeCounter++; //Add group instead of node
+                        // let added = addComponent(otherName, centerX + offsetX, centerY + offsetY);
+                        // nodeCounter++; //Add group instead of node
                         //
                         // Check if the added node is a subcomponent
                         // (If subcomponent) False add component then an edge 
-                        if (edge.subcomponent) { //Remove inVertexName
-                        const parentElement = elements.find((el) => el.data.label === edge.outVertexName); //Find element for OutVerte
-                        if (parentElement) {
-                        const groupNodeId = parentElement.id;
+                        // if (edge.subcomponent) { //Remove inVertexName
+                        //     const parentElement = elements.find((el) => el.data.label === edge.inVertexName); //Find element for OutVerte
+                        //     if (parentElement) {
+                        //         const groupNodeId = parentElement.id;
 
-                        const groupNode = {
-                        id: groupNodeId,
-                        type: 'group',
-                        data: {},
-                        position: { x: 0, y: 0 },
-                        children: [edge.id],
-                        };
-                    // Set the parent-child relationship
-                    setElements((elements) => [...elements, groupNode]);
-                    }
-                    }
+                        //         const groupNode = {
+                        //             id: groupNodeId,
+                        //             type: 'group',
+                        //             data: {},
+                        //             position: { x: 0, y: 0 },
+                        //             children: [edge.id],
+                        //         };
+                        //         // Set the parent-child relationship
+                        //         setElements((elements) => [...elements, groupNode]);
+                        //     }
+                        // }
                         // TODO: Change the default position.
-                        addEdge(
-                            edge.id, 
-                            edge.outVertexName, 
-                            edge.inVertexName,
-                            edge.subcomponent
-                        );
+
         
-                        if (added) {
-                            componentsAdded.push(otherName);
-                        }
                     }
                     resolve(componentsAdded);
                 });
