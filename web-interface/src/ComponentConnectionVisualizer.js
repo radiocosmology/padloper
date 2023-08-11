@@ -1,14 +1,9 @@
 import React, { useState, useEffect, useRef, useCallback } from 'react';
 import ReactFlow, { 
     Controls, Background, Handle, ControlButton, isNode, MarkerType} from 'react-flow-renderer';
-import {ReactFlowProvider,
-        useNodesState,
-        useEdgesState,
-        addEdge,
-        useReactFlow,
-        Panel,
-        useNodes
-} from 'reactflow'
+import {
+    ReactFlowProvider, useNodesState, useEdgesState, addEdge, useReactFlow, Panel, useNodes, 
+    applyEdgeChanges, applyNodeChanges} from 'reactflow'
 import 'reactflow/dist/style.css';
 import styled from '@mui/material/styles/styled';
 import createTheme from '@mui/material/styles/createTheme';
@@ -33,6 +28,8 @@ import ComponentAutocomplete from './ComponentAutocomplete.js';
 import { ThemeProvider } from '@emotion/react';
 
 import { unixTimeToISOString } from './utility/utility.js';
+import { width } from '@mui/system';
+import { initialState } from 'react-flow-renderer';
 
 const reactFlowWrapper = React.createRef(); // Move this closer to reactflowwrapper.
 
@@ -110,6 +107,19 @@ const ComponentNodeWrapper = styled((props) => (
     textAlign: 'center',
 }));
 
+const GroupComponentNodeWrapper = styled((props) => (
+    <Paper 
+        variant="outlined"
+        {...props}
+    />
+))(({ theme }) => ({
+    background: 'white',
+    borderColor: '#777777',
+    borderWidth: '2px',
+    width: '160px',
+    height: '50px',
+    textAlign: 'center',
+}));
 /**
  * Styled component used as the drag handle for the component nodes in the
  * visualization.
@@ -173,7 +183,7 @@ const nodeWidth = 160, nodeHeight = 50;
  * visualization
  * @returns A list of the nodes and edges with proper positioning.
  */
-const getLayoutedElements = (elements) => {
+const getLayoutedElements = (nodes, edges) => { // nodes , edges
     // https://reactflow.dev/examples/layouting/
 
     /**
@@ -185,38 +195,62 @@ const getLayoutedElements = (elements) => {
     dagreGraph.setGraph({ rankdir: direction });
   
     // set up the dagre graph
-    elements.forEach((el) => {
-        if (isNode(el)) {
-            dagreGraph.setNode(el.id, { width: nodeWidth, height: nodeHeight });
-        } else {
-            dagreGraph.setEdge(el.source, el.target);
-        }
+    // loop for nodes
+    nodes.forEach((node) => {  // keep 205 line
+    dagreGraph.setNode(node.id, { width: nodeWidth, height: nodeHeight });
+    });
+
+    // loop for edges
+    edges.forEach((edge) => {  // keep 207 line
+    dagreGraph.setEdge(edge.source, edge.target);
     });
   
     // do layout
     dagre.layout(dagreGraph);
   
     // return the layouted elements
-    return elements.map((el) => {
-      if (isNode(el)) {
-        const nodeWithPosition = dagreGraph.node(el.id);
-        el.targetPosition = 'top';
-        el.sourcePosition = 'bottom';
+    return nodes.map((node) => { // return nodes map
+      if (isNode(node)) {
+        const nodeWithPosition = dagreGraph.node(node.id);
+        node.targetPosition = 'top';
+        node.sourcePosition = 'bottom';
   
         // unfortunately we need this little hack to pass a slightly different 
         // position to notify react flow about the change. 
         // Moreover we are shifting the dagre node position 
         // (anchor=center center) to the top left so it matches the 
         // react flow node anchor point (top left).
-        el.position = {
+        node.position = {
           x: nodeWithPosition.x - nodeWidth / 2 + Math.random() / 1000,
           y: nodeWithPosition.y - nodeHeight / 2,
         };
       }
   
-      return el;
+      return node;
     });
 };
+
+
+// DELETE BELOW - FROM HERE
+// function Flow() {
+//     const [nodes, setNodes] = useState([]);
+//     const [edges, setEdges] = useState([]);
+  
+//     const onNodesChange = useCallback(
+//       (changes) => setNodes((nds) => applyNodeChanges(changes, nds)),
+//       [setNodes]
+//     );
+//     const onEdgesChange = useCallback(
+//       (changes) => setEdges((eds) => applyEdgeChanges(changes, eds)),
+//       [setEdges]
+//     );
+//     const onConnect = useCallback(
+//       (connection) => setEdges((eds) => addEdge(connection, eds)),
+//       [setEdges]
+//     );
+
+//     return { nodes, setNodes, edges, setEdges, onNodesChange, onConnect};
+// } TO HERE
 
 /**
  * The MUI component that represents the visualizer for components along with
@@ -233,11 +267,13 @@ export default function ComponentConnectionVisualizer() {
     // console.log(searchParams.get("edges"));
 
     // the React Flow elements to be used in the visualization
-    const [elements, setElements] = useState([]);
-
+    //const [elements, setElements] = useState([]); // set nodes / edges
+    const [nodes, setNodes] = useState([]);
+    const [edges, setEdges] = useState([]);
     // a dictionary that will store the React Flow IDs of the elements used
-    const elementIds = useRef({});
-
+    //   const elementIds = useRef({}); // set node / edge ids
+    const nodeIds = useRef({});
+    const edgeIds = useRef({});
     // which component is to be considered
     const [component, setComponent] = useState(undefined);
 
@@ -247,6 +283,19 @@ export default function ComponentConnectionVisualizer() {
     // value that the depth-input will show
     const [depthInputValue, setDepthInputValue] = useState(0);
 
+    // Callback function needed for below variables to work, also needed for 'parentNode' to work
+    const onNodesChange = useCallback(
+        (changes) => setNodes((nds) => applyNodeChanges(changes, nds)),
+        [setNodes]
+      );
+      const onEdgesChange = useCallback(
+        (changes) => setEdges((eds) => applyEdgeChanges(changes, eds)),
+        [setEdges]
+      );
+      const onConnect = useCallback(
+        (connection) => setEdges((eds) => addEdge(connection, eds)),
+        [setEdges]
+      );
     /**
      * The useRef hook is used as doing
      * setToggleLayoutBool(!toggleLayoutBool) will use the old value of
@@ -277,8 +326,14 @@ export default function ComponentConnectionVisualizer() {
      * visualization.
      * @param {string} id 
      */
-    function addElementId(id) {
-        elementIds.current[id] = true;
+   // function addElementId(id) { //nodes and edge ids
+   //     elementIds.current[id] = true;
+    //}
+    function addNodeId(id) { //nodes and edge ids
+        nodeIds.current[id] = true;
+    }
+    function addEdgeId(id) {
+        edgeIds.current[id] = true;
     }
 
     /**
@@ -292,47 +347,57 @@ export default function ComponentConnectionVisualizer() {
     async function addComponent(name, x, y) {
 
         // catch it
-        if (elementIds.current[name]) {
+        if (nodeIds.current[name]) { // SWITCH nodeids.current[] 
             return false;
         }
 
-        let newElement = {
+        let newNode = { // SWITCH TO NODE 
             id: name,
             connectable: false,
             type: 'component',
 //            dragHandle: '.drag-handle',
-            data: { name: name },
+            data: { 
+                name: name,
+                width: "160px",
+                height: "50px",
+            },
             position: { x: x, y: y },
         }
         
-        addElementId(name);
-        setElements((els) => els.concat(newElement));
+        addNodeId(name); // SWITCH TO NODE
+        setNodes((els) => els.concat(newNode));
 
         return true;
     }
 
-    async function addGroupComponent(name, x, y) {
+    async function addGroupComponent(name, x, y, n_subcomponent) {
 
         // catch it
-        if (elementIds.current[name]) {
+        if (nodeIds.current[name]) { // DELETE (/NODES)
             return false;
         }
-
-        let newElement = {
+        let width = 160*n_subcomponent*1.2  // 1.2 gives some margin
+        let height = 50*1.2  // 1.2 gives some margin
+        let newNode = {
             id: name,
             connectable: false,
-            type: 'group',
-            data: { name: name },
+            type: 'component',
+            data: { 
+                name: name,
+                width: width,
+                height: height,
+                nChildren: n_subcomponent,
+            },
+            label: {label: name},
             position: { x: x, y: y },
             style: {
-                width: 170,
-                height: 140,
+                width: width,
+                height: height,
             },
         }
         
-        addElementId(name);
-        setElements((els) => els.concat(newElement));
-
+        addNodeId(name); 
+        setNodes((els) => els.concat(newNode)); 
         return true;
     }
 
@@ -352,7 +417,7 @@ export default function ComponentConnectionVisualizer() {
         var e_style, e_arrow, e_type;
 
         // catch it
-        if (elementIds.current[id]) {
+        if (edgeIds.current[id]) { // switch edgeid
             return false;
         }
         if (subcomponent) {
@@ -365,7 +430,7 @@ export default function ComponentConnectionVisualizer() {
             e_type = 'smoothstep';
         }
 
-        let newElement = {
+        let newEdge = { // SWITCH TO EDGE
             id: id,
             source: source,
             target: target,
@@ -378,26 +443,21 @@ export default function ComponentConnectionVisualizer() {
         };
         // Check if it's a group node
         if (subcomponent) {
-            const inVertexNode = elements.find((element) => element.data.label === 'inVertex');
+            const inVertexNode = edges.find((edge) => edges.data.label === 'inVertex'); // edge 
             const groupNodeId = inVertexNode ? inVertexNode.id : source;
 
             const groupNode = {
-            id: groupNodeId,
-            type: 'group',
-            data: {},
-            position: { x: 0, y: 0 },
-            children: [newElement.id],
+                id: groupNodeId,
+                type: 'component',
+                data: {},
+                children: [newEdge.id],
             };
-
-
-            setElements((elements) => [...elements, newElement, groupNode]);
+            // setElements((elements) => [...elements, newElement, groupNode]);
             
         } else {
-            addElementId(id);
-            setElements((elements) => [...elements, newElement]);
+            addEdgeId(id); // SWITCH TO EDGES 
         }
-            /// ZANNATUL addElementId(id);
-            /// setElements((nodes) => nodes.concat(newElement));
+            setEdges((el) => el.concat(newEdge)); // SWITCH TO Elements to EDGES, change nodes to any variable
         return true;
     }
 
@@ -405,22 +465,25 @@ export default function ComponentConnectionVisualizer() {
      * Removes a React Flow element given the ID.
      * @param {string} id - The React Flow ID of the element to remove.
      */
-    const removeElement = (id) => {
-        let index = elements.findIndex(
-            (els) => els.id === id
-        );
-        if (index > -1) {
-            setElements((els) => els.splice(index, 1));
-        }
-        elementIds.current[id] = false;
-    }
+    // Below code isn't called anywhere - MAYBE DELETE ZANNATUL
+     const removeElement = (id) => { 
+         let index = nodes.findIndex(
+             (els) => els.id === id
+         );
+         if (index > -1) {
+             setNodes((els) => els.splice(index, 1));
+         }
+         nodeIds.current[id] = false;
+     }   
 
     /**
      * Remove all nodes and edges from the React Flow graph.
      */
-    const removeAllElements = () => {
-        setElements([]);
-        elementIds.current = {};
+    const removeAllElements = () => { // nodes and edges
+        setNodes([]);
+        setEdges([]);
+        nodeIds.current = {};
+        edgeIds.current = {}; // nodes and edges ids
     }
 
     /**
@@ -504,10 +567,11 @@ export default function ComponentConnectionVisualizer() {
      */
     const onLayout = useCallback(
         () => {
-            const layoutedElements = getLayoutedElements(elements);
-            setElements(layoutedElements);
+            const layoutedElements = getLayoutedElements(nodes, edges);
+            setNodes(layoutedElements);
+            setEdges(layoutedElements);
         },
-        [elements]
+        [nodes, edges]
     );
 
     // layout the graph once the toggle layout bool has been toggled
@@ -515,54 +579,6 @@ export default function ComponentConnectionVisualizer() {
         onLayout();
     }, [toggleLayoutBool]);
 
-    //ZANNATUL
-   // const flowKey = 'example-flow';
-    // const getNodeId = () => `randomnode_${+new Date()}`;
-
-    // const SaveRestore = () => {
-       // const [nodes, setNodes, onNodesChange] = useNodesState([]);
-        //const [edges, setEdges, onEdgesChange] = useEdgesState([]);
-        //const [rfInstance, setRfInstance] = useState(null);
-        //const { setViewport } = useReactFlow();
-      
-  //  const onConnect = useCallback((params) => setEdges((eds) => addEdge(params, eds)), [setEdges]);
-    //const onSave = useCallback(() => {
-      //  if (rfInstance) {
-        //    const flow = rfInstance.toObject();
-          //  localStorage.setItem(flowKey, JSON.stringify(flow));
-        //}
-   // }, [rfInstance]);
-      
-   // const onRestore = useCallback(() => {
-     //   const restoreFlow = async () => {
-       //     const flow = JSON.parse(localStorage.getItem(flowKey));
-      
-         //   if (flow) {
-           //   const { x = 0, y = 0, zoom = 1 } = flow.viewport;
-             // setNodes(flow.nodes || []);
-              //setEdges(flow.edges || []);
-              //setViewport({ x, y, zoom });
-            //}
-        //};
-      
-     //     restoreFlow();
-       // }, [setNodes, setEdges, setViewport]);
-      
-        //const onAdd = useCallback(() => {
-          //const newNode = {
-            //id: getNodeId(),
-            //data: { label: 'Added node' },
-            //position: {
-              //x: Math.random() * window.innerWidth - 100,
-              //y: Math.random() * window.innerHeight,
-            //},
-          //};
-      //    setNodes((nds) => nds.concat(newNode));
-        //}, [setNodes]);
-    //};
-    //return {
-
-    //}
     /**
      * A MUI component representing a component node.
      * @param {*} data - data for the React Flow component.
@@ -586,13 +602,20 @@ export default function ComponentConnectionVisualizer() {
                         top: '88%',
                     }}
                 />
-                <ComponentNodeWrapper>
+                <ComponentNodeWrapper
+                    style={{
+                        // width: '160px',
+                        // height: '50px',
+                        width: data.width,
+                        height: data.height,
+                    }}
+                >
                     <Grid
                         container
                         justifyContent="center"
                         alignItems="center"
                         style={{
-                            height: '100%'
+                            height: '100%',
                         }}
                     >
                         <Grid item xs={9}>
@@ -651,9 +674,8 @@ export default function ComponentConnectionVisualizer() {
                 fetch(input).then(
                     res => res.json()
                 ).then(data => {
-                    let groupNodeExists = false;
                     for (const edge of data.result) {
-                        let otherName = (name === edge.inVertexName) ? 
+                        let newNodeName = (name === edge.inVertexName) ? 
                             edge.outVertexName : edge.inVertexName;
                         
                         // Fetch the container dimensions
@@ -666,25 +688,29 @@ export default function ComponentConnectionVisualizer() {
                         // Calculate the offset
                         const offsetX = (NODE_SIZE + OFFSET) * (nodeCounter % 5);
                         const offsetY = (NODE_SIZE + OFFSET) * Math.floor(nodeCounter / 5);
-                        //Todo if ed sub :True
 
                         // check if the component has a sub / super component
                         if (edge.subcomponent) {
-                            const parentElement = elements.find((el) => el.data.label === otherName); //Find element for OutVerte
-                            if (!parentElement) {
-                                const groupNodeId = otherName;
-                                // Set the parent-child relationship
-                                // setElements((elements) => [...elements, groupNode]);
-                                let added = addGroupComponent(groupNodeId, centerX + offsetX, centerY + offsetY);
-                                if (added) {  // if the component was added
-                                    componentsAdded.push(groupNodeId);
-                                    nodeCounter++; //Add group instead of node
+                            nodeCounter++;
+                            setEdges((el) => {
+                                const parentElement = edges.find((el) => el.id === newNodeName);
+                                // if the element doesn't exist, create it now, otherwise, if it exists
+                                // we don't need to create it again
+                                if (!parentElement) { // not exists, can create now!
+                                    let added = addComponent(newNodeName, centerX + offsetX, centerY + offsetY);
+                                    console.log(added);
+                                    if (added) {  // if the component was added
+                                        componentsAdded.push(newNodeName);
+                                        nodeCounter++; //Add group instead of node
+                                    }
                                 }
-                            }
+                                return {nodes, edges}
+                            })                            
+                            
                         } else {
-                            let added = addComponent(otherName, centerX + offsetX, centerY + offsetY);
+                            let added = addComponent(newNodeName, centerX + offsetX, centerY + offsetY);
                             if (added) {  // if the component was added
-                                componentsAdded.push(otherName);
+                                componentsAdded.push(newNodeName);
                                 nodeCounter++; //Add group instead of node
                             }
                             addEdge(
@@ -694,32 +720,17 @@ export default function ComponentConnectionVisualizer() {
                                 edge.subcomponent
                             );
                         }
-                        //If False add component
-                        // let added = addComponent(otherName, centerX + offsetX, centerY + offsetY);
-                        // nodeCounter++; //Add group instead of node
-                        //
-                        // Check if the added node is a subcomponent
-                        // (If subcomponent) False add component then an edge 
-                        // if (edge.subcomponent) { //Remove inVertexName
-                        //     const parentElement = elements.find((el) => el.data.label === edge.inVertexName); //Find element for OutVerte
-                        //     if (parentElement) {
-                        //         const groupNodeId = parentElement.id;
-
-                        //         const groupNode = {
-                        //             id: groupNodeId,
-                        //             type: 'group',
-                        //             data: {},
-                        //             position: { x: 0, y: 0 },
-                        //             children: [edge.id],
-                        //         };
-                        //         // Set the parent-child relationship
-                        //         setElements((elements) => [...elements, groupNode]);
-                        //     }
-                        // }
                         // TODO: Change the default position.
 
         
                     }
+                    
+                    // 1. how many children are added? nChildrenAdded
+                    // 2. find the group element in elements
+                    // 3. how many children are in total? nChildrenTotal = nChildrenAdded + element.data.nChildren (usually is 1)
+                    // option 1: modify group elements to change width and height based on total children number
+                    // option 2: delete group element, and readded it with the right number of children: addGroupNode(....., nChildrenTotal)
+
                     resolve(componentsAdded);
                 });
             }
@@ -843,17 +854,19 @@ export default function ComponentConnectionVisualizer() {
 
             <Grid item>
                 <VisualizerPanel>
-                    <ReactFlow 
-                        elements={elements}
+                    <ReactFlow
+                        /// elements={elements}
+                        nodes={nodes}
+                        edges={edges}
+                        onNodesChange={onNodesChange}
+                        onEdgesChange={onEdgesChange}
+                        onConnect={onConnect}
+                        fitView
+                        //style={rfStyle}
+                        attributionPosition="top-right" // Zannatul
                         nodesConnectable={false}
                         nodeTypes={{component: ComponentNode}}
                         ref={reactFlowWrapper}
-                        //nodes={nodes}
-                        //edges={edges}
-                        //onNodesChange={onNodesChange}
-                        //onEdgesChange={onEdgesChange}
-                        //onConnect={onConnect}
-                        //onInit={setRfInstance}
                     >
                         <Background
                             variant="dots"
