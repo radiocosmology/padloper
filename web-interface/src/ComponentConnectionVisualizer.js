@@ -31,7 +31,9 @@ import { unixTimeToISOString } from './utility/utility.js';
 import { width } from '@mui/system';
 import { initialState } from 'react-flow-renderer';
 
-const reactFlowWrapper = React.createRef(); // Move this closer to reactflowwrapper.
+
+// For initial positioning of nodes, continued on line 686
+const reactFlowWrapper = React.createRef();
 
 /**
  * MUI custom theme
@@ -107,19 +109,22 @@ const ComponentNodeWrapper = styled((props) => (
     textAlign: 'center',
 }));
 
-const GroupComponentNodeWrapper = styled((props) => (
-    <Paper 
-        variant="outlined"
-        {...props}
-    />
-))(({ theme }) => ({
-    background: 'white',
-    borderColor: '#777777',
-    borderWidth: '2px',
-    width: '160px',
-    height: '50px',
-    textAlign: 'center',
-}));
+// DELETE HERE, NOTE IF NOT DOING THE GROUP COMPONENT METHOD
+// // const GroupComponentNodeWrapper = styled((props) => (
+//     <Paper 
+//         variant="outlined"
+//         {...props}
+//     />
+// ))(({ theme }) => ({
+//     background: 'white',
+//     borderColor: '#777777',
+//     borderWidth: '2px',
+//     width: '160px',
+//     height: '50px',
+//     textAlign: 'center',
+// }));
+// TO HERE
+
 /**
  * Styled component used as the drag handle for the component nodes in the
  * visualization.
@@ -267,9 +272,11 @@ export default function ComponentConnectionVisualizer() {
     // console.log(searchParams.get("edges"));
 
     // the React Flow elements to be used in the visualization
+
     //const [elements, setElements] = useState([]); // set nodes / edges
     const [nodes, setNodes] = useState([]);
     const [edges, setEdges] = useState([]);
+
     // a dictionary that will store the React Flow IDs of the elements used
     //   const elementIds = useRef({}); // set node / edge ids
     const nodeIds = useRef({});
@@ -438,20 +445,20 @@ export default function ComponentConnectionVisualizer() {
             style: e_style,
             arrowHeadType: e_arrow,
             data: {},
-//            markerStart: {type: 'arrow', width: 100, height: 100, strokeWidth: 4, color: '#ffff00'}, //e_marker,
-//            markerEnd: {type: 'arrow', strokeWidth: 4, color: '#00ff00'}, //e_marker,
+        ///    markerStart: {type: 'arrow', width: 100, height: 100, strokeWidth: 4, color: '#ffff00'}, //e_marker,
+        //    markerEnd: {type: 'arrow', strokeWidth: 4, color: '#00ff00'}, //e_marker,
         };
         // Check if it's a group node
         if (subcomponent) {
             const inVertexNode = edges.find((edge) => edges.data.label === 'inVertex'); // edge 
             const groupNodeId = inVertexNode ? inVertexNode.id : source;
 
-            const groupNode = {
-                id: groupNodeId,
-                type: 'component',
-                data: {},
-                children: [newEdge.id],
-            };
+            ///const groupNode = {
+               /// id: groupNodeId,
+                ///type: 'component',
+                //data: {},
+                /// children: [newEdge.id],
+         //   };
             // setElements((elements) => [...elements, newElement, groupNode]);
             
         } else {
@@ -479,11 +486,11 @@ export default function ComponentConnectionVisualizer() {
     /**
      * Remove all nodes and edges from the React Flow graph.
      */
-    const removeAllElements = () => { // nodes and edges
+    const removeAllElements = () => {
         setNodes([]);
         setEdges([]);
         nodeIds.current = {};
-        edgeIds.current = {}; // nodes and edges ids
+        edgeIds.current = {};
     }
 
     /**
@@ -530,7 +537,7 @@ export default function ComponentConnectionVisualizer() {
 
         queue.push({name: component.name, currDepth: 0});
 
-        if (depth == 0) {
+        if (depth === 0) {
             return;
         }
 
@@ -678,6 +685,8 @@ export default function ComponentConnectionVisualizer() {
                         let newNodeName = (name === edge.inVertexName) ? 
                             edge.outVertexName : edge.inVertexName;
                         
+
+                        //Below is for initial positioning of nodes
                         // Fetch the container dimensions
                         const containerWidth = reactFlowWrapper.current.offsetWidth;
                         const containerHeight = reactFlowWrapper.current.offsetHeight;
@@ -861,9 +870,7 @@ export default function ComponentConnectionVisualizer() {
                         onNodesChange={onNodesChange}
                         onEdgesChange={onEdgesChange}
                         onConnect={onConnect}
-                        fitView
-                        //style={rfStyle}
-                        attributionPosition="top-right" // Zannatul
+                        //fitView
                         nodesConnectable={false}
                         nodeTypes={{component: ComponentNode}}
                         ref={reactFlowWrapper}
