@@ -15,8 +15,6 @@ from _edges import RelationVersionAllowedType, RelationVersion,\
                    RelationProperty, RelationPropertyType,\
                    RelationFlagComponent, RelationConnection
 
-print(g._user)
-
 #import re
 #from unicodedata import name
 #import warnings
@@ -100,7 +98,7 @@ class ComponentType(Vertex):
         }
 
         Vertex.add(self=self, attributes=attributes)
-        print(f"Added {self}")
+#        print(f"Added {self}")
         return self
 
     def replace(self, newVertex, disable_time: int = int(time.time())):
@@ -463,7 +461,7 @@ class ComponentVersion(Vertex):
         )
 
         e.add()
-        print(f"Added {self}")
+#        print(f"Added {self}")
         return self
 
     def replace(self, newVertex, disable_time: int = int(time.time())):
@@ -913,7 +911,7 @@ class Component(Vertex):
 
         type_edge.add()
 
-        print(f"Added {self}")
+#        print(f"Added {self}")
         return self
 
     def replace(self, newVertex, disable_time: int = int(time.time())):
@@ -1382,7 +1380,7 @@ class Component(Vertex):
 
     def connect(
         self, component, start: Timestamp, end: Timestamp = None,
-        strict_add: bool = False, is_replacement: bool = False
+        strict_add: bool = True, is_replacement: bool = False
     ):
         """Given another Component :param component:,
         connect the two components.
@@ -1423,7 +1421,6 @@ class Component(Vertex):
             at_time=start.time
         )
 
-        print("NEEDS TESTING: current_connection test.")
         if current_connection is not None and is_replacement == False:
             # Already connected!
             strictraise(strict_add, ComponentsAlreadyConnectedError, 
@@ -1473,7 +1470,7 @@ class Component(Vertex):
         )
 
         current_connection.add()
-        print(f'connected: {self} -> {component}  ({start.uid} {start.time})')
+#        print(f'connected: {self} -> {component}  ({start.uid} {start.time})')
 
 
     def disconnect(self, component, end: Timestamp):
@@ -1794,7 +1791,7 @@ class Component(Vertex):
             )
 
             current_subcomponent.add()
-            print(f'subcomponent connected: {self} -> {component}')
+#            print(f'subcomponent connected: {self} -> {component}')
 
 
     def get_subcomponent(self, component):
