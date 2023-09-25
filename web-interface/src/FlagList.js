@@ -138,7 +138,7 @@ export default function FlagList() {
     const [loaded, setLoaded] = useState(false);
 
     // property to order the flag types by
-    // must be in the set {'name, start_time, end_time'}
+    // must be in the set {'name, start.time, end.time'}
     const [orderBy, setOrderBy] = useState('name');
 
     // how to order the elements
@@ -146,9 +146,9 @@ export default function FlagList() {
     const [orderDirection,
         setOrderDirection] = useState('asc');
 
-    const [flag_types, setFlagTypes] = useState([]);
-    const [flag_severities, setFlagSeverities] = useState([]);
-    const [flag_components, setComponents] = useState([{
+    const [type, setFlagTypes] = useState([]);
+    const [severities, setFlagSeverities] = useState([]);
+    const [components, setComponents] = useState([{
         name : 'Global'
     }]);
 
@@ -414,7 +414,7 @@ export default function FlagList() {
      * - more information accordion
      */
     let tableRowContent = elements.map((flag) => [
-        flag.end_uid 
+        flag.end.uid 
         ?
         flag.name
         :
@@ -430,15 +430,15 @@ export default function FlagList() {
         />}
         <FlagReplaceButton 
         nameFlag = {flag.name}
-        flag_types={flag_types} 
-        flag_severities={flag_severities} 
-        flag_components={flag_components}
+        type={type} 
+        severities={severities} 
+        components={components}
         toggleReload={toggleReload}
     />
         </Typography>
         ,
-        flag.flag_type.name,
-        flag.flag_severity.name,
+        flag.type.name,
+        flag.severity.name,
         ,
         <ThemeProvider theme={theme}>
         <Accordion>
@@ -464,21 +464,21 @@ export default function FlagList() {
                 >
                 <ComponentEvent
                     name="Start"
-                    time={flag.start_time}
-                    uid={flag.start_uid}
-                    edit_time={flag.start_edit_time}
-                    comments={flag.start_comments}
+                    time={flag.start.time}
+                    uid={flag.start.uid}
+                    edit_time={flag.start.edit_time}
+                    comments={flag.start.comments}
                     theme={theme} />
             </Stack>
                 {
-                    flag.end_time <= 
+                    flag.end.time <= 
                     Number.MAX_SAFE_INTEGER ?
                     <ComponentEvent
                     name="End"
-                    time={flag.end_time}
-                    uid={flag.end_uid}
-                    edit_time={flag.end_edit_time}
-                    comments={flag.end_comments}
+                    time={flag.end.time}
+                    uid={flag.end.uid}
+                    edit_time={flag.end.edit_time}
+                    comments={flag.end.comments}
                     theme={theme} />
                     : ""
                 }
@@ -493,9 +493,9 @@ export default function FlagList() {
                     <FlagEvent
                         name="Components"
                         parameter={
-                            flag.flag_components.length != 0
+                            flag.components.length != 0
                             ? 
-                            flag.flag_components.map((item)=>item + ' | ')
+                            flag.components.map((item)=>item.name + ' | ')
                             :
                             'Global'
                         }
@@ -540,9 +540,9 @@ export default function FlagList() {
                 }
                 rightColumn2 = {
                     <FlagAddButton 
-                    flag_types={flag_types} 
-                    flag_severities={flag_severities} 
-                    flag_components={flag_components}
+                    type={type} 
+                    severities={severities} 
+                    components={components}
                     toggleReload={toggleReload}
                     />
                 }
@@ -558,8 +558,8 @@ export default function FlagList() {
                             changeFilter={changeFilter}
                             filter={filter}
                             index={index}
-                            types={flag_types}
-                            severities = {flag_severities}
+                            type={type}
+                            severities = {severities}
                         />
                     )
                 )

@@ -1,7 +1,10 @@
-import React, { useState, useEffect, useRef, useCallback } from 'react';
+import React, { useState, useEffect, useRef, useCallback,
+                useMemo } from 'react';
 import ReactFlow, { 
-    Controls, Background, Handle, ControlButton, isNode, MarkerType
-} from 'react-flow-renderer';
+    Controls, Background, Handle, ControlButton, isNode, MarkerType,
+    applyNodeChanges, applyEdgeChanges
+} from 'reactflow';
+import 'reactflow/dist/style.css';
 import styled from '@mui/material/styles/styled';
 import createTheme from '@mui/material/styles/createTheme';
 import { Link, useSearchParams } from "react-router-dom";
@@ -19,13 +22,20 @@ import FormControl from '@mui/material/FormControl';
 import InputLabel from '@mui/material/InputLabel';
 
 import UnfoldMoreIcon from '@mui/icons-material/UnfoldMore';
-import DragHandleRoundedIcon from '@mui/icons-material/DragHandleRounded';
+//import DragHandleRoundedIcon from '@mui/icons-material/DragHandleRounded';
 import SortIcon from '@mui/icons-material/Sort';
 
 import ComponentAutocomplete from './ComponentAutocomplete.js';
 import { ThemeProvider } from '@emotion/react';
 
 import { unixTimeToISOString } from './utility/utility.js';
+
+    window.addEventListener("error", (e) => {
+      if (e.message === 'ResizeObserver loop completed with undelivered notifications.' || e.message === 'ResizeObserver loop limit exceeded') {
+        console.log("Oh, yeah × 22!!!!");
+        e.stopImmediatePropagation();
+      }
+    });
 
 /**
  * MUI custom theme
@@ -96,7 +106,7 @@ const ComponentNodeWrapper = styled((props) => (
     background: 'white',
     borderColor: '#777777',
     borderWidth: '2px',
-    width: '160px',
+    width: '250px',
     height: '50px',
     textAlign: 'center',
 }));
@@ -105,7 +115,7 @@ const ComponentNodeWrapper = styled((props) => (
  * Styled component used as the drag handle for the component nodes in the
  * visualization.
  */
-const ComponentNodeDragHandle = styled((props) => (
+/*const ComponentNodeDragHandle = styled((props) => (
     <Button
         className="drag-handle"
         disableRipple
@@ -126,7 +136,7 @@ const ComponentNodeDragHandle = styled((props) => (
     </Button>
 ))(({ theme }) => ({
 
-}));
+}));*/
 
 /**
  * Styled button used as the button to expand a component's connections,
@@ -221,13 +231,17 @@ export default function ComponentConnectionVisualizer() {
     // https://reactrouter.com/docs/en/v6/api#usesearchparams
     const [searchParams, setSearchParams] = useSearchParams();
 
-    // console.log(searchParams.get("edges"));
+    // the React Flow nodes to be used in the visualization
+    const [nodes, setNodes] = useState([]);
 
-    // the React Flow elements to be used in the visualization
-    const [elements, setElements] = useState([]);
+    // a dictionary that will store the React Flow IDs of the nodes used
+    const nodeIds = useRef({});
 
-    // a dictionary that will store the React Flow IDs of the elements used
-    const elementIds = useRef({});
+    // the React Flow edges to be used in the visualization
+    const [edges, setEdges] = useState([]);
+
+    // a dictionary that will store the React Flow IDs of the edges used
+    const edgeIds = useRef({});
 
     // which component is to be considered
     const [component, setComponent] = useState(undefined);
@@ -238,6 +252,11 @@ export default function ComponentConnectionVisualizer() {
     // value that the depth-input will show
     const [depthInputValue, setDepthInputValue] = useState(0);
 
+    const onNodesChange = useCallback((changes) => setNodes((nds) =>
+                                      applyNodeChanges(changes, nds)), []);
+  const onEdgesChange = useCallback((changes) => setEdges((eds) => 
+                                    applyEdgeChanges(changes, eds)), [] );
+
     /**
      * The useRef hook is used as doing
      * setToggleLayoutBool(!toggleLayoutBool) will use the old value of
@@ -247,12 +266,12 @@ export default function ComponentConnectionVisualizer() {
      * instantly update the value of oggleLayoutBoolRef.current without
      * waiting for a state change.
      */
-    const toggleLayoutBoolRef = useRef(false);
+/*    const toggleLayoutBoolRef = useRef(false);
     const [toggleLayoutBool, setToggleLayoutBool] = useState(false);
     const toggleLayout = () => {
         toggleLayoutBoolRef.current = !toggleLayoutBoolRef.current; 
         setToggleLayoutBool(toggleLayoutBoolRef.current) 
-    };
+    };*/
 
     // the unix time in MILLISECONDS. useRef so it can be instantly changed.
     const enteredTime = useRef(Math.floor(Date.now()));
@@ -261,15 +280,18 @@ export default function ComponentConnectionVisualizer() {
     const time = useRef(Math.floor(Date.now() / 1000));
 
     // the default position of nodes in the visualization.
-    const defaultPosition = {x: 0, y: 0};
+    const defaultViewport = {x: 0, y: 0};
 
     /**
      * Indicate that a React Flow ID of "id" has been added to the
      * visualization.
      * @param {string} id 
      */
-    function addElementId(id) {
-        elementIds.current[id] = true;
+    function addNodeId(id) {
+        nodeIds.current[id] = true;
+    }
+    function addEdgeId(id) {
+        edgeIds.current[id] = true;
     }
 
     /**
@@ -280,24 +302,25 @@ export default function ComponentConnectionVisualizer() {
      * @returns A Boolean indicating whether the component 
      * was successfully added.
      */
-    async function addComponent(name, x, y) {
-
+    async function addComponent(comp, x, y) {
         // catch it
-        if (elementIds.current[name]) {
+        if (nodeIds.current[comp.name]) {
             return false;
         }
 
-        let newElement = {
-            id: name,
+        let newNode = {
+            id: comp.name,
             connectable: false,
             type: 'component',
 //            dragHandle: '.drag-handle',
-            data: { name: name },
+            data: { name: comp.name, ctype: comp.type, version: comp.version },
+//            data: {label: name},
             position: { x: x, y: y },
+//            position: { x: 10, y: 10 },
         }
         
-        addElementId(name);
-        setElements((els) => els.concat(newElement));
+        addNodeId(comp.name);
+        setNodes((els) => els.concat(newNode));
 
         return true;
     }
@@ -317,7 +340,7 @@ export default function ComponentConnectionVisualizer() {
         var e_style, e_arrow, e_type;
 
         // catch it
-        if (elementIds.current[id]) {
+        if (edgeIds.current[id]) {
             return false;
         }
 
@@ -331,7 +354,7 @@ export default function ComponentConnectionVisualizer() {
             e_type = 'smoothstep';
         }
 
-        let newElement = {
+        let newEdge = {
             id: id,
             source: source,
             target: target,
@@ -341,32 +364,48 @@ export default function ComponentConnectionVisualizer() {
 //            markerStart: {type: 'arrow', width: 100, height: 100, strokeWidth: 4, color: '#ffff00'}, //e_marker,
 //            markerEnd: {type: 'arrow', strokeWidth: 4, color: '#00ff00'}, //e_marker,
         }
-        addElementId(id);
-        setElements((nodes) => nodes.concat(newElement));
+        addEdgeId(id);
+        setEdges((edges) => edges.concat(newEdge));
 
         return true;
     }
 
     /**
-     * Removes a React Flow element given the ID.
+     * Removes a React Flow node given the ID.
      * @param {string} id - The React Flow ID of the element to remove.
      */
-    const removeElement = (id) => {
-        let index = elements.findIndex(
+    const removeNode = (id) => {
+        let index = nodes.findIndex(
             (els) => els.id === id
         );
         if (index > -1) {
-            setElements((els) => els.splice(index, 1));
+            setNodes((els) => els.splice(index, 1));
         }
-        elementIds.current[id] = false;
+        nodeIds.current[id] = false;
+    }
+
+    /**
+     * Removes a React Flow edge given the ID.
+     * @param {string} id - The React Flow ID of the element to remove.
+     */
+    const removeEdge = (id) => {
+        let index = edges.findIndex(
+            (els) => els.id === id
+        );
+        if (index > -1) {
+            setEdges((els) => els.splice(index, 1));
+        }
+        edgeIds.current[id] = false;
     }
 
     /**
      * Remove all nodes and edges from the React Flow graph.
      */
     const removeAllElements = () => {
-        setElements([]);
-        elementIds.current = {};
+        setNodes([]);
+        nodeIds.current = {};
+        setEdges([]);
+        edgeIds.current = {};
     }
 
     /**
@@ -389,9 +428,9 @@ export default function ComponentConnectionVisualizer() {
          * other components.
          */
         addComponent(
-            component.name, 
-            defaultPosition.x - nodeWidth / 2, 
-            defaultPosition.y - nodeHeight / 2
+            component, 
+            defaultViewport.x - nodeWidth / 2, 
+            defaultViewport.y - nodeHeight / 2
         );
 
         // depth will be decremented by 1 each time, like BFS.
@@ -411,7 +450,7 @@ export default function ComponentConnectionVisualizer() {
 
         queue.push({name: component.name, currDepth: 0});
 
-        if (depth == 0) {
+        if (depth === 0) {
             return;
         }
 
@@ -427,10 +466,10 @@ export default function ComponentConnectionVisualizer() {
             );
 
             if (queue[queueFrontIndex].currDepth + 1 < depth) {
-                for (let compName of newComponents) {
-                    if (!visited[compName]) {
+                for (let thisComp of newComponents) {
+                    if (!visited[thisComp.name]) {
                         queue.push({
-                            name: compName, 
+                            name: thisComp.name,
                             currDepth: queue[queueFrontIndex].currDepth + 1
                         })
                     }
@@ -438,7 +477,7 @@ export default function ComponentConnectionVisualizer() {
             }
             queueFrontIndex++;
 
-            toggleLayout();
+//            toggleLayout();
         }
 
     }
@@ -448,16 +487,16 @@ export default function ComponentConnectionVisualizer() {
      */
     const onLayout = useCallback(
         () => {
-            const layoutedElements = getLayoutedElements(elements);
-            setElements(layoutedElements);
+//            const layoutedElements = getLayoutedElements(elements);
+//            setElements(layoutedElements);
         },
-        [elements]
+//        [nodes] // Will this work?
     );
 
     // layout the graph once the toggle layout bool has been toggled
-    useEffect(() => {
-        onLayout();
-    }, [toggleLayoutBool]);
+//    useEffect(() => {
+//        onLayout();
+//    }, [toggleLayoutBool]);
 
     /**
      * A MUI component representing a component node.
@@ -497,6 +536,7 @@ export default function ComponentConnectionVisualizer() {
                                 <Link to={`/component/${data.name}`}>
                                     {data.name}
                                 </Link>
+                                <br/>{data.ctype.name}
                             </Typography>
                         </Grid>
                         <Grid item>
@@ -522,8 +562,20 @@ export default function ComponentConnectionVisualizer() {
      */
     async function expandConnections(name, time) {
 
+// BUUGGGGG: why does the development npm throw a "ResizeObserver loop
+// completed with undelivered notifications" error (in Firefox)?
+// ANSWER: it seems to only do this when there are multiple nodes added; doesn't
+// happen at all in Chromebut does happen in KDE "web browser"; Konqeror not
+// sure. Found this; not sure if relevant.
+//
+// https://stackoverflow.com/questions/76187282/react-resizeobserver-loop-completed-with-undelivered-notifications
+// 
+// If you are only connected to two, though, it is OK.
+//
+// I am trying to get them to stop propagating: see App.py and this one with the
+// addEventListener(), but it doesn't work!
         // construct the query string
-        let input = `/api/get_all_connections_at_time`;
+        let input = `/api/get_connections`;
         input += `?name=${name}`;
         input += `&time=${time}`;
 
@@ -540,20 +592,20 @@ export default function ComponentConnectionVisualizer() {
                 ).then(data => {
                     for (const edge of data.result) {
         
-                        let otherName = (name === edge.inVertexName) ? 
-                            edge.outVertexName : edge.inVertexName;
+                        let other = (name === edge.inVertex.name) ? 
+                            edge.outVertex : edge.inVertex;
         
                         // TODO: Change the default position.
-                        let added = addComponent(otherName, 0, 0);
+                        let added = addComponent(other, 0, 0);
                         addEdge(
                             edge.id, 
-                            edge.outVertexName, 
-                            edge.inVertexName,
+                            edge.outVertex.name, 
+                            edge.inVertex.name,
                             edge.subcomponent
                         );
         
                         if (added) {
-                            componentsAdded.push(otherName);
+                            componentsAdded.push(other);
                         }
                     }
                     resolve(componentsAdded);
@@ -562,6 +614,17 @@ export default function ComponentConnectionVisualizer() {
         )
         
     }
+
+    const nodeTypes = useMemo(
+      () => ({component: ComponentNode}), []
+    );
+
+    window.addEventListener("error", (e) => {
+      if (e.message === 'ResizeObserver loop completed with undelivered notifications.' || e.message === 'ResizeObserver loop limit exceeded') {
+        console.log("Oh, yeah × 2!!!!");
+        e.stopImmediatePropagation();
+      }
+    });
 
     return (
         <Grid 
@@ -612,7 +675,6 @@ export default function ComponentConnectionVisualizer() {
                                 id="depth-input"
                                 type="number"
                                 label="Depth"
-                                defaultValue={depthInputValue}
                                 value={depthInputValue}
                                 sx={{ width: 130 }}
                                 onChange={(e) => {
@@ -673,9 +735,12 @@ export default function ComponentConnectionVisualizer() {
             <Grid item>
                 <VisualizerPanel>
                     <ReactFlow 
-                        elements={elements}
+                        nodes={nodes}
+                        edges={edges}
+                        onNodesChange={onNodesChange}
+                        onEdgesChange={onEdgesChange}
+                        nodeTypes={nodeTypes}
                         nodesConnectable={false}
-                        nodeTypes={{component: ComponentNode}}
                     >
                         <Background
                             variant="dots"

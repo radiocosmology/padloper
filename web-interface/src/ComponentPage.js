@@ -116,7 +116,7 @@ const AccordionSummary = styled((props) => (
                     color: "rgba(0,0,0, 0.4)",
                     padding: "4px",
                 }}
-                onClick={props.expandOnClick}
+                onClick={props.expandonClick}
             />
         }
       {...props}
@@ -613,7 +613,8 @@ function ComponentPage() {
         let properties_add_panel_content = (open_properties_add_panel) ? (
             <ComponentPropertyAddPanel 
                 theme={theme} 
-                onClose={() => {setOpenPropertiesAddPanel(false); setErrorPropertyMessage(null)}}
+                onClose={() => {setOpenPropertiesAddPanel(false);
+                                setErrorPropertyMessage(null)}}
                 onSet={setProperty}
                 errorPropertyMessage={errorPropertyMessage}
             />
@@ -642,11 +643,11 @@ function ComponentPage() {
                             <Stack spacing={1} direction="row"
                             >
                                 <EventIcon fontSize="small" />
-                                <Timestamp unixTime={prop.start_time} />
-                                {prop.end_time <= Number.MAX_SAFE_INTEGER ? (
+                                <Timestamp unixTime={prop.start.time} />
+                                {prop.end.time <= Number.MAX_SAFE_INTEGER ? (
                                     <>
                                         <div>-</div> 
-                                        <Timestamp unixTime={prop.end_time} />
+                                        <Timestamp unixTime={prop.end.time} />
                                     </>
                                 ) : ''}
                                 <Typography
@@ -676,14 +677,14 @@ function ComponentPage() {
                                 >
                                 <ComponentEvent
                                     name="Start"
-                                    time={prop.start_time}
-                                    uid={prop.start_uid}
-                                    edit_time={prop.start_edit_time}
-                                    comments={prop.start_comments}
+                                    time={prop.start.time}
+                                    uid={prop.start.uid}
+                                    edit_time={prop.start.edit_time}
+                                    comments={prop.start.comments}
                                     theme={theme} />
                                     <Stack direction='row'>
                         {
-                        prop.end_uid
+                        prop.end.uid
                         ?
                         ""
                         :
@@ -720,14 +721,14 @@ function ComponentPage() {
                                     </Stack>
                             </Stack>
                                {
-                                    prop.end_time <= 
+                                    prop.end.time <= 
                                     Number.MAX_SAFE_INTEGER ?
                                     <ComponentEvent
                                         name="End"
-                                        time={prop.end_time}
-                                        uid={prop.end_uid}
-                                        edit_time={prop.end_edit_time}
-                                        comments={prop.end_comments}
+                                        time={prop.end.time}
+                                        uid={prop.end.uid}
+                                        edit_time={prop.end.edit_time}
+                                        comments={prop.end.comments}
                                         theme={theme} />
                                     : ""
                                 }
@@ -782,11 +783,11 @@ function ComponentPage() {
                         <EntryAccordionSummary>
                             <Stack spacing={1} direction="row">
                                 <EventIcon fontSize="small" />
-                                <Timestamp unixTime={conn.start_time} />
-                                {conn.end_time <= Number.MAX_SAFE_INTEGER ? (
+                                <Timestamp unixTime={conn.start.time} />
+                                {conn.end.time <= Number.MAX_SAFE_INTEGER ? (
                                     <>
                                         <div>—</div> 
-                                        <Timestamp unixTime={conn.end_time} />
+                                        <Timestamp unixTime={conn.end.time} />
                                     </>
                                 ) : ''}
                                 <Typography
@@ -816,14 +817,14 @@ function ComponentPage() {
                                 alignItems='center'>
                                 <ComponentEvent
                                     name="Start"
-                                    time={conn.start_time}
-                                    uid={conn.start_uid}
-                                    edit_time={conn.start_edit_time}
-                                    comments={conn.start_comments}
+                                    time={conn.start.time}
+                                    uid={conn.start.uid}
+                                    edit_time={conn.start.edit_time}
+                                    comments={conn.start.comments}
                                     theme={theme} />
                                 <Stack direction='row'>
                                     {
-                                        conn.end_uid
+                                        conn.end.uid
                                         ?
                                         ""
                                         :
@@ -837,7 +838,7 @@ function ComponentPage() {
                                         }
                                         />
                                     }
-                                    {conn.end_uid
+                                    {conn.end.uid
                         ?
                         ""
                         :
@@ -863,14 +864,14 @@ function ComponentPage() {
                             </Stack>
                             </Stack>
                                 {
-                                    conn.end_time <= 
+                                    conn.end.time <= 
                                     Number.MAX_SAFE_INTEGER ?
                                     <ComponentEvent
                                         name="End"
-                                        time={conn.end_time}
-                                        uid={conn.end_uid}
-                                        edit_time={conn.end_edit_time}
-                                        comments={conn.end_comments}
+                                        time={conn.end.time}
+                                        uid={conn.end.uid}
+                                        edit_time={conn.end.edit_time}
+                                        comments={conn.end.comments}
                                         theme={theme} />
                                     : ""
                                 }
@@ -1121,7 +1122,7 @@ function ComponentPage() {
                     expanded={open_properties_accordion}
                 >
                     <AccordionSummary
-                        expandOnClick={toggleOpenPropertiesAccordion}
+                        expandonClick={toggleOpenPropertiesAccordion}
                     >
                         
                         <Typography style={{ flex: 1 }} align='left'>
@@ -1151,7 +1152,7 @@ function ComponentPage() {
                     expanded={open_connections_accordion}
                 >
                     <AccordionSummary
-                        expandOnClick={toggleOpenConnectionsAccordion}
+                        expandonClick={toggleOpenConnectionsAccordion}
                     >
                         <Typography style={{ flex: 1 }} align='left'>
                             Connections
@@ -1181,7 +1182,7 @@ function ComponentPage() {
                     expanded={open_subcomponents_accordion}
                 >
                     <AccordionSummary
-                        expandOnClick={toggleOpenSubcomponentsAccordion}
+                        expandonClick={toggleOpenSubcomponentsAccordion}
                     >
                            <Typography style={{ flex: 1 }} align='left'>
                             Subcomponents
@@ -1207,7 +1208,7 @@ function ComponentPage() {
                     expanded={open_flags_accordion}
                 >
                     <AccordionSummary
-                        expandOnClick={toggleOpenFlagsAccordion}
+                        expandonClick={toggleOpenFlagsAccordion}
                     >
                            <Typography style={{ flex: 1 }} align='left'>
                             Flags

@@ -224,6 +224,11 @@ class PropertyNotMatchRegexError(Error):
     """
     pass
 
+class PropertyWrongType(Error):
+    """
+    Exception raised when the allowed component types are not allowed by the
+    property type. 
+    """
 
 class UnassignedError(Error):
     """

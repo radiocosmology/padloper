@@ -32,7 +32,7 @@ const MenuProps = {
 
 
 
-export default function FlagAddButton ({flag_types,flag_severities,flag_components,toggleReload}){
+export default function FlagAddButton ({type,severities,components,toggleReload}){
 
     // opens and closes the pop up form to add a new flag.
     const [open, setOpen] = useState(false);
@@ -41,8 +41,8 @@ export default function FlagAddButton ({flag_types,flag_severities,flag_componen
     const [property,setProperty] = useState({
     name: '',
     uid: '',
-    flag_severity:'',
-    flag_type:'',
+    severity:'',
+    type:'',
     start_comment:'',
     comments: ''
   })
@@ -102,8 +102,8 @@ export default function FlagAddButton ({flag_types,flag_severities,flag_componen
     setProperty({
     name: '',
     uid: '',
-    flag_severity:'',
-    flag_type:'',
+    severity:'',
+    type:'',
     start_comment:'',
     comments:''
   })
@@ -121,11 +121,11 @@ export default function FlagAddButton ({flag_types,flag_severities,flag_componen
       input += `&start_time=${startTime}`;
       input += `&end_time=${endTime}`;
       input += `&uid=${property.uid}`;
-      input += `&flag_severity=${property.flag_severity}`;
-      input += `&flag_type=${property.flag_type}`;
+      input += `&severity=${property.severity}`;
+      input += `&type=${property.type}`;
       input += `&comments=${property.comments}`;
       input += `&start_comments=${property.start_comment}`;
-      input += `&flag_components=${componentName.join(';')}`;
+      input += `&components=${componentName.join(';')}`;
       axios.post(input).then((response)=>{
         if(response.data.result){
           toggleReload() //To reload the page once the form has been submitted.
@@ -198,12 +198,12 @@ export default function FlagAddButton ({flag_types,flag_severities,flag_componen
           labelId="Flag-Type-label"
           id="Flag-Type"
           fullWidth
-          value={property.flag_type}
-          name='flag_type'
+          value={property.type}
+          name='type'
           label='Flag Type'
           onChange={handleChange}
          >
-          {flag_types.map((item) => {
+          {type.map((item) => {
             return (
               <MenuItem
               key={item.name}
@@ -225,12 +225,12 @@ export default function FlagAddButton ({flag_types,flag_severities,flag_componen
           labelId="Flag-Severity-label"
           id="Flag-Severity"
           fullWidth
-          value={property.flag_severity}
-          name = 'flag_severity'
+          value={property.severity}
+          name = 'severity'
           label='Flag Severity'
           onChange={handleChange}
          >
-          {flag_severities.map((item) => {
+          {severities.map((item) => {
             return (
               <MenuItem
               key={item.name}
@@ -274,7 +274,7 @@ export default function FlagAddButton ({flag_types,flag_severities,flag_componen
           )
           )
           :
-          flag_components.map((item,index) => (
+          components.map((item,index) => (
             <MenuItem key={index} value={item.name}>
               <Checkbox checked={componentName.indexOf(item.name) > -1} />
               <ListItemText primary={item.name} />
@@ -394,7 +394,7 @@ export default function FlagAddButton ({flag_types,flag_severities,flag_componen
         <DialogActions>
           <Button onClick={handleClose}>Cancel</Button>
           {
-             componentName.length !== 0 && property.name && property.flag_type && property.flag_severity && startTime && property.uid
+             componentName.length !== 0 && property.name && property.type && property.severity && startTime && property.uid
             ?
             <Button onClick={handleSubmit}>
               {loading ? <CircularProgress

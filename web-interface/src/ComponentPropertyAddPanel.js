@@ -17,6 +17,8 @@ import styled from '@mui/material/styles/styled';
 import { Typography } from '@mui/material';
 import { verifyRegex } from './utility/utility.js';
 
+import moment from "moment";
+
 /**
  * A styled "panel" component, used as the background for the panel.
  * 
@@ -110,11 +112,21 @@ function ComponentPropertyAddPanel(
     // the ID of the user setting the property
     const [uid, setUid] = useState("");
 
-    // the default time to set the property
-    const defaultTime = 1;
+    // Default time is now; set the display time and the internal time variable
+    // to this to start with.
+    const defaultTime = new Date();
+    const [time, setTime] = useState(Math.round(defaultTime.getTime() / 1000));
+    const [displayTime, setDisplayTime] = useState(defaultTime);
+    useEffect(() => {
+      setDisplayTime(moment(displayTime).format("YYYY-MM-DD[T]HH:mm:ss"));
+    }, []);
 
-    // time to set the property (NOT the edit time)
-    const [time, setTime] = useState(defaultTime);
+    // When the user changes the time.
+    const handleTimeChange = (e) => {
+      let date = new Date(e.target.value);
+      setTime(Math.round(date.getTime() / 1000));
+      setDisplayTime(moment(e.target.value).format("YYYY-MM-DD[T]HH:mm:ss"));
+    };
 
     // the comments associated with setting the property
     const [comments, setComments] = useState("");
@@ -122,7 +134,6 @@ function ComponentPropertyAddPanel(
     // whether the panel is loading: usually happens after the "Connect" button
     // is made, waiting for a response from the DB.
     const [loading, setLoading] = useState(false);
-
 
     /**
      * Check whether a value matches the selected property type's regex.
@@ -210,6 +221,7 @@ function ComponentPropertyAddPanel(
         setAllValuesAccepted(checkAllValuesAccepted());
     }, [textFieldAccepted]);
 
+    // When the user enters a new date/time.
 
     return (
         <ThemeProvider theme={theme}>
@@ -263,10 +275,8 @@ function ComponentPropertyAddPanel(
                                 shrink: true,
                             }}
                             size="large"
-                            onChange={(event) => {
-                                let date = new Date(event.target.value);
-                                setTime(Math.round(date.getTime() / 1000));
-                            }}
+                            value={displayTime}
+                            onChange={(e) => handleTimeChange(e)}
                         />
                     </Grid>
 
@@ -376,8 +386,7 @@ function ComponentPropertyAddPanel(
                         disabled={
                             selectedOption === null || 
                             !allValuesAccepted ||
-                            uid === "" ||
-                            time === defaultTime    
+                            uid === ""
                         }
                         onClick={
                             () => {

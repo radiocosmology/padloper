@@ -1,4 +1,4 @@
-import React, { useState } from 'react';
+import React, { useState, useEffect } from 'react';
 
 import Paper from '@mui/material/Paper';
 import Button from '@mui/material/Button';
@@ -10,8 +10,7 @@ import CloseIcon from '@mui/icons-material/Close';
 import ThemeProvider from '@mui/material/styles/ThemeProvider';
 import styled from '@mui/material/styles/styled';
 import { Typography } from '@mui/material';
-
-
+import moment from "moment";
 
 /**
  * A styled "panel" component, used as the background for the panel.
@@ -85,11 +84,21 @@ function ComponentPropertyEndPanel(
     // the ID of the user ending the property
     const [uid, setUid] = useState("");
 
-    // the default time to end the property
-    const defaultTime = 1;
+    // Default time is now; set the display time and the internal time variable
+    // to this to start with.
+    const defaultTime = new Date();
+    const [time, setTime] = useState(Math.round(defaultTime.getTime() / 1000));
+    const [displayTime, setDisplayTime] = useState(defaultTime);
+    useEffect(() => {
+      setDisplayTime(moment(displayTime).format("YYYY-MM-DD[T]HH:mm:ss"));
+    }, []);
 
-    // time to end the property (NOT the edit time)
-    const [time, setTime] = useState(defaultTime);
+    // When the user changes the time.
+    const handleTimeChange = (e) => {
+      let date = new Date(e.target.value);
+      setTime(Math.round(date.getTime() / 1000));
+      setDisplayTime(moment(e.target.value).format("YYYY-MM-DD[T]HH:mm:ss"));
+    };
 
     // the comments associated with ending the property
     const [comments, setComments] = useState("");
@@ -144,10 +153,8 @@ function ComponentPropertyEndPanel(
                                 shrink: true,
                             }}
                             size="large"
-                            onChange={(event) => {
-                                let date = new Date(event.target.value);
-                                setTime(Math.round(date.getTime() / 1000));
-                            }}
+                            value={displayTime}
+                            onChange={(e) => handleTimeChange(e)}
                         />
                     </Grid>
 

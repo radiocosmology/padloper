@@ -15,7 +15,7 @@ import Close from '@mui/icons-material/Close';
  * @param {int} index - the index of the filter 
  * (in an exterior list of filters).
  * @param {object} filter - the associated filter object (containing the name, flag type and flag severity)
- * @param {Array} types - the list of types to choose from (TODO: turn this 
+ * @param {Array} type - the list of type to choose from (TODO: turn this 
  * @param {Array} severities - the list of severities to choose from (TODO: turn this 
  * into an autocomplete instead................)
  * @param {int} width - the width of the filter panel
@@ -26,7 +26,7 @@ export default function FlagFilter(
             changeFilter, 
             index, 
             filter, 
-            types,
+            type,
             severities,
             width
         }
@@ -62,7 +62,7 @@ export default function FlagFilter(
         if (event.target.value != -1) {
             filterUpdateKey(
                 'type', 
-                types[event.target.value]['name']
+                type[event.target.value]['name']
             );
         }
         else {
@@ -142,7 +142,7 @@ export default function FlagFilter(
                             All types
                         </option>
                         {
-                            types.map((t, index) =>
+                            type.map((t, index) =>
                                 <option 
                                     value={index}
                                     key={index}

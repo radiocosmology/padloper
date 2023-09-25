@@ -5,16 +5,18 @@ from re import split
 from flask import Flask, request
 from flask.scaffold import F
 from markupsafe import escape
-from time import time
-from padloper.structure import *
+import time
+import padloper as p
 import json
 
-
-# see https://stackoverflow.com/a/27876800
+# CONTINUE HERE: use the as_dict() methods from padloper …
 
 # The flask application
 app = Flask(__name__)
 
+def tmp_timestamp(t, uid, comments):
+    print("Note: needs to be replaced with proper user registration.")
+    return p._RawTimestamp(t, uid, int(time.time()), comments)
 
 def read_filters(filters):
     """Return a list of filter tuples given a URL string containing the
@@ -56,7 +58,7 @@ def get_component_by_name(name):
     :rtype: dict
     """
     return {
-        'result': Component.get_as_dict(str(escape(name)))
+        'result': p.Component.from_db(str(escape(name))).as_dict()
     }
 
 
@@ -112,38 +114,20 @@ def get_component_list():
     assert len(range_bounds) == 2
     assert order_direction in {'asc', 'desc'}
 
-    components = Component.get_list(
+    components = p.Component.get_list(
         range=range_bounds,
         order_by=order_by,
         order_direction=order_direction,
         filters=filter_triples,
     )
 
-    # TODO: Why not use Component.get_as_dict?
-    return {
-        'result': [
-            {
-                'name': c.name,
-                'id': c.id(),
-                'type': {
-                    'name': c.type.name,
-                    'comments': c.type.comments,
-                },
-                'version': {
-                    'name': c.version.name if c.version is not None else None,
-                    'comments': c.version.comments
-                    if c.version is not None else None,
-                }
-            }
-            for c in components
-        ]
-    }
+    return {"result": [c.as_dict(bare=True) for c in components]}
 
 
 @app.route("/api/set_component_type", methods=['POST'])
 def set_component_type():
-    """Given the component type name, and comments,
-    set a component type to the serverside.
+    """Given the component type name, and comments, set a component type to
+    the serverside.
 
     The URL parameters are:
 
@@ -162,7 +146,7 @@ def set_component_type():
         val_comments = escape(request.args.get('comments'))
 
         # Need to initialize an instance of a component type first.
-        component_type = ComponentType(val_name, val_comments)
+        component_type = p.ComponentType(val_name, val_comments)
 
         component_type.add()
 
@@ -201,10 +185,10 @@ def replace_component_type():
         val_component_type = escape(request.args.get('component_type'))
 
         # Need to initialize an instance of the new component type first.
-        component_type_new = ComponentType(val_name, val_comments)
+        component_type_new = p.ComponentType(val_name, val_comments)
 
         # Gets the old component type from the database.
-        component_type_old = ComponentType.from_db(val_component_type)
+        component_type_old = p.ComponentType.from_db(val_component_type)
 
         component_type_old.replace(component_type_new)
 
@@ -241,11 +225,12 @@ def set_component_version():
         val_type = escape(request.args.get('type'))
         val_comments = escape(request.args.get('comments'))
 
-        # Query the database and return a ComponentType instance based on component type name.
-        component_type = ComponentType.from_db(val_type)
+        # Query the database and return a ComponentType instance based on
+        # component type name.
+        component_type = p.ComponentType.from_db(val_type)
 
         # Need to initialize an instance of a component version first.
-        component_version = ComponentVersion(
+        component_version = p.ComponentVersion(
             val_name, component_type, val_comments)
 
         component_version.add()
@@ -282,7 +267,6 @@ def replace_component_version():
     :rtype: dict
     """
     try:
-
         val_name = escape(request.args.get('name'))
         val_type = escape(request.args.get('type'))
         val_comments = escape(request.args.get('comments'))
@@ -290,18 +274,20 @@ def replace_component_version():
         val_component_version_allowed_type = escape(
             request.args.get('component_version_allowed_type'))
 
-        # Query the database and return a ComponentType instance based on the new component type name.
-        component_type_new = ComponentType.from_db(val_type)
+        # Query the database and return a ComponentType instance based on the
+        # new component type name.
+        component_type_new = p.ComponentType.from_db(val_type)
 
-        # Query the database and return a ComponentType instance based on the old component type name.
-        component_type_old = ComponentType.from_db(
-            val_component_version_allowed_type)
+        # Query the database and return a ComponentType instance based on the
+        # old component type name.
+        component_type_old = p.ComponentType.from_db(
+                val_component_version_allowed_type)
 
         # Need to initialize an instance of a component version.
-        component_version_new = ComponentVersion(
+        component_version_new = p.ComponentVersion(
             val_name, component_type_new, val_comments)
 
-        component_version_old = ComponentVersion.from_db(
+        component_version_old = p.ComponentVersion.from_db(
             name=val_component_version, allowed_type=component_type_old)
 
         component_version_old.replace(component_version_new)
@@ -309,9 +295,7 @@ def replace_component_version():
         return {'result': True}
 
     except Exception as e:
-
         print(e)
-
         return {'error': json.dumps(e, default=str)}
 
 
@@ -340,30 +324,28 @@ def set_component():
         val_type = escape(request.args.get('type'))
         val_version = escape(request.args.get('version'))
 
-        # Query the database and return the ComponentType instance based on the component type name.
-        component_type = ComponentType.from_db(val_type)
+        # Query the database and return the ComponentType instance based on the 
+        # component type name.
+        component_type = p.ComponentType.from_db(val_type)
 
-        # Query the database and return the ComponentVersion instance based on component version name and
+        # Query the database and return the ComponentVersion instance based on
+        # component version name and
         # component type name.
         if val_version:
-            component_version = ComponentVersion.from_db(
-                val_version, component_type)
+            component_version = p.ComponentVersion.from_db(val_version,
+                                                           component_type)
         else:
             component_version = None
 
         for name in val_name:
             # Need to initialize an instance of a component first.
-            component = Component(
-                name, component_type, component_version)
-
+            component = p.Component(name, component_type, component_version)
             component.add()
 
         return {'result': True}
 
     except Exception as e:
-
         print(e)
-
         return {'error': json.dumps(e, default=str)}
 
 
@@ -394,31 +376,27 @@ def replace_component():
         val_version = escape(request.args.get('version'))
         val_component = escape(request.args.get('component'))
 
-        # Query the database and return the ComponentType instance based on the component type name.
-        component_type = ComponentType.from_db(val_type)
+        # Query the database and return the ComponentType instance based on the
+        # component type name.
+        component_type = p.ComponentType.from_db(val_type)
 
-        # Query the database and return the ComponentVersion instance based on component version name
-        # and component type name.
+        # Query the database and return the ComponentVersion instance based on
+        # component version name and component type name.
         if val_version:
-            component_version = ComponentVersion.from_db(
-                val_version, component_type)
+            component_version = p.ComponentVersion.from_db(val_version,
+                                                           component_type)
         else:
             component_version = None
 
         # Need to initialize an instance of a component first.
-        component_new = Component(
-            val_name, component_type, component_version)
-
-        component_old = Component.from_db(val_component)
-
+        component_new = p.Component(val_name, component_type, component_version)
+        component_old = p.Component.from_db(val_component)
         component_old.replace(component_new)
 
         return {'result': True}
 
     except Exception as e:
-
         print(e)
-
         return {'error': json.dumps(e, default=str)}
 
 
@@ -438,8 +416,7 @@ def disable_component():
     val_name = escape(request.args.get('name'))
 
     # Need to initialize an instance of a component first.
-    component = Component.from_db(val_name)
-
+    component = p.Component.from_db(val_name)
     component.disable()
 
     return {'result': True}
@@ -480,34 +457,35 @@ def set_property_type():
         val_comments = escape(request.args.get('comments'))
 
         allowed_list = []
-        # Query the database and return a list of ComponentType instance based on component type name.
+        # Query the database and return a list of ComponentType instance based
+        # on component type name.
         for name in val_type:
-            allowed_list.append(ComponentType.from_db(name))
+            allowed_list.append(p.ComponentType.from_db(name))
+        
         # Need to initialize an instance of a property type first.
-        property_type = PropertyType(
-            val_name, val_units, val_allowed_reg, val_values, allowed_list, val_comments)
-
+        property_type = p.PropertyType(val_name, val_units, val_allowed_reg,
+                                       val_values, allowed_list, val_comments)
         property_type.add()
 
         return {'result': True}
 
     except Exception as e:
-
         print(e)
-
         return {'error': json.dumps(e, default=str)}
 
 
 @app.route("/api/replace_property_type", methods=['POST'])
 def replace_property_type():
-    """Given the new property type name, allowed component types ,units,allowed regex, number of values and comments,
-    replace the old property type in the serverside.
+    """Given the new property type name, allowed component types, units, allowed
+    regex, number of values and comments, replace the old property type in the
+    serverside.
 
     The URL parameters are:
 
     name - the name of the new property type.
 
-    type - list of the name sof the allowed component types associated with the new property type.
+    type - list of the name sof the allowed component types associated with the
+    new property type.
 
     units - the units of the new property type.
 
@@ -536,23 +514,21 @@ def replace_property_type():
         val_property_type = escape(request.args.get('property_type'))
 
         allowed_list = []
-        # Query the database and return a list of ComponentType instance based on the component type name.
+        # Query the database and return a list of ComponentType instance based
+        # on the component type name.
         for name in val_type:
-            allowed_list.append(ComponentType.from_db(name))
+            allowed_list.append(p.ComponentType.from_db(name))
         # Need to initialize an instance of a property type first.
-        property_type_new = PropertyType(
-            val_name, val_units, val_allowed_reg, val_values, allowed_list, val_comments)
-
-        property_type_old = PropertyType.from_db(val_property_type)
-
+        property_type_new = p.PropertyType(val_name, val_units, val_allowed_reg,
+                                           val_values, allowed_list,
+                                           val_comments)
+        property_type_old = p.PropertyType.from_db(val_property_type)
         property_type_old.replace(property_type_new)
 
         return {'result': True}
 
     except Exception as e:
-
         print(e)
-
         return {'error': json.dumps(e, default=str)}
 
 
@@ -575,7 +551,7 @@ def get_component_count():
 
     filter_triples = read_filters(filters)
 
-    return {'result': Component.get_count(filters=filter_triples)}
+    return {'result': p.Component.get_count(filters=filter_triples)}
 
 
 @app.route("/api/component_types_and_versions")
@@ -594,11 +570,10 @@ def get_component_types_and_versions():
     :rtype: dict
     """
 
-    types = ComponentType.get_names_of_types_and_versions()
+    types = p.ComponentType.get_names_of_types_and_versions()
     ret = {}
     for t in types:
         ret[t["name"]] = t["versions"]
-
     return {'result': ret}
 
 
@@ -639,23 +614,12 @@ def get_component_type_list():
     assert order_direction in {'asc', 'desc'}
 
     # query to padloper
-    component_types = ComponentType.get_list(
-        range=range_bounds,
-        order_by=order_by,
-        order_direction=order_direction,
-        name_substring=name_substring
-    )
+    component_types = p.ComponentType.get_list(range=range_bounds,
+                                               order_by=order_by,
+                                               order_direction=order_direction,
+                                               name_substring=name_substring)
 
-    return {
-        'result': [
-            {
-                'name': c.name,
-                'id': c.id(),
-                'comments': c.comments
-            }
-            for c in component_types
-        ]
-    }
+    return {"result": [c.as_dict() for c in component_types]}
 
 
 @app.route("/api/component_type_count")
@@ -673,7 +637,7 @@ def get_component_type_count():
 
     name_substring = escape(request.args.get('nameSubstring'))
 
-    return {'result': ComponentType.get_count(name_substring=name_substring)}
+    return {'result': p.ComponentType.get_count(name_substring=name_substring)}
 
 
 @app.route("/api/component_version_list")
@@ -719,27 +683,13 @@ def get_component_version_list():
     assert order_direction in {'asc', 'desc'}
 
     # query to padloper
-    component_versions = ComponentVersion.get_list(
-        range=range_bounds,
-        order_by=order_by,
-        order_direction=order_direction,
-        filters=filter_tuples,
-    )
+    component_versions =\
+        p.ComponentVersion.get_list(range=range_bounds,
+                                    order_by=order_by,
+                                    order_direction=order_direction,
+                                    filters=filter_tuples)
 
-    return {
-        'result': [
-            {
-                'name': c.name,
-                'id': c.id(),
-                'comments': c.comments,
-                'allowed_type': {
-                    'name': c.allowed_type.name,
-                    'comments': c.allowed_type.comments,
-                },
-            }
-            for c in component_versions
-        ]
-    }
+    return {"result": [c.as_dict() for c in component_versions]}
 
 
 @app.route("/api/component_version_count")
@@ -762,7 +712,7 @@ def get_component_version_count():
     filter_tuples = read_filters(filters)
 
     return {
-        'result': ComponentVersion.get_count(filters=filter_tuples)
+        'result': p.ComponentVersion.get_count(filters=filter_tuples)
     }
 
 
@@ -786,7 +736,7 @@ def get_property_type_count():
     filter_tuples = read_filters(filters)
 
     return {
-        'result': PropertyType.get_count(filters=filter_tuples)
+        'result': p.PropertyType.get_count(filters=filter_tuples)
     }
 
 
@@ -834,27 +784,12 @@ def get_property_type_list():
     assert order_direction in {'asc', 'desc'}
 
     # query to padloper
-    property_types = PropertyType.get_list(
-        range=range_bounds,
-        order_by=order_by,
-        order_direction=order_direction,
-        filters=filter_tuples,
-    )
-
-    return {
-        'result': [
-            {
-                'name': pt.name,
-                'id': pt.id(),
-                'units': pt.units,
-                'allowed_regex': pt.allowed_regex,
-                'n_values': pt.n_values,
-                'allowed_types': [t.name for t in pt.allowed_types],
-                'comments': pt.comments,
-            }
-            for pt in property_types
-        ]
-    }
+    property_types = p.PropertyType.get_list(range=range_bounds,
+                                             order_by=order_by,
+                                             order_direction=order_direction,
+                                             filters=filter_tuples)
+    
+    return {"result": [pt.as_dict() for pt in property_types]}
 
 
 @app.route("/api/component_set_property", methods=['POST'])
@@ -900,31 +835,26 @@ def set_component_property():
         # if this is false, then you put a semicolon in a value name!!!
         assert len(values) == val_value_count
 
-        property_type = PropertyType.from_db(val_property_type)
+        property_type = p.PropertyType.from_db(val_property_type)
 
-        component = Component.from_db(val_name)
+        component = p.Component.from_db(val_name)
 
-        property = Property(values=values, property_type=property_type)
+        property = p.Property(values=values, type=property_type)
 
-        component.set_property(
-            property=property,
-            time=val_time,
-            uid=val_uid,
-            comments=val_comments
-        )
+        t = tmp_timestamp(val_time, val_uid, val_comments)
+        component.set_property(property, start=t) 
 
         return {'result': True}
 
     except Exception as e:
-
         print(e)
-
         return {'error': json.dumps(e, default=str)}
 
 
 @app.route("/api/component_end_property")
 def end_component_property():
-    """Given the component name, property type, time, user ID and comments, end the property for the component.
+    """Given the component name, property type, time, user ID and comments, end
+    the property for the component.
 
     The URL parameters are:
 
@@ -948,28 +878,31 @@ def end_component_property():
     val_uid = escape(request.args.get('uid'))
     val_comments = escape(request.args.get('comments'))
 
-    property_type = PropertyType.from_db(val_property_type)
+    property_type = p.PropertyType.from_db(val_property_type)
 
-    # Initializing the component instance from the name provided as the url parameter.
-    component = Component.from_db(val_name)
+    # Initializing the component instance from the name provided as the url
+    # parameter.
+    component = p.Component.from_db(val_name)
 
-    property = component.get_property(property_type, val_time, False)
+    property = component.get_property(property_type, val_time)
+    if property == None:
+        raise p.ComponentPropertyStartTimeExceedsInputtedTime(
+                    f"{component.name} has no property with the given "\
+                     "combination of time and property type. Make sure time "\
+                     "inputted is later than property start time."
+                )
 
-    component.unset_property(
-        property=property,
-        time=val_time,
-        uid=val_uid,
-        comments=val_comments
-    )
+    t = tmp_timestamp(val_time, val_uid, val_comments)
+    component.unset_property(property, t)
 
     return {'result': True}
 
 
 @app.route("/api/component_replace_property")
 def replace_component_property():
-    """Given the component name, property type and the replaced time, user ID, comments,
-    the values associated with the property, along with the count of values,
-    replace the old property for the component.
+    """Given the component name, property type and the replaced time, user ID,
+    comments, the values associated with the property, along with the count of
+    values, replace the old property for the component.
 
     The URL parameters are:
 
@@ -984,8 +917,8 @@ def replace_component_property():
 
     comments - the comments associated with the new property.
 
-    values - the values of the new property, of the form "<str>;<str>;...;<str>",
-    separated by semicolons.
+    values - the values of the new property, of the form
+    "<str>;<str>;...;<str>", separated by semicolons.
 
     valueCount - the number of values of the new property.
 
@@ -1006,31 +939,28 @@ def replace_component_property():
     # if this is false, then you put a semicolon in a value name!!!
     assert len(values) == val_value_count
 
-    property_type = PropertyType.from_db(val_property_type)
+    property_type = p.PropertyType.from_db(val_property_type)
 
-    component = Component.from_db(val_name)
+    component = p.Component.from_db(val_name)
 
-    property_new = Property(values=values, property_type=property_type)
+    property_new = p.Property(values=values, type=property_type)
 
-    component.replace_property(
-        propertyTypeName=val_property_type,
-        property=property_new,
-        time=val_time,
-        uid=val_uid,
-        comments=val_comments
-    )
+    component.replace_property(propertyTypeName=val_property_type,
+                               property=property_new, time=val_time, 
+                               uid=val_uid, comments=val_comments)
 
     return {'result': True}
 
 
 @app.route("/api/component_disable_property")
 def disable_component_property():
-    """Given the component name and the name of the property type, disable the property from the serverside.
+    """Given the component name and the name of the property type, disable the
+    property from the serverside.
     """
     val_name = escape(request.args.get('name'))
     val_property_type = escape(request.args.get('propertyType'))
 
-    component = Component.from_db(val_name)
+    component = p.Component.from_db(val_name)
 
     component.disable_property(
         propertyTypeName=val_property_type
@@ -1071,26 +1001,24 @@ def add_component_connection():
         val_uid = escape(request.args.get('uid'))
         val_comments = escape(request.args.get('comments'))
 
-        c1, c2 = Component.from_db(val_name1), Component.from_db(val_name2)
+        c1, c2 = p.Component.from_db(val_name1), p.Component.from_db(val_name2)
 
-        c1.connect(
-            component=c2, time=val_time, uid=val_uid, comments=val_comments
-        )
+        t = tmp_timestamp(val_time, val_uid, val_comments)
+        c1.connect(c2, t)
 
         return {'result': True}
 
     except Exception as e:
-
         print(e)
-
         return {'error': json.dumps(e, default=str)}
 
 
 @app.route("/api/component_end_connection")
 def end_component_connection():
-    """Given the names of the two components that are already connected, the time to end the
-    connection, the ID of the user ending this connection, and the comments
-    associated with ending the connection, end the conenction between the two components.
+    """Given the names of the two components that are already connected, the
+    time to end the connection, the ID of the user ending this connection, and
+    the comments associated with ending the connection, end the conenction
+    between the two components.
 
     The URL parameters are:
 
@@ -1116,14 +1044,13 @@ def end_component_connection():
     val_uid = escape(request.args.get('uid'))
     val_comments = escape(request.args.get('comments'))
 
-    c1, c2 = Component.from_db(val_name1), Component.from_db(val_name2)
+    c1, c2 = p.Component.from_db(val_name1), p.Component.from_db(val_name2)
 
     already_disconnected = False
 
     try:
-        c1.disconnect(
-            component=c2, time=val_time, uid=val_uid, comments=val_comments
-        )
+        t = tmp_timestamp(val_time, val_uid, val_comments)
+        c1.disconnect(c2, t)
     except ComponentsAlreadyDisconnectedError:
         already_disconnected = True
 
@@ -1132,9 +1059,10 @@ def end_component_connection():
 
 @app.route("/api/component_replace_connection")
 def replace_component_connection():
-    """Given the names of the two components to replace the connection between, the new time to make the
-    connection, the new ID of the user making this connection, and the new comments
-    associated with the connection, replace the connection between the two components.
+    """Given the names of the two components to replace the connection between,
+    the new time to make the connection, the new ID of the user making this
+    connection, and the new comments associated with the connection, replace the
+    connection between the two components.
 
     The URL parameters are:
 
@@ -1160,17 +1088,18 @@ def replace_component_connection():
     val_uid = escape(request.args.get('uid'))
     val_comments = escape(request.args.get('comments'))
 
-    c1, c2 = Component.from_db(val_name1), Component.from_db(val_name2)
+    c1, c2 = p.Component.from_db(val_name1), p.Component.from_db(val_name2)
 
-    c1.replace_connection(otherComponent=c2, time=val_time,
-                          uid=val_uid, comments=val_comments)
+    t = tmp_timestamp(val_time, val_uid, val_comments)
+    c1.replace_connection(c2, t, is_replacement=True)
 
     return {'result': True}
 
 
 @app.route("/api/component_disable_connection")
 def disable_component_connection():
-    """Given the names of the two components to disable the connection between, disable the connection between the two components.
+    """Given the names of the two components to disable the connection between,
+    disable the connection between the two components.
 
     The URL parameters are:
 
@@ -1182,15 +1111,14 @@ def disable_component_connection():
     val_name1 = escape(request.args.get('name1'))
     val_name2 = escape(request.args.get('name2'))
 
-    c1, c2 = Component.from_db(val_name1), Component.from_db(val_name2)
-
+    c1, c2 = p.Component.from_db(val_name1), p.Component.from_db(val_name2)
     c1.disable_connection(otherComponent=c2)
 
     return {'result': True}
 
 
-@app.route("/api/get_all_connections_at_time")
-def get_all_connections_at_time():
+@app.route("/api/get_connections")
+def get_connections():
     """Given a component name and a time to check all connections, return all 
     connections of the component at a certain time in dictionary format.
 
@@ -1209,16 +1137,27 @@ def get_all_connections_at_time():
     val_name = escape(request.args.get('name'))
     val_time = int(escape(request.args.get('time')))
 
-    c = Component.from_db(val_name)
+    c = p.Component.from_db(val_name)
 
     connections = c.get_all_connections_at_time(val_time)
 
     return {
         'result': [
             {
-                'inVertexName': conn.inVertex.name,
-                'outVertexName': conn.outVertex.name,
-                'subcomponent': True if isinstance(conn, RelationSubcomponent) \
+                'inVertex': {
+                    'name': conn.inVertex.name,
+                    'type': conn.inVertex.type.name,
+                    'version': conn.inVertex.version.name \
+                        if conn.inVertex.version else ""
+                },
+                'outVertex': {
+                    'name': conn.outVertex.name,
+                    'type': conn.outVertex.type.name,
+                    'version': conn.outVertex.version.name \
+                        if conn.outVertex.version else ""
+                },
+                'subcomponent': True if isinstance(conn,
+                                                   p.RelationSubcomponent) \
                                 else False,
                 'id': conn.id(),
             }
@@ -1229,7 +1168,8 @@ def get_all_connections_at_time():
 
 @app.route("/api/component_add_subcomponent", methods=['POST'])
 def add_component_subcomponent():
-    """Given the name of the the component that is a subcomponent along with the name of the main component, establish the appropriate relation.
+    """Given the name of the the component that is a subcomponent along with the
+    name of the main component, establish the appropriate relation.
 
     The URL parameters are:
 
@@ -1238,8 +1178,9 @@ def add_component_subcomponent():
     name2 - the name of the subcomponent
 
     :return: Return a dictionary with a key 'result' and value being a boolean
-    that is True if and only if the component was not a subcomponent beforehand,otherwise, a dictionary with a key 'error'
-    with the corresponding value of appropriate exception.  
+    that is True if and only if the component was not a subcomponent beforehand,
+    otherwise, a dictionary with a key 'error' with the corresponding value of
+    appropriate exception.
     :rtype: dict
     """
     try:
@@ -1247,7 +1188,7 @@ def add_component_subcomponent():
         val_name1 = escape(request.args.get('name1'))
         val_name2 = escape(request.args.get('name2'))
 
-        c1, c2 = Component.from_db(val_name1), Component.from_db(val_name2)
+        c1, c2 = p.Component.from_db(val_name1), p.Component.from_db(val_name2)
 
         already_subcomponent = False
 
@@ -1261,15 +1202,14 @@ def add_component_subcomponent():
         return {'result': not already_subcomponent}
 
     except Exception as e:
-
         print(e)
-
         return {'error': json.dumps(e, default=str)}
 
 
 @app.route("/api/component_disable_subcomponent")
 def disable_component_subcomponent():
-    """Given the name of the the component that is a subcomponent along with the name of the main component, disable the appropriate connection.
+    """Given the name of the the component that is a subcomponent along with the
+    name of the main component, disable the appropriate connection.
 
     The URL parameters are:
 
@@ -1285,8 +1225,7 @@ def disable_component_subcomponent():
     val_name1 = escape(request.args.get('name1'))
     val_name2 = escape(request.args.get('name2'))
 
-    c1, c2 = Component.from_db(val_name1), Component.from_db(val_name2)
-
+    c1, c2 = p.Component.from_db(val_name1), p.Component.from_db(val_name2)
     c1.disable_subcomponent(otherComponent=c2)
 
     return {'result': True}
@@ -1294,8 +1233,7 @@ def disable_component_subcomponent():
 
 @app.route("/api/set_flag_type", methods=['POST'])
 def set_flag_type():
-    """Given the flag type name and comments,
-    set a flag type to the serverside.
+    """Given the flag type name and comments, set a flag type to the serverside.
 
     The URL parameters are:
 
@@ -1314,24 +1252,20 @@ def set_flag_type():
         val_comments = escape(request.args.get('comments'))
 
         # Need to initialize an instance of a component version first.
-        flag_type = FlagType(
-            val_name, val_comments)
-
+        flag_type = p.FlagType(val_name, val_comments)
         flag_type.add()
 
         return {'result': True}
 
     except Exception as e:
-
         print(e)
-
         return {'error': json.dumps(e, default=str)}
 
 
 @app.route("/api/replace_flag_type", methods=['POST'])
 def replace_flag_type():
-    """Given the new flag type name and comments,
-    replace the old flag type from the serverside.
+    """Given the new flag type name and comments, replace the old flag type from
+    the serverside.
 
     The URL parameters are:
 
@@ -1347,32 +1281,24 @@ def replace_flag_type():
     :rtype: dict
     """
     try:
-
         val_name = escape(request.args.get('name'))
         val_comments = escape(request.args.get('comments'))
         val_flag_type = escape(request.args.get('flag_type'))
 
         # Need to initialize an instance of a flag type first.
-        flag_type_new = FlagType(
-            val_name, val_comments)
-
-        flag_type_old = FlagType.from_db(val_flag_type)
-
+        flag_type_new = p.FlagType(val_name, val_comments)
+        flag_type_old = p.FlagType.from_db(val_flag_type)
         flag_type_old.replace(flag_type_new)
-
         return {'result': True}
 
     except Exception as e:
-
         print(e)
-
         return {'error': json.dumps(e, default=str)}
 
 
 @app.route("/api/set_flag_severity", methods=['POST'])
 def set_flag_severity():
-    """Given the flag severity name,
-    set a flag severity to the serverside.
+    """Given the flag severity name, set a flag severity to the serverside.
 
     The URL parameters are:
 
@@ -1384,8 +1310,7 @@ def set_flag_severity():
     val_name = escape(request.args.get('name'))
 
     # Need to initialize an instance of a component version first.
-    flag_severity = FlagSeverity(
-        val_name)
+    flag_severity = p.FlagSeverity(val_name)
 
     flag_severity.add()
 
@@ -1394,8 +1319,8 @@ def set_flag_severity():
 
 @app.route("/api/replace_flag_severity", methods=['POST'])
 def replace_flag_severity():
-    """Given the new flag severity name,
-    replace the old flag severity from the serverside.
+    """Given the new flag severity name, replace the old flag severity from the
+    serverside.
 
     The URL parameters are:
 
@@ -1408,11 +1333,8 @@ def replace_flag_severity():
     val_flag_severity = escape(request.args.get('flag_severity'))
 
     # Need to initialize an instance of a flag severity first.
-    flag_severity_new = FlagSeverity(
-        val_name)
-
-    flag_severity_old = FlagSeverity.from_db(val_flag_severity)
-
+    flag_severity_new = p.FlagSeverity(val_name)
+    flag_severity_old = p.FlagSeverity.from_db(val_flag_severity)
     flag_severity_old.replace(flag_severity_new)
 
     return {'result': True}
@@ -1420,8 +1342,8 @@ def replace_flag_severity():
 
 @app.route("/api/set_flag", methods=['POST'])
 def set_flag():
-    """Given the flag name,start_time,uid,start_comments,flag_severity,flag_type and flag_components,
-    set a flag to the serverside.
+    """Given the flag name,start_time,uid,start_comments,flag_severity,flag_type
+    and flag_components, set a flag to the serverside.
 
     The URL parameters are:
 
@@ -1433,7 +1355,8 @@ def set_flag():
 
     comments - The comments relating to the flag.
 
-    flag_severity - The FlagSeverity instance representing the severity of the flag.
+    flag_severity - The FlagSeverity instance representing the severity of the
+    flag.
 
     flag_type - The FlagType instance representing the type of the flag.
 
@@ -1452,44 +1375,38 @@ def set_flag():
         val_end_time = escape(request.args.get('end_time'))
         val_start_comments = escape(request.args.get('start_comments'))
         val_comments = escape(request.args.get('comments'))
-        val_flag_severity = escape(request.args.get('flag_severity'))
-        val_flag_type = escape(request.args.get('flag_type'))
-        val_flag_components = escape(
-            request.args.get('flag_components')).split(';')
+        val_severity = escape(request.args.get('severity'))
+        val_type = escape(request.args.get('type'))
+        val_components = escape(
+            request.args.get('components')).split(';')
 
-        flag_severity = FlagSeverity.from_db(val_flag_severity)
-        flag_type = FlagType.from_db(val_flag_type)
+        severity = p.FlagSeverity.from_db(val_severity)
+        type = p.FlagType.from_db(val_type)
 
         allowed_list = []
-        # Query the database and return a list of Component instances based on component name.
-        if val_flag_components != ['Global']:
-            for name in val_flag_components:
-                allowed_list.append(Component.from_db(name))
+        # Query the database and return a list of Component instances based on
+        # component name.
+        if val_components != ['Global']:
+            for name in val_components:
+                allowed_list.append(p.Component.from_db(name))
 
-        # This is the case when the user doesn't specify the end time while adding a flag.
-        if(val_end_time == str(0)):
-            # Need to initialize an instance of Flag first.
-            flag = Flag(name=val_name, start_time=val_start_time,
-                        flag_severity=flag_severity, flag_type=flag_type, flag_components=allowed_list, comments=val_comments, start_comments=val_start_comments, start_uid=val_uid)
-
-            flag.add()
-
-        # This is the case when the user specifies the end time while adding a flag.
-        if(val_end_time != str(0)):
-            # Need to initialize an instance of Flag first.
-            flag = Flag(name=val_name, start_time=val_start_time,
-                        flag_severity=flag_severity, flag_type=flag_type, flag_components=allowed_list, comments=val_comments, start_comments=val_start_comments, start_uid=val_uid, end_uid=val_uid, end_time=val_end_time, end_edit_time=int(time.time()))
-
-            flag.add()
+        # Need to initialize an instance of Flag first.
+        start = tmp_timestamp(val_start_time, val_uid, val_start_comments)
+        print(start)
+        if val_end_time != str(0):
+            end = tmp_timestamp(val_end_time, val_uid, val_start_comments)
+        else:
+            end = None
+        flag = p.Flag(val_name, start, severity, type, 
+                      comments=val_comments, end=end,
+                      components=allowed_list)
+        flag.add()
 
         return {'result': True}
 
     except Exception as e:
-
         print(e)
-
         return {'error': json.dumps(e, default=str)}
-
 
 @app.route("/api/unset_flag", methods=['POST'])
 def unset_flag():
@@ -1515,18 +1432,17 @@ def unset_flag():
     val_comments = escape(request.args.get('comments'))
 
     # Need to initialize an instance of Flag first.
-    flag = Flag.from_db(val_name)
-
-    flag.end_flag(end_time=val_end_time, end_uid=val_uid,
-                  end_comments=val_comments)
+    flag = p.Flag.from_db(val_name)
+    t = tmp_timestamp(val_end_time, val_uid, val_comments)
+    flag.end_flag(end)
 
     return {'result': True}
 
 
 @app.route("/api/replace_flag", methods=['POST'])
 def replace_flag():
-    """Given the new flag name,start_time,uid,start_comments,flag_severity,flag_type and flag_components,
-    replace the old flag from the serverside.
+    """Given the new flag name, start_time, uid, start_comments, flag_severity,
+    flag_type and flag_components, replace the old flag from the serverside.
 
     The URL parameters are:
 
@@ -1538,7 +1454,8 @@ def replace_flag():
 
     comments - The comments related to the new flag.
 
-    flag_severity - The FlagSeverity instance representing the severity of the flag.
+    flag_severity - The FlagSeverity instance representing the severity of the
+    flag.
 
     flag_type - The FlagType instance representing the type of the flag.
 
@@ -1564,32 +1481,29 @@ def replace_flag():
         val_flag_components = escape(
             request.args.get('flag_components')).split(';')
 
-        flag_severity = FlagSeverity.from_db(val_flag_severity)
-        flag_type = FlagType.from_db(val_flag_type)
+        flag_severity = p.FlagSeverity.from_db(val_flag_severity)
+        flag_type = p.FlagType.from_db(val_flag_type)
 
         val_flag = escape(request.args.get('flag'))
 
         allowed_list = []
-        # Query the database and return a list of Component instances based on component name.
+        # Query the database and return a list of Component instances based on
+        # component name.
         if val_flag_components != ['Global']:
             for name in val_flag_components:
-                allowed_list.append(Component.from_db(name))
+                allowed_list.append(p.Component.from_db(name))
 
-        flag_old = Flag.from_db(val_flag)
-
-        if(val_end_time == str(0)):
-            # Need to initialize an instance of Flag first. This case handles if the user doesn't set the end time initially.
-            flag_new = Flag(name=val_name, start_time=val_start_time,
-                            flag_severity=flag_severity, flag_type=flag_type, flag_components=allowed_list, comments=val_comments, start_comments=val_start_comments, start_uid=val_uid)
-
-            flag_old.replace(flag_new)
-
-        if(val_end_time != str(0)):
-            # Need to initialize an instance of Flag first. This case handles if the sets the end time at the time of setting a new flag.
-            flag_new = Flag(name=val_name, start_time=val_start_time,
-                            flag_severity=flag_severity, flag_type=flag_type, flag_components=allowed_list, comments=val_comments, start_comments=val_start_comments, start_uid=val_uid, end_uid=val_uid, end_time=val_end_time, end_edit_time=int(time.time()))
-
-            flag_old.replace(flag_new)
+        flag_old = p.Flag.from_db(val_flag)
+        
+        start = tmp_timestamp(val_start_time, val_uid, val_start_comments)
+        if val_end_time != str(0):
+            end = tmp_timestamp(val_end_time, val_uid, val_start_comments)
+        else:
+            end = None
+        flag_new = Flag(val_name, start, flag_severity, flag_type, 
+                        comments=val_comments, end=end, 
+                        components=allowed_list)
+        flag_old.replace(flag_new)
 
         return {'result': True}
 
@@ -1598,7 +1512,6 @@ def replace_flag():
         print(e)
 
         return {'error': json.dumps(e, default=str)}
-
 
 @app.route("/api/disable_flag")
 def disable_flag():
@@ -1614,7 +1527,7 @@ def disable_flag():
     val_name = escape(request.args.get('name'))
 
     # Need to initialize an instance of a flag first.
-    flag = Flag.from_db(val_name)
+    flag = p.Flag.from_db(val_name)
 
     flag.disable()
 
@@ -1641,7 +1554,7 @@ def get_flag_count():
     filter_triples = read_filters(filters)
 
     return {
-        'result': Flag.get_count(filters=filter_triples)
+        'result': p.Flag.get_count(filters=filter_triples)
     }
 
 
@@ -1664,8 +1577,8 @@ def get_flag_list():
     orderDirection - either "asc" or "desc" for ascending/descending,
     respectively.
 
-    filters - of the form "<str>,<str>,<int>;...;<str>,<str>,<int>", consisting of 
-    three-tuples of strings with the tuples separated by semicolons and the
+    filters - of the form "<str>,<str>,<int>;...;<str>,<str>,<int>", consisting
+    of three-tuples of strings with the tuples separated by semicolons and the
     tuples' contents separated by commas.
 
     :return: A dictionary containing a key 'result' with its corresponding value
@@ -1689,39 +1602,11 @@ def get_flag_list():
     assert order_direction in {'asc', 'desc'}
 
     # query to padloper
-    flags = Flag.get_list(
-        range=range_bounds,
-        order_by=order_by,
-        order_direction=order_direction,
-        filters=filter_triples,
-    )
+    flags = p.Flag.get_list(range=range_bounds, order_by=order_by,
+                            order_direction=order_direction,
+                            filters=filter_triples)
 
-    return {
-        'result': [
-            {
-                'name': f.name,
-                'comments': f.comments,
-                'id': f.id(),
-                'start_time': f.start_time,
-                'start_uid': f.start_uid,
-                'start_edit_time': f.start_edit_time,
-                'start_comments': f.start_comments,
-                'flag_severity': {
-                    'name': f.flag_severity.name,
-                },
-                'flag_type': {
-                    'name': f.flag_type.name,
-                    'comments': f.flag_type.comments
-                },
-                'flag_components': [t.name for t in f.flag_components],
-                'end_time': f.end_time,
-                'end_uid': f.end_uid,
-                'end_edit_time': f.end_edit_time,
-                'end_comments': f.end_comments,
-            }
-            for f in flags
-        ]
-    }
+    return {"result": [f.as_dict() for f in flags]}
 
 
 @app.route("/api/flag_type_list")
@@ -1761,12 +1646,9 @@ def get_flag_type_list():
     assert order_direction in {'asc', 'desc'}
 
     # query to padloper
-    flag_types = FlagType.get_list(
-        range=range_bounds,
-        order_by=order_by,
-        order_direction=order_direction,
-        name_substring=name_substring
-    )
+    flag_types = p.FlagType.get_list(range=range_bounds, order_by=order_by,
+                                     order_direction=order_direction,
+                                     name_substring=name_substring)
 
     return {
         'result': [
@@ -1795,18 +1677,20 @@ def get_flag_type_count():
 
     name_substring = escape(request.args.get('nameSubstring'))
 
-    return {'result': FlagType.get_count(name_substring=name_substring)}
+    return {'result': p.FlagType.get_count(name_substring=name_substring)}
 
 
 @app.route("/api/flag_severity_list")
 def get_flag_severity_list():
-    """Given three URL parameters 'range', 'orderBy', 'orderDirection', return a dictionary containing a key 'result' with its 
-    corresponding value being an array of dictionary representations of each 
-    flag severity in the desired list.
+    """Given three URL parameters 'range', 'orderBy', 'orderDirection', return a
+    dictionary containing a key 'result' with its corresponding value being an
+    array of dictionary representations of each flag severity in the desired
+    list.
 
     range - of the form "<int>;<int>" -- two integers split by a semicolon,
     where the first integer denotes the index first component type to be 
-    considered in the list and the second integer denotes the last flag severity to be shown in the list.
+    considered in the list and the second integer denotes the last flag severity
+    to be shown in the list.
 
     orderBy - the field to order the flag severity list by, a string.
 
@@ -1830,11 +1714,9 @@ def get_flag_severity_list():
     assert order_direction in {'asc', 'desc'}
 
     # query to padloper
-    flag_severities = FlagSeverity.get_list(
-        range=range_bounds,
-        order_by=order_by,
-        order_direction=order_direction,
-    )
+    flag_severities = p.FlagSeverity.get_list(range=range_bounds,
+                                              order_by=order_by,
+                                              order_direction=order_direction)
 
     return {
         'result': [
@@ -1865,8 +1747,7 @@ def set_permission():
     val_comment = escape(request.args.get('comment'))
 
     # Need to initialize an instance of a component first.
-    permission = Permission(
-        val_name, val_comment)
+    permission = p.Permission(val_name, val_comment)
 
     permission.add()
 
@@ -1895,11 +1776,12 @@ def set_user_group():
     val_permission = escape(request.args.get('permission')).split(';')
 
     allowed_list = []
-    # Query the database and return a list of Permission instances based on permission name.
+    # Query the database and return a list of Permission instances based on
+    # permission name.
     for name in val_permission:
-        allowed_list.append(Permission.from_db(name))
+        allowed_list.append(p.Permission.from_db(name))
 
-    user_group = UserGroup(val_name, val_comment, allowed_list)
+    user_group = p.UserGroup(val_name, val_comment, allowed_list)
 
     user_group.add()
 
@@ -1908,7 +1790,8 @@ def set_user_group():
 
 @app.route("/api/set_user", methods=['POST'])
 def set_user():
-    """Given username, password, institution and the list of allowed user group,set a user to the serverside.
+    """Given username, password, institution and the list of allowed user
+    group,set a user to the serverside.
 
     The URL parameters are:
 
@@ -1931,7 +1814,7 @@ def set_user():
 
     if val_user_group != ['']:
         for name in val_user_group:
-            allowed_list.append(UserGroup.from_db(name))
+            allowed_list.append(p.UserGroup.from_db(name))
         user = User(val_uname, val_pwd_hash, val_institution, allowed_list)
     else:
         user = User(val_uname, val_pwd_hash, val_institution)
