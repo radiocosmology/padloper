@@ -106,8 +106,8 @@ variant="outlined"
 background: 'white',
 borderColor: '#777777',
 borderWidth: '2px',
-width: '250px',
-height: '50px',
+width: '100%',
+height: '100%',
 textAlign: 'center',
 }));
 
@@ -359,6 +359,10 @@ newNode = {
     data: { name: comp.name, ctype: comp.type, version: comp.version },
 //            data: {label: name},
     position: { x: x, y: y },
+    style: {
+      width: '250px',
+      height: '50px'
+    },
 //            position: { x: 10, y: 10 },
     parentNode: parent,
     extent: 'parent',
@@ -372,6 +376,10 @@ newNode = {
     data: { name: comp.name, ctype: comp.type, version: comp.version },
 //            data: {label: name},
     position: { x: x, y: y },
+    style: {
+      width: '250px',
+      height: '50px'
+    },
 //            position: { x: 10, y: 10 },
 }
 }
@@ -624,7 +632,7 @@ return (
         <Grid
             container
             justifyContent="center"
-            alignItems="center"
+            // alignItems="center"
             style={{
                 height: '100%'
             }}
@@ -772,7 +780,7 @@ resolve => {
                     // });
                     return ({
                         ...el,
-                        type: 'group',
+                        // type: 'group',
                         data: { ...el.data, label: el.id,},
                         style: {
                             width: newWidth,
