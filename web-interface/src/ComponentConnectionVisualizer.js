@@ -167,7 +167,7 @@ const g = new Dagre.graphlib.Graph().setDefaultEdgeLabel(() => ({}));
 
 
 // TODO: Probably don't hardcode this.
-const nodeWidth = 160, nodeHeight = 50;
+const nodeWidth = 250, nodeHeight = 50;
 
 /**
 * Lays out the nodes of the graph visualization in a top-to-bottom fashion.
@@ -275,6 +275,9 @@ const { fitView } = useReactFlow();
 // store position
 const [lastAdded, setLastAdded] = useState({x: 350, y: 100})
 
+// store sub component position
+const [subLastAdded, setSubLastAdded] = useState({x: -nodeWidth, y: 120 - nodeHeight})
+
 // a dictionary that will store the React Flow IDs of the nodes used
 const nodeIds = useRef({});
 
@@ -343,51 +346,47 @@ edgeIds.current[id] = true;
 * @returns A Boolean indicating whether the component 
 * was successfully added.
 */
-async function addComponent(comp, x, y, subcomponent=false, parent=null) {
-console.log(subcomponent);
+// TODO: need for async??
+function addComponent(comp, x, y, subcomponent=false, parent=null, width='250px', height='50px') {
 // catch it
 if (nodeIds.current[comp.name]) {
-return false;
+  return false;
 }
 let newNode;
 if (subcomponent) {
-newNode = {
-    id: comp.name,
-    connectable: false,
-    type: 'component',
-//            dragHandle: '.drag-handle',
-    data: { name: comp.name, ctype: comp.type, version: comp.version },
-//            data: {label: name},
-    position: { x: x, y: y },
-    style: {
-      width: '250px',
-      height: '50px'
-    },
-//            position: { x: 10, y: 10 },
-    parentNode: parent,
-    extent: 'parent',
-}
+  newNode = {
+      id: comp.name,
+      connectable: false,
+      type: 'component',
+  //            dragHandle: '.drag-handle',
+      data: { name: comp.name, ctype: comp.type, version: comp.version },
+  //            data: {label: name},
+      position: { x: x, y: y },
+      style: {
+        width: width,
+        height: height
+      },
+      parentNode: parent,
+      extent: 'parent',
+  }
 } else {
-newNode = {
-    id: comp.name,
-    connectable: false,
-    type: 'component',
-//            dragHandle: '.drag-handle',
-    data: { name: comp.name, ctype: comp.type, version: comp.version },
-//            data: {label: name},
-    position: { x: x, y: y },
-    style: {
-      width: '250px',
-      height: '50px'
-    },
-//            position: { x: 10, y: 10 },
+  newNode = {
+      id: comp.name,
+      connectable: false,
+      type: 'component',
+  //            dragHandle: '.drag-handle',
+      data: { name: comp.name, ctype: comp.type, version: comp.version },
+  //            data: {label: name},
+      position: { x: x, y: y },
+      style: {
+        width: width,
+        height: height
+      },
+  //            position: { x: 10, y: 10 },
+  }
 }
-}
-
-
 addNodeId(comp.name);
 setNodes((els) => els.concat(newNode));
-
 return true;
 }
 
@@ -606,6 +605,7 @@ fitView();
 //        onLayout();
 //    }, [toggleLayoutBool]);
 
+
 /**
 * A MUI component representing a component node.
 * @param {*} data - data for the React Flow component.
@@ -649,8 +649,10 @@ return (
             </Grid>
             <Grid item>
                     <ExpandConnectionsButton 
-                        onClick={() => expandConnections(
-                            data.name, time.current)}
+                        onClick={() => {
+                          expandConnections(data.name, time.current);
+                        }
+                      }
                     />
             </Grid>
         </Grid>
@@ -701,14 +703,17 @@ resolve => {
     ).then(data => {
         console.log(data);
         let subcomponents = [];
+        let parent = name;
         for (const edge of data.result) {
 
             let other = (name === edge.inVertex.name) ? 
                 edge.outVertex : edge.inVertex;
-            console.log(other);
+            // console.log(other);
+            // console.log(other.name, edge.outVertex)
 
             // TODO: Change the default position.
            let added = false;
+          
 
             // add as subcomponent
             // if (edge.subcomponent) {
@@ -717,8 +722,36 @@ resolve => {
             //     } else {
             //         subcomponents.push(name)
             //     }
-            if (edge.subcomponent) {
-                subcomponents.push(other);
+            if (edge.subcomponent  && other.name === edge.outVertex.name) {
+                // other is child
+                subcomponents.push(other); 
+            } else if (edge.subcomponent && other.name === edge.inVertex.name) {
+              // other is parent
+              parent = other.name;
+              // if parent doesn't exist
+              if (!nodeIds.current[parent]) {
+                // create parent
+                added = addComponent(other, lastAdded.x, lastAdded.y + nodeHeight + 20, false, null, '270px', '150px');
+
+                // update child to point tp parent
+                setNodes((els) => els.map(el => {
+                  console.log(el)
+                  if (el.id === name) {
+                    return ({
+                      ...el,
+                      data: { ...el.data, label: el.id,},
+                      position: {
+                        x: 10, y: 120 - nodeHeight
+                      },
+                      parentNode: parent,
+                      extent: "parent"
+                    })
+                  } else {
+                    return el;
+                  }
+                }))
+              }
+              // subcomponents.push(edge.outVertex);
             } else {
                 added = addComponent(other, lastAdded.x, lastAdded.y + nodeHeight + 20);
 
@@ -745,39 +778,15 @@ resolve => {
         // createSubcomponent(name, subcomponents);
 
         // update parent node size
-        if (subcomponents) {
-            const newWidth = nodeWidth * 2.5;
-            const newHeight = (nodeHeight + 20) * (1 + subcomponents.length);
-            // setNodes((els) => {
-            //     els.map((node) => {
-            //         if (node.id === name) {
-            //             return {
-            //                 ...node,
-            //                 style: {
-            //                     width: newWidth,
-            //                     height: newHeight,
-            //                 }
-            //             }
-            //         }
-            //         return node;
-            //     })
-            // })
+        if (subcomponents.length > 0) {
+            const newWidth = subcomponents.length * (nodeWidth + 20);
+            // const newHeight = (nodeHeight + 20) * (1 + subcomponents.length);
+            const newHeight = 150;
             setNodes((els) => els.map((el) => {
-                if (el.id === name) {
+                if (el.id === parent) {
                     console.log('found');
                     console.log(newWidth, newHeight);
                     console.log(el);
-                    // console.log( {
-                    //     id: el.id,
-                    //     connectable: false,
-                    //     type: 'component',
-                    //     data: { name: el.name, ctype: el.type, version: el.version },
-                    //     position: { x: el.position.x, y: el.position.y },
-                    //     style: {
-                    //         width: newWidth,
-                    //         height: newHeight,
-                    //     },
-                    // });
                     return ({
                         ...el,
                         // type: 'group',
@@ -787,22 +796,44 @@ resolve => {
                             height: newHeight,
                         }
                     });
-                    return el;
                 } else {
                     console.log('not found');
                     return el;
                 }
             }));
-            let subAdded = false;
+
             for (const sub of subcomponents) {
-                console.log(sub);
-                subAdded = addComponent(sub, 0, 0, true, name);
+                let subAdded = false;
+                console.log(sub, parent)
+                subAdded = addComponent(sub, subLastAdded.x + nodeWidth + 10, subLastAdded.y, true, parent);
+                console.log(subAdded);
+                // case for changing to parent if expanded from child to parent
                 if (subAdded) {
+                  console.log("helolhoelhoel")
                     componentsAdded.push(sub);
-                    lastAdded.y += nodeHeight + 20;
+                    subLastAdded.x += nodeWidth + 10;
+                } else {
+                  console.log('HAHREOAIHRAOE');
+                  setNodes((els) => els.map(el => {
+                    console.log(el)
+                    if (el.id === sub.name) {
+                      return ({
+                        ...el,
+                        data: { ...el.data, label: el.id,},
+                        position: {
+                          x: 10, y: 120 - nodeHeight
+                        },
+                        parentNode: parent,
+                        extent: "parent"
+                      })
+                    } else {
+                      return el;
+                    }
+                  }))
                 }
             }
         }
+        setSubLastAdded({...subLastAdded})
         setLastAdded({...lastAdded});
         resolve(componentsAdded);
     });
@@ -941,7 +972,6 @@ spacing={2}
                 onEdgesChange={onEdgesChange}
                 nodeTypes={nodeTypes}
                 nodesConnectable={false}
-                // fitView
             >
             {/* {console.log(edges)} */}
                 <Background
