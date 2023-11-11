@@ -172,7 +172,7 @@ const ExpandConnectionsButton = styled((props) => (
 const g = new Dagre.graphlib.Graph().setDefaultEdgeLabel(() => ({}));
 
 // TODO: Probably don't hardcode this.
-const nodeWidth = 160,
+const nodeWidth = 250,
   nodeHeight = 50;
 
 /**
@@ -289,6 +289,9 @@ export default function ComponentConnectionVisualizer() {
   // value that the depth-input will show
   const [depthInputValue, setDepthInputValue] = useState(0);
 
+  // to store added nodes after expand
+  // const [componentsAddedState, setComponenentsAddedState] = useState([]);
+
   const onNodesChange = useCallback(
     (changes) => setNodes((nds) => applyNodeChanges(changes, nds)),
     []
@@ -297,6 +300,12 @@ export default function ComponentConnectionVisualizer() {
     (changes) => setEdges((eds) => applyEdgeChanges(changes, eds)),
     []
   );
+
+    // to update newly added
+    // useEffect(() => {
+    //     onLayout("TB", componentsAddedState)
+    // }, [componentsAddedState]);
+
 
   /**
    * The useRef hook is used as doing
@@ -524,23 +533,28 @@ setToggleLayoutBool(toggleLayoutBoolRef.current)
   // //        [nodes] // Will this work?
   //     );
   const onLayout = useCallback(
-    (direction) => {
+    (direction, subset=false) => {
       // Define the subset of nodes to be laid out (you can adjust this as needed)
       // const subsetOfNodes = nodes.slice(0, 2);
-      const subsetOfNodes = nodes;
-      // console.log(subsetOfNodes)
+        let subsetOfNodes = nodes;
+        if (subset) {
+            subsetOfNodes = nodes.filter((node) => subset.includes(node.id));
+        } 
+    //   console.log(nodes);
+    //   console.log(subset);
+      console.log(subsetOfNodes)
       // Get the nodes to be laid out
-      const layouted = getLayoutedElements(subsetOfNodes, nodes, edges, {
+        const layouted = getLayoutedElements(subsetOfNodes, nodes, edges, {
         direction,
-      });
+        });
 
-      setNodes([...layouted.nodes]);
-      setEdges([...layouted.edges]);
-      // console.log(layouted.nodes);
+        setNodes([...layouted.nodes]);
+        setEdges([...layouted.edges]);
+        // console.log(layouted.nodes);
 
-      window.requestAnimationFrame(() => {
+        window.requestAnimationFrame(() => {
         fitView();
-      });
+        });
     },
     [nodes, edges]
   );
@@ -656,13 +670,17 @@ setToggleLayoutBool(toggleLayoutBoolRef.current)
             );
 
             if (added) {
-              componentsAdded.push(other);
+                console.log(other);
+              // componentsAdded.push(other);
               lastAdded.y += nodeHeight + 20;
             }
           }
-          // console.log(x, y);
+          // // console.log(x, y);
           setLastAdded({ ...lastAdded });
-          // console.log(lastAdded);
+          // // console.log(lastAdded);
+          // const toAdd = componentsAdded.map((el) => el.name);
+          // setComponenentsAddedState(toAdd);
+
           resolve(componentsAdded);
         });
     });
