@@ -269,6 +269,9 @@ const [searchParams, setSearchParams] = useSearchParams();
 // the React Flow nodes to be used in the visualization
 const [nodes, setNodes] = useState([]);
 
+// a dictionary to store whether each node is a parent or not
+const isParentNode = useRef({});
+
 // from https://reactflow.dev/docs/guides/layouting/
 const { fitView } = useReactFlow();
 
@@ -325,6 +328,30 @@ const time = useRef(Math.floor(Date.now() / 1000));
 
 // the default position of nodes in the visualization.
 const defaultViewport = {x: 0, y: 0};
+
+/**
+ * Sort the nodes so that "parent" nodes appear before "children"
+ * nodes.
+ */
+function sortNodes () {
+    setNodes((prevNodes) => {
+        const sortedNodes = prevNodes.slice().sort((a, b) => {
+          const isParentA = isParentNode.current[a.id];
+          const isParentB = isParentNode.current[b.id];
+    
+          if (isParentA && !isParentB) {
+            return -1;
+          } else if (!isParentA && isParentB) {
+            return 1;
+          }
+    
+          return 0;
+        });
+    
+        console.log(sortedNodes);
+        return sortedNodes;
+    });
+}
 
 /**
 * Indicate that a React Flow ID of "id" has been added to the
@@ -386,6 +413,8 @@ if (subcomponent) {
   }
 }
 addNodeId(comp.name);
+// set parent node status to false
+isParentNode.current[comp.name] = false;
 setNodes((els) => els.concat(newNode));
 return true;
 }
@@ -732,6 +761,8 @@ resolve => {
               if (!nodeIds.current[parent]) {
                 // create parent
                 added = addComponent(other, lastAdded.x, lastAdded.y + nodeHeight + 20, false, null, '270px', '150px');
+                // set parent status to true
+                isParentNode.current[parent] = true;
 
                 // update child to point tp parent
                 setNodes((els) => els.map(el => {
@@ -801,6 +832,8 @@ resolve => {
                     return el;
                 }
             }));
+            // set parent node status to true
+            isParentNode.current[parent] = true;
 
             for (const sub of subcomponents) {
                 let subAdded = false;
@@ -809,11 +842,9 @@ resolve => {
                 console.log(subAdded);
                 // case for changing to parent if expanded from child to parent
                 if (subAdded) {
-                  console.log("helolhoelhoel")
                     componentsAdded.push(sub);
                     subLastAdded.x += nodeWidth + 10;
                 } else {
-                  console.log('HAHREOAIHRAOE');
                   setNodes((els) => els.map(el => {
                     console.log(el)
                     if (el.id === sub.name) {
@@ -835,6 +866,8 @@ resolve => {
         }
         setSubLastAdded({...subLastAdded})
         setLastAdded({...lastAdded});
+        console.log(isParentNode)
+        sortNodes();
         resolve(componentsAdded);
     });
 }
