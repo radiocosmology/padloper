@@ -307,6 +307,9 @@ const onEdgesChange = useCallback((changes) => setEdges((eds) =>
 // to store calls to expandConnections
 const [expanded, setExpanded] = useState([]);
 
+// to track whether url component is set
+const [urlSet, setUrlSet] = useState(false);
+
 /**
 * The useRef hook is used as doing
 * setToggleLayoutBool(!toggleLayoutBool) will use the old value of
@@ -340,8 +343,74 @@ useEffect(() => {
     const cmp = component != undefined ? component.name : '';
     // console.log(component)
     // console.log(expanded)
-    window.location.hash = `#cmp=${cmp}&time=${time.current}&expanded=${expanded}`;
-}, [component, expanded]);
+    if (component != undefined) {
+        window.location.hash = `#cmp=${cmp}&time=${enteredTime.current}&depth=${depth}&expanded=${expanded}`;
+    }
+}, [component, expanded, depth]);
+
+/**
+ * Run series of functions from the URL.
+ */
+useEffect(() => {
+    const fetchData = async () => {
+        // Function to parse hash parameters from the URL
+        const getHashParams = () => {
+            const hash = window.location.hash.substring(1);
+            const params = new URLSearchParams(hash);
+            return {
+                component: params.get('cmp') || undefined,
+                time: params.get('time') || Math.floor(Date.now() / 1000),
+                depth: params.get('depth'),
+                expanded: params.get('expanded') ? params.get('expanded').split(',') : [],
+            };
+        };
+
+        // get params
+        const {
+            component: initialCmp,
+            time: initialTime,
+            depth: initialDepth,
+            expanded: initialExpanded,
+        } = getHashParams();
+        
+        // enteredTime.current = +initialTime;
+        if (initialDepth) {
+            setDepth(initialDepth);
+            setDepthInputValue(initialDepth);
+        }
+        setExpanded(initialExpanded);
+
+        if (initialCmp) {
+            try {
+                const response = await fetch(`/api/components_name/${initialCmp}`)
+                const data = await response.json();
+                // console.log(data.result)
+                setUrlSet(true);
+                setComponent(data.result);
+            } catch (error) {
+                console.error('Failed to get component', error);
+            }
+        }
+    };
+    fetchData();
+}, []);
+
+/**
+ * To visualize component
+ */
+useEffect(() => {
+    console.log(component, urlSet)
+    if (urlSet && component) {
+        visualizeComponent();
+        const expandedTemp = expanded.slice()
+        for (let expand of expanded) {
+            expandConnections(expand, time.current);
+        }
+        setExpanded(expandedTemp);
+        setUrlSet(false);
+    }
+    
+}, [component]);
 
 /**
  * Sort the nodes so that "parent" nodes appear before "children"
@@ -358,7 +427,6 @@ function sortNodes () {
           } else if (!isParentA && isParentB) {
             return 1;
           }
-    
           return 0;
         });
         return sortedNodes;
