@@ -304,6 +304,9 @@ const onNodesChange = useCallback((changes) => setNodes((nds) =>
 const onEdgesChange = useCallback((changes) => setEdges((eds) => 
                         applyEdgeChanges(changes, eds)), [] );
 
+// to store calls to expandConnections
+const [expanded, setExpanded] = useState([]);
+
 /**
 * The useRef hook is used as doing
 * setToggleLayoutBool(!toggleLayoutBool) will use the old value of
@@ -328,6 +331,17 @@ const time = useRef(Math.floor(Date.now() / 1000));
 
 // the default position of nodes in the visualization.
 const defaultViewport = {x: 0, y: 0};
+
+
+/**
+ * Set the URL based on actions performed.
+ */
+useEffect(() => {
+    const cmp = component != undefined ? component.name : '';
+    // console.log(component)
+    // console.log(expanded)
+    window.location.hash = `#cmp=${cmp}&time=${time.current}&expanded=${expanded}`;
+}, [component, expanded]);
 
 /**
  * Sort the nodes so that "parent" nodes appear before "children"
@@ -700,6 +714,7 @@ return (
 * of the components added.
 */
 async function expandConnections(name, time) {
+setExpanded((prev) => [...prev, name]);
 
 let input = `/api/get_connections`;
 input += `?name=${name}`;
