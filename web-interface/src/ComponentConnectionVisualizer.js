@@ -8,6 +8,7 @@ import 'reactflow/dist/style.css';
 import styled from '@mui/material/styles/styled';
 import createTheme from '@mui/material/styles/createTheme';
 import { Link, useSearchParams } from "react-router-dom";
+import './custom.css'
 
 import Dagre from 'dagre';
 
@@ -404,9 +405,12 @@ useEffect(() => {
         visualizeComponent();
         const expandedTemp = expanded.slice()
         for (let expand of expanded) {
+            console.log('why')
             expandConnections(expand, time.current);
         }
-        setExpanded(expandedTemp);
+        if (expandedTemp != []) {
+            setExpanded(expandedTemp);
+        }
         setUrlSet(false);
     }
     
@@ -521,11 +525,11 @@ return false;
 }
 
 if (subcomponent) {
-e_style = {stroke: '#555555', strokeWidth: 3, strokeDashArray: '2,2'};
+e_style = {stroke: '#555555', strokeWidth: 3, strokeDashArray: '2,2', zIndex: '2000'};
 e_arrow = 'arrowclosed';
 e_type = 'straight';
 } else {
-e_style = {stroke: '#555555', strokeWidth: 1};
+e_style = {stroke: '#555555', strokeWidth: 1, zIndex: '2000'};
 e_arrow = null;
 e_type = 'smoothstep';
 }
@@ -537,8 +541,8 @@ target: target,
 type: e_type,
 style: e_style,
 arrowHeadType: e_arrow,
-//            markerStart: {type: 'arrow', width: 100, height: 100, strokeWidth: 4, color: '#ffff00'}, //e_marker,
-//            markerEnd: {type: 'arrow', strokeWidth: 4, color: '#00ff00'}, //e_marker,
+        //    markerStart: {type: 'arrow', width: 100, height: 100, strokeWidth: 4, color: '#ffff00'}, //e_marker,
+        //    markerEnd: {type: 'arrow', strokeWidth: 4, color: '#00ff00'}, //e_marker,
 }
 addEdgeId(id);
 setEdges((edges) => edges.concat(newEdge));
@@ -632,6 +636,7 @@ component,
 100,
 );
 
+
 // depth will be decremented by 1 each time, like BFS.
 
 /**
@@ -649,8 +654,9 @@ let queueFrontIndex = 0;
 
 queue.push({name: component.name, currDepth: 0});
 
-if (depth === 0) {
-return;
+if (depth == 0) {
+    console.log('here')
+    return;
 }
 
 // funny breadth first search
