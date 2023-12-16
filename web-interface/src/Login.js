@@ -4,7 +4,7 @@ import { useNavigate } from 'react-router-dom';
 import GithubIcon from "mdi-react/GithubIcon";
 import './login.css'
 
-const CLIENT_ID = "c2f7c573f77adca3ec14";
+const CLIENT_ID = "";
 
 export default function Login() {
     const [rerender, setRerender] = useState(false);
