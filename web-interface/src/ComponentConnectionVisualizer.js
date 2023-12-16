@@ -311,6 +311,8 @@ const [expanded, setExpanded] = useState([]);
 // to track whether url component is set
 const [urlSet, setUrlSet] = useState(false);
 
+const [propertiesVisible, setPropertiesVisible] = useState(false);
+
 /**
 * The useRef hook is used as doing
 * setToggleLayoutBool(!toggleLayoutBool) will use the old value of
@@ -400,7 +402,7 @@ useEffect(() => {
  * To visualize component
  */
 useEffect(() => {
-    console.log(component, urlSet)
+    // console.log(component, urlSet)
     if (urlSet && component) {
         visualizeComponent();
         const expandedTemp = expanded.slice()
@@ -415,6 +417,64 @@ useEffect(() => {
     }
     
 }, [component]);
+
+// function handleProperties() {
+//     console.log('here')
+//     // if (!propertiesVisible === true) {
+//         setNodes((nodes) => {
+//             nodes.map((node) => {
+//                 console.log(node)
+//                 if (node.data.properties[0]) {
+//                     return {
+//                         ...node,
+//                         data: {
+//                             ...node.data,
+//                             // showProperties: node.data.properties[0].values[0]
+//                             showProperties: 'hi'
+//                         }
+//                     }
+//                 } else {
+//                     return node;
+//                 }
+//             })
+//         })
+//     // }
+//     setPropertiesVisible(!propertiesVisible)
+// }
+useEffect(() => {
+    if (propertiesVisible) {
+        setNodes((nds) =>
+        nds.map((node) => {
+            // data.properties[0].type.name + ':' + data.properties[0].values[0]
+            // console.log(node)
+            if (node.data.properties.length > 0) {
+                console.log(node.data.properties)
+                return {
+                    ...node,
+                    data: {
+                    ...node.data,
+                    shownProperties: node.data.properties[0].type.name + ':' + node.data.properties[0].values[0],
+                    },
+                };
+            } else {
+                return node;
+            }
+        })
+      );
+    } else {
+        setNodes((nds) => 
+        nds.map((node) => {
+            return {
+                ...node,
+                data: {
+                    ...node.data,
+                    shownProperties: ''
+                }
+            }
+        })
+        )
+    }
+}, [propertiesVisible])
 
 /**
  * Sort the nodes so that "parent" nodes appear before "children"
@@ -470,7 +530,7 @@ if (subcomponent) {
       connectable: false,
       type: 'component',
   //            dragHandle: '.drag-handle',
-      data: { name: comp.name, ctype: comp.type, version: comp.version },
+      data: { name: comp.name, ctype: comp.type, version: comp.version, properties: comp.properties, shownProperties: ''  },
   //            data: {label: name},
       position: { x: x, y: y },
       style: {
@@ -481,14 +541,14 @@ if (subcomponent) {
       extent: 'parent',
   }
 } else {
-    console.log(width)
-    console.log(height)
+    // console.log(width)
+    // console.log(height)
   newNode = {
       id: comp.name,
       connectable: false,
       type: 'component',
   //            dragHandle: '.drag-handle',
-      data: { name: comp.name, ctype: comp.type, version: comp.version },
+      data: { name: comp.name, ctype: comp.type, version: comp.version, properties: comp.properties, shownProperties: ''  },
   //            data: {label: name},
       position: { x: x, y: y },
       style: {
@@ -501,6 +561,7 @@ if (subcomponent) {
 addNodeId(comp.name);
 // set parent node status to false
 isParentNode.current[comp.name] = false;
+console.log(newNode)
 setNodes((els) => els.concat(newNode));
 return true;
 }
@@ -762,6 +823,14 @@ return (
                         {data.name}
                     </Link>
                     <br/>{data.ctype.name}
+                    <br/>
+                    {data.shownProperties}
+                    {/* {console.log(propertiesVisible)} */}
+                    {/* {data.showProperties && data.properties[0] ?
+                    data.properties[0].type.name + ':' + data.properties[0].values[0] */}
+                    {/* :
+                    ''
+                    } */}
                 </Typography>
             </Grid>
             <Grid item>
@@ -1120,6 +1189,7 @@ spacing={2}
                     </ControlButton>
                 </Controls>
                 <Panel position="top-right">
+                    <button onClick={() => setPropertiesVisible(!propertiesVisible)}>{propertiesVisible ? 'Hide' : 'Show'} properties</button>
                     <button onClick={() => onLayout('TB')}>vertical layout</button>
                     <button onClick={() => onLayout('LR')}>horizontal layout</button>
                 </Panel>
