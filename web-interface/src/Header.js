@@ -1,6 +1,12 @@
 import { 
     Button, AppBar, Toolbar, Typography, Stack
 } from '@mui/material';
+import Avatar from '@mui/material/Avatar';
+import IconButton from '@mui/material/IconButton';
+import Menu from '@mui/material/Menu';
+import MenuItem from '@mui/material/MenuItem';
+import GithubIcon from "mdi-react/GithubIcon";
+import { useState, useEffect } from 'react';
 
 import HeaderMenuButton from './HeaderMenuButton.js';
 
@@ -9,7 +15,41 @@ import HeaderMenuButton from './HeaderMenuButton.js';
  * interface, containing links to all pages.
  */
 function Header() {
+    const [anchorEl, setAnchorEl] = useState(null);
+    const open = Boolean(anchorEl);
+    const [userData, setUserData] = useState({});
 
+    useEffect(() => {
+        if (localStorage.getItem("accessToken")) {
+            getUserData();
+        }
+    }, [])
+
+    const handleClick = (event) => {
+        setAnchorEl(event.currentTarget);
+      };
+      const handleClose = () => {
+        setAnchorEl(null);
+      };
+
+    async function getUserData() {
+    await fetch("http://localhost:4000/getUserData", {
+        method: "GET",
+        headers: {
+            "Authorization": "Bearer " + localStorage.getItem("accessToken")
+        }
+        }).then((response) => {
+            return response.json();
+        }).then((data) => {
+            console.log(data);
+            setUserData(data);
+        });
+    }
+
+    // TODO: change to network context
+    if (localStorage.getItem("accessToken") === null) {
+        return <></>;
+    }
     return (
         <AppBar 
             position="static"
@@ -25,7 +65,7 @@ function Header() {
               Padloper
             </Typography>
 
-            <Stack direction="row" spacing={3}>
+            <Stack direction="row" spacing={3} alignItems={'center'}>
 
                 {/*Pass in the names of the links along with their paths*/}
                 
@@ -80,6 +120,42 @@ function Header() {
                         },
                     ]}
                 />
+
+                {/* <a onClick={() => console.log('clicked!')}> */}
+                {/* </a> */}
+
+                <IconButton
+                onClick={handleClick}
+                size="small"
+                sx={{ ml: 2 }}
+                // aria-controls={open ? 'account-menu' : undefined}
+                // aria-haspopup="true"
+                // aria-expanded={open ? 'true' : undefined}
+                >
+                    <Avatar alt="user" src={userData ? userData.avatar_url : ''} />
+                </IconButton>
+                <Menu
+                    anchorEl={anchorEl}
+                    id="account-menu"
+                    open={open}
+                    onClose={handleClose}
+                    onClick={handleClose}
+                >
+                    <MenuItem>
+                    {/* 
+                    avatar: https://mui.com/material-ui/react-avatar/
+                    menu: https://mui.com/material-ui/react-menu/ 
+                    */}
+                        <a href={userData? userData.html_url : ''} style={{ display: 'flex', alignItems: 'center', 'textDecoration': 'none', 'color': 'black'}}>
+                            <GithubIcon style={{ marginRight: '5px' }} /> {userData ? userData.login : ''}
+                        </a>
+                    </MenuItem>
+                    <MenuItem 
+                        onClick={() => { localStorage.removeItem("accessToken"); window.location.reload(false); }
+                    }>
+                        Sign out
+                    </MenuItem>
+                </Menu>
 
             </Stack>
 

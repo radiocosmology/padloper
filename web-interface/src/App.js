@@ -15,6 +15,7 @@ import {
   Routes,
   Route,
 } from "react-router-dom";
+import Login from './Login.js';
 
 /**
  * The main page where the header and site contents are rendered,
@@ -34,20 +35,35 @@ function App() {
 //      e.stopImmediatePropagation();
     }
   });
+  // if (localStorage.getItem("accessToken") === null) {
+  //   return(
+  //     <Login />
+  //   );
+  // }
 
   return (
     <div className="App">
 
 
       <Router>
+        {/* {localStorage.getItem("accessToken") === null ?
+        <></> :
         <Header />
-
+      } */}
+        <Header />
+        
         <Routes>
 
           {/**
            * the exact parameter assures that this page will only be shown
            * if the path is matched exactly.
           */}
+          <Route
+            exact={false}
+            path="/"
+            element={<Login />}
+          />
+
           <Route 
             exact={true} 
             path="/list/component"
