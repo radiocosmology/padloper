@@ -234,7 +234,6 @@ const layoutedNodeIds = layoutNodes.map((node) => node.id);
 const layoutedNodes = nodes.map((node) => {
 if (layoutedNodeIds.includes(node.id)) {
 const { x, y } = g.node(node.id);
-console.log( { ...node, position: { x, y } })
 return { ...node, position: { x, y } };
 }
 return node;
@@ -250,7 +249,6 @@ edges,
 * Get node by ID
 */
 const getNode = (nodes, id) => {
-console.log(nodes, id);
 return nodes.find((node) => node.id === id);
 }
 
@@ -284,6 +282,9 @@ const [lastAdded, setLastAdded] = useState({x: 350, y: 100})
 
 // a dictionary that will store the React Flow IDs of the nodes used
 const nodeIds = useRef({});
+
+// a dictionary to store which nodes were expanded already
+const expandedNodes = useRef({});
 
 // the React Flow edges to be used in the visualization
 const [edges, setEdges] = useState([]);
@@ -344,8 +345,6 @@ const defaultViewport = {x: 0, y: 0};
  */
 useEffect(() => {
     const cmp = component != undefined ? component.name : '';
-    // console.log(component)
-    // console.log(expanded)
     if (component != undefined) {
         window.location.hash = `#cmp=${cmp}&time=${enteredTime.current}&depth=${depth}&expanded=${expanded}`;
     }
@@ -387,7 +386,6 @@ useEffect(() => {
             try {
                 const response = await fetch(`/api/components_name/${initialCmp}`)
                 const data = await response.json();
-                // console.log(data.result)
                 setUrlSet(true);
                 setComponent(data.result);
             } catch (error) {
@@ -402,19 +400,21 @@ useEffect(() => {
  * To visualize component
  */
 useEffect(() => {
-    // console.log(component, urlSet)
-    if (urlSet && component) {
-        visualizeComponent();
-        const expandedTemp = expanded.slice()
-        for (let expand of expanded) {
-            console.log('why')
-            expandConnections(expand, time.current);
+    const asyncExpand = async () => {
+        if (urlSet && component) {
+            visualizeComponent();
+            // debugger;
+            const expandedTemp = expanded.slice()
+            for (let expand of expanded) {
+                await expandConnections(expand, time.current);
+            }
+            if (expandedTemp != []) {
+                setExpanded(expandedTemp);
+            }
+            setUrlSet(false);
         }
-        if (expandedTemp != []) {
-            setExpanded(expandedTemp);
-        }
-        setUrlSet(false);
     }
+    asyncExpand();
     
 }, [component]);
 
@@ -445,10 +445,7 @@ useEffect(() => {
     if (propertiesVisible) {
         setNodes((nds) =>
         nds.map((node) => {
-            // data.properties[0].type.name + ':' + data.properties[0].values[0]
-            // console.log(node)
             if (node.data.properties.length > 0) {
-                console.log(node.data.properties)
                 return {
                     ...node,
                     data: {
@@ -541,8 +538,6 @@ if (subcomponent) {
       extent: 'parent',
   }
 } else {
-    // console.log(width)
-    // console.log(height)
   newNode = {
       id: comp.name,
       connectable: false,
@@ -561,7 +556,6 @@ if (subcomponent) {
 addNodeId(comp.name);
 // set parent node status to false
 isParentNode.current[comp.name] = false;
-console.log(newNode)
 setNodes((els) => els.concat(newNode));
 return true;
 }
@@ -629,7 +623,6 @@ return true;
 const removeNode = (id) => {
 setNodes((els) => els.filter((el) => el.id !== id));
 nodeIds.current[id] = false;
-console.log(nodes);
 }
 
 /**
@@ -665,9 +658,7 @@ edgeIds.current = {};
 // }
 
 const createSubcomponent = useCallback((parent, children) => {
-console.log(parent, children);
 const x = getNode(nodes, parent);
-console.log(x);
 }, 
 [nodes]
 );
@@ -716,7 +707,6 @@ let queueFrontIndex = 0;
 queue.push({name: component.name, currDepth: 0});
 
 if (depth == 0) {
-    console.log('here')
     return;
 }
 
@@ -857,7 +847,11 @@ return (
 * of the components added.
 */
 async function expandConnections(name, time) {
-setExpanded((prev) => [...prev, name]);
+if (expandedNodes.current[name] === true) {
+    return;
+}
+// setExpanded((prev) => [...prev, name]);
+expandedNodes.current[name] = true;
 
 let input = `/api/get_connections`;
 input += `?name=${name}`;
@@ -874,7 +868,6 @@ resolve => {
     fetch(input).then(
         res => res.json()
     ).then(data => {
-
         let subcomponents = [];
         let parent;
         let curr
@@ -932,8 +925,6 @@ resolve => {
             }));
             if (!parentFound) {
                 // create parent node
-                console.log(newWidth)
-                console.log(newHeight)
                 let added = addComponent(parent, lastAdded.x, lastAdded.y + nodeHeight + 20, false, null, newWidth * 2 + 'px', newHeight * 2 + 'px');
                 if (added) {
                     componentsAdded.push(parent);
@@ -968,6 +959,8 @@ resolve => {
             let subLastAdded = {x: -nodeWidth, y: 120 - nodeHeight}
 
             for (const sub of subcomponents) {
+                console.log(sub.name + ':')
+                // debugger;
                 let subAdded = addComponent(sub, subLastAdded.x + nodeWidth + 10, subLastAdded.y, true, curr.name);
                 if (subAdded) {
                     componentsAdded.push(sub)
@@ -976,6 +969,9 @@ resolve => {
                     // subcomponent exists -> set as child of curr
                     setNodes((nodes) => nodes.map((node) => {
                         if (node.id === sub.name) {
+                            console.log(node.id)
+                            console.log(sub.name)
+                            console.log(curr)
                             return ({
                                 ...node,
                                 data: { ...node.data, label: node.id,},
@@ -983,8 +979,8 @@ resolve => {
                                     x: subLastAdded.x + nodeWidth + 10,
                                     y: subLastAdded.y
                                 },
-                                parentNode: curr,
-                                extent: 'parent'
+                                // parentNode: curr,
+                                // extent: 'parent'
                             });
                         } else {
                             return node;
@@ -1035,6 +1031,9 @@ resolve => {
 
 
         // setSubLastAdded({...subLastAdded})
+        if (componentsAdded.length > 0 && !urlSet) {
+            setExpanded((prev) => [...prev, name]);
+        }
         setLastAdded({...lastAdded});
         sortNodes();
         resolve(componentsAdded);
@@ -1152,12 +1151,20 @@ spacing={2}
                 variant="contained"
                 onClick= {() => {
                     setLastAdded({x: 350, y: 100});
-                    // console.log('here', lastAdded);
                     visualizeComponent();
                 }}
                 disabled={component === undefined}
             >
                 Visualize
+            </Button>
+
+
+            <Button
+                variant='contained'
+                onClick={() => setPropertiesVisible(!propertiesVisible)}
+                disabled={nodes && nodes.length === 0}
+            >
+                {propertiesVisible ? 'Hide' : 'Show'} properties
             </Button>
             
         </Stack>
@@ -1175,7 +1182,6 @@ spacing={2}
                 nodeTypes={nodeTypes}
                 nodesConnectable={false}
             >
-            {/* {console.log(edges)} */}
                 <Background
                     variant="dots"
                     gap={12}
@@ -1188,11 +1194,12 @@ spacing={2}
                         <SortIcon />
                     </ControlButton>
                 </Controls>
-                <Panel position="top-right">
-                    <button onClick={() => setPropertiesVisible(!propertiesVisible)}>{propertiesVisible ? 'Hide' : 'Show'} properties</button>
-                    <button onClick={() => onLayout('TB')}>vertical layout</button>
-                    <button onClick={() => onLayout('LR')}>horizontal layout</button>
-                </Panel>
+                {/* <Panel position="top-right"> */}
+                    {/* <button onClick={() => setPropertiesVisible(!propertiesVisible)}>{propertiesVisible ? 'Hide' : 'Show'} properties</button> */}
+                    {/* layout buttons: doesn't work with subcomponents */}
+                    {/* <button onClick={() => onLayout('TB')}>vertical layout</button> */}
+                    {/* <button onClick={() => onLayout('LR')}>horizontal layout</button> */}
+                {/* </Panel> */}
             </ReactFlow>
         </ReactFlowProvider>
     </VisualizerPanel>
