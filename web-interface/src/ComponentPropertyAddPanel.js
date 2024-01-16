@@ -95,6 +95,9 @@ function ComponentPropertyAddPanel(
     // what the "selected" property type is
     const [selectedOption, setSelectedOption] = useState(null);
 
+    // to store number of values
+    const [numValues, setNumValues] = useState(0);
+
     // an array of the values of the properties entered in the text fields
     const [textFieldValues, setTextFieldValues] = useState([]);
 
@@ -157,6 +160,8 @@ function ComponentPropertyAddPanel(
     function selectOption(option) {
         
         setSelectedOption(option);
+        setNumValues(option.n_values);
+        console.log(option)
 
         if (option !== null && option.n_values) {
             // make an empty array of size n_values and fill it 
@@ -205,6 +210,7 @@ function ComponentPropertyAddPanel(
      */
     function checkAllValuesAccepted() {
         for (let a of textFieldAccepted) {
+            console.log(a)
             if (!a) {
                 return false;
             }
@@ -316,10 +322,10 @@ function ComponentPropertyAddPanel(
                     style={{
                         marginTop: theme.spacing(0.4),
                     }}>
-                    {(selectedOption !== null) ?
+                    {(numValues !== 0) ?
                     (
-                        [...Array(selectedOption.n_values)].map((el, index) => ( 
-                            <Grid item>
+                        [...Array(+selectedOption.n_values)].map((el, index) => ( 
+                            <Grid item key={index}>
                                 <TextField 
                                     required
                                     error={!textFieldAccepted[index]}
@@ -383,11 +389,12 @@ function ComponentPropertyAddPanel(
                         variant="contained" 
                         size="large"
                         disableElevation
-                        disabled={
-                            selectedOption === null || 
-                            !allValuesAccepted ||
-                            uid === ""
-                        }
+                        // TODO: fix errors
+                        // disabled={
+                        //     selectedOption === null || 
+                        //     !allValuesAccepted ||
+                        //     uid === ""
+                        // }
                         onClick={
                             () => {
                                 setLoading(true);
