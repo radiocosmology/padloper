@@ -1,14 +1,16 @@
 import React from 'react'
-import { useEffect, useState } from 'react';
+import { useEffect, useState, useContext } from 'react';
 import { useNavigate } from 'react-router-dom';
 import GithubIcon from "mdi-react/GithubIcon";
+import { OAuthContext } from './contexts/OAuthContext';
 import './login.css'
 
-const CLIENT_ID = "";
+const CLIENT_ID = "c2f7c573f77adca3ec14";
 
 export default function Login() {
     const [rerender, setRerender] = useState(false);
     const [userData, setUserData] = useState({});
+    const { accessToken, setAccessToken } = useContext(OAuthContext); 
     // const navigate = useNavigate();
 
   
@@ -22,8 +24,11 @@ export default function Login() {
       const urlParams = new URLSearchParams(queryString);
       const codeParam = urlParams.get('code');
       console.log(codeParam);
+      console.log(accessToken)
   
-      if (codeParam && (localStorage.getItem("accessToken") === null)) {
+      // TODO: remove local storage
+      // if (codeParam && (localStorage.getItem("accessToken") === null)) {
+        if (codeParam && (!accessToken)) {
         async function getAccessToken() {
           await fetch("http://localhost:4000/getAccessToken?code=" + codeParam, {
             method: "GET"
@@ -32,9 +37,12 @@ export default function Login() {
           }).then((data) => {
             console.log(data);
             if (data.access_token) {
-              localStorage.setItem("accessToken", data.access_token);
-              setRerender(!rerender);
-              window.location.reload(false);
+              // TODO: remove local storage
+              // localStorage.setItem("accessToken", data.access_token);
+              console.log(data.access_token)
+              setAccessToken(data.access_token);
+              // setRerender(!rerender);
+              // window.location.reload(false);
             } 
           })
         }
@@ -64,7 +72,9 @@ export default function Login() {
     return (
       <div className="App">
         <header className="App-header">
-          {localStorage.getItem("accessToken") ? 
+          {/* TODO: remove local storage */}
+          {/* {localStorage.getItem("accessToken") ?  */}
+          {accessToken ? 
           <>
             {/* <h1>We have the access token</h1> */}
             {/* <button onClick={() => { localStorage.removeItem("accessToken"); setRerender(!rerender); window.location.reload(false); }}>

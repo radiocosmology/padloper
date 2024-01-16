@@ -16,6 +16,7 @@ import {
   Route,
 } from "react-router-dom";
 import Login from './Login.js';
+import { OAuthContext, useOAuthContext } from './contexts/OAuthContext.js';
 
 /**
  * The main page where the header and site contents are rendered,
@@ -42,8 +43,8 @@ function App() {
   // }
 
   return (
-    <div className="App">
-
+    <OAuthContext.Provider value={useOAuthContext()}>
+      <div className="App">
 
       <Router>
         {/* {localStorage.getItem("accessToken") === null ?
@@ -129,7 +130,10 @@ function App() {
 
       </Router>
 
-    </div>
+      </div>
+
+    </OAuthContext.Provider>
+    
   );
 }
 

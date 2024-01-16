@@ -6,7 +6,8 @@ import IconButton from '@mui/material/IconButton';
 import Menu from '@mui/material/Menu';
 import MenuItem from '@mui/material/MenuItem';
 import GithubIcon from "mdi-react/GithubIcon";
-import { useState, useEffect } from 'react';
+import { useState, useEffect, useContext } from 'react';
+import { OAuthContext } from './contexts/OAuthContext';
 
 import HeaderMenuButton from './HeaderMenuButton.js';
 
@@ -18,12 +19,16 @@ function Header() {
     const [anchorEl, setAnchorEl] = useState(null);
     const open = Boolean(anchorEl);
     const [userData, setUserData] = useState({});
+    const { accessToken, setAccessToken } = useContext(OAuthContext); 
 
     useEffect(() => {
-        if (localStorage.getItem("accessToken")) {
+        // TODO: remove local storage
+        // if (localStorage.getItem("accessToken")) {
+        if (accessToken) {
+            console.log(accessToken)
             getUserData();
         }
-    }, [])
+    }, [accessToken])
 
     const handleClick = (event) => {
         setAnchorEl(event.currentTarget);
@@ -36,7 +41,7 @@ function Header() {
     await fetch("http://localhost:4000/getUserData", {
         method: "GET",
         headers: {
-            "Authorization": "Bearer " + localStorage.getItem("accessToken")
+            "Authorization": "Bearer " + accessToken
         }
         }).then((response) => {
             return response.json();
@@ -47,7 +52,8 @@ function Header() {
     }
 
     // TODO: change to network context
-    if (localStorage.getItem("accessToken") === null) {
+    // if (localStorage.getItem("accessToken") === null) {
+    if (!accessToken) {
         return <></>;
     }
     return (
@@ -150,8 +156,10 @@ function Header() {
                             <GithubIcon style={{ marginRight: '5px' }} /> {userData ? userData.login : ''}
                         </a>
                     </MenuItem>
-                    <MenuItem 
-                        onClick={() => { localStorage.removeItem("accessToken"); window.location.reload(false); }
+                    <MenuItem
+                        // remove local storage 
+                        // onClick={() => { localStorage.removeItem("accessToken"); window.location.reload(false); }
+                        onClick={() => { setAccessToken(''); }
                     }>
                         Sign out
                     </MenuItem>
