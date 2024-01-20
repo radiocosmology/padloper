@@ -78,10 +78,29 @@ export function emDashIfEmpty(str) {
  */
 export function verifyRegex(value, regex) {
     // this ideally should never be called but...
-    if (!regex || typeof value !== 'string') {
-        return false;
-    }
-    else {
-        return value.match(regex);
-    }
+    // console.log(value, regex)
+    // if (!regex || typeof value !== 'string') {
+    //     return false;
+    // }
+    // else {
+    //     // TODO: regex should already by regex object
+    //     const regexObj = new RegExp(regex);
+    //     if (regexObj) {
+    //         return value.match(regexObj);
+    //     } else {
+    //         return false
+    //     }
+    // }
+    const pattern = new RegExp(regex);
+    return pattern.test(value);
 }
+
+// export function verifyRegex(value, regex) {
+//     if (!regex || typeof value !== 'string') {
+//         return false;
+//     }
+//     else {
+//         console.log(regex)
+//         return regex.test(value);
+//     }
+// }
