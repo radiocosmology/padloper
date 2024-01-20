@@ -839,10 +839,7 @@ def set_component_property():
 
         component = p.Component.from_db(val_name)
 
-        print(values, property_type)
-        print(len(values))
         property = p.Property(values=values, type=property_type)
-        print('a')
 
         t = tmp_timestamp(val_time, val_uid, val_comments)
         component.set_property(property, start=t) 
@@ -1145,33 +1142,12 @@ def get_connections():
     c = p.Component.from_db(val_name)
 
     connections = c.get_all_connections_at_time(val_time)
-    for conn in connections:
-        # print(conn.inVertex, conn.outVertex)
-        print('a')
-        print(conn.inVertex.name, conn.inVertex.type.name)
-        print('b')
-        print(conn.outVertex.as_dict())
 
     return {
         'result': [
             {
                 'inVertex': conn.inVertex.as_dict(),
-                # 'inVertex': 
-                # {
-                #     'name': conn.inVertex.name,
-                #     'type': conn.inVertex.type.name,
-                #     'version': conn.inVertex.version.name \
-                #         if conn.inVertex.version else ""
-                # },
-                # TODO: return as dict for properties
-                # 'outVertex': conn.outVertex.as_dict(),
                 'outVertex': conn.outVertex.as_dict(),
-                # {
-                #     'name': conn.outVertex.name,
-                #     'type': {'name': conn.outVertex.type.name},
-                #     'version': conn.outVertex.version.name \
-                #         if conn.outVertex.version else ""
-                # },
                 'subcomponent': True if isinstance(conn,
                                                    p.RelationSubcomponent) \
                                 else False,
