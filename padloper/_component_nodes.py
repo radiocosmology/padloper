@@ -2206,7 +2206,7 @@ class Component(Vertex):
         :return: A dictionary representation of this Components's attributes.
         :rtype: dict
         """
-        # at_time has not yet been implemented!
+        # TODO: at_time has not yet been implemented!
         assert(at_time == None)
         
         base = {'name': self.name,
