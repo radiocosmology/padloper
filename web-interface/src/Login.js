@@ -27,8 +27,8 @@ export default function Login() {
       console.log(accessToken)
   
       // TODO: remove local storage
-      // if (codeParam && (localStorage.getItem("accessToken") === null)) {
-        if (codeParam && (!accessToken)) {
+      if (codeParam && (localStorage.getItem("accessToken") === null)) {
+        // if (codeParam && (!accessToken)) {
         async function getAccessToken() {
           await fetch("http://localhost:4000/getAccessToken?code=" + codeParam, {
             method: "GET"
@@ -38,11 +38,11 @@ export default function Login() {
             console.log(data);
             if (data.access_token) {
               // TODO: remove local storage
-              // localStorage.setItem("accessToken", data.access_token);
+              localStorage.setItem("accessToken", data.access_token);
               console.log(data.access_token)
-              setAccessToken(data.access_token);
-              // setRerender(!rerender);
-              // window.location.reload(false);
+              // setAccessToken(data.access_token);
+              setRerender(!rerender);
+              window.location.reload(false);
             } 
           })
         }
@@ -73,8 +73,8 @@ export default function Login() {
       <div className="App">
         <header className="App-header">
           {/* TODO: remove local storage */}
-          {/* {localStorage.getItem("accessToken") ?  */}
-          {accessToken ? 
+          {localStorage.getItem("accessToken") ? 
+          // {accessToken ? 
           <>
             {/* <h1>We have the access token</h1> */}
             {/* <button onClick={() => { localStorage.removeItem("accessToken"); setRerender(!rerender); window.location.reload(false); }}>

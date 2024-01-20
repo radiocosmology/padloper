@@ -23,12 +23,14 @@ function Header() {
 
     useEffect(() => {
         // TODO: remove local storage
-        // if (localStorage.getItem("accessToken")) {
-        if (accessToken) {
-            console.log(accessToken)
+        if (localStorage.getItem("accessToken")) {
+        // if (accessToken) {
+            // console.log(accessToken)
             getUserData();
         }
-    }, [accessToken])
+    }, []
+    // [accessToken]
+    )
 
     const handleClick = (event) => {
         setAnchorEl(event.currentTarget);
@@ -37,11 +39,12 @@ function Header() {
         setAnchorEl(null);
       };
 
+    // TODO: export function to use elsewhere
     async function getUserData() {
     await fetch("http://localhost:4000/getUserData", {
         method: "GET",
         headers: {
-            "Authorization": "Bearer " + accessToken
+            "Authorization": "Bearer " + localStorage.getItem('accessToken')
         }
         }).then((response) => {
             return response.json();
@@ -52,8 +55,8 @@ function Header() {
     }
 
     // TODO: change to network context
-    // if (localStorage.getItem("accessToken") === null) {
-    if (!accessToken) {
+    if (localStorage.getItem("accessToken") === null) {
+    // if (!accessToken) {
         return <></>;
     }
     return (
@@ -158,8 +161,8 @@ function Header() {
                     </MenuItem>
                     <MenuItem
                         // remove local storage 
-                        // onClick={() => { localStorage.removeItem("accessToken"); window.location.reload(false); }
-                        onClick={() => { setAccessToken(''); }
+                        onClick={() => { localStorage.removeItem("accessToken"); window.location.reload(false); }
+                        // onClick={() => { setAccessToken(''); }
                     }>
                         Sign out
                     </MenuItem>
