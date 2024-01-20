@@ -138,6 +138,37 @@ function ComponentPropertyAddPanel(
     // is made, waiting for a response from the DB.
     const [loading, setLoading] = useState(false);
 
+    const [userData, setUserData] = useState({});
+
+    // load user data when the page loads
+    useEffect(() => {
+        getUserData();
+    }, [])
+
+    useEffect(() => {
+        console.log(userData.login)
+        if (userData) {
+            setUid(userData.login);
+        }
+    }, [userData])
+
+    /**
+     * Get the user data via GitHub
+     */
+    async function getUserData() {
+        await fetch("http://localhost:4000/getUserData", {
+            method: "GET",
+            headers: {
+                "Authorization": "Bearer " + localStorage.getItem('accessToken')
+            }
+            }).then((response) => {
+                return response.json();
+            }).then((data) => {
+                console.log(data);
+                setUserData(data);
+            });
+        }
+
     /**
      * Check whether a value matches the selected property type's regex.
      * Return false if there is no property type that has been selected.
@@ -213,7 +244,6 @@ function ComponentPropertyAddPanel(
      */
     function checkAllValuesAccepted() {
         for (let a of textFieldAccepted) {
-            // console.log(a)
             if (!a) {
                 return false;
             }
@@ -268,8 +298,12 @@ function ComponentPropertyAddPanel(
                         <TextField 
                             required
                             label="User" 
+                            InputProps={{
+                                readOnly: true,
+                            }}
+                            value={uid}
                             sx={{ width: 150 }}
-                            onChange={(event) => setUid(event.target.value)}
+                            // onChange={(event) => setUid(event.target.value)}
                         />
                     </Grid>
 
@@ -392,12 +426,11 @@ function ComponentPropertyAddPanel(
                         variant="contained" 
                         size="large"
                         disableElevation
-                        // TODO: fix errors
-                        // disabled={
-                        //     selectedOption === null || 
-                        //     !allValuesAccepted ||
-                        //     uid === ""
-                        // }
+                        disabled={
+                            selectedOption === null || 
+                            !allValuesAccepted ||
+                            uid === ""
+                        }
                         onClick={
                             () => {
                                 setLoading(true);
