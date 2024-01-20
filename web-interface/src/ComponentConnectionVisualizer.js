@@ -445,7 +445,8 @@ useEffect(() => {
     if (propertiesVisible) {
         setNodes((nds) =>
         nds.map((node) => {
-            if (node.data.properties.length > 0) {
+            // TODO: change component select from list to have properties
+            if (node.data.properties && node.data.properties.length > 0) {
                 return {
                     ...node,
                     data: {
