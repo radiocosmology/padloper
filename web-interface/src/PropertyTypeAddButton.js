@@ -60,6 +60,7 @@ export default function PropertyTypeAddButton ({componentTypes,toggleReload}) {
   const handleChange2 = (e) =>{
     const name = e.target.name
     const value = e.target.value
+    // TODO: for regex check that it is a valid regex
     setProperty({...property,[name]:value})
   }
 
