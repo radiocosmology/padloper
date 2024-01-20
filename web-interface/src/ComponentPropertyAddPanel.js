@@ -96,7 +96,7 @@ function ComponentPropertyAddPanel(
     const [selectedOption, setSelectedOption] = useState(null);
 
     // to store number of values
-    const [numValues, setNumValues] = useState(0);
+    // const [numValues, setNumValues] = useState(0);
 
     // an array of the values of the properties entered in the text fields
     const [textFieldValues, setTextFieldValues] = useState([]);
@@ -160,19 +160,19 @@ function ComponentPropertyAddPanel(
     function selectOption(option) {
         
         setSelectedOption(option);
-        setNumValues(option.n_values);
-        console.log(option)
 
         if (option !== null && option.n_values) {
             // make an empty array of size n_values and fill it 
             // with empty strings
-            setTextFieldValues(Array(option.n_values).fill(""));
+            setTextFieldValues(Array(+option.n_values).fill(""));
 
             // create the textFieldAccepted array.
             let acceptedSoFar = [];
+            // TODO: fix
             for (let i = 0; i < option.n_values; i++) {
                 acceptedSoFar.push(verifyRegex("", option.allowed_regex));
             }
+            console.log(acceptedSoFar);
             setTextFieldAccepted(acceptedSoFar);
         }
 
@@ -199,6 +199,9 @@ function ComponentPropertyAddPanel(
         valuesCopy[index] = value;
         acceptedCopy[index] = regexCheck(value);
 
+        console.log(valuesCopy)
+        console.log(acceptedCopy)
+
         // update the state array
         setTextFieldValues(valuesCopy);
         setTextFieldAccepted(acceptedCopy);
@@ -210,7 +213,7 @@ function ComponentPropertyAddPanel(
      */
     function checkAllValuesAccepted() {
         for (let a of textFieldAccepted) {
-            console.log(a)
+            // console.log(a)
             if (!a) {
                 return false;
             }
@@ -322,7 +325,7 @@ function ComponentPropertyAddPanel(
                     style={{
                         marginTop: theme.spacing(0.4),
                     }}>
-                    {(numValues !== 0) ?
+                    {(selectedOption !== null) ?
                     (
                         [...Array(+selectedOption.n_values)].map((el, index) => ( 
                             <Grid item key={index}>
