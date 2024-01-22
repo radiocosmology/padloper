@@ -80,7 +80,7 @@ From here, we can send commands to the JanusGraph server by preceding them with 
 ```
 :remote console
 ```
-which will enable sending all queries directly to the JanusGraph server and avoid teh need of `:>`.
+which will enable sending all queries directly to the JanusGraph server and avoid the need of `:>`.
 
 
 ### Gremlin-Python
