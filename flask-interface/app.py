@@ -16,7 +16,7 @@ app = Flask(__name__)
 
 def tmp_timestamp(t, uid, comments):
     print("Note: needs to be replaced with proper user registration.")
-    return p._RawTimestamp(t, uid, int(time.time()), comments)
+    return p.Timestamp.__raw_init__(t, uid, int(time.time()), comments)
 
 def read_filters(filters):
     """Return a list of filter tuples given a URL string containing the
@@ -1112,8 +1112,10 @@ def disable_component_connection():
     val_name2 = escape(request.args.get('name2'))
 
     c1, c2 = p.Component.from_db(val_name1), p.Component.from_db(val_name2)
-    c1.disable_connection(otherComponent=c2)
-
+    # Get the connection object, and then disable it.
+    raise RuntimeError("This function needs to be fixed! The time at which " \
+                       "the connection is to be disabled needs to be " \
+                       "specified.")
     return {'result': True}
 
 
@@ -1139,7 +1141,7 @@ def get_connections():
 
     c = p.Component.from_db(val_name)
 
-    connections = c.get_all_connections_at_time(val_time)
+    connections = c.get_connections(at_time=val_time)
 
     return {
         'result': [

@@ -48,6 +48,17 @@ def set_user(uid):
     g._user = dict()
     g._user["id"] = uid
 
+def _parse_time(t):
+    try:
+        return int(t.timestamp())
+    except AttributeError:
+        try:
+            return t.time
+        except AttributeError:
+            return t
+    raise RuntimeError("Should not have reached here!")
+
+
 class Element(object):
     """
     The simplest element. Contains an ID.
@@ -440,6 +451,16 @@ class Edge(Element):
 
             self._set_id(e.id)
 
+    def disable(self, disable_time: int = int(time.time())):
+        """Disable this connexion by setting active to false.
+
+        :param disable_time: When this edge was disabled in the database.
+        :type disable_time: int
+        """
+        g.t.E(self.id()).property('active', False)\
+                        .property('time_disabled', disable_time).iterate()
+
+
     def added_to_db(self) -> bool:
         """Return whether this edge is added to the database,
         that is, whether the ID is not the virtual ID placeholder, and perform a
@@ -455,74 +476,24 @@ class Edge(Element):
             g.t.E(self.id()).count().next() > 0
         )
 
-class _RawTimestamp:
-    """A timestamp for starting or ending connections, properties, etc.
-    This is a private class used internally by Padloper. Users who
-    load the module should use the public the `Timestamp` class that inherits
-    it.
+    def other_vertex(self, v):
+        """Given one vertex of this edge, return the other.
 
-    :ivar at_time: The time of the timestamp, in UNIX time.
-    :ivar uid: The user who made the timestamp. It is set automatically when the
-        instance is created.
-    :ivar edit_time: The time of when the timestamp was created, in UNIX time.
-        It is set automatically when the instance is created.
-    :ivar comments: Any comments about this timestamp.
-    """
-    time: float
-    uid: str
-    edit_time: float
-    comments: str
-
-    def __init__(self, at_time, uid, edit_time, comments=""):
-        self.time = at_time
-        self.uid = uid
-        self.edit_time = edit_time
-        self.comments = comments
-    
-    @classmethod
-    def from_dict(cls, d, prefix, index=0):
-        """Create a timestamp with explicit control over the uid and edit_time.
-        When creating a new timestamp, ordinarily you should use the regular
-        initialiser that automatically sets the edit_time and uid. This
-        initialiser is for cases when you are reading from the DB and need to
-        set those values from the DB.
-
-        :param d: The dictionary returned by the database query.
-        :type d: dict or list[dict]
-        :param prefix: The dictionary should have entries {…, Ptime, Puid,
-            Pedit_time, Pcomments, …}, where P is the prefix that you pass
-            here.
-        :type prefix: str
-        :param index: If d is a list of dictionaries, the index to use.
+        :param v: The vertex on one side of the connexion; the other will be
+        returned.
+        :return: The other Vertex.
         """
-        if isinstance(d, (list,tuple)):
-            dd = d[index]
+        if v == self.inVertex:
+            return self.outVertex
+        elif v == self.outVertex:
+            return self.inVertex
         else:
-            dd = d
-        return cls(dd["%stime" % prefix],
-                   dd["%suid" % prefix],
-                   dd["%sedit_time" % prefix],
-                   dd["%scomments" % prefix]
-                )
+           raise ValueError("Vertex not in edge.")
 
-    @classmethod
-    def no_end(cls):
-        """Create a placeholder timestamp.
-        This is for when the end timestamp does not yet exist; the timestamp has
-        no user id, and reserved values for the time and edit_time.
-        """
-        return cls(g._TIMESTAMP_NO_ENDTIME_VALUE, "", 
-                   g._TIMESTAMP_NO_EDITTIME_VALUE, comments="")
+    def __str__(self, connector=" -> "):
+        return self.inVertex.name + connector + self.outVertex.name
 
-    def as_dict(self):
-        return {
-            "time": self.time,
-            "uid": self.uid,
-            "edit_time": self.edit_time,
-            "comments": self.comments
-        }
-
-class Timestamp(_RawTimestamp):
+class Timestamp(object):
     """A timestamp for starting or ending connections, properties, etc.
 
     :ivar time: The time of the timestamp, in UNIX time.
@@ -547,7 +518,9 @@ class Timestamp(_RawTimestamp):
                 "You must call padloper.set_user() before creating a "\
                 "Timestamp."
             )
-        super().__init__(at_time, self.uid, int(time.time()), comments=comments)
+        self.time = at_time
+        self.edit_time = int(time.time())
+        self.comments = comments
 
     @classmethod
     def from_cal(cls, year, month, day, hour=0, minute=0, second=0,
@@ -562,6 +535,69 @@ class Timestamp(_RawTimestamp):
         t = int(datetime.datetime(year, month, day, hour, minute, second,
                                   microsecond, tzinfo, fold=fold).timestamp())
         return cls(t, comments)
+
+    @classmethod
+    def __raw_init__(cls, at_time, uid, edit_time, comments=""):
+        """A private initialiser, for internal use, in which the uid and
+        edit_time can be manually specified.
+        """
+        self = cls.__new__(cls)
+        self.time = at_time
+        self.uid = uid
+        self.edit_time = edit_time
+        self.comments = comments
+        return self
+
+    @classmethod
+    def _from_dict(cls, d, prefix, index=0):
+        """Create a timestamp with explicit control over the uid and edit_time.
+        When creating a new timestamp, ordinarily you should use the regular
+        initialiser that automatically sets the edit_time and uid. This
+        initialiser is for cases when you are reading from the DB and need to
+        set those values from the DB.
+
+        :param d: The dictionary returned by the database query.
+        :type d: dict or list[dict]
+        :param prefix: The dictionary should have entries {…, Ptime, Puid,
+            Pedit_time, Pcomments, …}, where P is the prefix that you pass
+            here.
+        :type prefix: str
+        :param index: If d is a list of dictionaries, the index to use.
+        """
+        if isinstance(d, (list,tuple)):
+            dd = d[index]
+        else:
+            dd = d
+        return cls.__raw_init__(dd["%stime" % prefix],
+                                dd["%suid" % prefix],
+                                dd["%sedit_time" % prefix],
+                                dd["%scomments" % prefix]
+                               )
+
+    @classmethod
+    def _no_end(cls):
+        """Create a placeholder timestamp.
+        This is for when the end timestamp does not yet exist; the timestamp has
+        no user id, and reserved values for the time and edit_time.
+        """
+        return cls.__raw_init__(g._TIMESTAMP_NO_ENDTIME_VALUE, "", 
+                                g._TIMESTAMP_NO_EDITTIME_VALUE, comments="")
+
+    def as_dict(self):
+        return {
+            "time": self.time,
+            "uid": self.uid,
+            "edit_time": self.edit_time,
+            "comments": self.comments
+        }
+
+    def as_datetime(self):
+        """Return the time as a datetime object."""
+        if self.time == g._TIMESTAMP_NO_ENDTIME_VALUE:
+            return None
+        else:
+            return datetime.datetime.fromtimestamp(self.time)
+
 
 class TimestampedEdge(Edge):
     """An edge that has a timestamp."""
@@ -594,7 +630,7 @@ class TimestampedEdge(Edge):
         if end:
             self.end = end
         else:
-            self.end = _RawTimestamp.no_end()
+            self.end = Timestamp._no_end()
         Edge.__init__(self=self, id=id, inVertex=inVertex, outVertex=outVertex)
 
     def as_dict(self):
@@ -641,3 +677,13 @@ class TimestampedEdge(Edge):
               .property('end_uid', end.uid) \
               .property('end_edit_time', end.edit_time) \
               .property('end_comments', end.comments).iterate()
+
+    def __str__(self, connector=" <-> ", sep=" :: ", trange=" .. ",
+                strfmt = "%Y-%m-%d %H:%m:%S"):
+        ret = super().__str__(connector=connector) + sep + \
+              self.start.as_datetime().strftime(strfmt) + trange
+        if self.end.time == g._TIMESTAMP_NO_ENDTIME_VALUE:
+            ret += "None"
+        else:
+            ret += self.end.as_datetime().strftime(strfmt)
+        return ret

@@ -16,7 +16,7 @@ from sympy import true
 from gremlin_python.process.graph_traversal import __, constant
 
 import _global as g
-from _base import Vertex, Timestamp, _RawTimestamp, strictraise
+from _base import Vertex, Timestamp, strictraise
 from _component_nodes import Component
 from _exceptions import *
 from _edges import RelationFlagType, RelationFlagComponent, RelationFlagSeverity
@@ -662,7 +662,7 @@ class Flag(Vertex):
         if end:
             self.end = end
         else:
-            self.end = _RawTimestamp.no_end()
+            self.end = Timestamp._no_end()
 
         Vertex.__init__(self=self, id=id)
 
@@ -875,11 +875,11 @@ class Flag(Vertex):
                 Flag(
                     name=name,
                     comments=attrs['comments'][0],
-                    start=_RawTimestamp.from_dict(attrs, "start_"),
+                    start=Timestamp._from_dict(attrs, "start_"),
                     severity=g._vertex_cache[severity_id],
                     type=g._vertex_cache[type_id],
                     components=components,
-                    end=_RawTimestamp.from_dict(attrs, "end_"),
+                    end=Timestamp._from_dict(attrs, "end_"),
                     id=id
                 )
             )
@@ -914,11 +914,11 @@ class Flag(Vertex):
                 Flag(
                     name=attrs['name'][0],
                     comments=attrs['comments'][0],
-                    start=_RawTimestamp.from_dict(attrs, "start_"),
+                    start=Timestamp._from_dict(attrs, "start_"),
                     severity=FlagSeverity.from_id(fseverity_id),
                     type=FlagType.from_id(ftype_id),
                     components=components,
-                    end=_RawTimestamp.from_dict(attrs, "end_"),
+                    end=Timestamp._from_dict(attrs, "end_"),
                     id=id
                 )
             )
@@ -1066,11 +1066,11 @@ class Flag(Vertex):
                     id=id,
                     name=attrs['name'][0],
                     comments=attrs['comments'][0],
-                    start=_RawTimestamp.from_dict(attrs, "start_"),
+                    start=Timestamp._from_dict(attrs, "start_"),
                     severity=FlagSeverity.from_id(fseverity_id),
                     type=FlagType.from_id(ftype_id),
                     components=fcomponents,
-                    end=_RawTimestamp.from_dict(attrs, "end_")
+                    end=Timestamp._from_dict(attrs, "end_")
                 )
             )
 

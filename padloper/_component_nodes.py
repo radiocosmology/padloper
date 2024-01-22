@@ -9,7 +9,7 @@ from gremlin_python.process.traversal import Order, P, TextP
 from gremlin_python.process.graph_traversal import __, constant
 
 from _exceptions import *
-from _base import strictraise, Edge, Timestamp, _RawTimestamp, Vertex
+from _base import strictraise, Edge, Timestamp, Vertex, _parse_time
 from _edges import RelationVersionAllowedType, RelationVersion,\
                    RelationComponentType, RelationSubcomponent,\
                    RelationProperty, RelationPropertyType,\
@@ -1013,8 +1013,8 @@ class Component(Vertex):
             edge = RelationProperty(
                 inVertex=prop,
                 outVertex=self,
-                start=_RawTimestamp.from_dict(q["edge_props"], "start_"),
-                end=_RawTimestamp.from_dict(q["edge_props"], "end_"),
+                start=Timestamp._from_dict(q["edge_props"], "start_"),
+                end=Timestamp._from_dict(q["edge_props"], "end_"),
             )
             result.append((prop, edge))
 
@@ -1070,8 +1070,8 @@ class Component(Vertex):
               "outVertex should not = type but the property vertex …")
         return [RelationProperty(
             inVertex=self, outVertex=type,
-            start=_RawTimestamp.from_dict(q["properties"], "start_"),
-            end=_RawTimestamp.from_dict(q["properties"], "end_"),
+            start=Timestamp._from_dict(q["properties"], "start_"),
+            end=Timestamp._from_dict(q["properties"], "end_"),
             id=e['id']['@value']['relationId']  # weird but you have to
         ) for e in edges]
 
@@ -1100,9 +1100,8 @@ class Component(Vertex):
 
         return result
 
-    def get_all_subcomponents(self):
-        """Return all subcomponents connected to this component of the form
-        (Component)
+    def get_subcomponents(self):
+        """Return all subcomponents connected to this component.
 
         :rtype: [Component]
         """
@@ -1113,18 +1112,11 @@ class Component(Vertex):
             )
 
         query = g.t.V(self.id()).inE(RelationSubcomponent.category) \
-                   .has('active', True).otherV().id_().toList()
+                   .has('active', True).otherV().id_()
 
-        # Build up the result of format (flag vertex)
-        result = []
+        return [Component.from_id(q) for q in query.toList()]
 
-        for q in query:
-            subcomponent = Component.from_id(q)
-            result.append((subcomponent))
-
-        return result
-
-    def get_all_supercomponents(self):
+    def get_supercomponents(self):
         """Return all supercomponents connected to this component of the form
         (Component)
 
@@ -1135,19 +1127,13 @@ class Component(Vertex):
             raise ComponentNotAddedError(
                 f"Component {self.name} has not yet been added to the database."
             )
+
         # Relation as a subcomponent stays the same except now
         # we have outE to distinguish from subcomponents
         query = g.t.V(self.id()).outE(RelationSubcomponent.category) \
-                   .has('active', True).otherV().id_().toList()
+                   .has('active', True).otherV().id_()
 
-        # Build up the result of format (flag vertex)
-        result = []
-
-        for q in query:
-            supercomponent = Component.from_id(q)
-            result.append((supercomponent))
-
-        return result
+        return [Component.from_id(q) for q in query.toList()]
 
     def set_property(
         self, property, start: Timestamp, end: Timestamp = None, 
@@ -1178,7 +1164,8 @@ class Component(Vertex):
         )
 
         if current_property is not None:
-#    CONTINUE HERE: see if behaviour is correct (when this trips in
+#    CONTINUE HERE: probably ready for a pull request.
+#    CONTINUE HERE 2: see if behaviour is correct (when this trips in
 #            init_simple-db.py).
             if current_property.values == property.values:
                 strictraise(strict_add, PropertyIsSameError, 
@@ -1294,14 +1281,14 @@ class Component(Vertex):
                 "component {this.name} because it has not been set yet."
             )
         assert(len(vs) == 1)
-        print(vs[0])
+#        print(vs[0])
         if vs[0]['end_time'] < g._TIMESTAMP_NO_ENDTIME_VALUE:
             raise PropertyIsSameError(
                 f"Property of type {property.type.name} cannot be unset for "\
                 f"component {self.name} because it is set at this time and "\
                 f"already has an end time."
             )
-        print("slkdjflskdjfslkdjfslkdfjslkdjf")
+#        print("slkdjflskdjfslkdjfslkdfjslkdjf")
 
         g.t.V(property.id()).bothE(RelationProperty.category).as_('e')\
            .otherV() \
@@ -1416,19 +1403,19 @@ class Component(Vertex):
                 f"Trying to connect component {self.name} to itself."
             )
 
-        current_connection = self.get_connection(
-            component=component,
-            at_time=start.time
-        )
+        curr_conn = self.get_connections(component=component,
+                                         at_time=start.time)
+        # If this doesn't pass, something is very broken!
+        assert(len(curr_conn) <= 1)
 
-        if current_connection is not None and is_replacement == False:
+        if len(curr_conn) == 1 and is_replacement == False:
             # Already connected!
             strictraise(strict_add, ComponentsAlreadyConnectedError, 
                 f"Components {self.name} and {component.name} " +
                 "are already connected."
             )
             return
-        elif current_connection is None and is_replacement == True:
+        elif len(curr_conn) == 0 and is_replacement == True:
             # Not connected, but expected them to be connected.
             strictraise(strict_add, ComponentsAlreadyConnectedError,
                 f"Trying to replace connection between {self.name} and " +
@@ -1436,13 +1423,10 @@ class Component(Vertex):
             )
             return
 
-        existing_connections = self.get_all_connections_with(
-            component=component,
-            from_time=start.time
-        )
+        all_conn = self.get_connections(component=component,
+                                        from_time=start.time)
 
-        print("NEEDS TESTING: check existing connections.")
-        if len(existing_connections) > 0:
+        if len(all_conn) > 0:
             if end == None:
                 raise ComponentsOverlappingConnectionError(
                     "Trying to connect components " +
@@ -1451,7 +1435,7 @@ class Component(Vertex):
                     "specified end time. Specify an end time or " +
                     "replace the connection instead."
                     )
-            elif end.time >= existing_connections[0].start.time:
+            elif end.time >= all_conn[0].start.time:
                 raise ComponentsOverlappingConnectionError(
                     "Trying to connect components " +
                     f"{self.name} and {component.name} " +
@@ -1460,20 +1444,20 @@ class Component(Vertex):
                 )
 
         if is_replacement:
-            self.disable_component(component, start.edit_time)
+            raise RuntimeError("Is_replacement feature not implemented yet.")
 
-        current_connection = RelationConnection(
+        curr_conn = RelationConnection(
             inVertex=self,
             outVertex=component,
             start=start,
             end=end
         )
 
-        current_connection.add()
+        curr_conn.add()
 #        print(f'connected: {self} -> {component}  ({start.uid} {start.time})')
 
 
-    def disconnect(self, component, end: Timestamp):
+    def disconnect(self, component, end):
         """Given another Component :param component:, disconnect the two
         components at time :param time:.
 
@@ -1495,12 +1479,11 @@ class Component(Vertex):
                 "been added to the database."
             )
 
-        current_connection = self.get_connection(
-            component=component,
-            at_time=end.time
-        )
+        curr_conn = self.get_connections(component=component,
+                                         at_time = end.time)
+        assert(len(curr_conn) <= 1)
 
-        if current_connection is None:
+        if len(curr_conn) == 0:
             # Not connected yet!
             raise ComponentsAlreadyDisconnectedError(
                 f"Components {self.name} and {component.name} " +
@@ -1508,7 +1491,7 @@ class Component(Vertex):
             )
 
         else:
-            current_connection._end(end)
+            curr_conn[0]._end(end)
 
     def replace_connection(self, otherComponent, time, uid, comments,
                            disable_time: int = int(time.time())):
@@ -1525,10 +1508,114 @@ class Component(Vertex):
         :param disable_time: When this edge was disabled in the database.
         :type disable_time: int    
         """
-        g.t.V(self.id()).bothE(RelationConnection.category)\
-           .where(__.otherV().hasId(otherComponent.id()))\
-           .property('active', False)\
-           .property('time_disabled', disable_time).next()
+        raise RuntimeError("Deprecated!")
+
+    def get_connections(self, component = None, at_time = None,
+                        from_time = None, to_time = None,
+                        exclude_subcomponents: bool = False):
+        """
+        Get connections to another component, or all other components, at a
+        time, at all times or in a time range, depending on the parameters.
+
+        :param component: The other component(s) to check the connections with; 
+            if None then find connections with all other components.
+        :type component: Component or list of Components, optional
+        :param at_time: Time to check connections at. If this parameter is set,
+            then :from_time: and :to_time: are ignored.
+        :type at_time: int, optional
+        :param from_time: Lower bound for time range to consider connections, 
+            defaults to -1
+        :type from_time: int, optional
+        :param to_time: Upper bound for time range to consider connections, 
+            defaults to _TIMESTAMP_NO_ENDTIME_VALUE
+        :type to_time: int, optional
+        :param exclude_subcomponents: If True, then do not return connections
+            to subcomponents or supercomponents.
+        :type exclude_subcomponents: bool, optional
+
+        :rtype: list[RelationConnection]
+        """
+        if not self.added_to_db():
+            raise ComponentNotAddedError(
+                f"Component {self.name} has not yet been added to the database."
+            )
+        if component:
+            if not isinstance(component, list):
+                component = [component]
+            comp_id = [c.id() for c in component]
+            for c in component:
+                if not c.added_to_db():
+                    raise ComponentNotAddedError(
+                        f"Component {c.name} has not yet " +
+                        "been added to the database."
+                    )
+ 
+        at_time = _parse_time(at_time) 
+        from_time = _parse_time(from_time)
+        to_time = _parse_time(to_time)
+
+        # Build up the result of format (property vertex, relation)
+        result = []
+
+        if not exclude_subcomponents:
+            for inout in ("in", "out"):
+                query = g.t.V(self.id())
+                if inout == "in":
+                    query = query.inE(RelationSubcomponent.category)
+                else:
+                    query = query.outE(RelationSubcomponent.category)
+                query = query.has('active', True).as_('e').otherV()
+                if component:
+                    query = query.hasId(*comp_id)
+                query = query.id_().as_('vertex_id') \
+                             .select('e').id_().as_('edge_id') \
+                             .select('vertex_id', 'edge_id')
+                for q in query.toList():
+                    c = Component.from_id(q['vertex_id'])
+                    if inout == "in":
+                        inV, outV = self, c
+                    else:
+                        inV, outV = c, self
+                    edge = RelationSubcomponent(
+                        inVertex=inV,
+                        outVertex=outV,
+                        id=q['edge_id']['@value']['relationId']
+                    )
+                    result.append(edge)
+
+        # List of property vertices of this property type and active at this
+        # time
+        query = g.t.V(self.id()).bothE(RelationConnection.category) \
+                   .has('active', True)
+        if at_time:
+            query = query.has('start_time', P.lte(at_time)) \
+                         .has('end_time', P.gt(at_time))
+        else:
+            if to_time:
+                query = query.has('start_time', P.lt(to_time))
+            if from_time:
+                query = query.has('end_time', P.gt(from_time))
+        query = query.as_('e').valueMap().as_('edge_props') \
+                     .select('e').otherV()
+        if component:
+            query = query.hasId(*comp_id)
+        query = query.id_().as_('vertex_id') \
+                     .select('e').id_().as_('edge_id') \
+                     .select('edge_props', 'vertex_id', 'edge_id')
+
+        for q in query.toList():
+            c = Component.from_id(q['vertex_id'])
+            edge = RelationConnection(
+                inVertex=c,
+                outVertex=self,
+                start=Timestamp._from_dict(q["edge_props"], "start_"),
+                end=Timestamp._from_dict(q["edge_props"], "end_"),
+                # weird but you have to
+                id=q['edge_id']['@value']['relationId']
+            )
+            result.append(edge)
+
+        return result
 
     def get_all_connections_at_time(
         self, at_time: int, exclude_subcomponents: bool = False
@@ -1543,6 +1630,7 @@ class Component(Vertex):
 
         :rtype: list[RelationConnection/RelationSubcomponent]
         """
+        raise RuntimeError("Deprecated! Use get_connections().")
 
         if not self.added_to_db():
             raise ComponentNotAddedError(
@@ -1597,8 +1685,8 @@ class Component(Vertex):
             edge = RelationConnection(
                 inVertex=c,
                 outVertex=self,
-                start=_RawTimestamp.from_dict(q["edge_props"], "start_"),
-                end=_RawTimestamp.from_dict(q["edge_props"], "end_"),
+                start=Timestamp._from_dict(q["edge_props"], "start_"),
+                end=Timestamp._from_dict(q["edge_props"], "end_"),
                 # weird but you have to
                 id=q['edge_id']['@value']['relationId']
             )
@@ -1625,7 +1713,7 @@ class Component(Vertex):
 
         :rtype: list[RelationConnection]
         """
-
+        raise RuntimeError("Deprecated! Use get_connections().")
         # Done for troubleshooting (so you know which component is not added?)
         if not self.added_to_db():
             raise ComponentNotAddedError(
@@ -1652,8 +1740,8 @@ class Component(Vertex):
 
         return [RelationConnection(
             inVertex=self, outVertex=component,
-            start=_RawTimestamp.from_dict(q["properties"], "start_"),
-            end=_RawTimestamp.from_dict(q["properties"], "end_"),
+            start=Timestamp._from_dict(e["properties"], "start_"),
+            end=Timestamp._from_dict(e["properties"], "end_"),
             id=e['id']['@value']['relationId']  # weird but you have to
         ) for e in edges]
 
@@ -1668,6 +1756,7 @@ class Component(Vertex):
         :param at_time: The time to check
         :type at_time: int
         """
+        raise RuntimeError("Deprecated! Use get_connections().")
 
         # Done for troubleshooting (so you know which component is not added?)
         if not self.added_to_db():
@@ -1698,8 +1787,8 @@ class Component(Vertex):
 
         return RelationConnection(
             inVertex=self, outVertex=component,
-            start=_RawTimestamp.from_dict(e[0]["properties"], "start_"),
-            end=_RawTimestamp.from_dict(e[0]["properties"], "end_"),
+            start=Timestamp._from_dict(e[0]["properties"], "start_"),
+            end=Timestamp._from_dict(e[0]["properties"], "end_"),
             id=e[0]['id']['@value']['relationId']  # weird but you have to
         )
 
@@ -1710,6 +1799,7 @@ class Component(Vertex):
 
         :rtype: tuple[Component, RelationConnection]
         """
+        raise RuntimeError("Deprecated! Use get_connections().")
 
         if not self.added_to_db():
             raise ComponentNotAddedError(
@@ -1732,8 +1822,8 @@ class Component(Vertex):
             edge = RelationConnection(
                 inVertex=prop,
                 outVertex=self,
-                start=_RawTimestamp.from_dict(q["edge_props"], "start_"),
-                end=_RawTimestamp.from_dict(q["edge_props"], "end_")
+                start=Timestamp._from_dict(q["edge_props"], "start_"),
+                end=Timestamp._from_dict(q["edge_props"], "end_")
             )
             result.append((prop, edge))
 
@@ -2219,18 +2309,19 @@ class Component(Vertex):
                 for (prop, rel) in self.get_all_properties()
             ]
 
-            conn_dicts = [{**{"name": comp.name}, **rel.as_dict()} \
-                for (comp, rel) in self.get_all_connections()
+            conn_dicts = [{**{"name": conn.other_vertex(self).name},
+                           **conn.as_dict()} \
+                for conn in self.get_connections(exclude_subcomponents=True)
             ]
 
             flag_dicts = [flag.as_dict() for flag in self.get_all_flags()]
 
             subcomponent_dicts = [{"name": subcomponents.name} \
-                for subcomponents in self.get_all_subcomponents()
+                for subcomponents in self.get_subcomponents()
             ]
         
             supercomponent_dicts = [{"name": supercomponents.name} \
-                for supercomponents in self.get_all_supercomponents()
+                for supercomponents in self.get_supercomponents()
             ]
             extra = {
                 'properties': prop_dicts,

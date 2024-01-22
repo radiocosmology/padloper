@@ -106,8 +106,8 @@ const ComponentNodeWrapper = styled((props) => (
     background: 'white',
     borderColor: '#777777',
     borderWidth: '2px',
-    width: '250px',
-    height: '50px',
+//    width: '250px',
+//    height: '50px',
     textAlign: 'center',
 }));
 
