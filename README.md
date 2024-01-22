@@ -12,10 +12,10 @@ cd janusgraph-full-0.x.xx/
 bin/janusgraph.sh start
 ```
 
-Once the JanusGraph server is started, we start the Flask server:
+Once the JanusGraph server is started, we start the Flask server (using port 4300, which is currently the default port that the React server communicates with):
 ```
 cd flask-interface/
-flask run --no-debugger
+flask run --no-debugger -p 4300
 ```
 
 Finally, we start the React server:
