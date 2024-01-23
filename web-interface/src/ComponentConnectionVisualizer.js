@@ -271,6 +271,9 @@ const [nodes, setNodes] = useState([]);
 // a dictionary to store whether each node is a parent or not
 const isParentNode = useRef({});
 
+// a dictionary to store the children of a given node
+const childrenNodes = useRef({});
+
 // from https://reactflow.dev/docs/guides/layouting/
 const { fitView } = useReactFlow();
 
@@ -442,6 +445,7 @@ useEffect(() => {
 //     setPropertiesVisible(!propertiesVisible)
 // }
 useEffect(() => {
+    console.log(nodes)
     if (propertiesVisible) {
         setNodes((nds) =>
         nds.map((node) => {
@@ -483,11 +487,18 @@ function sortNodes () {
         const sortedNodes = prevNodes.slice().sort((a, b) => {
           const isParentA = isParentNode.current[a.id];
           const isParentB = isParentNode.current[b.id];
+          const aInB = childrenNodes.current[b.id].includes(a.id);
+          const bInA = childrenNodes.current[a.id].includes(b.id);
+          console.log(isParentNode)
     
           if (isParentA && !isParentB) {
             return -1;
           } else if (!isParentA && isParentB) {
             return 1;
+          } else if (isParentA && isParentB && bInA) {
+            return -1
+          } else if (isParentA && isParentB && aInB) {
+            return 1
           }
           return 0;
         });
@@ -557,6 +568,7 @@ if (subcomponent) {
 addNodeId(comp.name);
 // set parent node status to false
 isParentNode.current[comp.name] = false;
+childrenNodes.current[comp.name] = [];
 setNodes((els) => els.concat(newNode));
 return true;
 }
@@ -930,7 +942,7 @@ resolve => {
                 newHeight = (newHeight === 0) ? nodeHeight : newHeight;
 
                 // create parent node
-                let added = addComponent(parent, lastAdded.x, lastAdded.y + nodeHeight + 20, false, null, newWidth * 2 + 'px', newHeight * 2 + 'px');
+                let added = addComponent(parent, lastAdded.x, lastAdded.y + nodeHeight + 20, false, null, newWidth * 1.5 + 'px', newHeight * 2 + 'px');
                 if (added) {
                     componentsAdded.push(parent);
                     lastAdded.y += nodeHeight + 20;
@@ -957,26 +969,34 @@ resolve => {
             // set parent node status to true
             isParentNode.current[parent.name] = true;
 
-            
+            // set curr as a child of parent
+            childrenNodes.current[parent.name] = [...childrenNodes.current[parent.name], curr.name]
         }
+        
 
         if (subcomponents.length > 0) {
             let subLastAdded = {x: -nodeWidth, y: 120 - nodeHeight}
+            let maxSubHeight = nodeHeight;
 
             for (const sub of subcomponents) {
-                console.log(sub.name + ':')
+                // console.log(sub.name + ':')
                 // debugger;
                 let subAdded = addComponent(sub, subLastAdded.x + nodeWidth + 10, subLastAdded.y, true, curr.name);
                 if (subAdded) {
+                    isParentNode.current[curr.name] = true;
                     componentsAdded.push(sub)
                     subLastAdded.x += nodeWidth + 10;
+
+                    // set sub as a child of curr
+                    childrenNodes.current[curr.name] = [...childrenNodes.current[curr.name], sub.name]
                 } else {
                     // subcomponent exists -> set as child of curr
                     setNodes((nodes) => nodes.map((node) => {
                         if (node.id === sub.name) {
-                            console.log(node.id)
-                            console.log(sub.name)
-                            console.log(curr)
+                            // console.log(node.id)
+                            // console.log(sub.name)
+                            // console.log(curr)
+                            maxSubHeight = Math.max(maxSubHeight, node.style.height)
                             return ({
                                 ...node,
                                 data: { ...node.data, label: node.id,},
@@ -997,7 +1017,8 @@ resolve => {
             
             // update current size
             const newWidth = subcomponents.length * (nodeWidth + 20);
-            const newHeight = nodeHeight * 3;
+            console.log(maxSubHeight)
+            const newHeight = (maxSubHeight) ? maxSubHeight + 100 : nodeHeight * 3;
             setNodes((nodes) => nodes.map((node) => {
                 if (node.id === curr.name) {
                     return ({
@@ -1034,11 +1055,13 @@ resolve => {
             }
         }
 
+        console.log(childrenNodes.current)
 
         // setSubLastAdded({...subLastAdded})
         if (componentsAdded.length > 0 && !urlSet) {
             setExpanded((prev) => [...prev, name]);
         }
+        console.log({...lastAdded})
         setLastAdded({...lastAdded});
         sortNodes();
         resolve(componentsAdded);
