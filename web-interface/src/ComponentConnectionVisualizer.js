@@ -445,17 +445,28 @@ useEffect(() => {
 //     setPropertiesVisible(!propertiesVisible)
 // }
 useEffect(() => {
-    console.log(nodes)
+    // console.log(nodes)
     if (propertiesVisible) {
         setNodes((nds) =>
         nds.map((node) => {
             // TODO: change component select from list to have properties
             if (node.data.properties && node.data.properties.length > 0) {
+                console.log(node.data.properties)
+                console.log(node.data.properties.reduce((listOfLists, property) => {
+                    const { type: { name, units }, values } = property;
+                    listOfLists.push([name, values, units]);
+                    return listOfLists;
+                  }, []))
                 return {
                     ...node,
                     data: {
                     ...node.data,
-                    shownProperties: node.data.properties[0].type.name + ':' + node.data.properties[0].values[0],
+                    // shownProperties: node.data.properties[0].type.name + ':' + node.data.properties[0].values[0],
+                    shownProperties: node.data.properties.reduce((listOfLists, property) => {
+                        const { type: { name, units }, values } = property;
+                        listOfLists.push([name, values, units]);
+                        return listOfLists;
+                      }, [])
                     },
                 };
             } else {
@@ -819,22 +830,41 @@ return (
             }}
         >
             <Grid item xs={9}>
-                <Typography
+                {/* <Typography
                     variant="body2"
-                >
+                > */}
                     <Link to={`/component/${data.name}`}>
                         {data.name}
                     </Link>
                     <br/>{data.ctype.name}
                     <br/>
-                    {data.shownProperties}
+                    {/* {data.shownProperties} */}
+                    {/* {data.shownProperties.map(([propertyName, { values, unit }]) => (
+                       <div key={propertyName}>`propertyName`</div> 
+                    ))} */}
                     {/* {console.log(propertiesVisible)} */}
                     {/* {data.showProperties && data.properties[0] ?
                     data.properties[0].type.name + ':' + data.properties[0].values[0] */}
                     {/* :
                     ''
                     } */}
-                </Typography>
+                    {/* {Object.entries(data.shownProperties).map(([propertyName, { values, unit }]) => (
+                        <div key={propertyName}>
+                        <p>
+                            <strong>{propertyName}:</strong> {values.join(', ')} {unit}
+                        </p>
+                        </div>
+                    ))} */}
+                    {/* {data.shownProperties ? data.shownProperties.size.units : 'HELLO'} */}
+                    {data.shownProperties ? data.shownProperties.map(([propertyName, values, unit]) => (
+                        <div key={propertyName}>
+                        <p>
+                            <strong>{propertyName}:</strong> {values.join(', ')} {unit}
+                        </p>
+                        </div>
+                    ))
+                    : ''}
+                {/* </Typography> */}
             </Grid>
             <Grid item>
                     <ExpandConnectionsButton 
@@ -1017,7 +1047,7 @@ resolve => {
             
             // update current size
             const newWidth = subcomponents.length * (nodeWidth + 20);
-            console.log(maxSubHeight)
+            // console.log(maxSubHeight)
             const newHeight = (maxSubHeight) ? maxSubHeight + 100 : nodeHeight * 3;
             setNodes((nodes) => nodes.map((node) => {
                 if (node.id === curr.name) {
@@ -1055,13 +1085,13 @@ resolve => {
             }
         }
 
-        console.log(childrenNodes.current)
+        // console.log(childrenNodes.current)
 
         // setSubLastAdded({...subLastAdded})
         if (componentsAdded.length > 0 && !urlSet) {
             setExpanded((prev) => [...prev, name]);
         }
-        console.log({...lastAdded})
+        // console.log({...lastAdded})
         setLastAdded({...lastAdded});
         sortNodes();
         resolve(componentsAdded);
