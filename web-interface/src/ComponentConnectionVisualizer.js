@@ -902,8 +902,8 @@ resolve => {
         if (parent) {
             // update size based on # of SC curr
             // add 1 more "row"
-            const newHeight = (subcomponents.length > 0) ? nodeHeight * 2 : 0;
-            const newWidth = (subcomponents.length > 0) ? subcomponents.length * (nodeWidth + 20) :
+            let newHeight = (subcomponents.length > 0) ? nodeHeight * 2 : 0;
+            let newWidth = (subcomponents.length > 0) ? subcomponents.length * (nodeWidth + 20) :
                                 nodeWidth;
             let parentFound = false;
             setNodes((nodes) => nodes.map((node) => {
@@ -925,6 +925,10 @@ resolve => {
                 }
             }));
             if (!parentFound) {
+                
+                // ensure newHeight non-zero if creating parent for first time
+                newHeight = (newHeight === 0) ? nodeHeight : newHeight;
+
                 // create parent node
                 let added = addComponent(parent, lastAdded.x, lastAdded.y + nodeHeight + 20, false, null, newWidth * 2 + 'px', newHeight * 2 + 'px');
                 if (added) {
