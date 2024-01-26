@@ -1,4 +1,4 @@
-import React, { useState } from 'react';
+import React, { useState, useEffect } from 'react';
 
 import Button from '@mui/material/Button'
 import CircularProgress from '@mui/material/CircularProgress';
@@ -52,7 +52,7 @@ const ReplaceButton = styled((props) => (
 
 
 
-export default function PropertyTypeReplaceButton ({name,componentTypes,toggleReload}) {
+export default function PropertyTypeReplaceButton ({name, units, allowed_regex, allowed_types, values, comments, componentTypes,toggleReload}) {
 
   // Opens and closes the pop up form.
   const [open, setOpen] = useState(false);
@@ -74,6 +74,11 @@ export default function PropertyTypeReplaceButton ({name,componentTypes,toggleRe
 
   /*To display an error message when a user fails to replace a property type. */
   const [errorData,setErrorData] = useState(null)
+
+  useEffect(() => {
+    setProperty({...property, name: name, units: units, allowed_regex: allowed_regex, comment: comments, values: +values})
+    setComponentTypeName(allowed_types);
+  }, [])
 
 
   /*
