@@ -105,7 +105,7 @@ export default function PropertyTypeAddButton ({componentTypes,toggleReload}) {
     input += `?name=${property.name}`;
     input += `&type=${componentTypeName.join(';')}`;
     input += `&units=${property.units}`;
-    input += `&allowed_reg=${property.allowed_regex}`;
+    input += `&allowed_reg=${encodeURIComponent(property.allowed_regex)}`;
     input += `&values=${property.values}`;
     input += `&comments=${property.comment}`;
     axios.post(input).then((response)=>{

@@ -128,7 +128,7 @@ export default function PropertyTypeReplaceButton ({name,componentTypes,toggleRe
     input += `?name=${property.name}`;
     input += `&type=${componentTypeName.join(';')}`;
     input += `&units=${property.units}`;
-    input += `&allowed_reg=${property.allowed_regex}`;
+    input += `&allowed_reg=${encodeURIComponent(property.allowed_regex)}`;
     input += `&values=${property.values}`;
     input += `&comments=${property.comment}`;
     input += `&property_type=${name}`;

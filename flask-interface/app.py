@@ -8,6 +8,7 @@ from markupsafe import escape
 import time
 import padloper as p
 import json
+from urllib.parse import unquote
 
 # CONTINUE HERE: use the as_dict() methods from padloper …
 
@@ -447,12 +448,11 @@ def set_property_type():
     :rtype: dict
     """
     try:
-
         val_name = escape(request.args.get('name'))
         # A list of allowed component types.
         val_type = escape(request.args.get('type')).split(';')
         val_units = escape(request.args.get('units'))
-        val_allowed_reg = escape(request.args.get('allowed_reg'))
+        val_allowed_reg = unquote(escape(request.args.get('allowed_reg')))
         val_values = escape(request.args.get('values'))
         val_comments = escape(request.args.get('comments'))
 
