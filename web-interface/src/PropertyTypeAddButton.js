@@ -258,7 +258,7 @@ export default function PropertyTypeAddButton ({componentTypes,toggleReload}) {
         </DialogContent>
         <DialogActions>
           <Button onClick={handleClose}>Cancel</Button>
-          { property.name && componentTypeName.length !== 0 && property.units && property.allowed_regex && property.values !== 0
+          { property.name && componentTypeName.length !== 0 && property.allowed_regex && property.values !== 0
           ?
             <Button onClick={handleSubmit}>
               {loading ? <CircularProgress
