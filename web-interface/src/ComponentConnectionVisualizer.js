@@ -671,6 +671,9 @@ setNodes([]);
 nodeIds.current = {};
 setEdges([]);
 edgeIds.current = {};
+expandedNodes.current = {};
+isParentNode.current = {}
+childrenNodes.current = {};
 }
 
 // /**
@@ -1208,6 +1211,10 @@ spacing={2}
             <Button 
                 variant="contained"
                 onClick= {() => {
+                    // clear URL
+                    // clear components + states
+                    setExpanded([]);
+                    removeAllElements();
                     setLastAdded({x: 350, y: 100});
                     visualizeComponent();
                 }}
