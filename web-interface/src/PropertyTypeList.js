@@ -257,7 +257,13 @@ export default function PropertyTypeList() {
         e.n_values,
         e.comments,
         <PropertyTypeReplaceButton
+        key={e.name}
         name = {e.name}
+        units = {e.units}
+        allowed_regex = {e.allowed_regex}
+        allowed_types = {e.allowed_types}
+        values = {e.n_values ? e.n_values : 0}
+        comments = {e.comments ? e.comments : ''}
         componentTypes={componentTypes}
         toggleReload={toggleReload}
         />

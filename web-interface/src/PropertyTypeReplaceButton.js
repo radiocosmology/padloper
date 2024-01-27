@@ -1,4 +1,4 @@
-import React, { useState } from 'react';
+import React, { useState, useEffect } from 'react';
 
 import Button from '@mui/material/Button'
 import CircularProgress from '@mui/material/CircularProgress';
@@ -52,7 +52,7 @@ const ReplaceButton = styled((props) => (
 
 
 
-export default function PropertyTypeReplaceButton ({name,componentTypes,toggleReload}) {
+export default function PropertyTypeReplaceButton ({name, units, allowed_regex, allowed_types, values, comments, componentTypes,toggleReload}) {
 
   // Opens and closes the pop up form.
   const [open, setOpen] = useState(false);
@@ -74,6 +74,11 @@ export default function PropertyTypeReplaceButton ({name,componentTypes,toggleRe
 
   /*To display an error message when a user fails to replace a property type. */
   const [errorData,setErrorData] = useState(null)
+
+  useEffect(() => {
+    setProperty({...property, name: name, units: units, allowed_regex: allowed_regex, comment: comments, values: +values})
+    setComponentTypeName(allowed_types);
+  }, [])
 
 
   /*
@@ -128,7 +133,7 @@ export default function PropertyTypeReplaceButton ({name,componentTypes,toggleRe
     input += `?name=${property.name}`;
     input += `&type=${componentTypeName.join(';')}`;
     input += `&units=${property.units}`;
-    input += `&allowed_reg=${property.allowed_regex}`;
+    input += `&allowed_reg=${encodeURIComponent(property.allowed_regex)}`;
     input += `&values=${property.values}`;
     input += `&comments=${property.comment}`;
     input += `&property_type=${name}`;
@@ -282,7 +287,7 @@ export default function PropertyTypeReplaceButton ({name,componentTypes,toggleRe
         </DialogContent>
         <DialogActions>
           <Button onClick={handleClose}>Cancel</Button>
-          { property.name && componentTypeName.length !== 0 && property.units && property.allowed_regex && property.values !== 0
+          { property.name && componentTypeName.length !== 0 && property.allowed_regex && property.values !== 0
           ?
             <Button onClick={handleSubmit}>
               {loading ? <CircularProgress

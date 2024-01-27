@@ -60,6 +60,7 @@ export default function PropertyTypeAddButton ({componentTypes,toggleReload}) {
   const handleChange2 = (e) =>{
     const name = e.target.name
     const value = e.target.value
+    // TODO: for regex check that it is a valid regex
     setProperty({...property,[name]:value})
   }
 
@@ -104,7 +105,7 @@ export default function PropertyTypeAddButton ({componentTypes,toggleReload}) {
     input += `?name=${property.name}`;
     input += `&type=${componentTypeName.join(';')}`;
     input += `&units=${property.units}`;
-    input += `&allowed_reg=${property.allowed_regex}`;
+    input += `&allowed_reg=${encodeURIComponent(property.allowed_regex)}`;
     input += `&values=${property.values}`;
     input += `&comments=${property.comment}`;
     axios.post(input).then((response)=>{
@@ -257,7 +258,7 @@ export default function PropertyTypeAddButton ({componentTypes,toggleReload}) {
         </DialogContent>
         <DialogActions>
           <Button onClick={handleClose}>Cancel</Button>
-          { property.name && componentTypeName.length !== 0 && property.units && property.allowed_regex && property.values !== 0
+          { property.name && componentTypeName.length !== 0 && property.allowed_regex && property.values !== 0
           ?
             <Button onClick={handleSubmit}>
               {loading ? <CircularProgress

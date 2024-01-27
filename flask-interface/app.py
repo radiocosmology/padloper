@@ -8,6 +8,7 @@ from markupsafe import escape
 import time
 import padloper as p
 import json
+from urllib.parse import unquote
 
 # CONTINUE HERE: use the as_dict() methods from padloper …
 
@@ -120,7 +121,7 @@ def get_component_list():
         order_direction=order_direction,
         filters=filter_triples,
     )
-
+    
     return {"result": [c.as_dict(bare=True) for c in components]}
 
 
@@ -447,12 +448,11 @@ def set_property_type():
     :rtype: dict
     """
     try:
-
         val_name = escape(request.args.get('name'))
         # A list of allowed component types.
         val_type = escape(request.args.get('type')).split(';')
         val_units = escape(request.args.get('units'))
-        val_allowed_reg = escape(request.args.get('allowed_reg'))
+        val_allowed_reg = unquote(escape(request.args.get('allowed_reg')))
         val_values = escape(request.args.get('values'))
         val_comments = escape(request.args.get('comments'))
 
@@ -847,6 +847,8 @@ def set_component_property():
         return {'result': True}
 
     except Exception as e:
+        import traceback
+        traceback.print_exc()
         print(e)
         return {'error': json.dumps(e, default=str)}
 
@@ -1146,18 +1148,8 @@ def get_connections():
     return {
         'result': [
             {
-                'inVertex': {
-                    'name': conn.inVertex.name,
-                    'type': conn.inVertex.type.name,
-                    'version': conn.inVertex.version.name \
-                        if conn.inVertex.version else ""
-                },
-                'outVertex': {
-                    'name': conn.outVertex.name,
-                    'type': conn.outVertex.type.name,
-                    'version': conn.outVertex.version.name \
-                        if conn.outVertex.version else ""
-                },
+                'inVertex': conn.inVertex.as_dict(),
+                'outVertex': conn.outVertex.as_dict(),
                 'subcomponent': True if isinstance(conn,
                                                    p.RelationSubcomponent) \
                                 else False,

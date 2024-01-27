@@ -95,6 +95,9 @@ function ComponentPropertyAddPanel(
     // what the "selected" property type is
     const [selectedOption, setSelectedOption] = useState(null);
 
+    // to store number of values
+    // const [numValues, setNumValues] = useState(0);
+
     // an array of the values of the properties entered in the text fields
     const [textFieldValues, setTextFieldValues] = useState([]);
 
@@ -135,6 +138,37 @@ function ComponentPropertyAddPanel(
     // is made, waiting for a response from the DB.
     const [loading, setLoading] = useState(false);
 
+    const [userData, setUserData] = useState({});
+
+    // load user data when the page loads
+    useEffect(() => {
+        getUserData();
+    }, [])
+
+    useEffect(() => {
+        console.log(userData.login)
+        if (userData) {
+            setUid(userData.login);
+        }
+    }, [userData])
+
+    /**
+     * Get the user data via GitHub
+     */
+    async function getUserData() {
+        await fetch("http://localhost:4000/getUserData", {
+            method: "GET",
+            headers: {
+                "Authorization": "Bearer " + localStorage.getItem('accessToken')
+            }
+            }).then((response) => {
+                return response.json();
+            }).then((data) => {
+                console.log(data);
+                setUserData(data);
+            });
+        }
+
     /**
      * Check whether a value matches the selected property type's regex.
      * Return false if there is no property type that has been selected.
@@ -161,13 +195,15 @@ function ComponentPropertyAddPanel(
         if (option !== null && option.n_values) {
             // make an empty array of size n_values and fill it 
             // with empty strings
-            setTextFieldValues(Array(option.n_values).fill(""));
+            setTextFieldValues(Array(+option.n_values).fill(""));
 
             // create the textFieldAccepted array.
             let acceptedSoFar = [];
+            // TODO: fix
             for (let i = 0; i < option.n_values; i++) {
                 acceptedSoFar.push(verifyRegex("", option.allowed_regex));
             }
+            console.log(acceptedSoFar);
             setTextFieldAccepted(acceptedSoFar);
         }
 
@@ -193,6 +229,9 @@ function ComponentPropertyAddPanel(
         // set the element at index to the new filter
         valuesCopy[index] = value;
         acceptedCopy[index] = regexCheck(value);
+
+        console.log(valuesCopy)
+        console.log(acceptedCopy)
 
         // update the state array
         setTextFieldValues(valuesCopy);
@@ -259,8 +298,12 @@ function ComponentPropertyAddPanel(
                         <TextField 
                             required
                             label="User" 
+                            InputProps={{
+                                readOnly: true,
+                            }}
+                            value={uid}
                             sx={{ width: 150 }}
-                            onChange={(event) => setUid(event.target.value)}
+                            // onChange={(event) => setUid(event.target.value)}
                         />
                     </Grid>
 
@@ -318,8 +361,8 @@ function ComponentPropertyAddPanel(
                     }}>
                     {(selectedOption !== null) ?
                     (
-                        [...Array(selectedOption.n_values)].map((el, index) => ( 
-                            <Grid item>
+                        [...Array(+selectedOption.n_values)].map((el, index) => ( 
+                            <Grid item key={index}>
                                 <TextField 
                                     required
                                     error={!textFieldAccepted[index]}

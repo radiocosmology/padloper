@@ -584,6 +584,8 @@ class Property(Vertex):
         if isinstance(values, str):
             values = [values]
 
+        # TODO: check that casting as int is fine; or should the type be
+        # enforced in the DB?
         if len(values) != int(type.n_values):
             raise PropertyWrongNValuesError
 
