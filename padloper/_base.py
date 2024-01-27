@@ -195,6 +195,29 @@ class Vertex(Element):
 
             Vertex._cache_vertex(self)
 
+    def in_db(self, strict_check=True, allow_removed=False) -> bool:
+        """Return whether this Vertex has been added to the database.
+            
+        :return: True if element is added to database, False otherwise.
+        :rtype: bool
+
+        STILL need to finish this. In progress.
+        """
+        if strict_check:
+            q = g.t.V(self.id()).has("category", self.__class__.category) \
+                                .has("name", self.name)
+            if not allow_removed:
+                q = q.has("active", True)
+            n = q.count().next()
+            print(self.__class__.category, self.name, n)
+            assert(n == 0 or n == 1)
+            if n == 0:
+                return False
+        elif self.id() == g._VIRTUAL_ID_PLACEHOLDER:
+            return False
+        print("!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!") 
+        return True
+
     def replace(self, id):
         """Replaces the vertex in the JanusGraph DB with the new vertex by
         changing its property 'active' from true to false and transfering

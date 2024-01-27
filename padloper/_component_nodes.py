@@ -876,6 +876,8 @@ class Component(Vertex):
         """Add this Component to the serverside.
         """
 
+#        CONTINUE HERE: figure out how to check if a vertex already exists!!
+#        print(">>>>> ", self.name)
         if self.added_to_db():
             strictraise(strict_add, VertexAlreadyAddedError, 
                 f"Component with name {self.name} " +
@@ -1945,6 +1947,7 @@ class Component(Vertex):
         :return: True if element is added to database, False otherwise.
         :rtype: bool
         """
+#        return self.in_db()
 
         return (
             self.id() != g._VIRTUAL_ID_PLACEHOLDER or (
