@@ -584,7 +584,7 @@ class Property(Vertex):
         if isinstance(values, str):
             values = [values]
 
-        if len(values) != type.n_values:
+        if len(values) != int(type.n_values):
             raise PropertyWrongNValuesError
 
         for val in values:
