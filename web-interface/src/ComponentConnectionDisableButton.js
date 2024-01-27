@@ -71,6 +71,7 @@ const DisableButton = styled((props) => (
             fetch(input).then(
                 res => res.json()
             ).then(data => {
+                console.log(data);
                 if (data.result) {
                     toggleReload();
                     handleClose()
