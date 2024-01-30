@@ -145,8 +145,9 @@ function ComponentPropertyAddPanel(
         getUserData();
     }, [])
 
+
+    // set user id
     useEffect(() => {
-        console.log(userData.login)
         if (userData) {
             setUid(userData.login);
         }

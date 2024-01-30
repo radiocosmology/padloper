@@ -126,12 +126,43 @@ function ComponentPropertyReplacePanel(
     // is made, waiting for a response from the DB.
     const [loading, setLoading] = useState(false);
 
+    const [userData, setUserData] = useState({});
+
     // // load previous data
     // useEffect(() => {
     //     setSelectedOption(option);
     //     // console.log(option)
     // }, [])
 
+    // load user data when the page loads
+    useEffect(() => {
+        getUserData();
+        console.log(selected);
+    }, [])
+
+    // set user id
+    useEffect(() => {
+        if (userData) {
+            setUid(userData.login);
+        }
+    }, [userData])
+
+    /**
+     * Get the user data via GitHub
+     */
+    async function getUserData() {
+        await fetch("http://localhost:4000/getUserData", {
+            method: "GET",
+            headers: {
+                "Authorization": "Bearer " + localStorage.getItem('accessToken')
+            }
+            }).then((response) => {
+                return response.json();
+            }).then((data) => {
+                console.log(data);
+                setUserData(data);
+            });
+        }
 
     /**
      * Check whether a value matches the selected property type's regex.
@@ -245,7 +276,7 @@ function ComponentPropertyReplacePanel(
                     </Grid>
                 </Grid>
 
-                <Grid container spacing={2} justifyContent="space-around">
+                <Grid container spacing={2} justifyContent="center">
                     <Grid item>
                         <ComponentPropertyAutocomplete 
                             onSelect={selectOption} 
@@ -253,14 +284,14 @@ function ComponentPropertyReplacePanel(
                         />
                     </Grid>
 
-                    <Grid item>
+                    {/* <Grid item>
                         <TextField 
                             required
                             label="User" 
                             sx={{ width: 150 }}
                             onChange={(event) => setUid(event.target.value)}
                         />
-                    </Grid>
+                    </Grid> */}
 
                     <Grid item>
                         <TextField
@@ -318,8 +349,8 @@ function ComponentPropertyReplacePanel(
                     }}>
                     {(selectedOption !== null) ?
                     (
-                        [...Array(selectedOption.n_values)].map((el, index) => ( 
-                            <Grid item>
+                        [...Array(+selectedOption.n_values)].map((el, index) => ( 
+                            <Grid item key={index}>
                                 <TextField 
                                     required
                                     error={!textFieldAccepted[index]}
