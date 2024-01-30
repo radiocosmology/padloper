@@ -85,6 +85,11 @@ function ComponentPropertyReplacePanel(
         theme,
         onClose,
         onSet,
+        selected
+        // option,
+        // old_uid, 
+        // old_comments, 
+        // old_textFieldValues
     }
 ) {
 
@@ -120,6 +125,12 @@ function ComponentPropertyReplacePanel(
     // whether the panel is loading: usually happens after the "Connect" button
     // is made, waiting for a response from the DB.
     const [loading, setLoading] = useState(false);
+
+    // // load previous data
+    // useEffect(() => {
+    //     setSelectedOption(option);
+    //     // console.log(option)
+    // }, [])
 
 
     /**
@@ -238,6 +249,7 @@ function ComponentPropertyReplacePanel(
                     <Grid item>
                         <ComponentPropertyAutocomplete 
                             onSelect={selectOption} 
+                            selected={selected}
                         />
                     </Grid>
 

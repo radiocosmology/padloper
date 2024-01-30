@@ -741,7 +741,16 @@ function ComponentPage() {
                         ''}
                         {activeindexpropertyReplace === index 
                         ?
-                         properties_edit_panel_content
+                        // TODO: change to map to unique for each
+                        //  properties_edit_panel_content
+                        (open_properties_replace_panel) ? (
+                            <ComponentPropertyReplacePanel 
+                                theme={theme} 
+                                onClose={() => setOpenPropertiesReplacePanel(false)}
+                                onSet={replaceProperty}
+                                selected={prop.type}
+                            />
+                        ) : <></>
                         :
                         ''}
                     </EntryAccordion>

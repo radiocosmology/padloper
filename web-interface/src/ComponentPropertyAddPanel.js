@@ -287,14 +287,14 @@ function ComponentPropertyAddPanel(
                     </Grid>
                 </Grid>
 
-                <Grid container spacing={2} justifyContent="space-around">
+                <Grid container spacing={2} justifyContent="center">
                     <Grid item>
                         <ComponentPropertyAutocomplete 
                             onSelect={selectOption} 
                         />
                     </Grid>
 
-                    <Grid item>
+                    {/* <Grid item>
                         <TextField 
                             required
                             label="User" 
@@ -305,7 +305,7 @@ function ComponentPropertyAddPanel(
                             sx={{ width: 150 }}
                             // onChange={(event) => setUid(event.target.value)}
                         />
-                    </Grid>
+                    </Grid> */}
 
                     <Grid item>
                         <TextField
