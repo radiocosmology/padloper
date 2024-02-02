@@ -36,6 +36,7 @@ export default function ComponentPropertyAutocomplete(
             setSelectedOption(selected);
             onSelect(selected);
         }
+        console.log(selectedOption);
     }, [])
 
     /**
@@ -87,8 +88,13 @@ export default function ComponentPropertyAutocomplete(
         }}
         options={options}
         isOptionEqualToValue={(option, value) => option.name === value.name}
-        getOptionLabel={(option) => option.name}
-        onInputChange={(option, value, details) => setEnteredString(value)}
+        getOptionLabel={(option) =>  option && option.name ? option.name : ''}
+        onInputChange={(option, value, details) => {
+            setEnteredString(value);
+            if (option && option.name) {
+                setSelectedOption(option)
+            }
+        }}
         onChange={(event, value, reason, details) => onSelect(value)}
         value={selectedOption}
         loading={loading}

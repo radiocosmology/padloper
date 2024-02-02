@@ -16,6 +16,8 @@ import styled from '@mui/material/styles/styled';
 import { Typography } from '@mui/material';
 import { verifyRegex } from './utility/utility.js';
 
+import moment from "moment";
+
 /**
  * A styled "panel" component, used as the background for the panel.
  * 
@@ -85,11 +87,12 @@ function ComponentPropertyReplacePanel(
         theme,
         onClose,
         onSet,
-        selected
+        selected,
         // option,
         // old_uid, 
         // old_comments, 
-        // old_textFieldValues
+        oldTextFieldValues,
+        oldComments
     }
 ) {
 
@@ -114,10 +117,19 @@ function ComponentPropertyReplacePanel(
     const [uid, setUid] = useState("");
 
     // the default time to set the property
-    const defaultTime = 1;
+    // const defaultTime = 1;
 
-    // time to set the property (NOT the edit time)
-    const [time, setTime] = useState(defaultTime);
+    // // time to set the property (NOT the edit time)
+    // const [time, setTime] = useState(defaultTime);
+
+    // Default time is now; set the display time and the internal time variable
+    // to this to start with.
+    const defaultTime = new Date();
+    const [time, setTime] = useState(Math.round(defaultTime.getTime() / 1000));
+    const [displayTime, setDisplayTime] = useState(defaultTime);
+    useEffect(() => {
+      setDisplayTime(moment(displayTime).format("YYYY-MM-DD[T]HH:mm:ss"));
+    }, []);
 
     // the comments associated with setting the property
     const [comments, setComments] = useState("");
@@ -128,16 +140,16 @@ function ComponentPropertyReplacePanel(
 
     const [userData, setUserData] = useState({});
 
-    // // load previous data
-    // useEffect(() => {
-    //     setSelectedOption(option);
-    //     // console.log(option)
-    // }, [])
+    // load previous data
+    useEffect(() => {
+        setTextFieldValues(oldTextFieldValues);
+        setTextFieldAccepted(Array.from({ length: oldTextFieldValues.length }, () => true));
+        setComments(oldComments);
+    }, [])
 
     // load user data when the page loads
     useEffect(() => {
         getUserData();
-        console.log(selected);
     }, [])
 
     // set user id
@@ -308,6 +320,7 @@ function ComponentPropertyReplacePanel(
                                 let date = new Date(event.target.value);
                                 setTime(Math.round(date.getTime() / 1000));
                             }}
+                            value={displayTime}
                         />
                     </Grid>
 
@@ -320,6 +333,7 @@ function ComponentPropertyReplacePanel(
                             onChange={(event) => {
                                 setComments(event.target.value)
                             }}
+                            value={comments}
                         />
                     </Grid>
 
@@ -367,6 +381,7 @@ function ComponentPropertyReplacePanel(
                                             )
                                         }
                                     }
+                                    value={textFieldValues[index]}
                                     label={`Value ${index + 1}`}
                                 />
                             </Grid>) 
