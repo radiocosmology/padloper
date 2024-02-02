@@ -947,9 +947,14 @@ def replace_component_property():
 
     property_new = p.Property(values=values, type=property_type)
 
+    t = tmp_timestamp(val_time, val_uid, val_comments)
+
     component.replace_property(propertyTypeName=val_property_type,
-                               property=property_new, time=val_time, 
-                               uid=val_uid, comments=val_comments)
+                               property=property_new, at_time=val_time, 
+                               uid=val_uid,
+                               start = t, comments=val_comments)
+
+    # component.replace_property()
 
     return {'result': True}
 
@@ -1002,11 +1007,14 @@ def add_component_connection():
         val_time = int(escape(request.args.get('time')))
         val_uid = escape(request.args.get('uid'))
         val_comments = escape(request.args.get('comments'))
+        val_is_replacement = escape(request.args.get('isreplacement'))
+        
+        val_is_replacement = True if val_is_replacement == 'True' else False
 
         c1, c2 = p.Component.from_db(val_name1), p.Component.from_db(val_name2)
 
         t = tmp_timestamp(val_time, val_uid, val_comments)
-        c1.connect(c2, t)
+        c1.connect(c2, t, is_replacement=val_is_replacement)
 
         return {'result': True}
 
@@ -1057,45 +1065,6 @@ def end_component_connection():
         already_disconnected = True
 
     return {'result': not already_disconnected}
-
-
-@app.route("/api/component_replace_connection")
-def replace_component_connection():
-    """Given the names of the two components to replace the connection between,
-    the new time to make the connection, the new ID of the user making this
-    connection, and the new comments associated with the connection, replace the
-    connection between the two components.
-
-    The URL parameters are:
-
-    name1 - the name of the first component
-
-    name2 - the name of the second component
-
-    time - the UNIX time for when the connection is made
-
-    uid - the ID of the user that has made the connection
-
-    comments - Comments associated with the connection
-
-    :return: Return a dictionary with a key 'result' and value being a boolean
-    that is True if and only if the components were not already connected
-    beforehand.
-    :rtype: dict
-    """
-
-    val_name1 = escape(request.args.get('name1'))
-    val_name2 = escape(request.args.get('name2'))
-    val_time = int(escape(request.args.get('time')))
-    val_uid = escape(request.args.get('uid'))
-    val_comments = escape(request.args.get('comments'))
-
-    c1, c2 = p.Component.from_db(val_name1), p.Component.from_db(val_name2)
-
-    t = tmp_timestamp(val_time, val_uid, val_comments)
-    c1.replace_connection(c2, t, is_replacement=True)
-
-    return {'result': True}
 
 
 @app.route("/api/component_disable_connection")
