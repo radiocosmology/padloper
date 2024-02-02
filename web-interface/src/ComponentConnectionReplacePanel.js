@@ -1,4 +1,4 @@
-import React, { useState } from 'react';
+import React, { useEffect, useState } from 'react';
 
 import Paper from '@mui/material/Paper';
 import Button from '@mui/material/Button';
@@ -10,6 +10,8 @@ import CloseIcon from '@mui/icons-material/Close';
 import ThemeProvider from '@mui/material/styles/ThemeProvider';
 import styled from '@mui/material/styles/styled';
 import { Typography } from '@mui/material';
+
+import moment from 'moment';
 
 /**
  * A styled "panel" component, used as the background for the panel.
@@ -77,17 +79,24 @@ function ComponentConnectionReplacePanel(
         theme,
         onClose,
         onSet,
+        uid,
+        conn,
     }
 ) {
 
     // the ID of the user setting the connection
-    const [uid, setUid] = useState("");
+    // const [uid, setUid] = useState("");
 
     // default time to end the connection
-    const defaultTime = 1;
+    const defaultTime = new Date();
 
     // time to make the connection
     const [time, setTime] = useState(defaultTime);
+
+    const [displayTime, setDisplayTime] = useState(defaultTime);
+    useEffect(() => {
+      setDisplayTime(moment(time * 1000).format("YYYY-MM-DD[T]HH:mm:ss"));
+    }, [time]);
 
     // comments associated with setting the connection
     const [comments, setComments] = useState("");
@@ -95,6 +104,12 @@ function ComponentConnectionReplacePanel(
     // whether the panel is loading: usually happens after the "Replace" button
     // is clicked, waiting for a response from the DB.
     const [loading, setLoading] = useState(false);
+
+    // set the time passed via props
+    useEffect(() => {
+        setTime(conn.start.time);
+       console.log(conn)
+    }, [])
 
     // return the MUI component.
     return (
@@ -122,17 +137,18 @@ function ComponentConnectionReplacePanel(
                     </Grid>
                 </Grid>
 
-                <Grid container spacing={2} justifyContent="space-around">
+                <Grid container spacing={2} justifyContent="center">
 
-                    <Grid item>
+                    {/* <Grid item>
                         <TextField 
                             required
                             label="User" 
                             sx={{ width: 150 }}
-                            onChange={(event) => setUid(event.target.value)}
+                            // onChange={(event) => setUid(event.target.value)}
                         />
-                    </Grid>
+                    </Grid> */}
 
+                    {/* // TODO: set time to prev */}
                     <Grid item>
                         <TextField
                             required
@@ -148,6 +164,7 @@ function ComponentConnectionReplacePanel(
                                 let date = new Date(event.target.value);
                                 setTime(Math.round(date.getTime() / 1000));
                             }}
+                            value={displayTime}
                         />
                     </Grid>
 
