@@ -36,7 +36,6 @@ export default function ComponentPropertyAutocomplete(
             setSelectedOption(selected);
             onSelect(selected);
         }
-        console.log(selectedOption);
     }, [])
 
     /**
@@ -95,7 +94,7 @@ export default function ComponentPropertyAutocomplete(
                 setSelectedOption(option)
             }
         }}
-        onChange={(event, value, reason, details) => onSelect(value)}
+        onChange={(event, value, reason, details) => {onSelect(value); setSelectedOption(value); console.log(value)}}
         value={selectedOption}
         loading={loading}
         renderInput={(params) => (
