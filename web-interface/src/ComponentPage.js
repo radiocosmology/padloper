@@ -396,7 +396,6 @@ function ComponentPage() {
             }).then((response) => {
                 return response.json();
             }).then((data) => {
-                console.log(data);
                 setUserData(data);
             });
         }
