@@ -21,21 +21,46 @@ p.g.t.V().has("name", TextP.startingWith(tnm(""))).drop().iterate()
 
 # Test creating and retreiving.
 print("Creating component types, versions and components.")
-type_a  = p.ComponentType(tnm("type_a"), "Comment A").add()
-type_b  = p.ComponentType(tnm("type_b"), "Comment B").add()
-type_c  = p.ComponentType(tnm("type_c"), "Comment C").add()
-ver_a_a   = p.ComponentVersion(tnm("ver_a-a"), type_a, "Comment A").add()
-ver_a_b   = p.ComponentVersion(tnm("ver_a-b"), type_a, "Comment A").add()
+type_a  = p.ComponentType(name=tnm("type_A"), comments="Comment A").newadd()
+type_b  = p.ComponentType(name=tnm("type_b"), comments="Comment B").newadd()
+type_c  = p.ComponentType(name=tnm("type_c"), comments="Comment C").newadd()
+ver_a_a   = p.ComponentVersion(name=tnm("ver_A-a"), type=type_a,
+                               comments="Comment A").newadd()
+ver_a_b   = p.ComponentVersion(name=tnm("ver_a-b"), type=type_a,
+                               comments="Comment A").newadd()
+comp_a1 = p.Component(name=tnm("comp_A1"), type=type_a, version=ver_a_a).newadd()
+comp_a2 = p.Component(name=tnm("comp_a2"), type=type_a, version=ver_a_b).newadd()
+comp_b = p.Component(name=tnm("comp_b"), type=type_b).newadd()
+comp_b_sub = p.Component(name=tnm("comp_b_sub"), type=type_c).newadd()
+comp_b_super = p.Component(name=tnm("comp_b_super"), type=type_c).newadd()
+
+p.ComponentType(name=tnm("sldkjf")).newadd()
+
+# Test replacing a component/types/versions.
+orig_type_a = type_a
+type_a = type_a.replace(p.ComponentType(name=tnm("type_a"),
+                                        comments="Comment A (rev)"))
+print("Should not be able to use a deactivated component_type! To be fixed.")
+ver_a_a = ver_a_a.replace(p.ComponentVersion(name=tnm("ver_a-a"),
+                                             type=type_a, 
+                                             comments="Comment A (rev)"))
+orig_comp_a1 = comp_a1
+comp_a1 = comp_a1.replace(p.Component(name=tnm("comp_a1"), type=type_a, 
+                                      version=ver_a_a))
+
+
+# Check that you can't add two things with the same name.
+try:
+    p.Component(name=tnm("comp_a1"), type=type_a, 
+                         version=ver_a_a).newadd(strict_add=True)
+    raise RuntimeError("Should not be able to add the same component again!")
+except p.VertexAlreadyAddedError:
+    pass
+
+# Check retrieval.
 type_a_copy = p.ComponentType.from_db(tnm("type_a"))
+assert(orig_type_a != type_a_copy) # Should fail, since type_a was replaced.
 assert(type_a == type_a_copy)
-comp_a1 = p.Component(tnm("comp_a1"), type_a, ver_a_a).add()
-# The following should fail.
-#p.Component(tnm("comp_a1"), type_a, ver_a_a).add()
-#exit()
-comp_a2 = p.Component(tnm("comp_a2"), type_a, ver_a_b).add()
-comp_b = p.Component(tnm("comp_b"), type_b).add()
-comp_b_sub = p.Component(tnm("comp_b_sub"), type_c).add()
-comp_b_super = p.Component(tnm("comp_b_super"), type_c).add()
 comp_b_copy = p.Component.from_db(tnm("comp_b"))
 assert(comp_b == comp_b_copy)
 
@@ -54,6 +79,12 @@ t7 = p.Timestamp.from_cal(2023, 7, 7, 12, 0, 0)
 t8 = p.Timestamp.from_cal(2023, 7, 8, 12, 0, 0)
 t9 = p.Timestamp.from_cal(2023, 7, 8, 12, 0, 0)
 t10 = p.Timestamp.from_cal(2023, 7, 8, 12, 0, 0)
+try:
+    comp_b.connect(orig_comp_a1, t1)
+    print(orig_comp_a1.name)
+    raise RuntimeError("Should not be able to connect a deactivated component!")
+except p.ComponentNotAddedError:
+    pass
 comp_b.connect(comp_a1, t1)
 comp_b.connect(comp_a2, t1, end=t5)
 try:
@@ -89,15 +120,15 @@ conn = comp_b.get_connections()
 for c in conn:
     print("    ", str(c).replace(test_prefix, ""))
 print("Retrieving connexions with comp_a1.")
-conn = comp_b.get_connections(component=comp_a1)
+conn = comp_b.get_connections(comp=comp_a1)
 for c in conn:
     print("    ", str(c).replace(test_prefix, ""))
 print("Retrieving connexions with comp_a1 and comp_a2:")
-conn = comp_b.get_connections(component=[comp_a1, comp_a2])
+conn = comp_b.get_connections(comp=[comp_a1, comp_a2])
 for c in conn:
     print("    ", str(c).replace(test_prefix, ""))
 print("Retrieving connexions with comp_a1 and comp_a2 at t4:")
-conn = comp_b.get_connections(component=[comp_a1, comp_a2], at_time=t4)
+conn = comp_b.get_connections(comp=[comp_a1, comp_a2], at_time=t4)
 for c in conn:
     print("    ", str(c).replace(test_prefix, ""))
 print("Retrieving all connexions between t1 and t4:")
@@ -106,13 +137,13 @@ for c in conn:
     print("    ", str(c).replace(test_prefix, ""))
 print("Retrieving all connexions between t1 and t4, excluding subcomponents:")
 conn = comp_b.get_connections(from_time=t1, to_time=t4,
-                              exclude_subcomponents=True)
+                              exclude_subcomps=True)
 for c in conn:
     print("    ", str(c).replace(test_prefix, ""))
 
 # Test disabling connexions.
-comp_b.get_connections(component=comp_a1, at_time=t1)[0].disable()
-if len(comp_b.get_connections(component=comp_a1, at_time=t1)) > 0:
+comp_b.get_connections(comp=comp_a1, at_time=t1)[0].disable()
+if len(comp_b.get_connections(comp=comp_a1, at_time=t1)) > 0:
     raise RuntimeError("Connection should not be available after being "\
                        "disabled.")
 

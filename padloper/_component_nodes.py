@@ -9,7 +9,8 @@ from gremlin_python.process.traversal import Order, P, TextP
 from gremlin_python.process.graph_traversal import __, constant
 
 from _exceptions import *
-from _base import strictraise, Edge, Timestamp, Vertex, _parse_time
+from _base import strictraise, Edge, Timestamp, Vertex, VertexAttr,\
+                  _parse_time
 from _edges import RelationVersionAllowedType, RelationVersion,\
                    RelationComponentType, RelationSubcomponent,\
                    RelationProperty, RelationPropertyType,\
@@ -31,52 +32,14 @@ class ComponentType(Vertex):
     :ivar name: The name of the component type.
     """
 
-    comments: str
-    name: str
     category: str = "component_type"
+    _vertex_attrs: list = [
+        VertexAttr("name", str), 
+        VertexAttr("comments", str, optional=True, default="")
+    ]
+    primary_attr: str = "name"
 
-    def __new__(
-        cls, name: str, comments: str = "", id: int = g._VIRTUAL_ID_PLACEHOLDER
-    ):
-        """
-        Return a ComponentType instance given the desired attributes.
-
-        :param name: The name of the component type. 
-        :type name: str
-
-        :param comments: The comments attached to the component type, 
-        defaults to ""
-        :type comments: str  
-
-        :param id: The serverside ID of the ComponentType, 
-        defaults to _VIRTUAL_ID_PLACEHOLDER
-        :type id: int, optional
-        """
-
-        if id is not g._VIRTUAL_ID_PLACEHOLDER and id in g._vertex_cache:
-            return g._vertex_cache[id]
-
-        else:
-            return object.__new__(cls)
-
-    def __init__(
-        self, name: str, comments: str = "", id: int = g._VIRTUAL_ID_PLACEHOLDER
-    ):
-        """
-        Initialize the ComponentType vertex with a category, name,
-        and comments for self.attributes.
-
-        :param name: The name of the component type. 
-        :type name: str
-
-        :param comments: The comments attached to the component type. 
-        :type comments: str  
-        """
-
-        self.name = name
-        self.comments = comments
-        Vertex.__init__(self, id=id)
-
+CONTINUE HERE: move as_dict() up to super().
     def as_dict(self):
         """Return a dictionary representation."""
         return {"name": self.name, "comments": self.comments}
@@ -84,6 +47,7 @@ class ComponentType(Vertex):
     def add(self, strict_add=False):
         """Add this ComponentType vertex to the serverside.
         """
+        raise RuntimeError("Deprecated!")
 
         # If already added.
         if self.added_to_db():
@@ -101,7 +65,7 @@ class ComponentType(Vertex):
 #        print(f"Added {self}")
         return self
 
-    def replace(self, newVertex, disable_time: int = int(time.time())):
+    def reeplace(self, newVertex, disable_time: int = int(time.time())):
         """Replaces the ComponentType vertex in the serverside.
 
         :param newVertex: The new ComponentType vertex that is replacing the old
@@ -136,7 +100,6 @@ class ComponentType(Vertex):
         :return: True if element is added to database, False otherwise.
         :rtype: bool
         """
-
         return (
             self.id() != g._VIRTUAL_ID_PLACEHOLDER or (
                 g.t.V().has('category', ComponentType.category)\
@@ -144,88 +107,6 @@ class ComponentType(Vertex):
                    .has('active', True).count().next() > 0
             )
         )
-
-    @classmethod
-    def from_db(cls, name: str):
-        """Query the database and return a ComponentType instance based on
-        component type of name :param name:.
-
-        :param name: The name of the component type.
-        :type name: str
-        :return: A ComponentType instance with the correct name, comments, and 
-        ID.
-        :rtype: ComponentType
-        """
-
-        try:
-            d = g.t.V().has('active', True) \
-                   .has('category', ComponentType.category) \
-                   .has('name', name).as_('v').valueMap().as_('props') \
-                   .select('v').id_().as_('id').select('props', 'id').next()
-        except:
-            raise ComponentTypeNotAddedError
-
-        props, id_ = d['props'], d['id']
-
-        Vertex._cache_vertex(
-            ComponentType(
-                name=name,
-                comments=props['comments'][0],
-                id=id_
-            )
-        )
-
-        return g._vertex_cache[id_]
-
-    @classmethod
-    def from_id(cls, id: int):
-        """Query the database and return a ComponentType instance based on
-        the ID.
-
-        :param id: The serverside ID of the ComponentType vertex.
-        :type id: int
-        :return: Return a ComponentType from that ID.
-        :rtype: ComponentType
-        """
-
-        if id not in g._vertex_cache:
-
-            d = g.t.V(id).valueMap().next()
-
-            Vertex._cache_vertex(
-                ComponentType(
-                    name=d['name'][0],
-                    comments=d['comments'][0],
-                    id=id
-                )
-            )
-
-        return g._vertex_cache[id]
-
-    @classmethod
-    def _attrs_to_type(cls, name: str, comments: str, id: int):
-        """Given name, comments and id of a ComponentType, see if one
-        exists in the cache. If so, return the cached ComponentType.
-        Otherwise, create a new one, cache it, and return it.
-
-        :param name: The name of the ComponentType vertex
-        :type name: str
-        :param comments: Comments associated with the ComponentType vertex
-        :type comments: str
-        :param id: The ID of the ComponentType vertex.
-        :type id: int
-        """
-
-        if id not in g._vertex_cache:
-            Vertex._cache_vertex(
-                ComponentType(
-                    name=name,
-                    comments=comments,
-                    id=id
-                )
-            )
-
-        return g._vertex_cache[id]
 
     @classmethod
     def get_names_of_types_and_versions(cls):
@@ -369,81 +250,38 @@ class ComponentVersion(Vertex):
 
     :ivar comments: The comments associated with the component type.
     :ivar name: The name of the component type.
-    :ivar allowed_type: The ComponentType instance representing the allowed
+    :ivar type: The ComponentType instance representing the allowed
     type of the component version.
     """
 
     category: str = "component_version"
 
-    comments: str
-    name: str
-    allowed_type: ComponentType
-
-    def __new__(
-        cls, name: str, allowed_type: ComponentType, comments: str = "",
-        id: int = g._VIRTUAL_ID_PLACEHOLDER
-    ):
-        """
-        Return a ComponentVersion instance given the desired name, comments, 
-        allowed type, and id.
-
-        :param name: The name of the component version.
-        :type name: str
-        :param comments: The comments attached to the component version,
-        defaults to ""
-        :str comments: str  
-
-        :param allowed_type: The ComponentType instance representing the 
-        allowed component type of the version.
-        :type allowed_type: ComponentType
-
-        :param id: The serverside ID of the ComponentType, 
-        defaults to _VIRTUAL_ID_PLACEHOLDER
-        :type id: int, optional
-        """
-
-        if id is not g._VIRTUAL_ID_PLACEHOLDER and id in g._vertex_cache:
-            return g._vertex_cache[id]
-
-        else:
-            return object.__new__(cls)
-
-    def __init__(
-        self, name: str, allowed_type: ComponentType, comments: str = "",
-        id: int = g._VIRTUAL_ID_PLACEHOLDER
-    ):
-        """
-        Initialize the ComponentVersion vertex.
-
-        :param name: The name of the component version. 
-        :param comments: The comments attached to the component version.    
-        :param allowed_type: The ComponentType instance representing the 
-        allowed component type of the version.
-        """
-
-        self.name = name
-        self.comments = comments
-        self.allowed_type = allowed_type
-
-        Vertex.__init__(self, id=id)
+    _vertex_attrs: list = [
+        VertexAttr("name", str), 
+        VertexAttr("comments", str, optional=True, default=""),
+        VertexAttr("type", ComponentType, edge_class=RelationVersionAllowedType)
+    ]
+    primary_attr: str = "name"
 
     def as_dict(self):
         """Return a dictionary representation."""
         return {"name": self.name, "comments": self.comments,
-                "allowed_type": self.allowed_type.as_dict()}
+                "type": self.type.as_dict()}
 
     def add(self, strict_add=False):
         """Add this ComponentVersion vertex to the serverside.
         """
+        raise RuntimeError("Deprecated!")
 
         # If already added.
-        if self.added_to_db():
+#        if self.added_to_db():
+        if self.in_db():
             strictraise(strict_add, VertexAlreadyAddedError, 
                 f"ComponentVersion with name {self.name} " +
-                f"and allowed type {self.allowed_type.name} " +
+                f"and allowed type {self.type.name} " +
                 "already exists in the database."
             )
-            return self.from_db(self.name, self.allowed_type)
+            return self.from_db(self.name, self.type)
 
         attributes = {
             'name': self.name,
@@ -452,11 +290,11 @@ class ComponentVersion(Vertex):
 
         Vertex.add(self=self, attributes=attributes)
 
-        if not self.allowed_type.added_to_db():
-            self.allowed_type.add()
+        if not self.type.added_to_db():
+            self.type.add()
 
         e = RelationVersionAllowedType(
-            inVertex=self.allowed_type,
+            inVertex=self.type,
             outVertex=self
         )
 
@@ -464,7 +302,7 @@ class ComponentVersion(Vertex):
 #        print(f"Added {self}")
         return self
 
-    def replace(self, newVertex, disable_time: int = int(time.time())):
+    def reeplace(self, newVertex, disable_time: int = int(time.time())):
         """Replaces the ComponentVersion vertex in the serverside.
 
         :param newVertex: The new ComponentVersion vertex that is replacing the
@@ -500,121 +338,13 @@ class ComponentVersion(Vertex):
 
         return (
             self.id() != g._VIRTUAL_ID_PLACEHOLDER or (
-                self.allowed_type.added_to_db() and
-                g.t.V(self.allowed_type.id())\
+                self.type.added_to_db() and
+                g.t.V(self.type.id())\
                    .both(RelationVersionAllowedType.category)
                    .has('name', self.name)\
                    .has('active', True).count().next() > 0
             )
         )
-
-    @classmethod
-    def _attrs_to_version(
-        cls,
-        name: str,
-        comments: str,
-        allowed_type: ComponentType,
-        id: int
-    ):
-        """Given name, comments and id of a ComponentType, see if one
-        exists in the cache. If so, return the cached ComponentType.
-        Otherwise, create a new one, cache it, and return it.
-
-        :param name: The name of the ComponentType vertex
-        :type name: str
-        :param comments: Comments associated with the ComponentType vertex
-        :type comments: str
-        :param id: The ID of the ComponentType vertex.
-        :type id: int
-        """
-
-        if id not in g._vertex_cache:
-            Vertex._cache_vertex(
-                ComponentVersion(
-                    name=name,
-                    comments=comments,
-                    allowed_type=allowed_type,
-                    id=id
-                )
-            )
-
-        return g._vertex_cache[id]
-
-    @classmethod
-    def from_db(cls, name: str, allowed_type: ComponentType):
-        """Query the database and return a ComponentVersion instance based on
-        component version of name :param name: connected to component type
-        :param allowed_type:.
-
-        :param name: The name of the component type.
-        :type name: str
-        :param allowed_type: The ComponentType instance that this component
-        version is to be connected to.
-        :type allowed_type: ComponentType
-        :return: A ComponentVersion instance with the correct name, comments, 
-        allowed component type, and ID.
-        :rtype: ComponentVersion
-        """
-
-        if allowed_type.added_to_db():
-
-            try:
-                d = g.t.V(allowed_type.id()).has('active', True) \
-                       .both(RelationVersionAllowedType.category) \
-                       .has('name', name).as_('v').valueMap().as_('attrs') \
-                       .select('v').id_().as_('id').select('attrs', 'id').next()
-            except StopIteration:
-                raise ComponentVersionNotAddedError
-
-            props, id = d['attrs'], d['id']
-
-            Vertex._cache_vertex(
-                ComponentVersion(
-                    name=name,
-                    comments=props['comments'][0],
-                    allowed_type=allowed_type,
-                    id=id
-                )
-            )
-
-            return g._vertex_cache[id]
-
-        else:
-            raise ComponentTypeNotAddedError(
-                f"Allowed type {allowed_type.name} of " +
-                f"proposed component version {name} has not yet been added " +
-                "to the database."
-            )
-
-    @classmethod
-    def from_id(cls, id: int):
-        """Query the database and return a ComponentVersion instance based on
-        the ID.
-
-        :param id: The serverside ID of the ComponentVersion vertex.
-        :type id: int
-        :return: Return a ComponentVersion from that ID.
-        :rtype: ComponentVersion
-        """
-
-        if id not in g._vertex_cache:
-
-            d = g.t.V(id).project('attrs', 'type_id').by(__.valueMap()) \
-                   .by(__.both(RelationVersionAllowedType.category).id_())\
-                   .next()
-
-            t = ComponentType.from_id(d['type_id'])
-
-            Vertex._cache_vertex(
-                ComponentVersion(
-                    name=d['attrs']['name'][0],
-                    comments=d['attrs']['comments'][0],
-                    allowed_type=t,
-                    id=id
-                )
-            )
-
-        return g._vertex_cache[id]
 
     @classmethod
     def get_list(
@@ -634,7 +364,7 @@ class ComponentVersion(Vertex):
         :type range: tuple[int, int]
 
         :param order_by: What to order the component versions by. Must be in
-        {'name', 'allowed_type'}
+        {'name', 'type'}
         :type order_by: str
 
         :param order_direction: Order the component versions by 
@@ -651,7 +381,7 @@ class ComponentVersion(Vertex):
 
         assert order_direction in {'asc', 'desc'}
 
-        assert order_by in {'name', 'allowed_type'}
+        assert order_by in {'name', 'type'}
 
         traversal = g.t.V().has('active', True)\
                        .has('category', ComponentVersion.category)
@@ -701,7 +431,7 @@ class ComponentVersion(Vertex):
                     ).values('name'),
                     Order.asc
             )
-        elif order_by == 'allowed_type':
+        elif order_by == 'type':
             traversal = traversal.order().by(
                 __.both(
                     RelationVersionAllowedType.category
@@ -731,7 +461,7 @@ class ComponentVersion(Vertex):
                     id=id,
                     name=name,
                     comments=comments,
-                    allowed_type=t
+                    type=t
                 )
             )
         return component_versions
@@ -801,64 +531,13 @@ class Component(Vertex):
     """
 
     category: str = "component"
-
-    name: str
-    type: ComponentType
-    version: ComponentVersion = None
-
-    def __new__(
-        cls, name: str, type: ComponentType,
-        version: ComponentVersion = None,
-        id: int = g._VIRTUAL_ID_PLACEHOLDER,
-        time_added: int = -1
-    ):
-        """
-        Return a Component instance given the desired name, component type,
-        and version.
-
-        :param name: The name of the Component.
-        :type name: str
-
-        :param type: The component type of the Component.
-        :type type: ComponentType
-
-        :param version: The ComponentVersion instance representing the 
-        version of the Component.
-        :type version: ComponentVersion
-
-        :param id: The serverside ID of the ComponentType, 
-        defaults to _VIRTUAL_ID_PLACEHOLDER
-        :type id: int, optional
-        """
-
-        if id is not g._VIRTUAL_ID_PLACEHOLDER and id in g._vertex_cache:
-            return g._vertex_cache[id]
-
-        else:
-            return object.__new__(cls)
-
-    def __init__(
-        self, name: str, type: ComponentType,
-        version: ComponentVersion = None,
-        id: int = g._VIRTUAL_ID_PLACEHOLDER,
-        time_added: int = -1
-    ):
-        """
-        Initialize the Component vertex.
-
-        :param name: The name of the component version. 
-        :param type: A ComponentType instance representing the type of the
-        component.
-        :param version: A ComponentVersion instance representing the 
-        version of the component, optional.
-        """
-
-        self.name = name
-        self.type = type
-        self.version = version
-        self.time_added = time_added
-
-        Vertex.__init__(self, id=id)
+    _vertex_attrs: list = [
+        VertexAttr("name", str), 
+        VertexAttr("type", ComponentType, edge_class=RelationComponentType),
+        VertexAttr("version", ComponentVersion, edge_class=RelationVersion,
+                   optional=True)
+    ]
+    primary_attr: str = "name"
 
     def __str__(self):
 
@@ -875,10 +554,8 @@ class Component(Vertex):
     def add(self, strict_add=False):
         """Add this Component to the serverside.
         """
-
-#        CONTINUE HERE: figure out how to check if a vertex already exists!!
-#        print(">>>>> ", self.name)
-        if self.added_to_db():
+        raise RuntimeError("Deprecated!")
+        if self.in_db():
             strictraise(strict_add, VertexAlreadyAddedError, 
                 f"Component with name {self.name} " +
                 "already exists in the database."
@@ -916,7 +593,7 @@ class Component(Vertex):
 #        print(f"Added {self}")
         return self
 
-    def replace(self, newVertex, disable_time: int = int(time.time())):
+    def reeplace(self, newVertex, disable_time: int = int(time.time())):
         """Replaces the Component vertex in the serverside.
 
         :param newVertex: The new Component vertex that is replacing the old
@@ -927,7 +604,9 @@ class Component(Vertex):
             time).
         :type disable_time: int
         """
-
+# CONTINUE HERE: need to check that newVertex is of the same class. Also, why is
+# Vertex.replace() called after self.replace()?? Also: should it return the new
+# vertex? I think so, to the latter question.
         # Step 1
         g.t.V(self.id()).property('active', False)\
            .property('time_disabled', disable_time).iterate()
@@ -937,6 +616,8 @@ class Component(Vertex):
 
         # Step 3
         newVertexId = newVertex.id()
+
+        self.replace(id=newVertexId)
 
         Vertex.replace(self=self, id=newVertexId)
 
@@ -1155,7 +836,7 @@ class Component(Vertex):
                 f"Component {self.name} has not yet been added to the database."
             )
 
-        if (self.type not in property.type.allowed_types):
+        if (self.type not in property.type.types):
             raise PropertyWrongType(
                 f"Property type {property.type.name} is not applicable to "\
                 f"component type {self.type.name}."
@@ -1166,7 +847,6 @@ class Component(Vertex):
         )
 
         if current_property is not None:
-#    CONTINUE HERE: probably ready for a pull request.
 #    CONTINUE HERE 2: see if behaviour is correct (when this trips in
 #            init_simple-db.py).
             if current_property.values == property.values:
@@ -1368,14 +1048,14 @@ class Component(Vertex):
            .next()
 
     def connect(
-        self, component, start: Timestamp, end: Timestamp = None,
+        self, comp, start: Timestamp, end: Timestamp = None,
         strict_add: bool = True, is_replacement: bool = False
     ):
-        """Given another Component :param component:,
+        """Given another Component :param comp:,
         connect the two components.
 
-        :param component: Another component to connect this component to.
-        :type component: Component
+        :param comp: Another component to connect this component to.
+        :type comp: Component
         :param start: The starting timestamp for the connection.
         :type start: Timestamp
         :param end: The ending timestamp for the connection; if omitted, the
@@ -1389,23 +1069,23 @@ class Component(Vertex):
         :type is_replacement: bool
         """
 
-        if not self.added_to_db():
+        if not self.in_db():
             raise ComponentNotAddedError(
                 f"Component {self.name} has not yet been added to the database."
             )
 
-        if not component.added_to_db():
+        if not comp.in_db():
             raise ComponentNotAddedError(
-                f"Component {component.name} has not yet " +
+                f"Component {comp.name} has not yet " +
                 "been added to the database."
             )
 
-        if self.name == component.name:
+        if self.name == comp.name:
             raise ComponentConnectToSelfError(
                 f"Trying to connect component {self.name} to itself."
             )
 
-        curr_conn = self.get_connections(component=component,
+        curr_conn = self.get_connections(comp=comp,
                                          at_time=start.time)
         # If this doesn't pass, something is very broken!
         assert(len(curr_conn) <= 1)
@@ -1413,7 +1093,7 @@ class Component(Vertex):
         if len(curr_conn) == 1 and is_replacement == False:
             # Already connected!
             strictraise(strict_add, ComponentsAlreadyConnectedError, 
-                f"Components {self.name} and {component.name} " +
+                f"Components {self.name} and {comp.name} " +
                 "are already connected."
             )
             return
@@ -1421,18 +1101,18 @@ class Component(Vertex):
             # Not connected, but expected them to be connected.
             strictraise(strict_add, ComponentsAlreadyConnectedError,
                 f"Trying to replace connection between {self.name} and " +
-                "{component.name}, but it does not exist."
+                "{comp.name}, but it does not exist."
             )
             return
 
-        all_conn = self.get_connections(component=component,
+        all_conn = self.get_connections(comp=comp,
                                         from_time=start.time)
 
         if len(all_conn) > 0:
             if end == None:
                 raise ComponentsOverlappingConnectionError(
                     "Trying to connect components " +
-                    f"{self.name} and {component.name} " +
+                    f"{self.name} and {comp.name} " +
                     "before an existing connection but without a " +
                     "specified end time. Specify an end time or " +
                     "replace the connection instead."
@@ -1440,7 +1120,7 @@ class Component(Vertex):
             elif end.time >= all_conn[0].start.time:
                 raise ComponentsOverlappingConnectionError(
                     "Trying to connect components " +
-                    f"{self.name} and {component.name} " +
+                    f"{self.name} and {comp.name} " +
                     "but existing connection between these components " +
                     "overlaps in time."
                 )
@@ -1450,21 +1130,21 @@ class Component(Vertex):
 
         curr_conn = RelationConnection(
             inVertex=self,
-            outVertex=component,
+            outVertex=comp,
             start=start,
             end=end
         )
 
         curr_conn.add()
-#        print(f'connected: {self} -> {component}  ({start.uid} {start.time})')
+#        print(f'connected: {self} -> {comp}  ({start.uid} {start.time})')
 
 
-    def disconnect(self, component, end):
-        """Given another Component :param component:, disconnect the two
+    def disconnect(self, comp, end):
+        """Given another Component :param comp:, disconnect the two
         components at time :param time:.
 
-        :param component: Another Component to disconnect this component from.
-        :type component: Component
+        :param comp: Another Component to disconnect this component from.
+        :type comp: Component
         :param end: The starting timestamp for the connection.
         :type end: Timestamp
         """
@@ -1475,20 +1155,20 @@ class Component(Vertex):
                 f"Component {self.name} has not yet been added to the database."
             )
 
-        if not component.added_to_db():
+        if not comp.added_to_db():
             raise ComponentNotAddedError(
-                f"Component {component.name} has not yet " +
+                f"Component {comp.name} has not yet " +
                 "been added to the database."
             )
 
-        curr_conn = self.get_connections(component=component,
+        curr_conn = self.get_connections(comp=comp,
                                          at_time = end.time)
         assert(len(curr_conn) <= 1)
 
         if len(curr_conn) == 0:
             # Not connected yet!
             raise ComponentsAlreadyDisconnectedError(
-                f"Components {self.name} and {component.name} " +
+                f"Components {self.name} and {comp.name} " +
                 "are already disconnected at this time."
             )
 
@@ -1501,27 +1181,27 @@ class Component(Vertex):
                            "Use connect() with is_replacement=True. "\
                            "Remove this method.")
 
-    def disable_connection(self, component,
+    def disable_connection(self, comp,
                            disable_time: int = int(time.time())):
         """Disables the connection in the serverside
 
-        :param component: Component that this component has connection with.
-        :type component: Component
+        :param comp: Component that this component has connection with.
+        :type comp: Component
         :param disable_time: When this edge was disabled in the database.
         :type disable_time: int    
         """
         raise RuntimeError("Deprecated!")
 
-    def get_connections(self, component = None, at_time = None,
+    def get_connections(self, comp = None, at_time = None,
                         from_time = None, to_time = None,
-                        exclude_subcomponents: bool = False):
+                        exclude_subcomps: bool = False):
         """
         Get connections to another component, or all other components, at a
         time, at all times or in a time range, depending on the parameters.
 
-        :param component: The other component(s) to check the connections with; 
+        :param comp: The other component(s) to check the connections with; 
             if None then find connections with all other components.
-        :type component: Component or list of Components, optional
+        :type comp: Component or list of Components, optional
         :param at_time: Time to check connections at. If this parameter is set,
             then :from_time: and :to_time: are ignored.
         :type at_time: int, optional
@@ -1531,9 +1211,9 @@ class Component(Vertex):
         :param to_time: Upper bound for time range to consider connections, 
             defaults to _TIMESTAMP_NO_ENDTIME_VALUE
         :type to_time: int, optional
-        :param exclude_subcomponents: If True, then do not return connections
+        :param exclude_subcomps: If True, then do not return connections
             to subcomponents or supercomponents.
-        :type exclude_subcomponents: bool, optional
+        :type exclude_subcomps: bool, optional
 
         :rtype: list[RelationConnection]
         """
@@ -1541,11 +1221,11 @@ class Component(Vertex):
             raise ComponentNotAddedError(
                 f"Component {self.name} has not yet been added to the database."
             )
-        if component:
-            if not isinstance(component, list):
-                component = [component]
-            comp_id = [c.id() for c in component]
-            for c in component:
+        if comp:
+            if not isinstance(comp, list):
+                comp = [comp]
+            comp_id = [c.id() for c in comp]
+            for c in comp:
                 if not c.added_to_db():
                     raise ComponentNotAddedError(
                         f"Component {c.name} has not yet " +
@@ -1559,7 +1239,7 @@ class Component(Vertex):
         # Build up the result of format (property vertex, relation)
         result = []
 
-        if not exclude_subcomponents:
+        if not exclude_subcomps:
             for inout in ("in", "out"):
                 query = g.t.V(self.id())
                 if inout == "in":
@@ -1567,7 +1247,7 @@ class Component(Vertex):
                 else:
                     query = query.outE(RelationSubcomponent.category)
                 query = query.has('active', True).as_('e').otherV()
-                if component:
+                if comp:
                     query = query.hasId(*comp_id)
                 query = query.id_().as_('vertex_id') \
                              .select('e').id_().as_('edge_id') \
@@ -1599,7 +1279,7 @@ class Component(Vertex):
                 query = query.has('end_time', P.gt(from_time))
         query = query.as_('e').valueMap().as_('edge_props') \
                      .select('e').otherV()
-        if component:
+        if comp:
             query = query.hasId(*comp_id)
         query = query.id_().as_('vertex_id') \
                      .select('e').id_().as_('edge_id') \
@@ -1832,12 +1512,12 @@ class Component(Vertex):
         return result
 
     def subcomponent_connect(
-            self, component, strict_add=False):
+            self, comp, strict_add=False):
         """
-        Given another Component :param component:, make it a subcomponent of the current component.
+        Given another Component :param comp:, make it a subcomponent of the current component.
 
-        :param component: Another component that is a subcomponent of the current component.
-        :type component: Component
+        :param comp: Another component that is a subcomponent of the current component.
+        :type comp: Component
         """
 
         if not self.added_to_db():
@@ -1845,52 +1525,52 @@ class Component(Vertex):
                 f"Component {self.name} has not yet been added to the database."
             )
 
-        if not component.added_to_db():
+        if not comp.added_to_db():
             raise ComponentNotAddedError(
-                f"Component {component.name} has not yet" +
+                f"Component {comp.name} has not yet" +
                 "been added to the database."
             )
 
-        if self.name == component.name:
+        if self.name == comp.name:
             raise ComponentSubcomponentToSelfError(
                 f"Trying to make {self.name} subcomponent to itself."
             )
 
-        current_subcomponent = self.get_subcomponent(
-            component=component
+        current_subcomp = self.get_subcomponent(
+            comp=comp
         )
 
-        component_to_subcomponent = component.get_subcomponent(
-            component=self
+        comp_to_subcomp = comp.get_subcomponent(
+            comp=self
         )
 
-        if component_to_subcomponent is not None:
+        if comp_to_subcomp is not None:
             strictraise(strict_add, ComponentIsSubcomponentOfOtherComponentError,
-                f"Component {component.name} is already a subcomponent of {self.name}"
+                f"Component {comp.name} is already a subcomponent of {self.name}"
             )
             return
-        if current_subcomponent is not None:
+        if current_subcomp is not None:
 
             # Already a subcomponent!
             strictraise(strict_add, ComponentAlreadySubcomponentError,
-                f"component {self.name} is already a subcomponent of component {component.name}"
+                f"component {self.name} is already a subcomponent of component {comp.name}"
             )
             return
         else:
-            current_subcomponent = RelationSubcomponent(
+            current_subcomp = RelationSubcomponent(
                 inVertex=self,
-                outVertex=component
+                outVertex=comp
             )
 
-            current_subcomponent.add()
-#            print(f'subcomponent connected: {self} -> {component}')
+            current_subcomp.add()
+#            print(f'subcomponent connected: {self} -> {comp}')
 
 
-    def get_subcomponent(self, component):
+    def get_subcomponent(self, comp):
         """Given the component itself and its subcomponent, return the edge between them.
 
-        :param component: The other component which is the subcomponent of the current component.
-        :type component: Component
+        :param comp: The other component which is the subcomponent of the current component.
+        :type comp: Component
         """
 
         # Done for troubleshooting (so you know which component is not added?)
@@ -1899,16 +1579,16 @@ class Component(Vertex):
                 f"Component {self.name} has not yet been added to the database."
             )
 
-        if not component.added_to_db():
+        if not comp.added_to_db():
             raise ComponentNotAddedError(
-                f"Component {component.name} has not yet" +
+                f"Component {comp.name} has not yet" +
                 "been added to the database."
             )
 
         e = g.t.V(self.id()).bothE(RelationSubcomponent.category)\
                .has('active', True)\
                .as_('e').otherV()\
-               .hasId(component.id())\
+               .hasId(comp.id())\
                .select('e').project('id').by(__.id_()).toList()
 
         if len(e) == 0:
@@ -1917,7 +1597,7 @@ class Component(Vertex):
         assert len(e) == 1
 
         return RelationSubcomponent(
-            inVertex=self, outVertex=component,
+            inVertex=self, outVertex=comp,
             id=e[0]['id']['@value']['relationId']
         )
 
@@ -1957,118 +1637,6 @@ class Component(Vertex):
                    .has('active', True).count().next() > 0
             )
         )
-
-    @classmethod
-    def _attrs_to_component(self, name, id, type_id, rev_ids, time_added):
-        """Given the name ID of the component :param id: and the ID of the 
-        component type :param type_id: and a list of the IDs of the
-        component version vertices :param rev_ids:, 
-        create and return a Component based on that.
-
-        :param name: The name of the component
-        :type name: str
-        :param id: The ID of the component serverside
-        :type id: int
-        :param type_id: The ID of its component type vertex serverside
-        :type type_id: int
-        :param rev_ids: A list of IDs of component version vertices serverside
-        :type rev_ids: list
-        :param time_added: UNIX timestamp of when the Component was added to DB.
-        :type time_added: int
-        :return: A Component instance corresponding to :param id:, connected
-        to the correct ComponentType and ComponentVersion.
-        :rtype: Component
-        """
-
-        assert len(g.t.V(id).toList()) == 1
-
-        Vertex._cache_vertex(ComponentType.from_id(type_id))
-
-        crev = None
-
-        if len(rev_ids) > 1:
-            raise ValueError(
-                f"More than one component version exists for component {name}."
-            )
-
-        if len(rev_ids) == 1:
-            crev = Vertex._cache_vertex(
-                ComponentVersion.from_id(id=rev_ids[0])
-            )
-
-        Vertex._cache_vertex(
-            Component(
-                name=name,
-                id=id,
-                type=g._vertex_cache[type_id],
-                version=crev,
-                time_added=time_added
-            )
-        )
-
-        return g._vertex_cache[id]
-
-    @classmethod
-    def from_db(cls, name: str):
-        """Query the database and return a Component instance based on
-        name :param name:.
-
-        :param name: The name attribute of the component serverside.
-        :type name: str
-        """
-
-        try:
-            d = g.t.V().has('active', True)\
-                   .has('category', Component.category) \
-                   .has('name', name) \
-                   .project('id', 'type_id', 'rev_ids', 'time_added') \
-                   .by(__.id_()) \
-                   .by(__.both(RelationComponentType.category).id_()) \
-                   .by(__.both(RelationVersion.category).id_().fold()) \
-                   .by(__.values('time_added')).next()
-        except StopIteration:
-            raise ComponentNotAddedError
-
-        id, type_id, rev_ids, time_added = \
-            d['id'], d['type_id'], d['rev_ids'], d['time_added']
-
-        return Component._attrs_to_component(
-            name,
-            id,
-            type_id,
-            rev_ids,
-            time_added
-        )
-
-    @classmethod
-    def from_id(cls, id: int):
-        """Query the database and return a Component instance based on
-        the ID :param id:
-
-        :param id: The ID of the component serverside.
-        :type id: int
-        """
-        if id not in g._vertex_cache:
-
-            d = g.t.V(id).project('name', 'type_id', 'rev_ids', 'time_added') \
-                   .by(__.values('name')) \
-                   .by(__.both(RelationComponentType.category).id_()) \
-                   .by(__.both(RelationVersion.category).id_().fold()) \
-                   .by(__.values('time_added')).next()
-
-            name, type_id, rev_ids, time_added = \
-                d['name'], d['type_id'], d['rev_ids'], d['time_added']
-
-            return Component._attrs_to_component(
-                name,
-                id,
-                type_id,
-                rev_ids,
-                time_added
-            )
-
-        else:
-            return g._vertex_cache[id]
 
     @classmethod
     def get_list(cls,
@@ -2202,7 +1770,8 @@ class Component(Vertex):
             )
 
         cs = traversal.range(range[0], range[1]) \
-            .project('id', 'name', 'type_id', 'rev_ids', 'time_added') \
+            .project('id', 'name', 'type_id', 'rev_ids', 'time_added',
+                     'uid_added') \
             .by(__.id_()) \
             .by(__.values('name')) \
             .by(__.both(RelationComponentType.category).id_()) \
@@ -2210,23 +1779,12 @@ class Component(Vertex):
             .by(__.values('time_added')) \
             .toList()
 
-        components = []
+        comps = []
 
         for d in cs:
-            id, name, type_id, rev_ids, time_added = d['id'], d['name'], \
-                d['type_id'], d['rev_ids'], d['time_added']
+            comps.apppend(Component._from_attrs(d))
 
-            components.append(
-                Component._attrs_to_component(
-                    id=id,
-                    name=name,
-                    type_id=type_id,
-                    rev_ids=rev_ids,
-                    time_added=time_added
-                )
-            )
-
-        return components
+        return comps
 
     @classmethod
     def get_count(cls, filters: str):
@@ -2314,24 +1872,24 @@ class Component(Vertex):
 
             conn_dicts = [{**{"name": conn.other_vertex(self).name},
                            **conn.as_dict()} \
-                for conn in self.get_connections(exclude_subcomponents=True)
+                for conn in self.get_connections(exclude_subcomps=True)
             ]
 
             flag_dicts = [flag.as_dict() for flag in self.get_all_flags()]
 
-            subcomponent_dicts = [{"name": subcomponents.name} \
-                for subcomponents in self.get_subcomponents()
+            subcomp_dicts = [{"name": subcomps.name} \
+                for subcomps in self.get_subcomponents()
             ]
         
-            supercomponent_dicts = [{"name": supercomponents.name} \
-                for supercomponents in self.get_supercomponents()
+            supercomp_dicts = [{"name": supercomps.name} \
+                for supercomps in self.get_supercomponents()
             ]
             extra = {
                 'properties': prop_dicts,
                 'connections': conn_dicts,
                 'flags': flag_dicts,
-                'subcomponents': subcomponent_dicts,
-                'supercomponents': supercomponent_dicts
+                'subcomps': subcomp_dicts,
+                'supercomps': supercomp_dicts
             }
         else:
             extra = {}

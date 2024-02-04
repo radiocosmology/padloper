@@ -988,7 +988,7 @@ function ComponentPage() {
 
         let subcomponents_content = (
             <Stack spacing={1}>
-                {component.subcomponents.map((subcomponent,index) => (
+                {component.subcomps.map((subcomponent,index) => (
                     <EntryAccordion key={index}>
                         <EntryAccordionSummarySubcomponent>
                             <Stack 
@@ -1036,7 +1036,7 @@ function ComponentPage() {
                         </EntryAccordionSummarySubcomponent>
                     </EntryAccordion>
                 ))}
-                {component.supercomponents.map((subcomponent,index) => (
+                {component.supercomps.map((subcomponent,index) => (
                     <EntryAccordion key={index}>
                         <EntryAccordionSummarySubcomponent>
                             <Stack spacing={2} direction="row">
