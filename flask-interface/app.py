@@ -95,6 +95,18 @@ def login():
         print(e)
 
         return {'error': json.dumps(e, default=str)}
+    
+
+@app.route("/api/logout", methods=['POST'])
+def logout():
+    """Handle user logout.
+
+    This function handles the logout process for users. It clears the session data,
+    effectively logging the user out.
+    """
+    session.clear()
+
+    return ({'message': 'Logged out successfully'}), 200
 
 
 @app.route("/api/components_name/<name>")
@@ -141,6 +153,7 @@ def get_component_list():
     desired list.
     :rtype: dict
     """
+    print(session.get('user'))
 
     # extract the component range from the url parameters
     component_range = escape(request.args.get('range'))
