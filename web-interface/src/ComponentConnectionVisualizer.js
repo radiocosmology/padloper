@@ -550,12 +550,14 @@ if (subcomponent) {
       connectable: false,
       type: 'component',
   //            dragHandle: '.drag-handle',
-      data: { name: comp.name, ctype: comp.type, version: comp.version, properties: comp.properties, shownProperties: ''  },
+      data: { name: comp.name, ctype: comp.type, version: comp.version, properties: comp.properties, shownProperties: '',  
+            minHeight: height
+        },
   //            data: {label: name},
       position: { x: x, y: y },
       style: {
         width: width,
-        height: height
+        minHeight: height
       },
       parentNode: parent,
       extent: 'parent',
@@ -566,12 +568,13 @@ if (subcomponent) {
       connectable: false,
       type: 'component',
   //            dragHandle: '.drag-handle',
-      data: { name: comp.name, ctype: comp.type, version: comp.version, properties: comp.properties, shownProperties: ''  },
+      data: { name: comp.name, ctype: comp.type, version: comp.version, properties: comp.properties, shownProperties: '',
+            minHeight: height  },
   //            data: {label: name},
       position: { x: x, y: y },
       style: {
         width: width,
-        height: height
+        minHeight: height
       },
   //            position: { x: 10, y: 10 },
   }
@@ -806,7 +809,7 @@ fitView();
 * @param {*} data - data for the React Flow component.
 * Really only need data.name from here.
 */
-function ComponentNode({ data }) {
+function ComponentNode({ data, style }) {
 return (
 <ThemeProvider theme={theme}>
     <Handle 
@@ -829,7 +832,8 @@ return (
             justifyContent="center"
             // alignItems="center"
             style={{
-                height: '100%'
+                height: '100%',
+                minHeight: data.minHeight
             }}
         >
             <Grid item xs={9}>
@@ -862,7 +866,7 @@ return (
                     {data.shownProperties ? data.shownProperties.map(([propertyName, values, unit]) => (
                         <div key={propertyName}>
                         <p>
-                            <strong>{propertyName}:</strong> {values.join(', ')} {unit}
+                            <u>{propertyName}:</u> {values.join(', ')} {unit}
                         </p>
                         </div>
                     ))
