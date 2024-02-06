@@ -6,6 +6,7 @@ import IconButton from '@mui/material/IconButton';
 import Menu from '@mui/material/Menu';
 import MenuItem from '@mui/material/MenuItem';
 import GithubIcon from "mdi-react/GithubIcon";
+import axios from 'axios'
 import { useState, useEffect, useContext } from 'react';
 import { OAuthContext } from './contexts/OAuthContext';
 
@@ -31,6 +32,23 @@ function Header() {
     }, []
     // [accessToken]
     )
+
+    // login to backend
+    useEffect(() => {
+        // userData ? userData.login : ''
+        if (userData.login) {
+            axios.post("/api/login", {
+                username: userData.login,
+                accessToken: localStorage.getItem("accessToken")
+            })
+            .then(res => {
+                console.log(res.data)
+            })
+            .catch(err => {
+                console.error('Error:', err);
+            })
+        }
+    }, [userData])
 
     const handleClick = (event) => {
         setAnchorEl(event.currentTarget);

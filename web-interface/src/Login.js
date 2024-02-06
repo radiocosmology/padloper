@@ -23,8 +23,6 @@ export default function Login() {
       const queryString = window.location.search;
       const urlParams = new URLSearchParams(queryString);
       const codeParam = urlParams.get('code');
-      console.log(codeParam);
-      console.log(accessToken)
   
       // TODO: remove local storage
       if (codeParam && (localStorage.getItem("accessToken") === null)) {
@@ -35,11 +33,10 @@ export default function Login() {
           }).then((response) => {
             return response.json();
           }).then((data) => {
-            console.log(data);
+            // console.log(data);
             if (data.access_token) {
               // TODO: remove local storage
               localStorage.setItem("accessToken", data.access_token);
-              console.log(data.access_token)
               // setAccessToken(data.access_token);
               setRerender(!rerender);
               window.location.reload(false);

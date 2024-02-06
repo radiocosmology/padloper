@@ -2,18 +2,24 @@
 
 #from crypt import methods
 from re import split
-from flask import Flask, request
+from flask import Flask, request, session
+import requests
 from flask.scaffold import F
 from markupsafe import escape
 import time
 import padloper as p
 import json
+import os
 from urllib.parse import unquote
 
 # CONTINUE HERE: use the as_dict() methods from padloper …
 
 # The flask application
 app = Flask(__name__)
+app.secret_key = os.urandom(24)
+
+# set this to the oauth-proxy-server URL
+PROXY_SERVER_URL = 'http://localhost:4000/'
 
 def tmp_timestamp(t, uid, comments):
     print("Note: needs to be replaced with proper user registration.")
@@ -45,6 +51,50 @@ def read_filters(filters):
 # @app.route("/api/components_id/<id>")
 # def get_component_by_id(id):
 #     return str(Component.from_id(escape(id)))
+
+
+@app.route("/api/login", methods=['POST'])
+def login():
+    """ Handle user login.
+
+    This function handles the login process for users. It expects a POST request
+    with a JSON payload containing the user's username and GitHub access token.
+    It then calls a proxy server to retrieve user data from GitHub using the access token,
+    verifies that the retrieved username matches the provided username, and returns
+    a response accordingly.
+
+    Returns:
+        A JSON response indicating the result of the login attempt.
+    """
+    try:
+        username = request.json.get('username')
+        access_token = request.json.get('accessToken')
+
+        if not username or not access_token:
+            return ({'error': 'Username and access token are required'}), 400
+        
+        headers = {'Authorization': 'Bearer ' + access_token}
+        response = requests.get(PROXY_SERVER_URL + 'getUserData', headers=headers)
+
+        if response.status_code == 200:
+            data = response.json()
+
+            if data.get('login') == username:
+                session['user'] = username
+                return ({'message': f'Logged in as {username}'}), 200
+            else:
+                return ({'error': 'Username does not match'}), 401
+
+        # print(session.get('user'))
+
+        return ({'error': 'Failed to retrieve user data from proxy server'}), 500
+    
+    except Exception as e:
+
+        # For printing the exception in the terminal.
+        print(e)
+
+        return {'error': json.dumps(e, default=str)}
 
 
 @app.route("/api/components_name/<name>")
