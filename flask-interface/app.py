@@ -1800,8 +1800,11 @@ def set_permission():
     :return: A dictionary with a key 'result' of corresponding value True
     :rtype: dict
     """
-    val_name = escape(request.args.get('name'))
-    val_comment = escape(request.args.get('comment'))
+    # val_name = escape(request.args.get('name'))
+    # val_comment = escape(request.args.get('comment'))
+
+    val_name = request.form.get('name')
+    val_comment = request.form.get('comment')
 
     # Need to initialize an instance of a component first.
     permission = p.Permission(val_name, val_comment)
@@ -1827,10 +1830,13 @@ def set_user_group():
     :rtype: dict
     """
 
-    val_name = escape(request.args.get('name'))
-    val_comment = escape(request.args.get('comment'))
+    # val_name = escape(request.args.get('name'))
+    # val_comment = escape(request.args.get('comment'))
+    val_name = request.form.get('name')
+    val_comment = request.form.get('comment')
     # A list of allowed permissions.
-    val_permission = escape(request.args.get('permission')).split(';')
+    # val_permission = escape(request.args.get('permission')).split(';')
+    val_permission = request.form.get('permission').split(';')
 
     allowed_list = []
     # Query the database and return a list of Permission instances based on
@@ -1839,6 +1845,8 @@ def set_user_group():
         allowed_list.append(p.Permission.from_db(name))
 
     user_group = p.UserGroup(val_name, val_comment, allowed_list)
+
+    # print(f"user_group: {user_group}")
 
     user_group.add()
 
@@ -1862,19 +1870,31 @@ def set_user():
     :rtype: dict
     """
 
-    val_uname = escape(request.args.get('uname'))
-    val_pwd_hash = escape(request.args.get('pwd'))
-    val_institution = escape(request.args.get('institution'))
-    val_user_group = escape(request.args.get('user_group')).split(';')
+    # val_uname = escape(request.args.get('uname'))
+    # val_pwd_hash = escape(request.args.get('pwd'))
+    # val_institution = escape(request.args.get('institution'))
+    # val_user_group = ['']
+    # print(escape(request.args.get('user_group')))
+    # if escape(request.args.get('user_group')) != None:
+    #     val_user_group = escape(request.args.get('user_group')).split(';')
+    val_uname = request.form.get('uname')
+    val_pwd_hash = request.form.get('pwd')
+    val_institution = request.form.get('institution')
+    if request.form.get('user_group'):
+        val_user_group = request.form.get('user_group').split(';')
+    else:
+        val_user_group = ['']
+        
+    print(val_user_group)
 
     allowed_list = []
 
     if val_user_group != ['']:
         for name in val_user_group:
             allowed_list.append(p.UserGroup.from_db(name))
-        user = User(val_uname, val_pwd_hash, val_institution, allowed_list)
+        user = p.User(val_uname, val_pwd_hash, val_institution, allowed_list)
     else:
-        user = User(val_uname, val_pwd_hash, val_institution)
+        user = p.User(val_uname, val_pwd_hash, val_institution)
 
     user.add()
 
