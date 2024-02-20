@@ -9,6 +9,7 @@ from '@mui/material';
 import ComponentVersionFilter from './ComponentVersionFilter.js';
 import ComponentVersionAddButton from './ComponentVersionAddButton.js';
 import ComponentVersionReplaceButton from './ComponentVersionReplaceButton.js';
+import { useNavigate } from 'react-router-dom';
 
 /**
  * A MUI component that renders a list of component versions.
@@ -53,6 +54,15 @@ function ComponentVersionList() {
         ]
     */
     const [filters, setFilters] = useState([]);
+
+    const navigate = useNavigate();
+
+    // check if logged in
+    useEffect(() => {
+        if (!localStorage.getItem("accessToken")) {
+            navigate('/');
+        }
+    }, [])
 
     /**
      * add an empty filter to filters

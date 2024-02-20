@@ -35,7 +35,7 @@ import axios from 'axios'
 
 
 
-import { Link } from "react-router-dom";
+import { Link, useNavigate } from "react-router-dom";
 
 import {
     useParams
@@ -366,6 +366,15 @@ function ComponentPage() {
 
     /*Contains the message when there is an error while adding a new connection */
     const [errorConnectionMessage,setErrorConnectionMessage] = useState(null)
+
+    const navigate = useNavigate();
+
+    // check if logged in
+    useEffect(() => {
+        if (!localStorage.getItem("accessToken")) {
+            navigate('/');
+        }
+    }, [])
 
 
     /**

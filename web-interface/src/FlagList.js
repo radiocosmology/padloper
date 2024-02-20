@@ -18,6 +18,7 @@ import Stack from '@mui/material/Stack';
 import ComponentEvent from './ComponentEvent.js';
 import FlagEvent from './FlagEvent.js';
 import DeleteIcon from '@mui/icons-material/Delete';
+import { useNavigate } from 'react-router-dom';
 
 
 /**
@@ -163,6 +164,15 @@ export default function FlagList() {
         ]
     */
     const [filters, setFilters] = useState([]);
+
+    const navigate = useNavigate();
+
+    // check if logged in
+    useEffect(() => {
+        if (!localStorage.getItem("accessToken")) {
+            navigate('/');
+        }
+    }, [])
 
     /**
      * add an empty filter to filters

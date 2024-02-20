@@ -9,6 +9,7 @@ from '@mui/material';
 
 import ComponentTypeAddButton from './ComponentTypeAddButton'
 import ComponentTypeReplaceButton from './ComponentTypeReplaceButton.js';
+import { useNavigate } from 'react-router-dom';
 
 
 /**
@@ -49,6 +50,15 @@ function ComponentTypeList() {
     function toggleReload() {
         setReloadBool(!reloadBool);
     }
+
+    const navigate = useNavigate();
+
+    // check if logged in
+    useEffect(() => {
+        if (!localStorage.getItem("accessToken")) {
+            navigate('/');
+        }
+    }, [])
 
 
     /*

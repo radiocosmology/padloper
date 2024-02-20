@@ -7,7 +7,7 @@ applyNodeChanges, applyEdgeChanges, ReactFlowProvider, useReactFlow, Panel,
 import 'reactflow/dist/style.css';
 import styled from '@mui/material/styles/styled';
 import createTheme from '@mui/material/styles/createTheme';
-import { Link, useSearchParams } from "react-router-dom";
+import { Link, useNavigate, useSearchParams } from "react-router-dom";
 import './custom.css'
 
 import Dagre from 'dagre';
@@ -341,6 +341,15 @@ const time = useRef(Math.floor(Date.now() / 1000));
 
 // the default position of nodes in the visualization.
 const defaultViewport = {x: 0, y: 0};
+
+const navigate = useNavigate();
+
+// check if logged in
+useEffect(() => {
+    if (!localStorage.getItem("accessToken")) {
+        navigate('/');
+    }
+}, [])
 
 
 /**

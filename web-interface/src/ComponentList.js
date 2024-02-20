@@ -8,6 +8,7 @@ import Button from '@mui/material/Button';
 import ComponentAddButton from './ComponentAddButton.js';
 import ComponentReplaceButton from './ComponentReplaceButton.js';
 import AlertDialog from './ComponentDisableButton'
+import { useNavigate } from 'react-router-dom';
 
 /**
  * A MUI component that represents a list of components.
@@ -32,6 +33,8 @@ function ComponentList() {
     // property to order the components by.
     // must be in the set {'name', 'type', 'version'}
     const [orderBy, setOrderBy] = useState('name');
+
+    const navigate = useNavigate();
 
     /*
     stores component types as
@@ -64,6 +67,13 @@ function ComponentList() {
     ]
     */
     const [filters, setFilters] = useState([]);
+
+    // check if logged in
+    useEffect(() => {
+        if (!localStorage.getItem("accessToken")) {
+            navigate('/');
+        }
+    }, [])
 
     // add an empty filter to filters
     const addFilter = () => {

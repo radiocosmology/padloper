@@ -8,6 +8,7 @@ import {
 from '@mui/material';
 import FlagTypeAddButton from './FlagTypeAddButton.js';
 import FlagTypeReplaceButton from './FlagTypeReplaceButton.js'
+import { useNavigate } from 'react-router-dom';
 
 
 /**
@@ -49,6 +50,14 @@ function FlagTypeList() {
         setReloadBool(!reloadBool);
     }
 
+    const navigate = useNavigate();
+
+    // check if logged in
+    useEffect(() => {
+        if (!localStorage.getItem("accessToken")) {
+            navigate('/');
+        }
+    }, [])
 
     /*
     The function that updates the list of flag types when the site is 

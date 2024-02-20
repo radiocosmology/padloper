@@ -6,6 +6,7 @@ import PropertyTypeFilter from './PropertyTypeFilter.js';
 import Button from '@mui/material/Button'
 import PropertyTypeAddButton from './PropertyTypeAddButton.js';
 import PropertyTypeReplaceButton from './PropertyTypeReplaceButton.js';
+import { useNavigate } from 'react-router-dom';
 
 
 
@@ -52,6 +53,15 @@ export default function PropertyTypeList() {
         ]
     */
     const [filters, setFilters] = useState([]);
+
+    const navigate = useNavigate();
+
+    // check if logged in
+    useEffect(() => {
+        if (!localStorage.getItem("accessToken")) {
+            navigate('/');
+        }
+    }, [])
 
     
 
