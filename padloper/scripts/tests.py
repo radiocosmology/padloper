@@ -21,20 +21,18 @@ p.g.t.V().has("name", TextP.startingWith(tnm(""))).drop().iterate()
 
 # Test creating and retreiving.
 print("Creating component types, versions and components.")
-type_a  = p.ComponentType(name=tnm("type_A"), comments="Comment A").newadd()
-type_b  = p.ComponentType(name=tnm("type_b"), comments="Comment B").newadd()
-type_c  = p.ComponentType(name=tnm("type_c"), comments="Comment C").newadd()
+type_a  = p.ComponentType(name=tnm("type_A"), comments="Comment A").add()
+type_b  = p.ComponentType(name=tnm("type_b"), comments="Comment B").add()
+type_c  = p.ComponentType(name=tnm("type_c"), comments="Comment C").add()
 ver_a_a   = p.ComponentVersion(name=tnm("ver_A-a"), type=type_a,
-                               comments="Comment A").newadd()
+                               comments="Comment A").add()
 ver_a_b   = p.ComponentVersion(name=tnm("ver_a-b"), type=type_a,
-                               comments="Comment A").newadd()
-comp_a1 = p.Component(name=tnm("comp_A1"), type=type_a, version=ver_a_a).newadd()
-comp_a2 = p.Component(name=tnm("comp_a2"), type=type_a, version=ver_a_b).newadd()
-comp_b = p.Component(name=tnm("comp_b"), type=type_b).newadd()
-comp_b_sub = p.Component(name=tnm("comp_b_sub"), type=type_c).newadd()
-comp_b_super = p.Component(name=tnm("comp_b_super"), type=type_c).newadd()
-
-p.ComponentType(name=tnm("sldkjf")).newadd()
+                               comments="Comment A").add()
+comp_a1 = p.Component(name=tnm("comp_A1"), type=type_a, version=ver_a_a).add()
+comp_a2 = p.Component(name=tnm("comp_a2"), type=type_a, version=ver_a_b).add()
+comp_b = p.Component(name=tnm("comp_b"), type=type_b).add()
+comp_b_sub = p.Component(name=tnm("comp_b_sub"), type=type_c).add()
+comp_b_super = p.Component(name=tnm("comp_b_super"), type=type_c).add()
 
 # Test replacing a component/types/versions.
 orig_type_a = type_a
@@ -48,11 +46,10 @@ orig_comp_a1 = comp_a1
 comp_a1 = comp_a1.replace(p.Component(name=tnm("comp_a1"), type=type_a, 
                                       version=ver_a_a))
 
-
 # Check that you can't add two things with the same name.
 try:
     p.Component(name=tnm("comp_a1"), type=type_a, 
-                         version=ver_a_a).newadd(strict_add=True)
+                         version=ver_a_a).add(strict_add=True)
     raise RuntimeError("Should not be able to add the same component again!")
 except p.VertexAlreadyAddedError:
     pass
@@ -114,6 +111,12 @@ except p.ComponentsOverlappingConnectionError:
     pass
 comp_b.connect(comp_a1, t6, end=t7)
 
+print("Testing as_dict().")
+print("    ", str(type_a.as_dict()).replace(test_prefix, ""))
+print("    ", str(ver_a_a.as_dict()).replace(test_prefix, ""))
+print("    ", str(comp_a1.as_dict(bare=True)).replace(test_prefix, ""))
+print("    ", str(comp_a1.as_dict()).replace(test_prefix, ""))
+
 # Test retreiving connexions.
 print("Retrieving all connexions.")
 conn = comp_b.get_connections()
@@ -150,3 +153,21 @@ if len(comp_b.get_connections(comp=comp_a1, at_time=t1)) > 0:
 # Test replacing connexions, components, etc.
 
 # Test properties.
+ptype_1 = p.PropertyType(name=tnm("ptype_ONE"), units="cm", n_values=2,
+                         allowed_types=[type_a, type_b]).add()
+ptype_1 = ptype_1.replace(p.PropertyType(name=tnm("ptype_1"), units="cm",
+                                         n_values=2,
+                                         allowed_types=[type_a, type_b]))
+ptype_2 = p.PropertyType(name=tnm("ptype_2"), units="cm", n_values=2,
+                         allowed_types=[type_a]).add()
+ptype_3 = p.PropertyType(name=tnm("ptype_3"), units="cm", n_values=1,
+                         allowed_types=[type_c]).add()
+
+ptype_1_copy = ptype_1.from_db(tnm("ptype_1"))
+assert(ptype_1 == ptype_1_copy)
+print("Testing as_dict().")
+print("    ", str(ptype_1.as_dict()).replace(test_prefix, ""))
+
+prop_1 = p.Property(type=ptype_1, values=["123", "124"]).add()
+print(prop_1.in_db())
+print(p.Property(type=ptype_1, values=["123", "124"]).in_db())

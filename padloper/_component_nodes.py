@@ -39,58 +39,6 @@ class ComponentType(Vertex):
     ]
     primary_attr: str = "name"
 
-CONTINUE HERE: move as_dict() up to super().
-    def as_dict(self):
-        """Return a dictionary representation."""
-        return {"name": self.name, "comments": self.comments}
-
-    def add(self, strict_add=False):
-        """Add this ComponentType vertex to the serverside.
-        """
-        raise RuntimeError("Deprecated!")
-
-        # If already added.
-        if self.added_to_db():
-            strictraise(strict_add, VertexAlreadyAddedError,
-                        f"ComponentType with name {self.name} " +
-                         "already exists in the database.")
-            return self.from_db(self.name)
-
-        attributes = {
-            'name': self.name,
-            'comments': self.comments
-        }
-
-        Vertex.add(self=self, attributes=attributes)
-#        print(f"Added {self}")
-        return self
-
-    def reeplace(self, newVertex, disable_time: int = int(time.time())):
-        """Replaces the ComponentType vertex in the serverside.
-
-        :param newVertex: The new ComponentType vertex that is replacing the old
-            ComponentType vertex.
-        :type newVertex: ComponentType
-
-        :param disable_time: When this vertex was disabled in the database (UNIX
-            time).
-        :type disable_time: int
-        """
-
-        # Step 1: Sets the property active from true to false and registers the
-        # time when the vertex was disabled.
-        g.t.V(self.id()).property(
-            'active', False).property('time_disabled', disable_time).iterate()
-
-        # Step 2: Adds the new vertex in the serverside.
-        newVertex.add(strict_add=True)
-
-        # Step 3
-        newVertexId = newVertex.id()
-
-        # Replaces the ComponentType vertex with the new ComponentType vertex.
-        Vertex.replace(self=self, id=newVertexId)
-
     def added_to_db(self) -> bool:
         """Return whether this ComponentType is added to the database,
         that is, whether the ID is not the virtual ID placeholder and perform 
@@ -262,69 +210,6 @@ class ComponentVersion(Vertex):
         VertexAttr("type", ComponentType, edge_class=RelationVersionAllowedType)
     ]
     primary_attr: str = "name"
-
-    def as_dict(self):
-        """Return a dictionary representation."""
-        return {"name": self.name, "comments": self.comments,
-                "type": self.type.as_dict()}
-
-    def add(self, strict_add=False):
-        """Add this ComponentVersion vertex to the serverside.
-        """
-        raise RuntimeError("Deprecated!")
-
-        # If already added.
-#        if self.added_to_db():
-        if self.in_db():
-            strictraise(strict_add, VertexAlreadyAddedError, 
-                f"ComponentVersion with name {self.name} " +
-                f"and allowed type {self.type.name} " +
-                "already exists in the database."
-            )
-            return self.from_db(self.name, self.type)
-
-        attributes = {
-            'name': self.name,
-            'comments': self.comments
-        }
-
-        Vertex.add(self=self, attributes=attributes)
-
-        if not self.type.added_to_db():
-            self.type.add()
-
-        e = RelationVersionAllowedType(
-            inVertex=self.type,
-            outVertex=self
-        )
-
-        e.add()
-#        print(f"Added {self}")
-        return self
-
-    def reeplace(self, newVertex, disable_time: int = int(time.time())):
-        """Replaces the ComponentVersion vertex in the serverside.
-
-        :param newVertex: The new ComponentVersion vertex that is replacing the
-            old ComponentVersion vertex.
-        :type newVertex: ComponentVersion
-
-        :param disable_time: When this vertex was disabled in the database (UNIX
-            time).
-        :type disable_time: int
-        """
-
-        # Step 1
-        g.t.V(self.id()).property('active', False)\
-           .property('time_disabled', disable_time).iterate()
-
-        # Step 2
-        newVertex.add(strict_add=True)
-
-        # Step 3
-        newVertexId = newVertex.id()
-
-        Vertex.replace(self=self, id=newVertexId)
 
     def added_to_db(self) -> bool:
         """Return whether this ComponentVersion is added to the database,
@@ -550,76 +435,6 @@ class Component(Vertex):
         return f'Component of name "{self.name}", \
             type "{self.type.name}", \
             {version_text}, id {self.id()}'
-
-    def add(self, strict_add=False):
-        """Add this Component to the serverside.
-        """
-        raise RuntimeError("Deprecated!")
-        if self.in_db():
-            strictraise(strict_add, VertexAlreadyAddedError, 
-                f"Component with name {self.name} " +
-                "already exists in the database."
-            )
-            return self.from_db(self.name)
-
-
-        attributes = {
-            'name': self.name
-        }
-
-        Vertex.add(self, attributes)
-
-        if self.version is not None:
-            if not self.version.added_to_db():
-                self.version.add()
-
-            rev_edge = RelationVersion(
-                inVertex=self.version,
-                outVertex=self
-            )
-
-            rev_edge._add()
-
-        if not self.type.added_to_db():
-            self.type.add()
-
-        type_edge = RelationComponentType(
-            inVertex=self.type,
-            outVertex=self
-        )
-
-        type_edge.add()
-
-#        print(f"Added {self}")
-        return self
-
-    def reeplace(self, newVertex, disable_time: int = int(time.time())):
-        """Replaces the Component vertex in the serverside.
-
-        :param newVertex: The new Component vertex that is replacing the old
-            Component vertex.
-        :type newVertex: Component
-
-        :param disable_time: When this vertex was disabled in the database (UNIX
-            time).
-        :type disable_time: int
-        """
-# CONTINUE HERE: need to check that newVertex is of the same class. Also, why is
-# Vertex.replace() called after self.replace()?? Also: should it return the new
-# vertex? I think so, to the latter question.
-        # Step 1
-        g.t.V(self.id()).property('active', False)\
-           .property('time_disabled', disable_time).iterate()
-
-        # Step 2
-        newVertex.add(strict_add=True)
-
-        # Step 3
-        newVertexId = newVertex.id()
-
-        self.replace(id=newVertexId)
-
-        Vertex.replace(self=self, id=newVertexId)
 
     def get_property(self, type, at_time: int):
         """
@@ -847,7 +662,7 @@ class Component(Vertex):
         )
 
         if current_property is not None:
-#    CONTINUE HERE 2: see if behaviour is correct (when this trips in
+#    TODO: see if behaviour is correct (when this trips in
 #            init_simple-db.py).
             if current_property.values == property.values:
                 strictraise(strict_add, PropertyIsSameError, 
@@ -1860,10 +1675,7 @@ class Component(Vertex):
         # TODO: at_time has not yet been implemented!
         assert(at_time == None)
         
-        base = {'name': self.name,
-                'type': self.type.as_dict(),
-                'version': self.version.as_dict() if self.version else {},
-                'time_added': self.time_added}
+        base = super().as_dict()
 
         if not bare:
             prop_dicts = [{**prop.as_dict(), **rel.as_dict()} \

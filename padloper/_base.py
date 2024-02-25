@@ -119,12 +119,37 @@ class Element(object):
 
 class VertexAttr(object):
     def __init__(self, name, type, edge_class=None, optional=False,
-                 default=None):
+                 default=None, is_list=False, list_len=(0, int(1e10))):
+        """A class for describing an attribute of a Vertex, or a connection to 
+        another Vertex that classifies the Vertex.
+
+        :param name: The key name of the attribute.
+        :type name: str
+        :param type: The data type of the attribute. If a subclass of Vertex is
+            included, it is understood that this Vertex should be connected to
+            one or more vertices of this type, and the edge_class must be set.
+        :type type: variable
+        :param edge_class: The category of edge by which it is connected to the
+            `type` vertex.
+        :type edge_class: subclass of Edge
+        :param optional: Whether this attribute is required.
+        :type optional: bool
+        :param default: The default value, for optional attributes.
+        :type default: same as `type`
+        :param is_list: Whether the attribute takes a list of values (True) or
+           just a single value (False).
+        :type is_list: bool
+        :param list_len: If the values are in a list, you can define a
+            (min_length, max_length) here.
+        :type list_len: Tuple of two ints/None
+        """
         self.name = name
         self.type = type
         self.edge_class = edge_class
         self.optional = optional
         self.default = default
+        self.is_list = is_list
+        self.list_len = list_len
 
 class Vertex(Element):
     """
@@ -167,13 +192,31 @@ class Vertex(Element):
         :param id: ID of the Vertex.
         :type id: int
         """
-        # Create the vertex attributes.
+        self._validate(**kwargs)
+
+        # Create the vertex attributes. Do type checking for DB integrity.
         for va in self._vertex_attrs:
             if va.name in kwargs:
                 val = kwargs[va.name]
-                if not isinstance(val, va.type):
-                    raise TypeError("Keyword \"%s\" should be of type %s." %\
-                                    (va.name, va.type))
+                if va.is_list:
+                    if not isinstance(val, list):
+                        val = [val]
+                        raise TypeError("Was expecting a list for \"%s\"."%\
+                                        va.name)
+                    if len(val) < va.list_len[0] or len(val) > va.list_len[1]:
+                        raise TypeError("List length must be in the range "\
+                                        "[%d, %d]\n." % (va.list_len[0],
+                                                         va.list_len[1]))
+                    for v in val:
+                        if not isinstance(v, va.type):
+                            raise TypeError("Keyword \"%s\" should contain "\
+                                            "only type %s." %\
+                                            (va.name, va.type))
+                else:
+                    if not isinstance(val, va.type) and val is not None and \
+                       not va.optional:
+                        raise TypeError("Keyword \"%s\" should be of type %s."%\
+                                        (va.name, va.type))
             else:
                 if va.optional:
                     val = va.default
@@ -194,6 +237,11 @@ class Vertex(Element):
         self.replacement = 0
         self.active = True
         Element.__init__(self, _id)
+
+    def _validate(self, **kwargs):
+        """This method gets called at the beginning of __init__(); overload it
+        in a subclass if you want to make use of it."""
+        pass
 
     @classmethod
     def from_db(cls, primary_attr: str, allow_disabled: bool = False):
@@ -274,8 +322,6 @@ class Vertex(Element):
         else:
             return g._vertex_cache[id]
 
-
-
     @classmethod
     def _from_attrs(cls, attrs):
         """Create the Vertex from its vertex attributes and edge IDs.
@@ -292,24 +338,57 @@ class Vertex(Element):
                "_uid_added": attrs["uid_added"]}
         for a in cls._vertex_attrs:
             if issubclass(a.type, Vertex):
-                if len(attrs[a.name]) > 1:
-                    raise ValueError("More than one %s exists for %s." %
-                                     (a.type.__class__.__name__,
-                                      a.name))
-                elif len(attrs[a.name]) == 1:
-                    arg[a.name] =\
-                        Vertex._cache_vertex(a.type.from_id(attrs[a.name][0]))
-                elif not a.optional:
-                    raise ValueError("A %s is required for %s." %
-                                     (a.type.__class__.__name__,
-                                      a.name))
+                len_a = len(attrs[a.name])
+                if a.is_list:
+                    if len_a < a.list_len[0] or len_a > a.list_len[1]:
+                        raise ValueError("Number of %s connexions (%d) is "\
+                                         "outside allowed range (%d, %d)." %\
+                                         (a.type.__class__.__name__,
+                                          len_a, a.list_len[0], a.list_len[1]))
+                    val = [Vertex._cache_vertex(a.type.from_id(i_attr)) \
+                           for i_attr in attrs[a.name]]
+                elif len_a > 1:
+                    raise ValueError("Only one %s should exist for %s." %
+                                     (a.type.__class__.__name__, a.name))
+                elif len_a == 1:
+                    val = Vertex._cache_vertex(a.type.from_id(attrs[a.name][0]))
+                else:
+                    if a.optional:
+                        val = None
+                    else:
+                        raise ValueError("A %s is required for %s." %
+                                         (a.type.__class__.__name__, a.name))
+                arg[a.name] = val
             else:
                 arg[a.name] = attrs[a.name]
 
         return Vertex._cache_vertex(cls(**arg))
 
+    @classmethod
+    def _cache_vertex(cls, vertex):
+        """Add a vertex and its ID to the vertex cache if not already added,
+        and return this new cached vertex. 
 
-    def newadd(self, strict_add=False):
+        TODO: Raise an error if already cached, because that'd mean there's
+        an implementation error with the caching.
+        """
+        print("Caching.")
+        try:
+            print(getattr(vertex, vertex.primary_attr), vertex.id())
+        except TypeError:
+            print("No primary", vertex.__class__.__name__, vertex.id())
+        if vertex.id() not in g._vertex_cache:
+            print("Caching: ID not found.")
+            if not vertex.in_db():
+                print("Yep.")
+                # Do nothing?
+                return
+            print("Done!")
+            g._vertex_cache[vertex.id()] = vertex
+        return g._vertex_cache[vertex.id()]
+
+
+    def add(self, strict_add=False):
         """Add the vertex to the Janusgraph DB.
 
         :param strict_add: If False, then do not throw an error if the vertex
@@ -319,6 +398,7 @@ class Vertex(Element):
         :return: self
         :rtype: self
         """
+        print("Starting add.")
         if self.in_db():
             strictraise(strict_add, VertexAlreadyAddedError,
                         f"Vertex already exists in the database.")
@@ -340,40 +420,52 @@ class Vertex(Element):
 
             edges = []
             for a in self._vertex_attrs:
+                print("....", a.name)
                 if issubclass(a.type, Vertex):
                     # If the "attribute" is a connexion to another vertex, then
                     # create the edge; also create the vertex if it does not
                     # exist.
+                    print("Vertex.")
                     if getattr(self, a.name):
-                        if not getattr(self, a.name).in_db():
-                            getattr(self, a.name).add()
-                        edges.append(
-                            a.edge_class(inVertex=getattr(self, a.name),
-                                         outVertex=self))
+                        if a.is_list:
+                            attr_list = getattr(self, a.name)
+                        else:
+                            attr_list = [getattr(self, a.name)]
+                        for attr in attr_list:
+                            print("Checking attr.in_db(): ", attr)
+                            if not attr.in_db():
+                                print("Adding in add()!!!!!!!")
+                                attr.add()
+                            edges.append(
+                                a.edge_class(inVertex=attr, outVertex=self))
                     elif not a.optional:
                         raise ValueError("%s should not be None!" % a.name)
                 elif isinstance(getattr(self, a.name), list):
+                    print("Attribute.")
                     for val in getattr(self, a.name):
                         traversal = traversal.property(a.name, val)
+                    print("Done.")
                 else:
                     traversal = traversal.property(a.name, 
                                                    getattr(self, a.name))
             v = traversal.next()
+            print("Traversal.next() completed.")
 
             # this is NOT the id of a Vertex instance,
             # but rather the id of the GremlinPython vertex returned
             # by the traversal.
             self._set_id(v.id)
 
-            Vertex._cache_vertex(self)
-
             # Add any edges.
+            print("==================== ", edges)
             for e in edges:
                 e.add()
 
+            Vertex._cache_vertex(self)
+
             return self
 
-    def add(self, attributes: dict):
+    def old_add(self, attributes: dict):
         """
         Add the vertex of category self.category
         to the JanusGraph DB along with attributes from :param attributes:.
@@ -438,12 +530,58 @@ class Vertex(Element):
         :return: True if element is added to database, False otherwise.
         :rtype: bool
         """
+        print("Entering in_db() …")
+
         if strict_check:
-            q = g.t.V().has("category", self.__class__.category) \
-                       .has(self.primary_attr, getattr(self, self.primary_attr))
+            
+            if self.id() != g._VIRTUAL_ID_PLACEHOLDER:
+                q = g.t.V(self.id())
+                if not allow_removed:
+                    q = q.has("active", True)
+                n = q.count().next()
+                assert(n == 0 or n == 1)
+                if n == 1:
+                    return True
+
+            q = g.t.V().has("category", self.__class__.category)
             if not allow_removed:
                 q = q.has("active", True)
+            if self.primary_attr is not None:
+                q = q.has(self.primary_attr, getattr(self, self.primary_attr))
+            else:
+                # If there is no primary attribute, then we have to check
+                # everything …
+                q = q.as_("v")
+                print("=================== BIG CHECK!! =====================")
+                for va in self._vertex_attrs:
+                    if issubclass(va.type, Vertex):
+                        # N.B. Todo: need to ensure that the connecting vertex
+                        # has a primary_attr … Otherwise it becomes way too
+                        # complicated.
+                        q = q.bothE(va.edge_class.category)
+                        if not allow_removed:
+                            q = q.has("active", True)
+                        q = q.otherV()
+                        pa = va.type.primary_attr
+                        if va.is_list:
+                            q = q.not_( \
+                                  __.has(pa,
+                                         P.without(getattr(self, va.type, pa))))
+                        else:
+                            q = q.has(pa, getattr(getattr(self, va.name), pa))
+                        q = q.select("v")
+                    else:
+                        if va.is_list:
+                            q = q.not_(__.has(va.name, getattr(self, va.name)))
+                        else:
+                            q = q.has(va.name, getattr(self, va.name))
+                Continue HERE: property adding/checking _should_ work. Remove
+                print statements from everywhere
+                print()
+                print(q)
+
             n = q.count().next()
+            print("----> ", n)
             assert(n == 0 or n == 1)
             if n == 0:
                 return False
@@ -477,7 +615,7 @@ class Vertex(Element):
                             "the vertex it is replacing.")
 
         if not newVertex.in_db(strict_check=False):
-            newVertex.newadd(strict_add=True)
+            newVertex.add(strict_add=True)
 
         # The 'replacement' property now points to the new vertex that replaced
         # the self vertex, and it needs to be disabled.
@@ -600,6 +738,18 @@ class Vertex(Element):
             g.t.V(self.id()).count().next() > 0
         )
 
+    def as_dict(self):
+        ret = {}
+        for a in self._vertex_attrs:
+            if issubclass(a.type, Vertex):
+                if a.is_list:
+                    ret[a.name] = [x.as_dict() for x in getattr(self, a.name)]
+                else:
+                    ret[a.name] = getattr(self, a.name).as_dict()
+            else:
+                ret[a.name] = getattr(self, a.name)
+        return ret
+
     def _in_vertex_cache(self) -> bool:
         """Return whether this vertex ID is in the vertex cache.
 
@@ -608,22 +758,6 @@ class Vertex(Element):
         """
 
         return self.id() in g._vertex_cache
-
-    @classmethod
-    def _cache_vertex(cls, vertex):
-        """Add a vertex and its ID to the vertex cache if not already added,
-        and return this new cached vertex. 
-
-        TODO: Raise an error if already cached, because that'd mean there's
-        an implementation error with the caching.
-        """
-
-        if vertex.id() not in g._vertex_cache:
-            if not vertex.in_db():
-                # Do nothing?
-                return
-            g._vertex_cache[vertex.id()] = vertex
-        return g._vertex_cache[vertex.id()]
 
 
 class Edge(Element):
@@ -685,10 +819,13 @@ class Edge(Element):
         :type attributes: dict
         """
 
+        print("Adding EDGE!!")
         if not self.inVertex.in_db():
+            print(" --> In", self.inVertex)
             self.inVertex.add()
 
         if not self.outVertex.in_db():
+            print(" --> Out", self.outVertex)
             self.outVertex.add()
 
         if self.added_to_db():
@@ -719,6 +856,7 @@ class Edge(Element):
                 traversal = traversal.property(key, attributes[key])
 
             e = traversal.next()
+            print(e.id, traversal)
 
             self._set_id(e.id)
 
