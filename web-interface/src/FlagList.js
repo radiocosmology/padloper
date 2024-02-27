@@ -18,8 +18,7 @@ import Stack from '@mui/material/Stack';
 import ComponentEvent from './ComponentEvent.js';
 import FlagEvent from './FlagEvent.js';
 import DeleteIcon from '@mui/icons-material/Delete';
-import { useNavigate } from 'react-router-dom';
-
+import Authenticator from './components/Authenticator.js';
 
 /**
  * A styling for an MUI Accordion component.
@@ -164,15 +163,6 @@ export default function FlagList() {
         ]
     */
     const [filters, setFilters] = useState([]);
-
-    const navigate = useNavigate();
-
-    // check if logged in
-    useEffect(() => {
-        if (!localStorage.getItem("accessToken")) {
-            navigate('/');
-        }
-    }, [])
 
     /**
      * add an empty filter to filters
@@ -530,6 +520,7 @@ export default function FlagList() {
 
     return (
         <>
+            <Authenticator />
             <ElementRangePanel
                 width="800px"
                 min={min}

@@ -9,8 +9,7 @@ from '@mui/material';
 
 import ComponentTypeAddButton from './ComponentTypeAddButton'
 import ComponentTypeReplaceButton from './ComponentTypeReplaceButton.js';
-import { useNavigate } from 'react-router-dom';
-
+import Authenticator from './components/Authenticator.js';
 
 /**
  * A MUI component that renders a list of component types.
@@ -50,15 +49,6 @@ function ComponentTypeList() {
     function toggleReload() {
         setReloadBool(!reloadBool);
     }
-
-    const navigate = useNavigate();
-
-    // check if logged in
-    useEffect(() => {
-        if (!localStorage.getItem("accessToken")) {
-            navigate('/');
-        }
-    }, [])
 
 
     /*
@@ -144,6 +134,7 @@ function ComponentTypeList() {
 
     return (
         <>
+            <Authenticator />
             <ElementRangePanel
                 min={min}
                 updateMin={(n) => { setMin(n) }}

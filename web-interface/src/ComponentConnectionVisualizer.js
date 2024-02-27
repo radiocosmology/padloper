@@ -7,7 +7,7 @@ applyNodeChanges, applyEdgeChanges, ReactFlowProvider, useReactFlow, Panel,
 import 'reactflow/dist/style.css';
 import styled from '@mui/material/styles/styled';
 import createTheme from '@mui/material/styles/createTheme';
-import { Link, useNavigate, useSearchParams } from "react-router-dom";
+import { Link, useSearchParams } from "react-router-dom";
 import './custom.css'
 
 import Dagre from 'dagre';
@@ -30,6 +30,7 @@ import ComponentAutocomplete from './ComponentAutocomplete.js';
 import { ThemeProvider } from '@emotion/react';
 
 import { unixTimeToISOString } from './utility/utility.js';
+import Authenticator from './components/Authenticator.js';
 
 window.addEventListener("error", (e) => {
 if (e.message === 'ResizeObserver loop completed with undelivered notifications.' || e.message === 'ResizeObserver loop limit exceeded') {
@@ -342,14 +343,6 @@ const time = useRef(Math.floor(Date.now() / 1000));
 // the default position of nodes in the visualization.
 const defaultViewport = {x: 0, y: 0};
 
-const navigate = useNavigate();
-
-// check if logged in
-useEffect(() => {
-    if (!localStorage.getItem("accessToken")) {
-        navigate('/');
-    }
-}, [])
 
 
 /**
@@ -1124,6 +1117,8 @@ e.stopImmediatePropagation();
 });
 
 return (
+<>
+<Authenticator />
 <Grid 
 container 
 direction="column"
@@ -1280,7 +1275,6 @@ spacing={2}
 </Grid>
 
 </Grid>
-
+</>
 )
-
 }

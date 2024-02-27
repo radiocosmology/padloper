@@ -6,8 +6,7 @@ import PropertyTypeFilter from './PropertyTypeFilter.js';
 import Button from '@mui/material/Button'
 import PropertyTypeAddButton from './PropertyTypeAddButton.js';
 import PropertyTypeReplaceButton from './PropertyTypeReplaceButton.js';
-import { useNavigate } from 'react-router-dom';
-
+import Authenticator from './components/Authenticator.js';
 
 
 
@@ -53,16 +52,6 @@ export default function PropertyTypeList() {
         ]
     */
     const [filters, setFilters] = useState([]);
-
-    const navigate = useNavigate();
-
-    // check if logged in
-    useEffect(() => {
-        if (!localStorage.getItem("accessToken")) {
-            navigate('/');
-        }
-    }, [])
-
     
 
     /**
@@ -282,6 +271,7 @@ export default function PropertyTypeList() {
 
     return (
         <>
+            <Authenticator />
             <ElementRangePanel
                 width="800px"
                 min={min}
