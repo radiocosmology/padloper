@@ -14,6 +14,7 @@ from _edges import RelationVersionAllowedType, RelationVersion,\
                    RelationComponentType, RelationSubcomponent,\
                    RelationProperty, RelationPropertyType,\
                    RelationFlagComponent, RelationConnection
+from _permissions import Permission, check_permission
 
 #import re
 #from unicodedata import name
@@ -1140,7 +1141,8 @@ class Component(Vertex):
     def set_property(
         self, property, start: Timestamp, end: Timestamp = None, 
         force_property: bool = False,
-        strict_add: bool = False
+        strict_add: bool = False,
+        permissions = None
     ):
         """
         Given a property :param property:, MAKE A _VIRTUAL COPY of it,
@@ -1149,6 +1151,12 @@ class Component(Vertex):
 
         """
         from _property_nodes import Property
+        # TODO: check permissions here
+        # test
+        perms = Permission(['set_property', 'edit_component', 'add_component'])
+        permission_group = ['set_property', 'edit_component']
+        if not check_permission(perms, permission_group):
+            raise Error("no perms")
 
         if not self.added_to_db():
             raise ComponentNotAddedError(
