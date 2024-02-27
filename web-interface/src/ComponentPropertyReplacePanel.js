@@ -16,6 +16,8 @@ import styled from '@mui/material/styles/styled';
 import { Typography } from '@mui/material';
 import { verifyRegex } from './utility/utility.js';
 
+import moment from "moment";
+
 /**
  * A styled "panel" component, used as the background for the panel.
  * 
@@ -85,6 +87,12 @@ function ComponentPropertyReplacePanel(
         theme,
         onClose,
         onSet,
+        selected,
+        // option,
+        // old_uid, 
+        // old_comments, 
+        oldTextFieldValues,
+        oldComments
     }
 ) {
 
@@ -109,10 +117,19 @@ function ComponentPropertyReplacePanel(
     const [uid, setUid] = useState("");
 
     // the default time to set the property
-    const defaultTime = 1;
+    // const defaultTime = 1;
 
-    // time to set the property (NOT the edit time)
-    const [time, setTime] = useState(defaultTime);
+    // // time to set the property (NOT the edit time)
+    // const [time, setTime] = useState(defaultTime);
+
+    // Default time is now; set the display time and the internal time variable
+    // to this to start with.
+    const defaultTime = new Date();
+    const [time, setTime] = useState(Math.round(defaultTime.getTime() / 1000));
+    const [displayTime, setDisplayTime] = useState(defaultTime);
+    useEffect(() => {
+      setDisplayTime(moment(displayTime).format("YYYY-MM-DD[T]HH:mm:ss"));
+    }, []);
 
     // the comments associated with setting the property
     const [comments, setComments] = useState("");
@@ -121,6 +138,43 @@ function ComponentPropertyReplacePanel(
     // is made, waiting for a response from the DB.
     const [loading, setLoading] = useState(false);
 
+    const [userData, setUserData] = useState({});
+
+    // load previous data
+    useEffect(() => {
+        setTextFieldValues(oldTextFieldValues);
+        setTextFieldAccepted(Array.from({ length: oldTextFieldValues.length }, () => true));
+        setComments(oldComments);
+    }, [])
+
+    // load user data when the page loads
+    useEffect(() => {
+        getUserData();
+    }, [])
+
+    // set user id
+    useEffect(() => {
+        if (userData) {
+            setUid(userData.login);
+        }
+    }, [userData])
+
+    /**
+     * Get the user data via GitHub
+     */
+    async function getUserData() {
+        await fetch("http://localhost:4000/getUserData", {
+            method: "GET",
+            headers: {
+                "Authorization": "Bearer " + localStorage.getItem('accessToken')
+            }
+            }).then((response) => {
+                return response.json();
+            }).then((data) => {
+                console.log(data);
+                setUserData(data);
+            });
+        }
 
     /**
      * Check whether a value matches the selected property type's regex.
@@ -234,21 +288,22 @@ function ComponentPropertyReplacePanel(
                     </Grid>
                 </Grid>
 
-                <Grid container spacing={2} justifyContent="space-around">
+                <Grid container spacing={2} justifyContent="center">
                     <Grid item>
                         <ComponentPropertyAutocomplete 
                             onSelect={selectOption} 
+                            selected={selected}
                         />
                     </Grid>
 
-                    <Grid item>
+                    {/* <Grid item>
                         <TextField 
                             required
                             label="User" 
                             sx={{ width: 150 }}
                             onChange={(event) => setUid(event.target.value)}
                         />
-                    </Grid>
+                    </Grid> */}
 
                     <Grid item>
                         <TextField
@@ -265,6 +320,7 @@ function ComponentPropertyReplacePanel(
                                 let date = new Date(event.target.value);
                                 setTime(Math.round(date.getTime() / 1000));
                             }}
+                            value={displayTime}
                         />
                     </Grid>
 
@@ -277,6 +333,7 @@ function ComponentPropertyReplacePanel(
                             onChange={(event) => {
                                 setComments(event.target.value)
                             }}
+                            value={comments}
                         />
                     </Grid>
 
@@ -306,8 +363,8 @@ function ComponentPropertyReplacePanel(
                     }}>
                     {(selectedOption !== null) ?
                     (
-                        [...Array(selectedOption.n_values)].map((el, index) => ( 
-                            <Grid item>
+                        [...Array(+selectedOption.n_values)].map((el, index) => ( 
+                            <Grid item key={index}>
                                 <TextField 
                                     required
                                     error={!textFieldAccepted[index]}
@@ -324,6 +381,7 @@ function ComponentPropertyReplacePanel(
                                             )
                                         }
                                     }
+                                    value={textFieldValues[index]}
                                     label={`Value ${index + 1}`}
                                 />
                             </Grid>) 

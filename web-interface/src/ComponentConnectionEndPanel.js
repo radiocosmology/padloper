@@ -80,11 +80,9 @@ function ComponentConnectionEndPanel(
         theme,
         onClose,
         onSet,
+        uid,
     }
 ) {
-
-    // the ID of the user ending the connection
-    const [uid, setUid] = useState("");
 
     // Default time is now; set the display time and the internal time variable
     // to this to start with.
@@ -138,16 +136,16 @@ function ComponentConnectionEndPanel(
                     </Grid>
                 </Grid>
 
-                <Grid container spacing={2} justifyContent="space-around">
+                <Grid container spacing={2} justifyContent="center">
 
-                    <Grid item>
+                    {/* <Grid item>
                         <TextField 
                             required
                             label="User" 
                             sx={{ width: 150 }}
                             onChange={(event) => setUid(event.target.value)}
                         />
-                    </Grid>
+                    </Grid> */}
 
                     <Grid item>
                         <TextField
@@ -174,6 +172,7 @@ function ComponentConnectionEndPanel(
                             onChange={(event) => {
                                 setComments(event.target.value)
                             }}
+                            value={comments}
                         />
                     </Grid>
 

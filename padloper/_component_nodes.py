@@ -1309,7 +1309,7 @@ class Component(Vertex):
            .property('end_comments', end.comments).iterate()
 
     def replace_property(self, propertyTypeName: str, property, at_time: int,
-                         uid: str, comments=""):
+                         uid: str, start: Timestamp, comments="",):
         """Replaces the Component property vertex in the serverside.
 
         :param propertyTypeName: The name of the property type being replaced.
@@ -1331,6 +1331,7 @@ class Component(Vertex):
           (UNIX time).
         :type disable_time: int
         """
+        from _property_nodes import Property
 
         # id of the property being replaced.
         print("This method needs to be updated to use the Timestamp class.")
@@ -1349,9 +1350,7 @@ class Component(Vertex):
         # Sets a new property
         self.set_property(
             property=property,
-            at_time=at_time,
-            uid=uid,
-            comments=comments
+            start=start
         )
 
     def disable_property(self, propertyTypeName,
@@ -1396,6 +1395,9 @@ class Component(Vertex):
            this one.
         :type is_replacement: bool
         """
+
+        if is_replacement:
+            raise RuntimeError(f"Is_replacement feature not implemented yet. {is_replacement}")
 
         if not self.added_to_db():
             raise ComponentNotAddedError(
@@ -1454,7 +1456,7 @@ class Component(Vertex):
                 )
 
         if is_replacement:
-            raise RuntimeError("Is_replacement feature not implemented yet.")
+            raise RuntimeError(f"Is_replacement feature not implemented yet. {is_replacement}")
 
         curr_conn = RelationConnection(
             inVertex=self,
@@ -1503,11 +1505,6 @@ class Component(Vertex):
         else:
             curr_conn[0]._end(end)
 
-    def replace_connection(self, otherComponent, time, uid, comments,
-                           disable_time: int = int(time.time())):
-        raise RuntimeError("Function should never have existed! "\
-                           "Use connect() with is_replacement=True. "\
-                           "Remove this method.")
 
     def disable_connection(self, component,
                            disable_time: int = int(time.time())):
