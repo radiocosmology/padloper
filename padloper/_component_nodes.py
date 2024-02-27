@@ -1153,9 +1153,10 @@ class Component(Vertex):
         from _property_nodes import Property
         # TODO: check permissions here
         # test
-        perms = Permission(['set_property', 'edit_component', 'add_component'])
-        permission_group = ['set_property', 'edit_component']
-        if not check_permission(perms, permission_group):
+        perms = Permission(['set_property', 'edit_component', 'add_component'], "j")
+        permission_group_pass = ['set_property', 'edit_component']
+        permission_group_fail = ['set_property', 'edit_component', 'admin']
+        if not check_permission(perms, permission_group_fail):
             raise Error("no perms")
 
         if not self.added_to_db():

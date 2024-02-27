@@ -20,505 +20,531 @@ from _exceptions import *
 #from sympy import true
 #from gremlin_python.process.graph_traversal import __, constant
 
-class Permission(Vertex):
-    """ The representation of a permission.
+class Permission(object):
+    _permission_list = []
+    _user_id = None
+
+    def __init__(self, permission_list, uid):
+        self._permission_list = permission_list
+        self._user_id = uid
+
+    def get_permission_list(self):
+        return self._permission_list
+    
+    def get_user_id(self):
+        return self._user_id
+
+def check_permission(permission, permission_group):
+    if permission is None:
+        # check for global variable
+        pass
+    else:
+        print(permission._permission_list)
+        print(permission_group)
+        print([perm in permission._permission_list for perm in permission_group])
+        return all(perm in permission._permission_list for perm in permission_group)
+
+# class Permission(Vertex):
+#     """ The representation of a permission.
+
+#     :ivar name: The name of the permission.
+#     :ivar comments: Comments about the permission.
+#     """
+
+#     category: str = 'permission'
+
+#     name: str
+#     comments: str
+
+#     def __new__(cls, name: str, comments: str = '',
+#                 id: int = g._VIRTUAL_ID_PLACEHOLDER):
+#         """
+#         Return a Permission instance given the desired attributes.
+
+#         :param name: The name of the permission.
+#         :type name: str
+
+#         :param comments: The comments attached to this permission, defaults to ""
+#         :type comments: str
+
+#         :param id: The serverside ID of the permission, defaults to
+#           _VIRTUAL_ID_PLACEHOLDER
+#         :type id: int, optional
+#         """
+
+#         if id is not g._VIRTUAL_ID_PLACEHOLDER and id in g._vertex_cache:
+#             return g._vertex_cache[id]
+
+#         else:
+#             return object.__new__(cls)
+
+#     def __init__(self, name: str, comments: str = " ",
+#                  id: int = g._VIRTUAL_ID_PLACEHOLDER):
+#         """
+#         Initialize a Permission instance given the desired attributes.
+
+#         :param name: The name of the permission.
+#         :type name: str
+
+#         :param comments: The comments attached to this permission, defaults to ""
+#         :type comments: str
+
+#         :param id: The serverside ID of the permission, defaults to 
+#           _VIRTUAL_ID_PLACEHOLDER
+#         :type id: int, optional
+#         """
+
+#         self.name = name
+#         self.comments = comments
+
+#         Vertex.__init__(self, id=id)
+
+#     def add(self, strict_add=False):
+#         """Add this permission to the database."""
+
+#         # if already added, raise an error!
+#         if self.added_to_db():
+#             # strictraise(strict_add,VertexAlreadyAddedError,
+#             #     f"Permission with name {self.name}" +
+#             #     "already exists in the database."
+#             # )
+#             return self.from_db(self.name)
+
+#         attributes = {
+#             'name': self.name,
+#             'comments': self.comments
+#         }
+
+#         Vertex.add(self=self, attributes=attributes)
+
+#         print(f"Added {self}")
+#         return self
+
+#     def added_to_db(self) -> bool:
+#         """
+#         Return whether this Permission is added to the database, that is, whether the ID is not the Virtual ID placeholder and perform a query to the database to determine if the vertex has already been added.
+
+#         :return: True if element is added to database, False otherwise.
+#         :rtype: bool
+#         """
+
+#         return (
+#             self.id() != g._VIRTUAL_ID_PLACEHOLDER or (\
+#                 g.t.V().has('category', Permission.category)\
+#                    .has('name', self.name).count().next() == 1 \
+#             )
+#         )
+
+#     @classmethod
+#     def from_db(cls, name: str):
+#         """Query the database and return a Permission instance based on permission :param name.
+
+#         :param name: The name of the permission.
+#         :type name: str
+
+#         :return: A Permission instance with the correct name, comments, and ID.
+#         :rtype: Permission
+#         """
+
+#         try:
+#             d = g.t.V().has('category', Permission.category)\
+#                    .has('name', name) \
+#                    .as_('v').valueMap().as_('props')\
+#                    .select('v').id_().as_('id') \
+#                    .select('props', 'id').next()
+#         except StopIteration:
+#             raise PermissionNotAddedError
+
+#         props, id = d['props'], d['id']
+#         print(props)
+
+#         Vertex._cache_vertex(
+#             Permission(
+#                 name=name,
+#                 comments=props['comments'][0],
+#                 id=id
+#             )
+#         )
+
+#         return g._vertex_cache[id]
+
+#     @classmethod
+#     def from_id(cls, id: int):
+#         """ Query the database and return a Permission instance based on the ID.
+
+#         :param id: The serverside ID of the Permission vertex.
+#         :type id: int
+
+#         :return: Return a Perimssion from that ID.
+#         :rtype: Permission
+#         """
 
-    :ivar name: The name of the permission.
-    :ivar comments: Comments about the permission.
-    """
+#         if id not in g._vertex_cache:
+#             d = g.t.V(id).valueMap().next()
+
+#             Vertex._cache_vertex(
+#                 Permission(
+#                     name=d['name'][0],
+#                     comments=d['comments'][0],
+#                     id=id
+#                 )
+#             )
+
+#         return g._vertex_cache[id]
 
-    category: str = 'permission'
 
-    name: str
-    comments: str
+# class UserGroup(Vertex):
+#     """ The representation of a user group.
 
-    def __new__(cls, name: str, comments: str = '',
-                id: int = g._VIRTUAL_ID_PLACEHOLDER):
-        """
-        Return a Permission instance given the desired attributes.
+#     :ivar name: The name of the user group.
+#     :ivar comments: The comments assocaited with the group.
+#     :ivar permission: A list of Perimssion instances associated with this group.
+#     """
 
-        :param name: The name of the permission.
-        :type name: str
-
-        :param comments: The comments attached to this permission, defaults to ""
-        :type comments: str
-
-        :param id: The serverside ID of the permission, defaults to
-          _VIRTUAL_ID_PLACEHOLDER
-        :type id: int, optional
-        """
+#     category: str = 'user_group'
+
+#     name: str
+#     comments: str
+#     permission: List[Permission]
+
+#     def __init__(self, name: str, comments: str, permission: List[Permission],
+#                  id: int = g._VIRTUAL_ID_PLACEHOLDER):
 
-        if id is not g._VIRTUAL_ID_PLACEHOLDER and id in g._vertex_cache:
-            return g._vertex_cache[id]
+#         self.name = name
+#         self.comments = comments
+#         self.permission = permission
 
-        else:
-            return object.__new__(cls)
-
-    def __init__(self, name: str, comments: str = " ",
-                 id: int = g._VIRTUAL_ID_PLACEHOLDER):
-        """
-        Initialize a Permission instance given the desired attributes.
+#         if len(self.permission) == 0:
+#             raise UserGroupZeroPermissionError(
+#                 f"No permission were specified for user group {name}"
+#             )
 
-        :param name: The name of the permission.
-        :type name: str
-
-        :param comments: The comments attached to this permission, defaults to ""
-        :type comments: str
-
-        :param id: The serverside ID of the permission, defaults to 
-          _VIRTUAL_ID_PLACEHOLDER
-        :type id: int, optional
-        """
+#         Vertex.__init__(self=self, id=id)
 
-        self.name = name
-        self.comments = comments
+#     def add(self, strict_add=False):
+#         """
+#         Add this UserGroup instance to the database.
+#         """
 
-        Vertex.__init__(self, id=id)
+#         if self.added_to_db():
+#             # strictraise(strict_add, VertexAlreadyAddedError,
+#             #     f"UserGroup with name {self.name}" +
+#             #     "already exists in the database."
+#             # )
+#             return self.from_db(self.name)
 
-    def add(self, strict_add=False):
-        """Add this permission to the database."""
+
+#         attributes = {
+#             'name': self.name,
+#             'comments': self.comments
+#         }
 
-        # if already added, raise an error!
-        if self.added_to_db():
-            strictraise(strict_add,VertexAlreadyAddedError,
-                f"Permission with name {self.name}" +
-                "already exists in the database."
-            )
-            return self.from_db(self.name)
+#         Vertex.add(self=self, attributes=attributes)
 
-        attributes = {
-            'name': self.name,
-            'comments': self.comments
-        }
+#         for p in self.permission:
 
-        Vertex.add(self=self, attributes=attributes)
+#             if not p.added_to_db():
+#                 p.add()
 
-        print(f"Added {self}")
-        return self
+#             e = RelationGroupAllowedPermission(
+#                 inVertex=p,
+#                 outVertex=self
+#             )
+
+#             e.add()
+#         print(f"Added {self}")
+#         return self
 
-    def added_to_db(self) -> bool:
-        """
-        Return whether this Permission is added to the database, that is, whether the ID is not the Virtual ID placeholder and perform a query to the database to determine if the vertex has already been added.
+#     def added_to_db(self) -> bool:
+#         """Return whether this UserGroup is added to the database, that is, whether the ID is not the virtual ID placeholder and perform a query to the database to determine if the vertex has already been added.
+
+#         :return: True if element is added to database, False otherwise.
+#         :rtype: bool
+#         """
+
+#         return (
+#             self.id() != g._VIRTUAL_ID_PLACEHOLDER or (\
+#                 g.t.V().has('category', UserGroup.category)\
+#                     .has('name', self.name).count().next() == 1 \
+#             )
+#         )
 
-        :return: True if element is added to database, False otherwise.
-        :rtype: bool
-        """
+#     @classmethod
+#     def from_db(cls, name: str):
+#         """Query the database and return a UserGroup instance based on the name :param name:, connected to the necessary Permission instances.
 
-        return (
-            self.id() != g._VIRTUAL_ID_PLACEHOLDER or (\
-                g.t.V().has('category', Permission.category)\
-                   .has('name', self.name).count().next() == 1 \
-            )
-        )
+#         :param name: The name of the UserGroup instance.
+#         :type name: str
+#         """
 
-    @classmethod
-    def from_db(cls, name: str):
-        """Query the database and return a Permission instance based on permission :param name.
 
-        :param name: The name of the permission.
-        :type name: str
+#         try:
+#             d = g.t.V().has('category', UserGroup.category).has('name', name) \
+#                    .project('id', 'attrs', 'permission_ids').by(__.id_()) \
+#                    .by(__.valueMap()) \
+#                    .by(__.both(RelationGroupAllowedPermission.category).id_() \
+#                    .fold()).next()
+#         except StopIteration:
+#             raise UserGroupNotAddedError
 
-        :return: A Permission instance with the correct name, comments, and ID.
-        :rtype: Permission
-        """
+#         id, attrs, perimssion_ids = d['id'], d['attrs'], d['permission_ids']
 
-        try:
-            d = g.t.V().has('category', Permission.category)\
-                   .has('name', name) \
-                   .as_('v').valueMap().as_('props')\
-                   .select('v').id_().as_('id') \
-                   .select('props', 'id').next()
-        except StopIteration:
-            raise PermissionNotAddedError
+#         if id not in g._vertex_cache:
 
-        props, id = d['props'], d['id']
+#             permissions = []
 
-        Vertex._cache_vertex(
-            Permission(
-                name=name,
-                comments=props['comments'][0],
-                id=id
-            )
-        )
+#             for p_id in perimssion_ids:
+#                 permissions.append(Permission.from_id(p_id))
+
+#             Vertex._cache_vertex(
+#                 UserGroup(
+#                     name=name,
+#                     comments=attrs['comments'][0],
+#                     permission=permissions,
+#                     id=id
+#                 )
+#             )
 
-        return g._vertex_cache[id]
+#         return g._vertex_cache[id]
 
-    @classmethod
-    def from_id(cls, id: int):
-        """ Query the database and return a Permission instance based on the ID.
 
-        :param id: The serverside ID of the Permission vertex.
-        :type id: int
+# class User(Vertex):
+#     """ The representation of a user.
 
-        :return: Return a Perimssion from that ID.
-        :rtype: Permission
-        """
+#     :ivar uname: Name used by the user to login.
+#     :ivar pwd_hash: Password is stored after being salted and hashed.
+#     :ivar institution: Name of the institution of the user. 
+#     :ivar allowed_group: Optional allowed user group of the user vertex, as a
+#         list of UserGroup attributes.
+#     """
 
-        if id not in g._vertex_cache:
-            d = g.t.V(id).valueMap().next()
+#     category: str = "user"
 
-            Vertex._cache_vertex(
-                Permission(
-                    name=d['name'][0],
-                    comments=d['comments'][0],
-                    id=id
-                )
-            )
+#     uname: str
+#     pwd_hash: str
+#     institution: str
+#     allowed_group: List[UserGroup] = None
 
-        return g._vertex_cache[id]
+#     def __new__(cls, uname: str, pwd_hash: str, institution: str,
+#                 allowed_group: List[UserGroup] = None,
+#                 id: int = g._VIRTUAL_ID_PLACEHOLDER):
+#         """
+#         Return a User instance given the desired attributes.
 
+#         :param uname: Name used by the user to login.
+#         :type uname: str
 
-class UserGroup(Vertex):
-    """ The representation of a user group.
+#         :param pwd_hash: Password is stored after being salted and hashed.
+#         :type pwd_hash: str
 
-    :ivar name: The name of the user group.
-    :ivar comments: The comments assocaited with the group.
-    :ivar permission: A list of Perimssion instances associated with this group.
-    """
+#         :param institution: Name of the institution of the user.
+#         :type institution: str
 
-    category: str = 'user_group'
-
-    name: str
-    comments: str
-    permission: List[Permission]
+#         :param allowed_group: The UserGroup instance representing the groups
+#           the user is in.
+#         :type user_group: List[UserGroup]
 
-    def __init__(self, name: str, comments: str, permission: List[Permission],
-                 id: int = g._VIRTUAL_ID_PLACEHOLDER):
+#         :param id: The serverside ID of the User, defaults to
+#           _VIRTUAL_ID_PLACEHOLDER
+#         :type id: int,optional 
+#         """
+#         if id is not g._VIRTUAL_ID_PLACEHOLDER and id in g._vertex_cache:
+#             return g._vertex_cache[id]
 
-        self.name = name
-        self.comments = comments
-        self.permission = permission
+#         else:
+#             return object.__new__(cls)
 
-        if len(self.permission) == 0:
-            raise UserGroupZeroPermissionError(
-                f"No permission were specified for user group {name}"
-            )
+#     def __init__(self, uname: str, pwd_hash: str, institution: str,
+#                  allowed_group: List[UserGroup] = None,
+#                  id: int = g._VIRTUAL_ID_PLACEHOLDER):
+#         """
+#         Initialize a User instance given the desired attributes.
 
-        Vertex.__init__(self=self, id=id)
+#         :param uname: Name used by the user to login.
+#         :type uname: str
 
-    def add(self, strict_add=False):
-        """
-        Add this UserGroup instance to the database.
-        """
+#         :param pwd_hash: Password is stored after being salted and hashed.
+#         :type pwd_hash: str
 
-        if self.added_to_db():
-            strictraise(strict_add, VertexAlreadyAddedError,
-                f"UserGroup with name {self.name}" +
-                "already exists in the database."
-            )
-            return self.from_db(self.name)
+#         :param institution: Name of the institution of the user.
+#         :type institution: str
 
+#         :param allowed_group: The UserGroup instance representing the groups the user is in.
+#         :type user_group: List[UserGroup]
 
-        attributes = {
-            'name': self.name,
-            'comments': self.comments
-        }
+#         :param id: The serverside ID of the User, defaults to 
+#           _VIRTUAL_ID_PLACEHOLDER
+#         :type id: int,optional 
+#         """
 
-        Vertex.add(self=self, attributes=attributes)
+#         self.uname = uname
+#         self.pwd_hash = pwd_hash
+#         self.institution = institution
+#         self.allowed_group = allowed_group
 
-        for p in self.permission:
+#         Vertex.__init__(self, id=id)
 
-            if not p.added_to_db():
-                p.add()
+#     def add(self, strict_add=False):
+#         """Add this user to the serverside.
+#         """
 
-            e = RelationGroupAllowedPermission(
-                inVertex=p,
-                outVertex=self
-            )
+#         # If already added, raise an error!
+#         if self.added_to_db():
+#             strictraise(strict_add,VertexAlreadyAddedError,
+#                 f"User with username {self.uname}" +
+#                 "already exists in the database."
+#             )
+#             return self.from_db(self.name)
 
-            e.add()
-        print(f"Added {self}")
-        return self
 
-    def added_to_db(self) -> bool:
-        """Return whether this UserGroup is added to the database, that is, whether the ID is not the virtual ID placeholder and perform a query to the database to determine if the vertex has already been added.
+#         attributes = {
+#             'uname': self.uname,
+#             'pwd_hash': self.pwd_hash,
+#             'institution': self.institution
+#         }
 
-        :return: True if element is added to database, False otherwise.
-        :rtype: bool
-        """
+#         Vertex.add(self, attributes)
 
-        return (
-            self.id() != g._VIRTUAL_ID_PLACEHOLDER or (\
-                g.t.V().has('category', UserGroup.category)\
-                    .has('name', self.name).count().next() == 1 \
-            )
-        )
+#         if self.allowed_group is not None:
 
-    @classmethod
-    def from_db(cls, name: str):
-        """Query the database and return a UserGroup instance based on the name :param name:, connected to the necessary Permission instances.
+#             for gtype in self.allowed_group:
 
-        :param name: The name of the UserGroup instance.
-        :type name: str
-        """
+#                 if not gtype.added_to_db():
+#                     gtype.add()
 
-        try:
-            d = g.t.V().has('category', UserGroup.category).has('name', name) \
-                   .project('id', 'attrs', 'permission_ids').by(__.id_()) \
-                   .by(__.valueMap()) \
-                   .by(__.both(RelationGroupAllowedPermission.category).id_() \
-                   .fold()).next()
-        except StopIteration:
-            raise UserGroupNotAddedError
+#                 e = RelationUserAllowedGroup(
+#                     inVertex=gtype,
+#                     outVertex=self
+#                 )
 
-        id, attrs, perimssion_ids = d['id'], d['attrs'], d['permission_ids']
+#                 e.add()
 
-        if id not in g._vertex_cache:
+#         print(f"Added {self}")
+#         return self
+
 
-            permissions = []
+#     def added_to_db(self) -> bool:
+#         """Return whether this User is added to the database, that is, whether the ID is not the virtual ID placeholder and perform a query to the database if the vertex has already been added.
 
-            for p_id in perimssion_ids:
-                permissions.append(Permission.from_id(p_id))
-
-            Vertex._cache_vertex(
-                UserGroup(
-                    name=name,
-                    comments=attrs['comments'][0],
-                    permission=permissions,
-                    id=id
-                )
-            )
+#         :return: True if element is added to database, False otherwise.
+#         rtype: bool
+#         """
 
-        return g._vertex_cache[id]
+#         return (
+#             self.id() != g._VIRTUAL_ID_PLACEHOLDER or (
+#                 g.t.V().has('category', User.category)\
+#                    .has('uname', self.uname).count().next() > 0
+#             )
+#         )
 
+#     @classmethod
+#     def _attrs_to_user(cls, uname: str, pwd_hash: str, institution: str,
+#                        allowed_group: List[UserGroup] = None,
+#                        id: int = g._VIRTUAL_ID_PLACEHOLDER):
+#         """Given the id and attributes of a User, see if one exists in the cache. If so, return the cached User. Otherwise, create a new one, cache it, and return it.
 
-class User(Vertex):
-    """ The representation of a user.
+#         :param uname: Name used by the user to login.
+#         :type uname: str
 
-    :ivar uname: Name used by the user to login.
-    :ivar pwd_hash: Password is stored after being salted and hashed.
-    :ivar institution: Name of the institution of the user. 
-    :ivar allowed_group: Optional allowed user group of the user vertex, as a
-        list of UserGroup attributes.
-    """
+#         :param pwd_hash: Password is stored after being salted and hashed.
+#         :type pwd_hash: str
 
-    category: str = "user"
+#         :param institution: Name of the institution of the user.
+#         :type institution: str
 
-    uname: str
-    pwd_hash: str
-    institution: str
-    allowed_group: List[UserGroup] = None
+#         :param allowed_group: The UserGroup instance representing the groups the user is in.
+#         :type user_group: List[UserGroup]
 
-    def __new__(cls, uname: str, pwd_hash: str, institution: str,
-                allowed_group: List[UserGroup] = None,
-                id: int = g._VIRTUAL_ID_PLACEHOLDER):
-        """
-        Return a User instance given the desired attributes.
+#         :param id: The serverside ID of the User, defaults to 
+#           _VIRTUAL_ID_PLACEHOLDER
+#         :type id: int,optional 
+#         """
 
-        :param uname: Name used by the user to login.
-        :type uname: str
+#         if id not in g._vertex_cache:
+#             Vertex._cache_vertex(
+#                 User(
+#                     uname=uname,
+#                     pwd_hash=pwd_hash,
+#                     institution=institution,
+#                     allowed_group=allowed_group,
+#                     id=id
+#                 )
+#             )
 
-        :param pwd_hash: Password is stored after being salted and hashed.
-        :type pwd_hash: str
+#         return g._vertex_cache[id]
 
-        :param institution: Name of the institution of the user.
-        :type institution: str
+#     @classmethod
+#     def from_db(cls, uname: str):
+#         """Query the database and return a User instance based on uname
 
-        :param allowed_group: The UserGroup instance representing the groups
-          the user is in.
-        :type user_group: List[UserGroup]
+#         :param uname: Name used by the user to login.
+#         :type uname: str 
+#         """
 
-        :param id: The serverside ID of the User, defaults to
-          _VIRTUAL_ID_PLACEHOLDER
-        :type id: int,optional 
-        """
-        if id is not g._VIRTUAL_ID_PLACEHOLDER and id in g._vertex_cache:
-            return g._vertex_cache[id]
+#         try:
+#             d = g.t.V().has('category', User.category).has('uname', uname) \
+#                    .project('id', 'attrs', 'group_ids').by(__.id_()) \
+#                    .by(__.valueMap()) \
+#                    .by(__.both(RelationUserAllowedGroup.category).id_().fold())\
+#                    .next()
+#         except StopIteration:
+#             raise UserNotAddedError
 
-        else:
-            return object.__new__(cls)
+#         # to access attributes from attrs, do attrs[...][0]
+#         id, attrs, gtype_ids = d['id'], d['attrs'], d['group_ids']
 
-    def __init__(self, uname: str, pwd_hash: str, institution: str,
-                 allowed_group: List[UserGroup] = None,
-                 id: int = g._VIRTUAL_ID_PLACEHOLDER):
-        """
-        Initialize a User instance given the desired attributes.
+#         if id not in g._vertex_cache:
 
-        :param uname: Name used by the user to login.
-        :type uname: str
+#             gtypes = []
 
-        :param pwd_hash: Password is stored after being salted and hashed.
-        :type pwd_hash: str
+#             for gtype_id in gtype_ids:
+#                 gtypes.append(UserGroup.from_id(gtype_id))
 
-        :param institution: Name of the institution of the user.
-        :type institution: str
+#             Vertex._cache_vertex(
+#                 User(
+#                     uname=uname,
+#                     pwd_hash=attrs['pwd_hash'][0],
+#                     institution=attrs['institution'][0],
+#                     allowed_group=gtypes,
+#                     id=id
+#                 )
+#             )
 
-        :param allowed_group: The UserGroup instance representing the groups the user is in.
-        :type user_group: List[UserGroup]
+#         return g._vertex_cache[id]
 
-        :param id: The serverside ID of the User, defaults to 
-          _VIRTUAL_ID_PLACEHOLDER
-        :type id: int,optional 
-        """
+#     @classmethod
+#     def from_id(cls, id: int):
+#         """Query the database and return a User instance based on the ID.
 
-        self.uname = uname
-        self.pwd_hash = pwd_hash
-        self.institution = institution
-        self.allowed_group = allowed_group
+#         :param id: The serverside ID of the User instance vertex.
+#         type id: int
+#         :return: Return a User from that ID.
+#         rtype: User
+#         """
 
-        Vertex.__init__(self, id=id)
+#         if id not in g._vertex_cache:
 
-    def add(self, strict_add=False):
-        """Add this user to the serverside.
-        """
+#             d = g.t.V(id).project('attrs', 'group_ids').by(__.valueMap())\
+#                    .by(__.both(RelationUserAllowedGroup.category).id_().fold())\
+#                    .next()
 
-        # If already added, raise an error!
-        if self.added_to_db():
-            strictraise(strict_add,VertexAlreadyAddedError,
-                f"User with username {self.uname}" +
-                "already exists in the database."
-            )
-            return self.from_db(self.name)
+#             # to access attributes from attrs, do attrs[...][0]
 
+#             attrs, gtype_ids = d['attrs'], d['group_ids']
 
-        attributes = {
-            'uname': self.uname,
-            'pwd_hash': self.pwd_hash,
-            'institution': self.institution
-        }
+#             gtypes = []
 
-        Vertex.add(self, attributes)
+#             for gtype_id in gtype_ids:
+#                 gtypes.append(UserGroup.from_id(gtype_id))
 
-        if self.allowed_group is not None:
+#             Vertex._cache_vertex(
+#                 User(
+#                     uname=attrs['uname'][0],
+#                     pwd_hash=attrs['pwd_hash'][0],
+#                     institution=attrs['institution'][0],
+#                     allowed_group=gtypes,
+#                     id=id
+#                 )
+#             )
 
-            for gtype in self.allowed_group:
-
-                if not gtype.added_to_db():
-                    gtype.add()
-
-                e = RelationUserAllowedGroup(
-                    inVertex=gtype,
-                    outVertex=self
-                )
-
-                e.add()
-
-        print(f"Added {self}")
-        return self
-
-
-    def added_to_db(self) -> bool:
-        """Return whether this User is added to the database, that is, whether the ID is not the virtual ID placeholder and perform a query to the database if the vertex has already been added.
-
-        :return: True if element is added to database, False otherwise.
-        rtype: bool
-        """
-
-        return (
-            self.id() != g._VIRTUAL_ID_PLACEHOLDER or (
-                g.t.V().has('category', User.category)\
-                   .has('uname', self.uname).count().next() > 0
-            )
-        )
-
-    @classmethod
-    def _attrs_to_user(cls, uname: str, pwd_hash: str, institution: str,
-                       allowed_group: List[UserGroup] = None,
-                       id: int = g._VIRTUAL_ID_PLACEHOLDER):
-        """Given the id and attributes of a User, see if one exists in the cache. If so, return the cached User. Otherwise, create a new one, cache it, and return it.
-
-        :param uname: Name used by the user to login.
-        :type uname: str
-
-        :param pwd_hash: Password is stored after being salted and hashed.
-        :type pwd_hash: str
-
-        :param institution: Name of the institution of the user.
-        :type institution: str
-
-        :param allowed_group: The UserGroup instance representing the groups the user is in.
-        :type user_group: List[UserGroup]
-
-        :param id: The serverside ID of the User, defaults to 
-          _VIRTUAL_ID_PLACEHOLDER
-        :type id: int,optional 
-        """
-
-        if id not in g._vertex_cache:
-            Vertex._cache_vertex(
-                User(
-                    uname=uname,
-                    pwd_hash=pwd_hash,
-                    institution=institution,
-                    allowed_group=allowed_group,
-                    id=id
-                )
-            )
-
-        return g._vertex_cache[id]
-
-    @classmethod
-    def from_db(cls, uname: str):
-        """Query the database and return a User instance based on uname
-
-        :param uname: Name used by the user to login.
-        :type uname: str 
-        """
-
-        try:
-            d = g.t.V().has('category', User.category).has('uname', uname) \
-                   .project('id', 'attrs', 'group_ids').by(__.id_()) \
-                   .by(__.valueMap()) \
-                   .by(__.both(RelationUserAllowedGroup.category).id_().fold())\
-                   .next()
-        except StopIteration:
-            raise UserNotAddedError
-
-        # to access attributes from attrs, do attrs[...][0]
-        id, attrs, gtype_ids = d['id'], d['attrs'], d['group_ids']
-
-        if id not in g._vertex_cache:
-
-            gtypes = []
-
-            for gtype_id in gtype_ids:
-                gtypes.append(UserGroup.from_id(gtype_id))
-
-            Vertex._cache_vertex(
-                User(
-                    uname=uname,
-                    pwd_hash=attrs['pwd_hash'][0],
-                    institution=attrs['institution'][0],
-                    allowed_group=gtypes,
-                    id=id
-                )
-            )
-
-        return g._vertex_cache[id]
-
-    @classmethod
-    def from_id(cls, id: int):
-        """Query the database and return a User instance based on the ID.
-
-        :param id: The serverside ID of the User instance vertex.
-        type id: int
-        :return: Return a User from that ID.
-        rtype: User
-        """
-
-        if id not in g._vertex_cache:
-
-            d = g.t.V(id).project('attrs', 'group_ids').by(__.valueMap())\
-                   .by(__.both(RelationUserAllowedGroup.category).id_().fold())\
-                   .next()
-
-            # to access attributes from attrs, do attrs[...][0]
-
-            attrs, gtype_ids = d['attrs'], d['group_ids']
-
-            gtypes = []
-
-            for gtype_id in gtype_ids:
-                gtypes.append(UserGroup.from_id(gtype_id))
-
-            Vertex._cache_vertex(
-                User(
-                    uname=attrs['uname'][0],
-                    pwd_hash=attrs['pwd_hash'][0],
-                    institution=attrs['institution'][0],
-                    allowed_group=gtypes,
-                    id=id
-                )
-            )
-
-        return g._vertex_cache[id]
+#         return g._vertex_cache[id]
