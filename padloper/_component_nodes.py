@@ -1157,7 +1157,9 @@ class Component(Vertex):
         permission_group_pass = ['set_property', 'edit_component']
         permission_group_fail = ['set_property', 'edit_component', 'admin']
         if not check_permission(perms, permission_group_fail):
-            raise Error("no perms")
+            raise NoPermissionsError(
+                "User does not have the required permissions to perform this action."
+                )
 
         if not self.added_to_db():
             raise ComponentNotAddedError(

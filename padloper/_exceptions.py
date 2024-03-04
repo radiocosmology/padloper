@@ -254,3 +254,4 @@ class NoPermissionsError(Error):
     """
     Exception raised when calling method without the required permissions.
     """
+    pass
