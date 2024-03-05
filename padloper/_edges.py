@@ -212,6 +212,25 @@ class RelationFlagSeverity(Edge):
 
         Edge.add(self, attributes={})
 
+class RelationUserGroup(Edge):
+    """
+    Representation of a "rel_user_group" edge
+    """
+
+    category: str = "rel_user_group"
+
+    def __init__(
+        self, inVertex: Vertex, outVertex: Vertex,
+        id: int = g._VIRTUAL_ID_PLACEHOLDER
+    ):
+        Edge.__init__(self=self, id=id,
+                      inVertex=inVertex, outVertex=outVertex)
+    
+    def _add(self):
+        """Add this relation to the serverside
+        """
+        Edge.add(self, attributes={})
+
 
 class RelationUserAllowedGroup(Edge):
     """

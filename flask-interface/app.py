@@ -1868,3 +1868,89 @@ def set_user():
     user.add()
 
     return {'result': True}
+
+@app.route("/api/new_user", methods=['POST'])
+def new_user():
+    val_username = request.form.get('username')
+    val_institution = request.form.get('institution')
+    user = p.User(val_username, val_institution)
+    user.add()
+    # print(user)
+    return {'result': True}
+
+@app.route("/api/new_usergroup", methods=['POST'])
+def new_user_group():
+    val_name = request.form.get('name')
+    # val_values = escape(request.args.get('values'))
+    # values = val_values.split(';')
+    val_permissions = escape(request.form.get('permissions'))
+    permissions = val_permissions.split(';')
+    # print(val_permissions)
+    group = p.UserGroup(val_name, permissions)
+    group._add()
+    # print(a.name)
+    # print(a.permissions)
+    return {'result': True}
+
+@app.route("/api/new_set_usergroup", methods=['POST'])
+def new_set_user_group():
+    """Given the names of the two components to connect, the time to make the
+    connection, the ID of the user making this connection, and the comments
+    associated with the connection, connect the two components.
+
+    The URL parameters are:
+
+    name1 - the name of the first component
+
+    name2 - the name of the second component
+
+    time - the UNIX time for when the connection is made
+
+    uid - the ID of the user that has made the connection
+
+    comments - Comments associated with the connection
+
+    :return: Return a dictionary with a key 'result' and value being a boolean
+    that is True if and only if the components were not already connected
+    beforehand, otherwise, a dictionary with a key 'error'
+    with the corresponding value of appropriate exception.  
+    :rtype: dict
+    """
+    try:
+
+        val_user = escape(request.form.get('user'))
+        val_group = escape(request.form.get('group'))
+        # val_time = int(escape(request.args.get('time')))
+        # val_uid = escape(request.args.get('uid'))
+        # val_comments = escape(request.args.get('comments'))
+        # val_is_replacement = escape(request.args.get('isreplacement'))
+        
+        # val_is_replacement = True if val_is_replacement == 'True' else False
+
+        user, group = p.User.from_db(val_user), p.UserGroup.from_db(val_group)
+
+        # t = tmp_timestamp(val_time, val_uid, val_comments)
+        # c1.connect(c2, t, is_replacement=val_is_replacement)
+        # print('hellohello')
+        # print(val_user, val_group)
+        # print(user, group)
+        user.set_user_group(group)
+        # temp = group.from_id(40964312)
+        # print(temp.name)
+        # res = user.get_user_groups()
+        # print(res)
+        # print(res[0][0].permissions)
+
+        return {'result': True}
+
+    except Exception as e:
+        print(e)
+        return {'error': json.dumps(e, default=str)}
+    
+@app.route("/api/get_permissions", methods=['GET'])
+def get_permissions():
+    val_username = request.args.get('username')
+    user = p.User.from_db(val_username)
+    perms = user.get_permissions()
+    print(perms)
+    return {'result': perms}

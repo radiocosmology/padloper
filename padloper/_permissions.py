@@ -6,8 +6,10 @@ Classes for managing users and permissions.
 
 from typing import Optional, List
 import _global as g
-from _base import Vertex, Edge, strictraise
+from _base import Vertex, strictraise
+from _edges import RelationUserGroup
 from _exceptions import *
+from gremlin_python.process.graph_traversal import __, constant
 
 #import time
 #import re
@@ -18,7 +20,6 @@ from _exceptions import *
 #from attr import attr, attributes
 #from gremlin_python.process.traversal import Order, P, TextP
 #from sympy import true
-#from gremlin_python.process.graph_traversal import __, constant
 
 # TODO:
 # permission_mapping = {
@@ -27,25 +28,25 @@ from _exceptions import *
 
 class User(Vertex):
     """
-    The representaiton of a user vertex. Contains a username attirbute,
+    The representaiton of a user vertex. Contains a name attirbute,
     and institution attribute.
 
-    :ivar username: The username of the user.
+    :ivar name: The username of the user.
     :ivar institution: The institution the user belongs to.
     """
 
     category: str = "User"
 
-    username: str
+    name: str
     institution: str
 
-    def __new__(cls, username: str, institution: str,
+    def __new__(cls, name: str, institution: str,
                 id: int = g._VIRTUAL_ID_PLACEHOLDER):
         """
         Return a User instance given the desired attributes.
 
-        :param username: Name used by the user to login.
-        :type username: str
+        :param name: Name used by the user to login.
+        :type name: str
 
         :param institution: Name of the institution of the user.
         :type institution: str
@@ -64,18 +65,19 @@ class User(Vertex):
         else:
             return object.__new__(cls)
 
-    def __init__(self, id: int, username: str, institution: str):
+    def __init__(self, name: str, institution: str,
+                id: int = g._VIRTUAL_ID_PLACEHOLDER):
         """
         Initialize a User instance.
 
         :param id: The ID of the user.
         :type id: int
-        :param username: The username of the user.
-        :type username: str
+        :param name: The username of the user.
+        :type name: str
         :param institution: The institution the user belongs to.
         :type institution: str
         """
-        self.username = username
+        self.name = name
         self.institution = institution
         super().__init__(id)
 
@@ -86,63 +88,114 @@ class User(Vertex):
         # If already added, raise an error!
         if self.added_to_db():
             strictraise(strict_add, VertexAlreadyAddedError,
-                f"User with username {self.username}" +
-                "already exists in the database."
+                f"User with username {self.name}" +
+                " already exists in the database."
             )
             return self.from_db(self.name)
         
         attributes = {
-            'username': self.username,
+            'name': self.name,
             'institution': self.institution
         }
 
-        super().add(self, attributes)
+        super().add(attributes)
 
-    # def add(self, strict_add=False):
-#         """Add this user to the serverside.
-#         """
+    @classmethod
+    def from_db(cls, name: str):
+        """Query the database and return a User instance based on username
 
-#         # If already added, raise an error!
-#         if self.added_to_db():
-#             strictraise(strict_add, VertexAlreadyAddedError,
-#                 f"User with username {self.username}" +
-#                 "already exists in the database."
-#             )
-#             return self.from_db(self.username)
+        :param name: Name used by the user to login.
+        :type name: str 
+        """
+        try:
+            d = g.t.V().has('category', User.category)\
+                    .has('name', name).as_('v').valueMap()\
+                    .as_('props').select('v').id().as_('id').select('props', 'id')\
+                    .next()
+        except:
+            raise UserNotAddedError
+        
+        props, id_ = d['props'], d['id']
 
+        Vertex._cache_vertex(
+            User(
+                name=name,
+                institution=props['institution'][0],
+                id=id_
+            )
+        )
 
-#         attributes = {
-#             'username': self.username,
-#             'institution': self.institution
-#         }
-
-#         Vertex.add(self, attributes)
-
-#         if self.allowed_group is not None:
-
-#             for gtype in self.allowed_group:
-
-#                 if not gtype.added_to_db():
-#                     gtype.add()
-
-#                 e = RelationUserAllowedGroup(
-#                     inVertex=gtype,
-#                     outVertex=self
-#                 )
-
-#                 e.add()
-
-#         print(f"Added {self}")
-#         return self
+        return g._vertex_cache[id_]
+    
 
     def added_to_db(self) -> bool:
         """Check if this user is added to the database."""
         return (
             self.id() != g._VIRTUAL_ID_PLACEHOLDER or
-            g.t.V(self.id()).count().next() > 0
+            g.t.V().has('category', User.category)\
+            .has('name', self.name)\
+            .count().next() > 0
         )
     
+    def set_user_group(self, group, strict_add: bool=True):
+        """
+        Given a UserGroup :param group, connect this User to this group.
 
+        :param group: A UserGroup to connect this User to
+        :type group: UserGroup
+        """
+        if not self.added_to_db():
+            raise UserNotAddedError(
+                f"User {self.name} has not yet been added to the database."
+            )
+        
+        if not group.added_to_db():
+            raise UserGroupNotAddedError(
+                f"UserGroup {group.name} has not yet been added to the database."
+            )
+        
+        group_edge = RelationUserGroup(
+            inVertex=self,
+            outVertex=group
+        )
+
+        group_edge._add()
+
+    def get_user_groups(self):
+    
+        if not self.added_to_db():
+            raise UserNotAddedError(
+                f"User {self.name} has not yet been added to the database."
+            )
+
+        query = g.t.V(self.id()).bothE(RelationUserGroup.category)\
+                .as_('e').valueMap().as_('edge_props')\
+                .select('e').otherV().id_().as_('vertex_id')\
+                .select('edge_props', 'vertex_id').toList()
+        
+        # Build up the result 
+        result = []
+        for q in query:
+            group = UserGroup.from_id(q['vertex_id'])
+            edge = RelationUserGroup(
+                inVertex=group,
+                outVertex=self,
+            )
+            result.append([group, edge])
+
+        return result
+
+    def get_permissions(self) -> set:
+        # store perms
+        perms = []
+
+        groups = self.get_user_groups()
+        for group in groups:
+            group_perms = group[0].permissions
+            perms.extend(group_perms)
+
+        # # make unique
+        return list(set(perms))
 
 
 class UserGroup(Vertex):
@@ -152,91 +205,134 @@ class UserGroup(Vertex):
     :ivar name: The name of the user group.
     """
 
-    category = "UserGroup"
+    category: str = "UserGroup"
+    
+    name: str
+    permissions: List[str]
 
-    def __init__(self, id: int, name: str):
+    # def __new__(cls, name: str, permissions: List[str],
+    #             id: int = g._VIRTUAL_ID_PLACEHOLDER):
+    #     """
+    #     Return a UserGroup instance given the name, and permission list.
+
+    #     :param name: The name of the user group.
+    #     type name: str
+
+    #     :param permissions: The list of permissions, as strings.
+    #     :type permissions: List[str]
+    #     """
+    #     if id is not g._VIRTUAL_ID_PLACEHOLDER and id in g._vertex_cache:
+    #         return g._vertex_cache[id]
+    #     else:
+    #         return object.__new__(cls)
+
+    def __init__(self, name: str, permissions: List[str],
+                 id: int = g._VIRTUAL_ID_PLACEHOLDER):
         """
         Initialize a UserGroup instance.
 
-        :param id: The ID of the user group.
-        :type id: int
         :param name: The name of the user group.
         :type name: str
-        """
-        super().__init__(id)
-        self.name = name
-
-    def add(self):
-        """
-        Add the user group vertex to the JanusGraph database.
-        """
-        super().add({"name": self.name})
-
-
-class UserToUserGroup(Edge):
-    """
-    Represents an edge connecting a user to a user group in JanusGraph.
-    """
-
-    category = "UserToUserGroup"
-
-    def __init__(self, id: int, user: User, user_group: UserGroup):
-        """
-        Initialize a UserToUserGroup instance.
-
-        :param id: The ID of the edge.
+        :param permissions: This list of permissions.
+        :type permissions: List[str]
+        :param id: The ID of the user group.
         :type id: int
-        :param user: The user vertex connected by the edge.
-        :type user: User
-        :param user_group: The user group vertex connected by the edge.
-        :type user_group: UserGroup
         """
-        super().__init__(id, user, user_group)
+        # If the user passes a string rather than a list of strings, fix it.
+        if isinstance(permissions, str):
+            permisisons = [permissions]
 
-    def add(self):
+        self.name = name
+        self.permissions = permissions
+        Vertex.__init__(self, id=id)
+
+    def _add(self, strict_add=False):
         """
-        Add the edge connecting a user to a user group in JanusGraph.
+        Add the user group vertex to the serverside database.
         """
-        super().add({})
+        if self.added_to_db():
+            strictraise(strict_add, VertexAlreadyAddedError,
+                f"UserGroup with name {self.name}" +
+                " already exists in the database."
+            )
+            return self.from_db(self.name)
+        
+        attributes = {
+            'name': self.name,
+            'values': self.permissions
+        }
 
-    # def add(self, strict_add=False):
-#         """Add this user to the serverside.
-#         """
+        Vertex.add(self, attributes)
+        return self.from_db(self.name)
+    
+    def as_dict(self):
+        """"Return a dictionary representation of this UserGroup."""
+        return {
+            'permissions': self.permissions
+        }
+    
+    
+    @classmethod
+    def from_db(cls, name: str):
+        """Query the databse and return a UserGroup instance based on name.
+        
+        :param name: Name used to identify the UserGroup
+        :type name: str
+        """
+        try:
+            d = g.t.V().has('category', UserGroup.category)\
+                    .has('name', name).as_('v').valueMap()\
+                    .as_('props').select('v').id().as_('id').select('props', 'id')\
+                    .next()
+        except:
+            raise UserGroupNotAddedError
+        
+        props, id_ = d['props'], d['id']
 
-#         # If already added, raise an error!
-#         if self.added_to_db():
-#             strictraise(strict_add, VertexAlreadyAddedError,
-#                 f"User with username {self.username}" +
-#                 "already exists in the database."
-#             )
-#             return self.from_db(self.username)
+        Vertex._cache_vertex(
+            UserGroup(
+                name=name,
+                permissions=props['values'][0],
+                id=id_
+            )
+        )
+
+        return g._vertex_cache[id_]
+    
+    @classmethod
+    def from_id(self, id: int):
+        """Given and ID of a serverside UserGroup vertex, return a UserGroup instance."""
+
+        if id not in g._vertex_cache:
+            d = g.t.V(id).project('permissions', 'name')\
+            .by(__.properties('values').value().fold())\
+            .by(__.values('name')).next()
+
+            permissions, name = d['permissions'], d['name']
+
+            if not isinstance(permissions, list):
+                permissions = [permissions]
 
 
-#         attributes = {
-#             'username': self.username,
-#             'institution': self.institution
-#         }
+            Vertex._cache_vertex(
+                UserGroup(
+                    name=name,
+                    permissions=permissions,
+                    id=id
+                )
+            )
 
-#         Vertex.add(self, attributes)
+        return g._vertex_cache[id]
 
-#         if self.allowed_group is not None:
-
-#             for gtype in self.allowed_group:
-
-#                 if not gtype.added_to_db():
-#                     gtype.add()
-
-#                 e = RelationUserAllowedGroup(
-#                     inVertex=gtype,
-#                     outVertex=self
-#                 )
-
-#                 e.add()
-
-#         print(f"Added {self}")
-#         return self
-
-
+    
+    def added_to_db(self) -> bool:
+        """Check if this UserGroup is added to the database."""
+        return (
+            self.id() != g._VIRTUAL_ID_PLACEHOLDER or
+            g.t.V().has('category', UserGroup.category)\
+            .has('name', self.name)\
+            .count().next() > 0
+        )
 
 
 
