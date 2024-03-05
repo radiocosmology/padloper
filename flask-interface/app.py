@@ -51,6 +51,25 @@ def read_filters(filters):
 # @app.route("/api/components_id/<id>")
 # def get_component_by_id(id):
 #     return str(Component.from_id(escape(id)))
+    
+def set_perms(username):
+    """ Get user permissions from the database, and set as a sessions variable. 
+    """
+    try:
+        user = p.User.from_db(username)
+        perms = user.get_permissions()
+        if perms:
+            session['perms'] = perms
+        else:
+            session['perms'] = []
+
+
+    except Exception as e:
+
+        # For printing the exception in the terminal.
+        print(e)
+
+        return {'error': json.dumps(e, default=str)}
 
 
 @app.route("/api/login", methods=['POST'])
@@ -81,6 +100,7 @@ def login():
 
             if data.get('login') == username:
                 session['user'] = username
+                set_perms(username)
                 return ({'message': f'Logged in as {username}'}), 200
             else:
                 return ({'error': 'Username does not match'}), 401
@@ -88,7 +108,7 @@ def login():
         # print(session.get('user'))
 
         return ({'error': 'Failed to retrieve user data from proxy server'}), 500
-    
+    # TODO: make more specific
     except Exception as e:
 
         # For printing the exception in the terminal.
@@ -154,6 +174,7 @@ def get_component_list():
     :rtype: dict
     """
     print(session.get('user'))
+    print(session.get('perms'))
 
     # extract the component range from the url parameters
     component_range = escape(request.args.get('range'))
@@ -905,7 +926,7 @@ def set_component_property():
         property = p.Property(values=values, type=property_type)
 
         t = tmp_timestamp(val_time, val_uid, val_comments)
-        component.set_property(property, start=t) 
+        component.set_property(property, start=t, permissions=session.get('perms')) 
 
         return {'result': True}
 
@@ -1033,7 +1054,8 @@ def disable_component_property():
     component = p.Component.from_db(val_name)
 
     component.disable_property(
-        propertyTypeName=val_property_type
+        propertyTypeName=val_property_type,
+        permissions=session.get('perms')
     )
 
     return {'result': True}
@@ -1077,7 +1099,7 @@ def add_component_connection():
         c1, c2 = p.Component.from_db(val_name1), p.Component.from_db(val_name2)
 
         t = tmp_timestamp(val_time, val_uid, val_comments)
-        c1.connect(c2, t, is_replacement=val_is_replacement)
+        c1.connect(c2, t, is_replacement=val_is_replacement, permissions=session.get('perms'))
 
         return {'result': True}
 

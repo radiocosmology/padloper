@@ -22,9 +22,31 @@ from gremlin_python.process.graph_traversal import __, constant
 #from sympy import true
 
 # TODO:
-# permission_mapping = {
-#     'method' : []
-# }
+permission_mapping = {
+    'Component;set_property' : ['perm1', 'perm2'],
+    'Component;disable_property' : ['perm1', 'perm2', 'perm3'],
+    'Component;connect': ['perm1', 'perm4', 'perm10']
+}
+
+def check_permission(permission, class_name, method_name):
+    print('in check perms')
+    print(permission)
+    print(class_name)
+    print(method_name)
+    print(permission_mapping[f"{class_name};{method_name}"])
+    if permission is None:
+        # check for global variable
+        # if user is a string:
+            # user = User.from_db(user)
+        # permission = user.get_permissions()
+        pass
+    else:
+        # raise error if user does not have all required permissions
+        if not all(perm in permission for perm in permission_mapping[f"{class_name};{method_name}"]):
+             raise NoPermissionsError(
+                "User does not have the required permissions to perform this action."
+                )
+
 
 class User(Vertex):
     """
@@ -353,17 +375,6 @@ class Permission(object):
     def get_user_id(self):
         return self._user_id
 
-def check_permission(permission, permission_group):
-    if permission is None:
-        # check for global variable
-        # g.get_user or g.get_permissions 
-        pass
-    else:
-        # TODO: raise error here
-        #  raise NoPermissionsError(
-        #         "User does not have the required permissions to perform this action."
-        #         )
-        return all(perm in permission._permission_list for perm in permission_group)
 
 # class Permission(Vertex):
 #     """ The representation of a permission.
