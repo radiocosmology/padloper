@@ -29,16 +29,12 @@ permission_mapping = {
 }
 
 def check_permission(permission, class_name, method_name):
-    print('in check perms')
-    print(permission)
-    print(class_name)
-    print(method_name)
-    print(permission_mapping[f"{class_name};{method_name}"])
     if permission is None:
         # check for global variable
         # if user is a string:
-            # user = User.from_db(user)
+            # user = User.from_db(name=user)
         # permission = user.get_permissions()
+        # check permissions
         pass
     else:
         # raise error if user does not have all required permissions

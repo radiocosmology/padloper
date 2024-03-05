@@ -15,7 +15,7 @@ from _edges import RelationVersionAllowedType, RelationVersion,\
                    RelationProperty, RelationPropertyType,\
                    RelationFlagComponent, RelationConnection
 from _permissions import Permission, check_permission
-from method_decorator import method_name_decorator
+from padloper.method_decorators import authenticated
 
 #import re
 #from unicodedata import name
@@ -1139,13 +1139,12 @@ class Component(Vertex):
 
         return [Component.from_id(q) for q in query.toList()]
 
-    @method_name_decorator
+    @authenticated
     def set_property(
         self, property, start: Timestamp, end: Timestamp = None, 
         force_property: bool = False,
         strict_add: bool = False,
         permissions = None,
-        *args, **kwargs
     ):
         """
         Given a property :param property:, MAKE A _VIRTUAL COPY of it,
@@ -1166,7 +1165,6 @@ class Component(Vertex):
         #         )
         # print(kwargs['method_name'])
         # print(self.__class__.__name__)
-        check_permission(permissions, self.__class__.__name__, kwargs['method_name'])
 
         if not self.added_to_db():
             raise ComponentNotAddedError(
@@ -1363,11 +1361,10 @@ class Component(Vertex):
             start=start
         )
 
-    @method_name_decorator
+    @authenticated
     def disable_property(self, propertyTypeName,
                          disable_time: int = int(time.time()),                         
-                         permissions = None,
-                         *args, **kwargs):
+                         permissions = None):
         """Disables the property in the serverside
 
         :param propertyTypeName: The name of the property type being replaced.
@@ -1378,7 +1375,6 @@ class Component(Vertex):
         :type disable_time: int
 
         """
-        check_permission(permissions, self.__class__.__name__, kwargs['method_name'])
 
         g.t.V(self.id()).bothE(RelationProperty.category)\
            .has('active', True)\
@@ -1388,11 +1384,11 @@ class Component(Vertex):
            .property('active', False).property('time_disabled', disable_time)\
            .next()
 
-    @method_name_decorator
+    @authenticated
     def connect(
         self, component, start: Timestamp, end: Timestamp = None,
         strict_add: bool = True, is_replacement: bool = False,
-        permissions = None, *args, **kwargs
+        permissions = None
     ):
         """Given another Component :param component:,
         connect the two components.
@@ -1411,7 +1407,6 @@ class Component(Vertex):
            this one.
         :type is_replacement: bool
         """
-        check_permission(permissions, self.__class__.__name__, kwargs['method_name'])
 
         if is_replacement:
             raise RuntimeError(f"Is_replacement feature not implemented yet. {is_replacement}")
