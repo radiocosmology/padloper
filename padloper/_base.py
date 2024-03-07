@@ -201,8 +201,6 @@ class Vertex(Element):
                 if va.is_list:
                     if not isinstance(val, list):
                         val = [val]
-                        raise TypeError("Was expecting a list for \"%s\"."%\
-                                        va.name)
                     if len(val) < va.list_len[0] or len(val) > va.list_len[1]:
                         raise TypeError("List length must be in the range "\
                                         "[%d, %d]\n." % (va.list_len[0],
@@ -372,18 +370,10 @@ class Vertex(Element):
         TODO: Raise an error if already cached, because that'd mean there's
         an implementation error with the caching.
         """
-        print("Caching.")
-        try:
-            print(getattr(vertex, vertex.primary_attr), vertex.id())
-        except TypeError:
-            print("No primary", vertex.__class__.__name__, vertex.id())
         if vertex.id() not in g._vertex_cache:
-            print("Caching: ID not found.")
             if not vertex.in_db():
-                print("Yep.")
-                # Do nothing?
-                return
-            print("Done!")
+                raise NotInDatabase("Was expecting Vertex ID to be in the "\
+                                    "database since it has an ID.")
             g._vertex_cache[vertex.id()] = vertex
         return g._vertex_cache[vertex.id()]
 
@@ -398,7 +388,6 @@ class Vertex(Element):
         :return: self
         :rtype: self
         """
-        print("Starting add.")
         if self.in_db():
             strictraise(strict_add, VertexAlreadyAddedError,
                         f"Vertex already exists in the database.")
@@ -420,36 +409,29 @@ class Vertex(Element):
 
             edges = []
             for a in self._vertex_attrs:
-                print("....", a.name)
                 if issubclass(a.type, Vertex):
                     # If the "attribute" is a connexion to another vertex, then
                     # create the edge; also create the vertex if it does not
                     # exist.
-                    print("Vertex.")
                     if getattr(self, a.name):
                         if a.is_list:
                             attr_list = getattr(self, a.name)
                         else:
                             attr_list = [getattr(self, a.name)]
                         for attr in attr_list:
-                            print("Checking attr.in_db(): ", attr)
                             if not attr.in_db():
-                                print("Adding in add()!!!!!!!")
                                 attr.add()
                             edges.append(
                                 a.edge_class(inVertex=attr, outVertex=self))
                     elif not a.optional:
                         raise ValueError("%s should not be None!" % a.name)
                 elif isinstance(getattr(self, a.name), list):
-                    print("Attribute.")
                     for val in getattr(self, a.name):
                         traversal = traversal.property(a.name, val)
-                    print("Done.")
                 else:
                     traversal = traversal.property(a.name, 
                                                    getattr(self, a.name))
             v = traversal.next()
-            print("Traversal.next() completed.")
 
             # this is NOT the id of a Vertex instance,
             # but rather the id of the GremlinPython vertex returned
@@ -457,7 +439,6 @@ class Vertex(Element):
             self._set_id(v.id)
 
             # Add any edges.
-            print("==================== ", edges)
             for e in edges:
                 e.add()
 
@@ -475,7 +456,6 @@ class Vertex(Element):
         """
 
         # If already added.
-#        if self.added_to_db():
         if self.in_db():
             raise VertexAlreadyAddedError(
                     f"Vertex already exists in the database."
@@ -530,10 +510,7 @@ class Vertex(Element):
         :return: True if element is added to database, False otherwise.
         :rtype: bool
         """
-        print("Entering in_db() …")
-
         if strict_check:
-            
             if self.id() != g._VIRTUAL_ID_PLACEHOLDER:
                 q = g.t.V(self.id())
                 if not allow_removed:
@@ -552,7 +529,6 @@ class Vertex(Element):
                 # If there is no primary attribute, then we have to check
                 # everything …
                 q = q.as_("v")
-                print("=================== BIG CHECK!! =====================")
                 for va in self._vertex_attrs:
                     if issubclass(va.type, Vertex):
                         # N.B. Todo: need to ensure that the connecting vertex
@@ -572,16 +548,13 @@ class Vertex(Element):
                         q = q.select("v")
                     else:
                         if va.is_list:
-                            q = q.not_(__.has(va.name, getattr(self, va.name)))
+                            q = q.not_( \
+                                  __.has(va.name, 
+                                         P.without(getattr(self, va.name))))
                         else:
                             q = q.has(va.name, getattr(self, va.name))
-                Continue HERE: property adding/checking _should_ work. Remove
-                print statements from everywhere
-                print()
-                print(q)
 
             n = q.count().next()
-            print("----> ", n)
             assert(n == 0 or n == 1)
             if n == 0:
                 return False
@@ -625,34 +598,34 @@ class Vertex(Element):
                         .property('uid_disabled', _get_user()).iterate()
 
         # List of all the properties of the outgoing edges from the self vertex.
-        o_edges_values_list = g.t.V(self.id()).outE().valueMap().toList()
+        o_edges_values_list = g.t.V(self.id()).bothE().valueMap().toList()
 
         # List of all the outgoing vertices connected to the self vertex.
-        o_vertices_list = g.t.V(self.id()).out().id_().toList()
+        o_vertices_list = g.t.V(self.id()).both().id_().toList()
 
         # These edges are not copied when replacing a vertex because these edges
         # are selected by the user while adding a new component version, or a
         # new property type, or a new flag or a new component respectively.
         for i in range(len(o_vertices_list)):
 
-            if o_edges_values_list[i]['category'] == \
-                RelationVersionAllowedType.category:
-                continue
-            if o_edges_values_list[i]['category'] == \
-                RelationPropertyAllowedType.category:
-                continue
-            if o_edges_values_list[i]['category'] == \
-                RelationFlagSeverity.category:
-                continue
-            if o_edges_values_list[i]['category'] == \
-                RelationFlagType.category:
-                continue
-            if o_edges_values_list[i]['category'] == \
-                RelationComponentType.category:
-                continue
-            if o_edges_values_list[i]['category'] == \
-                RelationVersion.category:
-                continue
+#            if o_edges_values_list[i]['category'] == \
+#                RelationVersionAllowedType.category:
+#                continue
+#            if o_edges_values_list[i]['category'] == \
+#                RelationPropertyAllowedType.category:
+#                continue
+#            if o_edges_values_list[i]['category'] == \
+#                RelationFlagSeverity.category:
+#                continue
+#            if o_edges_values_list[i]['category'] == \
+#                RelationFlagType.category:
+#                continue
+#            if o_edges_values_list[i]['category'] == \
+#                RelationComponentType.category:
+#                continue
+#            if o_edges_values_list[i]['category'] == \
+#                RelationVersion.category:
+#                continue
 
             # Adds an outgoing edge from the new vertex to the vertices in the
             # list o_vertices_list.
@@ -819,13 +792,10 @@ class Edge(Element):
         :type attributes: dict
         """
 
-        print("Adding EDGE!!")
         if not self.inVertex.in_db():
-            print(" --> In", self.inVertex)
             self.inVertex.add()
 
         if not self.outVertex.in_db():
-            print(" --> Out", self.outVertex)
             self.outVertex.add()
 
         if self.added_to_db():
@@ -856,7 +826,6 @@ class Edge(Element):
                 traversal = traversal.property(key, attributes[key])
 
             e = traversal.next()
-            print(e.id, traversal)
 
             self._set_id(e.id)
 

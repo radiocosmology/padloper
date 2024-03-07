@@ -159,6 +159,7 @@ ptype_1 = ptype_1.replace(p.PropertyType(name=tnm("ptype_1"), units="cm",
                                          n_values=2,
                                          allowed_types=[type_a, type_b]))
 ptype_2 = p.PropertyType(name=tnm("ptype_2"), units="cm", n_values=2,
+                         allowed_regex="^\d+\.[1-9]$",
                          allowed_types=[type_a]).add()
 ptype_3 = p.PropertyType(name=tnm("ptype_3"), units="cm", n_values=1,
                          allowed_types=[type_c]).add()
@@ -168,6 +169,56 @@ assert(ptype_1 == ptype_1_copy)
 print("Testing as_dict().")
 print("    ", str(ptype_1.as_dict()).replace(test_prefix, ""))
 
-prop_1 = p.Property(type=ptype_1, values=["123", "124"]).add()
-print(prop_1.in_db())
-print(p.Property(type=ptype_1, values=["123", "124"]).in_db())
+prop_1a = p.Property(type=ptype_1, values=["123", "124"])
+if prop_1a.in_db():
+    raise RuntimeError("Property should not be in the DB!")
+prop_1a.add()
+prop_1b = p.Property(type=ptype_1, values=["15.5", "17.5"]).add()
+prop_2 = p.Property(type=ptype_2, values=["11.2", "12.1"]).add()
+prop_3 = p.Property(type=ptype_3, values="19").add()
+try:
+    p.Property(type=ptype_3, values=["1", "2"]).add()
+    raise RuntimeError("Should not have been able to add with wrong number "\
+                       "of values!")
+except TypeError:
+    pass
+try:
+    p.Property(type=ptype_2, values=["11", "13.4"]).add()
+    raise RuntimeError("Should not have been able to add property that does "\
+                       "not respect regex!")
+except ValueError:
+    pass
+prop_1a_bis = p.Property(type=ptype_1, values=["123", "124"])
+if not prop_1a_bis.in_db():
+    raise RuntimeError("Property should be in DB.")
+
+comp_a1.set_property(prop_1a, t1, end=t3)
+comp_a1.set_property(prop_2, t1)
+try:
+    comp_a1.set_property(prop_1b, t2)
+    raise RuntimeError("Should not have been able to set property that is "\
+                       "already set.")
+except p.PropertyIsSameError:
+    pass
+try:
+    comp_a1.set_property(prop_3, t1)
+    raise RuntimeError("Should not be able to set property with wrong "\
+                       "allowed component type.")
+except p.PropertyWrongType:
+    pass
+
+comp_a2 = p.Component.from_db(tnm("comp_a2")) # Because type_a was replaced …
+comp_a2.set_property(prop_1a, t2)
+comp_a2.unset_property(prop_1a, t2)
+comp_a2.set_property(prop_1b, t3)
+comp_a2.set_property(prop_1a, t5) # Unsets prop_1b and sets prop_1a at t4.
+try:
+    comp_a2.set_property(prop_1a, t4)
+    raise RuntimeError("Should not be able to set a property when another "\
+                       "property is already set with an end time.")
+except p.PropertyIsSameError:
+    pass
+
+# Test flags.
+ftype_severe = p.FlagType(name="severe", comments="Something's broken!!")
+ftype_comment = p.FlagType(name="comment")

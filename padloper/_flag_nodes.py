@@ -16,7 +16,7 @@ from sympy import true
 from gremlin_python.process.graph_traversal import __, constant
 
 import _global as g
-from _base import Vertex, Timestamp, strictraise
+from _base import Vertex, VertexAttr, Timestamp, strictraise
 from _component_nodes import Component
 from _exceptions import *
 from _edges import RelationFlagType, RelationFlagComponent, RelationFlagSeverity
@@ -31,182 +31,11 @@ class FlagType(Vertex):
     """
 
     category: str = "flag_type"
-
-    name: str
-    comments: str
-
-    def __new__(
-        cls, name: str, comments: str = "", id: int = g._VIRTUAL_ID_PLACEHOLDER
-    ):
-        """
-        Return a FlagType instance given the desired attributes.
-
-        :param name: The name of the flag type
-        :type name: str
-
-        :param comments: The comments attached to this flag type, defaults to ""
-        :type comments: str
-
-        :param id: The serverside ID of the FlagType,
-        defaults to _VIRTUAL_ID_PLACEHOLDER
-        :type id: int, optional
-        """
-
-        if id is not g._VIRTUAL_ID_PLACEHOLDER and id in g._vertex_cache:
-            return g._vertex_cache[id]
-
-        else:
-            return object.__new__(cls)
-
-    def __init__(
-        self, name: str, comments: str = "", id: int = g._VIRTUAL_ID_PLACEHOLDER
-    ):
-        """Initialize a FlagType instance given the desired attributes.
-
-        :param name: The name of the flag type
-        :type name: str
-
-        :param comments: The comments attached to this flag type, defaults to ""
-        :type comments: str
-
-        :param id: The serverside ID of the FlagType,
-        defaults to _VIRTUAL_ID_PLACEHOLDER
-        :type id: int, optional
-        """
-
-        self.name = name
-        self.comments = comments
-
-        Vertex.__init__(self, id=id)
-
-    def as_dict(self):
-        """Return a dictionary representation."""
-        return {
-            "name": self.name,
-            "comments": self.comments
-        }
-
-    def add(self, strict_add=False):
-        """Add this FlagType to the database.
-        """
-
-        # If already added.
-        if self.added_to_db():
-            strictraise(strict_add, VertexAlreadyAddedError,
-                f"FlagType with name {self.name} " +
-                "already exists in the database."
-            )
-            return self.from_db(self.name)
-
-        attributes = {
-            'name': self.name,
-            'comments': self.comments
-        }
-
-        Vertex.add(self=self, attributes=attributes)
-
-        print(f"Added {self}")
-        return self
-
-    def replace(self, newVertex, disable_time: int = int(time.time())):
-        """Replaces the FlagType vertex in the serverside.
-
-        :param newVertex: The new FlagType vertex that is replacing the old
-             FlagType vertex.
-        :type newVertex: FlagType
-
-        :param disable_time: When this vertex was disabled in the database (UNIX
-            time).
-        :type disable_time: int
-        """
-
-        # Step 1
-        g.t.V(self.id())\
-           .property('active', False)\
-           .property('time_disabled', disable_time).iterate()
-
-        # Step 2
-        newVertex.add()
-
-        # Step 3
-        newVertexId = newVertex.id()
-
-        Vertex.replace(self=self, id=newVertexId)
-
-    def added_to_db(self) -> bool:
-        """Return whether this FlagType is added to the database,
-        that is, whether the ID is not the virtual ID placeholder and perform a 
-        query to the database to determine if the vertex has already been added.
-
-        :return: True if element is added to database, False otherwise.
-        :rtype: bool
-        """
-
-        return (
-            self.id() != g._VIRTUAL_ID_PLACEHOLDER or (\
-                g.t.V().has('category', FlagType.category)\
-                   .has('name', self.name)\
-                   .has('active', True).count().next() == 1 \
-            )
-        )
-
-    @classmethod
-    def from_db(cls, name: str):
-        """Query the database and return a FlagType instance based on
-        flag type of name :param name:.
-
-        :param name: The name of the flag type.
-        :type name: str
-
-        :return: A FlagType instance with the correct name, comments, and 
-        ID.
-        :rtype: FlagType
-        """
-
-        try:
-            d = g.t.V().has('active', True).has('category', FlagType.category) \
-                   .has('name', name).as_('v').valueMap().as_('props') \
-                   .select('v').id_().as_('id').select('props', 'id').next()
-        except StopIteration:
-            raise FlagTypeNotAddedError
-
-        props, id = d['props'], d['id']
-
-        Vertex._cache_vertex(
-            FlagType(
-                name=name,
-                comments=props['comments'][0],
-                id=id
-            )
-        )
-
-        return g._vertex_cache[id]
-
-    @classmethod
-    def from_id(cls, id: int):
-        """Query the database and return a FlagType instance based on
-        the ID.
-
-        :param id: The serverside ID of the FlagType vertex.
-        :type id: int
-
-        :return: Return a FlagType from that ID.
-        :rtype: FlagType
-        """
-
-        if id not in g._vertex_cache:
-
-            d = g.t.V(id).valueMap().next()
-
-            Vertex._cache_vertex(
-                FlagType(
-                    name=d['name'][0],
-                    comments=d['comments'][0],
-                    id=id
-                )
-            )
-
-        return g._vertex_cache[id]
+    _vertex_attrs: list = [
+        VertexAttr("name", str),
+        VertexAttr("comments", str, optional=True, default="")
+    ]
+    primary_attr = "name"
 
     @classmethod
     def _attrs_to_type(cls, name: str, comments: str, id: int):
@@ -610,6 +439,10 @@ class Flag(Vertex):
     """
 
     category: str = "flag"
+    _vertex_attr: list = [
+        VertexAttr("name", str),
+        VertexAttr("comments", str)
+    ]
 
     name: str
     comments: str

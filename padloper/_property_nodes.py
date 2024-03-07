@@ -275,8 +275,10 @@ class Property(Vertex):
 
         try:
             if len(kwargs["values"]) != kwargs["type"].n_values:
-                raise TypeError("%d values are required." %\
-                                kwargs["type"].n_values)
+                nn = kwargs["type"].n_values
+                raise TypeError("%d value%s %s required." %\
+                                (nn, "" if nn == 1 else "s",
+                                 "is" if nn == 1 else "are"))
         except KeyError:
             raise TypeError("%s() missing required keyword \"type\"." %\
                             self.__class__.__name__)
@@ -284,9 +286,9 @@ class Property(Vertex):
         for val in kwargs["values"]:
             if not bool(re.fullmatch(kwargs["type"].allowed_regex, val)):
                 raise ValueError(
-                    f"Property with values {values} of type " +
-                    f"{type.name} does not match regex " +
-                    f"{type.allowed_regex} for value {val}."
+                    f"Property with value {val} of type " +
+                    f"{kwargs['type'].name} does not match regex " +
+                    f"{kwargs['type'].allowed_regex}."
                 )
 
     def _add(self):

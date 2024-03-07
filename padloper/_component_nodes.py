@@ -16,14 +16,6 @@ from _edges import RelationVersionAllowedType, RelationVersion,\
                    RelationProperty, RelationPropertyType,\
                    RelationFlagComponent, RelationConnection
 
-#import re
-#from unicodedata import name
-#import warnings
-#from xmlrpc.client import boolean
-#from attr import attr, attributes
-#from sympy import true
-#from typing import Optional, List
-
 class ComponentType(Vertex):
     """
     The representation of a component type.
@@ -38,23 +30,6 @@ class ComponentType(Vertex):
         VertexAttr("comments", str, optional=True, default="")
     ]
     primary_attr: str = "name"
-
-    def added_to_db(self) -> bool:
-        """Return whether this ComponentType is added to the database,
-        that is, whether the ID is not the virtual ID placeholder and perform 
-        a query to the database to determine if the 
-        vertex has already been added.
-
-        :return: True if element is added to database, False otherwise.
-        :rtype: bool
-        """
-        return (
-            self.id() != g._VIRTUAL_ID_PLACEHOLDER or (
-                g.t.V().has('category', ComponentType.category)\
-                   .has('name', self.name)\
-                   .has('active', True).count().next() > 0
-            )
-        )
 
     @classmethod
     def get_names_of_types_and_versions(cls):
@@ -210,26 +185,6 @@ class ComponentVersion(Vertex):
         VertexAttr("type", ComponentType, edge_class=RelationVersionAllowedType)
     ]
     primary_attr: str = "name"
-
-    def added_to_db(self) -> bool:
-        """Return whether this ComponentVersion is added to the database,
-        that is, whether the ID is not the virtual ID placeholder and perform 
-        a query to the database to determine if the vertex 
-        has already been added.
-
-        :return: True if element is added to database, False otherwise.
-        :rtype: bool
-        """
-
-        return (
-            self.id() != g._VIRTUAL_ID_PLACEHOLDER or (
-                self.type.added_to_db() and
-                g.t.V(self.type.id())\
-                   .both(RelationVersionAllowedType.category)
-                   .has('name', self.name)\
-                   .has('active', True).count().next() > 0
-            )
-        )
 
     @classmethod
     def get_list(
@@ -450,12 +405,12 @@ class Component(Vertex):
         """
         from _property_nodes import Property
 
-        if not self.added_to_db():
+        if not self.in_db(strict_check=False):
             raise ComponentNotAddedError(
                 f"Component {self.name} has not yet been added to the database."
             )
 
-        if not type.added_to_db():
+        if not type.in_db(strict_check=False):
             raise PropertyTypeNotAddedError(
                 f"Property type {type.name} of component " +
                  "{self.name} " +
@@ -490,7 +445,7 @@ class Component(Vertex):
         """
         from _property_nodes import Property
 
-        if not self.added_to_db():
+        if not self.in_db(strict_check=False):
             raise ComponentNotAddedError(
                 f"Component {self.name} has not yet been added to the database."
             )
@@ -539,12 +494,12 @@ class Component(Vertex):
         :rtype: list[RelationProperty]
         """
 
-        if not self.added_to_db():
+        if not self.in_db(strict_check=False):
             raise ComponentNotAddedError(
                 f"Component {self.name} has not yet been added to the database."
             )
 
-        if not type.added_to_db():
+        if not type.in_db(strict_check=False):
             raise PropertyTypeNotAddedError(
                 f"Property type {type.name} of component {self.name} " +
                 "has not yet been added to the database."
@@ -579,7 +534,7 @@ class Component(Vertex):
         :rtype: [Flag]
         """
 
-        if not self.added_to_db():
+        if not self.in_db(strict_check=False):
             raise ComponentNotAddedError(
                 f"Component {self.name} has not yet been added to the database."
             )
@@ -604,7 +559,7 @@ class Component(Vertex):
         :rtype: [Component]
         """
 
-        if not self.added_to_db():
+        if not self.in_db(strict_check=False):
             raise ComponentNotAddedError(
                 f"Component {self.name} has not yet been added to the database."
             )
@@ -621,7 +576,7 @@ class Component(Vertex):
         :rtype: [Component]
         """
 
-        if not self.added_to_db():
+        if not self.in_db(strict_check=False):
             raise ComponentNotAddedError(
                 f"Component {self.name} has not yet been added to the database."
             )
@@ -646,12 +601,12 @@ class Component(Vertex):
         """
         from _property_nodes import Property
 
-        if not self.added_to_db():
+        if not self.in_db(strict_check=False):
             raise ComponentNotAddedError(
                 f"Component {self.name} has not yet been added to the database."
             )
 
-        if (self.type not in property.type.types):
+        if (self.type not in property.type.allowed_types):
             raise PropertyWrongType(
                 f"Property type {property.type.name} is not applicable to "\
                 f"component type {self.type.name}."
@@ -713,18 +668,20 @@ class Component(Vertex):
                         "set 'force_property' parameter to True to bypass."
                     )
 
-        prop_copy = Property(
-            values=property.values,
-            type=property.type
-        )
-
-        prop_copy._add()
-
-        e = RelationProperty(inVertex=prop_copy, outVertex=self, start=start,
+#        prop_copy = Property(
+#            values=property.values,
+#            type=property.type
+#        )
+#
+#        prop_copy._add()
+#
+#        e = RelationProperty(inVertex=prop_copy, outVertex=self, start=start,
+#                             end=end)
+        e = RelationProperty(inVertex=property, outVertex=self, start=start,
                              end=end)
         e.add()
 
-        return prop_copy
+        return property #_copy
 
     def unset_property(self, property, end: Timestamp):
         """
@@ -751,12 +708,12 @@ class Component(Vertex):
         :type comments: str, optional
         """
 
-        if not self.added_to_db():
+        if not self.in_db(strict_check=False):
             raise ComponentNotAddedError(
                 f"Component {self.name} has not yet been added to the database."
             )
 
-        if not property.added_to_db():
+        if not property.in_db(strict_check=False):
             raise PropertyNotAddedError(
                 f"Property of component {self.name} " +
                 f"of values {property.values} being unset " +
@@ -965,12 +922,12 @@ class Component(Vertex):
         """
 
         # Done for troubleshooting (so you know which component is not added?)
-        if not self.added_to_db():
+        if not self.in_db(strict_check=False):
             raise ComponentNotAddedError(
                 f"Component {self.name} has not yet been added to the database."
             )
 
-        if not comp.added_to_db():
+        if not comp.in_db(strict_check=False):
             raise ComponentNotAddedError(
                 f"Component {comp.name} has not yet " +
                 "been added to the database."
@@ -1032,7 +989,7 @@ class Component(Vertex):
 
         :rtype: list[RelationConnection]
         """
-        if not self.added_to_db():
+        if not self.in_db(strict_check=False):
             raise ComponentNotAddedError(
                 f"Component {self.name} has not yet been added to the database."
             )
@@ -1041,7 +998,7 @@ class Component(Vertex):
                 comp = [comp]
             comp_id = [c.id() for c in comp]
             for c in comp:
-                if not c.added_to_db():
+                if not c.in_db(strict_check=False):
                     raise ComponentNotAddedError(
                         f"Component {c.name} has not yet " +
                         "been added to the database."
@@ -1129,7 +1086,7 @@ class Component(Vertex):
         """
         raise RuntimeError("Deprecated! Use get_connections().")
 
-        if not self.added_to_db():
+        if not self.in_db(strict_check=False):
             raise ComponentNotAddedError(
                 f"Component {self.name} has not yet been added to the database."
             )
@@ -1212,12 +1169,12 @@ class Component(Vertex):
         """
         raise RuntimeError("Deprecated! Use get_connections().")
         # Done for troubleshooting (so you know which component is not added?)
-        if not self.added_to_db():
+        if not self.in_db(strict_check=False):
             raise ComponentNotAddedError(
                 f"Component {self.name} has not yet been added to the database."
             )
 
-        if not component.added_to_db():
+        if not component.in_db(strict_check=False):
             raise ComponentNotAddedError(
                 f"Component {component.name} has not yet " +
                 "been added to the database."
@@ -1256,12 +1213,12 @@ class Component(Vertex):
         raise RuntimeError("Deprecated! Use get_connections().")
 
         # Done for troubleshooting (so you know which component is not added?)
-        if not self.added_to_db():
+        if not self.in_db(strict_check=False):
             raise ComponentNotAddedError(
                 f"Component {self.name} has not yet been added to the database."
             )
 
-        if not component.added_to_db():
+        if not component.in_db(strict_check=False):
             raise ComponentNotAddedError(
                 f"Component {component.name} has not yet " +
                 "been added to the database."
@@ -1298,7 +1255,7 @@ class Component(Vertex):
         """
         raise RuntimeError("Deprecated! Use get_connections().")
 
-        if not self.added_to_db():
+        if not self.in_db(strict_check=False):
             raise ComponentNotAddedError(
                 f"Component {self.name} has not yet been added to the database."
             )
@@ -1335,12 +1292,12 @@ class Component(Vertex):
         :type comp: Component
         """
 
-        if not self.added_to_db():
+        if not self.in_db():
             raise ComponentNotAddedError(
                 f"Component {self.name} has not yet been added to the database."
             )
 
-        if not comp.added_to_db():
+        if not comp.in_db():
             raise ComponentNotAddedError(
                 f"Component {comp.name} has not yet" +
                 "been added to the database."
@@ -1389,12 +1346,12 @@ class Component(Vertex):
         """
 
         # Done for troubleshooting (so you know which component is not added?)
-        if not self.added_to_db():
+        if not self.in_db(strict_check=False):
             raise ComponentNotAddedError(
                 f"Component {self.name} has not yet been added to the database."
             )
 
-        if not comp.added_to_db():
+        if not comp.in_db(strict_check=False):
             raise ComponentNotAddedError(
                 f"Component {comp.name} has not yet" +
                 "been added to the database."
@@ -1433,25 +1390,6 @@ class Component(Vertex):
            .where(__.otherV().hasId(otherComponent.id()))\
            .property('active', False)\
            .property('time_disabled', disable_time).next()
-
-    def added_to_db(self) -> bool:
-        """Return whether this Component is added to the database,
-        that is, whether the ID is not the virtual ID placeholder and perform a 
-        query to the database to determine if the vertex has already been added.
-
-        :return: True if element is added to database, False otherwise.
-        :rtype: bool
-        """
-#        return self.in_db()
-
-        return (
-            self.id() != g._VIRTUAL_ID_PLACEHOLDER or (
-                g.t.V()
-                   .has('category', Component.category)
-                   .has('name', self.name)\
-                   .has('active', True).count().next() > 0
-            )
-        )
 
     @classmethod
     def get_list(cls,
