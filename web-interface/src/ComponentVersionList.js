@@ -210,7 +210,7 @@ function ComponentVersionList() {
             allowOrdering: true,
         },
         {
-            id: 'allowed_type', 
+            id: 'type', 
             label: 'Allowed Type',
             allowOrdering: true,
         },
@@ -230,10 +230,10 @@ function ComponentVersionList() {
      */
     let tableRowContent = elements.map((e) => [
         e.name,
-        e.allowed_type.name,
+        e.type.name,
         e.comments,
         <ComponentVersionReplaceButton
-        allowed_type = {e.allowed_type.name}
+        type = {e.type.name}
         componentTypes={componentTypes}
         name = {e.name}
         toggleReload={toggleReload}

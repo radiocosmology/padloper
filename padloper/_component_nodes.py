@@ -53,8 +53,9 @@ class ComponentType(Vertex):
                 .order().by('name', Order.asc) \
                 .project('name', 'versions') \
                 .by(__.values('name')) \
-                .by(__.both(RelationVersionAllowedType.category)
-                  .order().by('name', Order.asc).values('name').fold()
+                .by(__.both(RelationVersionAllowedType.category) \
+                      .has("active", True) \
+                      .order().by('name', Order.asc).values('name').fold()
                 ).toList()
 
         return ts
@@ -123,8 +124,13 @@ class ComponentType(Vertex):
 
         # Component type query to DB
         cts = traversal.range(range[0], range[1]) \
-            .project('id', 'name', 'comments') \
+            .project("id", "time_added", "uid_added", "time_disabled", 
+                     "uid_disabled", "name", "comments") \
             .by(__.id_()) \
+            .by(__.values('time_added')) \
+            .by(__.values('uid_added')) \
+            .by(__.values('time_disabled')) \
+            .by(__.values('uid_disabled')) \
             .by(__.values('name')) \
             .by(__.values('comments')) \
             .toList()
@@ -132,15 +138,7 @@ class ComponentType(Vertex):
         component_types = []
 
         for entry in cts:
-            id, name, comments = entry['id'], entry['name'], entry['comments']
-
-            component_types.append(
-                ComponentType._attrs_to_type(
-                    id=id,
-                    name=name,
-                    comments=comments
-                )
-            )
+            component_types.append(ComponentType._from_attrs(entry))
 
         return component_types
 
@@ -281,29 +279,23 @@ class ComponentVersion(Vertex):
 
         # Component type query to DB
         cts = traversal.range(range[0], range[1]) \
-            .project('id', 'name', 'comments', 'type_id') \
+            .project("id", "time_added", "uid_added", "time_disabled", 
+                     "uid_disabled", "name", "comments", "type") \
             .by(__.id_()) \
+            .by(__.values('time_added')) \
+            .by(__.values('uid_added')) \
+            .by(__.values('time_disabled')) \
+            .by(__.values('uid_disabled')) \
             .by(__.values('name')) \
             .by(__.values('comments')) \
-            .by(__.both(RelationVersionAllowedType.category).id_()) \
+            .by(__.both(RelationVersionAllowedType.category) \
+                  .has("active", True).id_().fold()) \
             .toList()
 
         component_versions = []
 
         for entry in cts:
-            id, name, comments, type_id = entry['id'], entry['name'], \
-                entry['comments'], entry['type_id']
-
-            t = ComponentType.from_id(id=type_id)
-
-            component_versions.append(
-                ComponentVersion._attrs_to_version(
-                    id=id,
-                    name=name,
-                    comments=comments,
-                    type=t
-                )
-            )
+            component_versions.append(ComponentVersion._from_attrs(entry))
         return component_versions
 
     @classmethod
@@ -1523,19 +1515,22 @@ class Component(Vertex):
             )
 
         cs = traversal.range(range[0], range[1]) \
-            .project('id', 'name', 'type_id', 'rev_ids', 'time_added',
-                     'uid_added') \
+            .project("id", "time_added", "uid_added", "time_disabled",
+                      "uid_disabled", "name", "type", "version") \
             .by(__.id_()) \
-            .by(__.values('name')) \
-            .by(__.both(RelationComponentType.category).id_()) \
-            .by(__.both(RelationVersion.category).id_().fold()) \
             .by(__.values('time_added')) \
-            .toList()
+            .by(__.values('uid_added')) \
+            .by(__.values('time_disabled')) \
+            .by(__.values('uid_disabled')) \
+            .by(__.values('name')) \
+            .by(__.both(RelationComponentType.category).id_().fold()) \
+            .by(__.both(RelationVersion.category).id_().fold())
+        cs = cs.toList()
 
         comps = []
 
         for d in cs:
-            comps.apppend(Component._from_attrs(d))
+            comps.append(Component._from_attrs(d))
 
         return comps
 

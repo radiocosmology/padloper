@@ -271,13 +271,18 @@ class Vertex(Element):
              .by(__.values("uid_disabled"))
         for a in cls._vertex_attrs:
             if issubclass(a.type, Vertex):
-                d = d.by(__.both(a.edge_class.category).id_().fold())
+                if allow_disabled:
+                    d = d.by(__.both(a.edge_class.category).id_().fold())
+                else:
+                    d = d.by(__.both(a.edge_class.category) \
+                         .has("active", True).id_().fold())
             else:
                 d = d.by(__.values(a.name))
         try:
             d = d.next()
         except StopIteration:
-            raise NotInDatabase
+            raise NotInDatabase("Could not find %s in the DB." %\
+                                primary_attr)
 
         return cls._from_attrs(d) 
 
@@ -310,7 +315,10 @@ class Vertex(Element):
                 if issubclass(a.type, Vertex):
                     d = d.by(__.both(a.edge_class.category).id_().fold())
                 else:
-                    d = d.by(__.values(a.name))
+                    if a.is_list:
+                        d = d.by(__.values(a.name).fold())
+                    else:
+                        d = d.by(__.values(a.name))
             try:
                 d = d.next()
             except StopIteration:
@@ -608,24 +616,24 @@ class Vertex(Element):
         # new property type, or a new flag or a new component respectively.
         for i in range(len(o_vertices_list)):
 
-#            if o_edges_values_list[i]['category'] == \
-#                RelationVersionAllowedType.category:
-#                continue
-#            if o_edges_values_list[i]['category'] == \
-#                RelationPropertyAllowedType.category:
-#                continue
-#            if o_edges_values_list[i]['category'] == \
-#                RelationFlagSeverity.category:
-#                continue
-#            if o_edges_values_list[i]['category'] == \
-#                RelationFlagType.category:
-#                continue
-#            if o_edges_values_list[i]['category'] == \
-#                RelationComponentType.category:
-#                continue
-#            if o_edges_values_list[i]['category'] == \
-#                RelationVersion.category:
-#                continue
+            if o_edges_values_list[i]['category'] == \
+                RelationVersionAllowedType.category:
+                continue
+            if o_edges_values_list[i]['category'] == \
+                RelationPropertyAllowedType.category:
+                continue
+            if o_edges_values_list[i]['category'] == \
+                RelationFlagSeverity.category:
+                continue
+            if o_edges_values_list[i]['category'] == \
+                RelationFlagType.category:
+                continue
+            if o_edges_values_list[i]['category'] == \
+                RelationComponentType.category:
+                continue
+            if o_edges_values_list[i]['category'] == \
+                RelationVersion.category:
+                continue
 
             # Adds an outgoing edge from the new vertex to the vertices in the
             # list o_vertices_list.
@@ -718,7 +726,8 @@ class Vertex(Element):
                 if a.is_list:
                     ret[a.name] = [x.as_dict() for x in getattr(self, a.name)]
                 else:
-                    ret[a.name] = getattr(self, a.name).as_dict()
+                    if getattr(self, a.name) is not None:
+                        ret[a.name] = getattr(self, a.name).as_dict()
             else:
                 ret[a.name] = getattr(self, a.name)
         return ret

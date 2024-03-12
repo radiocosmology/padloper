@@ -18,7 +18,8 @@ from gremlin_python.process.graph_traversal import __, constant
 
 from _base import Vertex, VertexAttr, strictraise
 from _component_nodes import ComponentType
-from _edges import RelationPropertyType, RelationPropertyAllowedType
+from _edges import RelationPropertyType, RelationPropertyAllowedType, \
+                   RelationComponentType
 from _exceptions import *
 
 from typing import Optional, List
@@ -145,34 +146,34 @@ class PropertyType(Vertex):
 
         # Component type query to DB
         pts = traversal.range(range[0], range[1]) \
-            .project('id', 'attrs', 'type_ids') \
-            .by(__.id_()) \
-            .by(__.valueMap()) \
-            .by(__.both(RelationPropertyAllowedType.category).id_().fold()) \
-            .toList()
+                       .project("id", "time_added", "uid_added",
+                                "time_disabled", "uid_disabled", "name",
+                                "units", "allowed_regex", "n_values",
+                                "allowed_types", "comments") \
+                       .by(__.id_()) \
+                       .by(__.values('time_added')) \
+                       .by(__.values('uid_added')) \
+                       .by(__.values('time_disabled')) \
+                       .by(__.values('uid_disabled')) \
+                       .by(__.values('name')) \
+                       .by(__.values("units")) \
+                       .by(__.values("allowed_regex")) \
+                       .by(__.values("n_values")) \
+                       .by(__.both(RelationPropertyAllowedType.category) \
+                                   .id_().fold()) \
+                       .by(__.values("comments")) \
+                       .toList()
 
         types = []
 
         for entry in pts:
-            id, ctype_ids, attrs = entry['id'], entry['type_ids'], \
-                entry['attrs']
-
             ctypes = []
 
-            for ctype_id in ctype_ids:
+            for ctype_id in entry["allowed_types"]:
                 ctypes.append(ComponentType.from_id(ctype_id))
 
-            types.append(
-                PropertyType._attrs_to_type(
-                    id=id,
-                    name=attrs['name'][0],
-                    units=attrs['units'][0],
-                    allowed_regex=attrs['allowed_regex'][0],
-                    n_values=attrs['n_values'][0],
-                    comments=attrs['comments'][0],
-                    allowed_types=ctypes,
-                )
-            )
+            print(entry)
+            types.append(PropertyType._from_attrs(entry))
 
         return types
 
@@ -318,33 +319,6 @@ class Property(Vertex):
             'values': self.values,
             'type': self.type.as_dict()
         }
-
-    @classmethod
-    def from_id(cls, id: int):
-        """Given an ID of a serverside property vertex, 
-        return a Property instance. 
-        """
-
-        if id not in g._vertex_cache:
-
-            d = g.t.V(id).project('values', 'ptype_id') \
-                   .by(__.properties('values').value().fold()) \
-                   .by(__.both(RelationPropertyType.category).id_()).next()
-
-            values, ptype_id = d['values'], d['ptype_id']
-
-            if not isinstance(values, list):
-                values = [values]
-
-            Vertex._cache_vertex(
-                Property(
-                    values=values,
-                    type=PropertyType.from_id(ptype_id),
-                    id=id
-                )
-            )
-
-        return g._vertex_cache[id]
 
     def __repr__(self):
         return f"{self.category}: {self.type.name} ({self.values})"

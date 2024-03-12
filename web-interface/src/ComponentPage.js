@@ -1097,7 +1097,8 @@ function ComponentPage() {
                                     Component version
                                 </Typography>
                                 <Typography variant="h5">
-                                    {component.version.name}
+                                    {component.version ?
+                                        component.version.name : "N/A"}
                                 </Typography>
                             </Stack>
                         </Grid>
