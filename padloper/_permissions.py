@@ -33,15 +33,23 @@ def check_permission(permission, class_name, method_name):
         # check for global variable
         # if user is a string:
             # user = User.from_db(name=user)
-        # permission = user.get_permissions()
+        
+        # user to be stored as a user vertex
+        try:
+            user = g._user['id']
+        except Exception as e:
+            raise NoPermissionsError(
+            "User not set."
+            )
+        
+        permission = user.get_permissions()
         # check permissions
-        pass
-    else:
-        # raise error if user does not have all required permissions
-        if not all(perm in permission for perm in permission_mapping[f"{class_name};{method_name}"]):
-             raise NoPermissionsError(
-                "User does not have the required permissions to perform this action."
-                )
+    
+    # raise error if user does not have all required permissions
+    if not all(perm in permission for perm in permission_mapping[f"{class_name};{method_name}"]):
+            raise NoPermissionsError(
+            "User does not have the required permissions to perform this action."
+            )
 
 
 class User(Vertex):
@@ -134,6 +142,8 @@ class User(Vertex):
             raise UserNotAddedError
         
         props, id_ = d['props'], d['id']
+        
+        # TODO: get user groups
 
         Vertex._cache_vertex(
             User(
@@ -214,6 +224,32 @@ class User(Vertex):
 
         # # make unique
         return list(set(perms))
+    
+    @classmethod
+    def get_list(cls):
+        # t = g.t.V().has('category', User.category).toList()
+        # print(t)
+        traversal = g.t.V().has('category', User.category)
+        us = traversal.range(0, 1000)\
+            .project('id', 'name', 'institution')\
+            .by(__.id_()) \
+            .by(__.values('name')) \
+            .by(__.values('institution')) \
+            .toList()
+
+        users = []
+        for entry in us:
+            id, name, institution = entry['id'], entry.get('name'), entry.get('institution')
+            users.append(User(name, institution))
+
+        return users
+    
+    def as_dict(self):
+        """"Return a dictionary representation of this User."""
+        return {
+            'name': self.name,
+            'institution': self.institution
+        }
 
 
 class UserGroup(Vertex):
@@ -286,6 +322,7 @@ class UserGroup(Vertex):
     def as_dict(self):
         """"Return a dictionary representation of this UserGroup."""
         return {
+            'name': self.name,
             'permissions': self.permissions
         }
     

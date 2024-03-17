@@ -148,6 +148,20 @@ function Header() {
                     ]}
                 />
 
+                <HeaderMenuButton
+                    name={"Manage Users"}
+                    links={[
+                        {
+                            name: 'User Management', 
+                            link: `/manage/users`
+                        },
+                        {
+                            name: 'User Group Management',
+                            link: `/manage/users/groups`
+                        }
+                    ]}
+                />
+
                 {/* <a onClick={() => console.log('clicked!')}> */}
                 {/* </a> */}
 

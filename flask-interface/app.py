@@ -1976,3 +1976,19 @@ def get_permissions():
     perms = user.get_permissions()
     print(perms)
     return {'result': perms}
+
+
+@app.route("/api/get_user_list", methods=["GET"])
+def get_user_list():
+    # pass
+    users = p.User.get_list()
+    # return {"result": [c.as_dict(bare=True) for c in components]}
+    # return {'result': [p.User.as_dict(u) for u in users]}
+    return {'result': [p.User.as_dict(u) for u in users]} 
+
+@app.route("/api/get_user_groups", methods=["GET"])
+def get_user_groups():
+    val_username = request.args.get('username')
+    user = p.User.from_db(val_username)
+    groups = user.get_user_groups()
+    return {'result': [gr[0].as_dict() for gr in groups]}

@@ -1384,7 +1384,7 @@ class Component(Vertex):
            .property('active', False).property('time_disabled', disable_time)\
            .next()
 
-    @authenticated
+    # @authenticated
     def connect(
         self, component, start: Timestamp, end: Timestamp = None,
         strict_add: bool = True, is_replacement: bool = False,

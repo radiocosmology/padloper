@@ -45,6 +45,8 @@ def set_user(uid):
     :param uid: The user ID.
     :type attributes: string
     """
+    # TODO: get user from db
+
     g._user = dict()
     g._user["id"] = uid
 
