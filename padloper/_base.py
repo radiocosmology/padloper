@@ -730,6 +730,9 @@ class Vertex(Element):
                         ret[a.name] = getattr(self, a.name).as_dict()
             else:
                 ret[a.name] = getattr(self, a.name)
+        for x in ["time_added", "uid_added", "time_disabled", "uid_disabled",
+                  "active", "replacement"]:
+            ret[x] = getattr(self, x)
         return ret
 
     def _in_vertex_cache(self) -> bool:
