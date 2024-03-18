@@ -109,8 +109,8 @@ function UserGroupManagementPage() {
             )}
             <div style={{ marginBottom: '20px' }}>
                 {selectedUserGroup && (
-                    <Button variant="contained" color="secondary" onClick={handleSetProperties}>
-                        Set Properties
+                    <Button variant="contained" color="primary" onClick={handleSetProperties}>
+                        Set Permissions
                     </Button>
                 )}
             </div>

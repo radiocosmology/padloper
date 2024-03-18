@@ -388,11 +388,23 @@ class UserGroup(Vertex):
             .has('name', self.name)\
             .count().next() > 0
         )
+    
+    @classmethod
+    def get_list(cls):
+        traversal = g.t.V().has('category', UserGroup.category)
+        gps = traversal.range(0, 1000)\
+            .project('id', 'name', 'permissions')\
+            .by(__.id_())\
+            .toList()
+        
+        groups = []
+        for entry in gps:
+            id = entry['id']
+            UserGroup.from_id(id)
+            groups.append(UserGroup.from_id(id))
 
-
-
-
-
+        return groups
+        
 
 class Permission(object):
     _permission_list = []

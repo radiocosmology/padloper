@@ -1992,3 +1992,8 @@ def get_user_groups():
     user = p.User.from_db(val_username)
     groups = user.get_user_groups()
     return {'result': [gr[0].as_dict() for gr in groups]}
+
+@app.route("/api/get_user_group_list", methods=["GET"])
+def get_user_group_list():
+    groups = p.UserGroup.get_list()
+    return {'result': [p.UserGroup.as_dict(gr) for gr in groups]}
