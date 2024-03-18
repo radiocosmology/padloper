@@ -55,7 +55,13 @@ function UserManagementPage() {
             { id: 3, name: 'Group 3' },
             // Add more user groups as needed
         ];
-        setUserGroups(mockUserGroups);
+        let input = '/api/get_user_group_list'
+        fetch(input).then(
+            res => res.json()
+        ).then(data => {
+            setUserGroups(data.result);
+        })
+        // setUserGroups(mockUserGroups);
     };
 
     const handleUserSelect = (event, value) => {

@@ -363,7 +363,7 @@ class UserGroup(Vertex):
             .by(__.properties('values').value().fold())\
             .by(__.values('name')).next()
 
-            permissions, name = d['permissions'], d['name']
+            permissions, name = d['permissions'], d.get('name')
 
             if not isinstance(permissions, list):
                 permissions = [permissions]
