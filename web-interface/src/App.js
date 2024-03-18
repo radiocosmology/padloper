@@ -19,6 +19,7 @@ import Login from './Login.js';
 import { OAuthContext, useOAuthContext } from './contexts/OAuthContext.js';
 import UserManagementPage from './UserManagement.js';
 import UserGroupManagementPage from './UserGroupManagement.js';
+import UserCreatePage from './UserCreate.js';
 
 /**
  * The main page where the header and site contents are rendered,
@@ -122,8 +123,16 @@ function App() {
             }
           />
 
+          <Route 
+            exact={true}
+            path="/users"
+            element={
+              <UserCreatePage />
+            }
+          />
+
          
-          
+
           {
             /**
              * A ReactFlowProvider is wrapped around the visualizer to

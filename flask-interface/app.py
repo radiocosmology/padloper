@@ -1922,15 +1922,9 @@ def new_set_user_group():
 
     The URL parameters are:
 
-    name1 - the name of the first component
+    user - the name of the user
 
-    name2 - the name of the second component
-
-    time - the UNIX time for when the connection is made
-
-    uid - the ID of the user that has made the connection
-
-    comments - Comments associated with the connection
+    group - the name of the group
 
     :return: Return a dictionary with a key 'result' and value being a boolean
     that is True if and only if the components were not already connected
@@ -1942,26 +1936,13 @@ def new_set_user_group():
 
         val_user = escape(request.form.get('user'))
         val_group = escape(request.form.get('group'))
-        # val_time = int(escape(request.args.get('time')))
-        # val_uid = escape(request.args.get('uid'))
-        # val_comments = escape(request.args.get('comments'))
-        # val_is_replacement = escape(request.args.get('isreplacement'))
+        groups = val_group.split(';')
         
-        # val_is_replacement = True if val_is_replacement == 'True' else False
-
-        user, group = p.User.from_db(val_user), p.UserGroup.from_db(val_group)
-
-        # t = tmp_timestamp(val_time, val_uid, val_comments)
-        # c1.connect(c2, t, is_replacement=val_is_replacement)
-        # print('hellohello')
-        # print(val_user, val_group)
-        # print(user, group)
-        user.set_user_group(group)
-        # temp = group.from_id(40964312)
-        # print(temp.name)
-        # res = user.get_user_groups()
-        # print(res)
-        # print(res[0][0].permissions)
+        user = p.User.from_db(val_user)
+        # user, group = p.User.from_db(val_user), p.UserGroup.from_db(val_group)
+        for gr in groups:
+            group = p.UserGroup.from_db(gr)
+            user.set_user_group(group)
 
         return {'result': True}
 

@@ -19,16 +19,12 @@ function UserGroupManagementPage() {
 
     const fetchUserGroups = () => {
         // Make API call to fetch user groups
-        // Example API call: fetch('/api/userGroups').then(response => response.json()).then(data => setUserGroups(data.userGroups));
-        // Replace the above line with actual API call once it's implemented
-        // Mocking user groups data for demonstration
-        const mockUserGroups = [
-            { id: 1, name: 'Group 1' },
-            { id: 2, name: 'Group 2' },
-            { id: 3, name: 'Group 3' },
-            // Add more user groups as needed
-        ];
-        setUserGroups(mockUserGroups);
+        let input = '/api/get_user_group_list'
+        fetch(input).then(
+            res => res.json()
+        ).then(data => {
+            setUserGroups(data.result);
+        })
     };
 
     const fetchPermissionsForGroup = (groupId) => {
@@ -68,8 +64,25 @@ function UserGroupManagementPage() {
 
     const handleCreateGroup = () => {
         // Make API call to create new user group with selected permissions
-        // Example API call: fetch('/api/userGroups', { method: 'POST', body: JSON.stringify({ name: newGroupName, permissions: selectedPermissions }) }).then(response => response.json()).then(data => console.log(data));
-        // Replace the above line with actual API call once it's implemented
+        
+        let input = '/api/new_usergroup';
+        const formData = new FormData();
+        formData.append('name', newGroupName);
+        formData.append('permissions', selectedPermissions.join(";"));
+        const requestOptions = {
+            method: 'POST', 
+            body: formData
+        };
+        fetch(input, requestOptions)
+          .then(res => res.json())
+          .then(data => {
+            console.log("res", data);
+          })
+          .catch(err => {
+            console.error("Err:", err);
+          })
+        
+
         // Close modal after creating group
         setOpenModal(false);
         // Clear new group name and selected permissions
@@ -81,6 +94,8 @@ function UserGroupManagementPage() {
 
     const handleSetProperties = () => {
         // Implement functionality to set properties for the focused group
+
+
         console.log('Set properties for', selectedUserGroup);
     };
 
@@ -97,7 +112,7 @@ function UserGroupManagementPage() {
             </div>
             {selectedUserGroup && (
                 <div style={{ marginBottom: '20px', width: '300px' }}>
-                    <h2>Permissions for {selectedUserGroup.name}</h2>
+                    <h2>Add permissions for {selectedUserGroup.name}</h2>
                     <Autocomplete
                         multiple
                         options={permissions}

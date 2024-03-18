@@ -158,6 +158,10 @@ function Header() {
                         {
                             name: 'User Group Management',
                             link: `/manage/users/groups`
+                        },
+                        {
+                            name: 'Add Users',
+                            link: `/users`
                         }
                     ]}
                 />

@@ -31,13 +31,7 @@ function UserManagementPage() {
     }, [selectedUser]);
 
     const fetchUsers = () => {
-        // Mocking users data for demonstration
-        // const mockUsers = [
-        //     { id: 1, name: 'User 1', userId: 'U123', institution: 'Institution 1' },
-        //     { id: 2, name: 'User 2', userId: 'U456', institution: 'Institution 2' },
-        //     { id: 3, name: 'User 3', userId: 'U789', institution: 'Institution 3' },
-        //     // Add more users as needed
-        // ];
+       
         let input = '/api/get_user_list'
         fetch(input).then(
             res => res.json()
@@ -49,19 +43,13 @@ function UserManagementPage() {
 
     const fetchUserGroups = () => {
         // Mocking user groups data for demonstration
-        const mockUserGroups = [
-            { id: 1, name: 'Group 1' },
-            { id: 2, name: 'Group 2' },
-            { id: 3, name: 'Group 3' },
-            // Add more user groups as needed
-        ];
+       
         let input = '/api/get_user_group_list'
         fetch(input).then(
             res => res.json()
         ).then(data => {
             setUserGroups(data.result);
         })
-        // setUserGroups(mockUserGroups);
     };
 
     const handleUserSelect = (event, value) => {
@@ -98,10 +86,26 @@ function UserManagementPage() {
     const handleAddToGroups = () => {
         // Add selected user to selected user groups
         if (selectedUser && selectedUserGroups.length > 0) {
-            // Make API call to add selected user to selected user groups
-            // Example API call: fetch(`/api/addToGroups/${selectedUser.id}`, { method: 'POST', body: JSON.stringify(selectedUserGroups) }).then(response => response.json()).then(data => console.log(data));
-            // Replace the above line with actual API call once it's implemented
-            // Mocking adding user to user groups for demonstration
+
+            let input = '/api/new_set_usergroup'
+            const formData = new FormData();
+            formData.append('user', selectedUser.name);
+            formData.append('group', selectedUserGroups.map(obj => obj.name).join(";"));
+            console.log(formData)
+             const requestOptions = {
+                method: 'POST', 
+                body: formData
+              };
+            fetch(input, requestOptions)
+              .then(res => res.json())
+              .then(data => {
+                console.log("res", data);
+              })
+              .catch(err => {
+                console.error("Err:", err);
+              })
+
+
             console.log(`Adding user ${selectedUser.name} to groups:`, selectedUserGroups);
             // Clear selected user and user groups after adding
             setSelectedUser(null);
