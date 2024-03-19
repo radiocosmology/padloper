@@ -1,8 +1,9 @@
 import React, { useState } from 'react';
 import TextField from '@mui/material/TextField';
 import Button from '@mui/material/Button';
-import axios from 'axios';
 
+// TODO:
+// MAKE THIS PAGE ONLY VISIBLE TO AN ADMIN / SPECIFIED INDIVIDUAL
 function UserCreatePage() {
     const [userName, setUserName] = useState('');
     const [institution, setInstitution] = useState('');
