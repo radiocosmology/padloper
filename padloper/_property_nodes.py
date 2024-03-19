@@ -275,8 +275,8 @@ class Property(Vertex):
                             self.__class__.__name__)
 
         try:
-            if len(kwargs["values"]) != kwargs["type"].n_values:
-                nn = kwargs["type"].n_values
+            nn = kwargs["type"].n_values
+            if len(kwargs["values"]) != nn:
                 raise TypeError("%d value%s %s required." %\
                                 (nn, "" if nn == 1 else "s",
                                  "is" if nn == 1 else "are"))

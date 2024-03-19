@@ -222,4 +222,3 @@ except p.PropertyIsSameError:
 # Test flags.
 ftype_severe = p.FlagType(name="severe", comments="Something's broken!!")
 ftype_comment = p.FlagType(name="comment")
-CONTINUE HERE: flask needs to be checked.
