@@ -79,11 +79,13 @@ class ComponentType(Vertex):
         self.comments = comments
         Vertex.__init__(self, id=id)
 
-    def as_dict(self):
+    @authenticated
+    def as_dict(self, permissions = None):
         """Return a dictionary representation."""
         return {"name": self.name, "comments": self.comments}
 
-    def add(self, strict_add=False):
+    @authenticated
+    def add(self, strict_add=False, permissions = None):
         """Add this ComponentType vertex to the serverside.
         """
 
@@ -103,7 +105,8 @@ class ComponentType(Vertex):
 #        print(f"Added {self}")
         return self
 
-    def replace(self, newVertex, disable_time: int = int(time.time())):
+    @authenticated
+    def replace(self, newVertex, disable_time: int = int(time.time()), permissions = None):
         """Replaces the ComponentType vertex in the serverside.
 
         :param newVertex: The new ComponentType vertex that is replacing the old
@@ -129,7 +132,8 @@ class ComponentType(Vertex):
         # Replaces the ComponentType vertex with the new ComponentType vertex.
         Vertex.replace(self=self, id=newVertexId)
 
-    def added_to_db(self) -> bool:
+    @authenticated
+    def added_to_db(self, permissions = None) -> bool:
         """Return whether this ComponentType is added to the database,
         that is, whether the ID is not the virtual ID placeholder and perform 
         a query to the database to determine if the 
@@ -147,8 +151,9 @@ class ComponentType(Vertex):
             )
         )
 
+    @authenticated
     @classmethod
-    def from_db(cls, name: str):
+    def from_db(cls, name: str, permissions = None):
         """Query the database and return a ComponentType instance based on
         component type of name :param name:.
 
@@ -179,8 +184,9 @@ class ComponentType(Vertex):
 
         return g._vertex_cache[id_]
 
+    @authenticated
     @classmethod
-    def from_id(cls, id: int):
+    def from_id(cls, id: int, permissions = None):
         """Query the database and return a ComponentType instance based on
         the ID.
 
@@ -229,8 +235,9 @@ class ComponentType(Vertex):
 
         return g._vertex_cache[id]
 
+    @authenticated
     @classmethod
-    def get_names_of_types_and_versions(cls):
+    def get_names_of_types_and_versions(cls, permissions = None):
         """
         Return a list of dictionaries, of the format
         {'type': <ctypename>, 'versions': [<revname>, ..., <revname>]}
@@ -257,13 +264,15 @@ class ComponentType(Vertex):
 
         return ts
 
+    @authenticated
     @classmethod
     def get_list(
         cls,
         range: tuple,
         order_by: str,
         order_direction: str,
-        name_substring: str
+        name_substring: str,
+        permissions = None
     ):
         """
         Return a list of ComponentTypes based in the range :param range:,
@@ -342,8 +351,9 @@ class ComponentType(Vertex):
 
         return component_types
 
+    @authenticated
     @classmethod
-    def get_count(cls, name_substring: str):
+    def get_count(cls, name_substring: str, permissions = None):
         """Return the count of ComponentTypes given a substring of the name
         property.
 
@@ -429,12 +439,14 @@ class ComponentVersion(Vertex):
 
         Vertex.__init__(self, id=id)
 
-    def as_dict(self):
+    @authenticated
+    def as_dict(self, permissions = None):
         """Return a dictionary representation."""
         return {"name": self.name, "comments": self.comments,
                 "allowed_type": self.allowed_type.as_dict()}
 
-    def add(self, strict_add=False):
+    @authenticated
+    def add(self, strict_add=False, permissions = None):
         """Add this ComponentVersion vertex to the serverside.
         """
 
@@ -466,7 +478,8 @@ class ComponentVersion(Vertex):
 #        print(f"Added {self}")
         return self
 
-    def replace(self, newVertex, disable_time: int = int(time.time())):
+    @authenticated
+    def replace(self, newVertex, disable_time: int = int(time.time()), permissions = None):
         """Replaces the ComponentVersion vertex in the serverside.
 
         :param newVertex: The new ComponentVersion vertex that is replacing the
@@ -490,7 +503,8 @@ class ComponentVersion(Vertex):
 
         Vertex.replace(self=self, id=newVertexId)
 
-    def added_to_db(self) -> bool:
+    @authenticated
+    def added_to_db(self, permissions = None) -> bool:
         """Return whether this ComponentVersion is added to the database,
         that is, whether the ID is not the virtual ID placeholder and perform 
         a query to the database to determine if the vertex 
@@ -542,8 +556,9 @@ class ComponentVersion(Vertex):
 
         return g._vertex_cache[id]
 
+    @authenticated
     @classmethod
-    def from_db(cls, name: str, allowed_type: ComponentType):
+    def from_db(cls, name: str, allowed_type: ComponentType, permissions = None):
         """Query the database and return a ComponentVersion instance based on
         component version of name :param name: connected to component type
         :param allowed_type:.
@@ -588,8 +603,9 @@ class ComponentVersion(Vertex):
                 "to the database."
             )
 
+    @authenticated
     @classmethod
-    def from_id(cls, id: int):
+    def from_id(cls, id: int, permissions = None):
         """Query the database and return a ComponentVersion instance based on
         the ID.
 
@@ -618,13 +634,15 @@ class ComponentVersion(Vertex):
 
         return g._vertex_cache[id]
 
+    @authenticated
     @classmethod
     def get_list(
         cls,
         range: tuple,
         order_by: str,
         order_direction: str,
-        filters: list
+        filters: list,
+        permissions = None
     ):
         """
         Return a list of ComponentVersions in the range :param range:,
@@ -738,8 +756,9 @@ class ComponentVersion(Vertex):
             )
         return component_versions
 
+    @authenticated
     @classmethod
-    def get_count(cls, filters: list):
+    def get_count(cls, filters: list, permissions = None):
         """Return the count of ComponentVersions given a list of filters
 
         :param filters: A list of 2-tuples of the format (name, ctype)
@@ -874,7 +893,8 @@ class Component(Vertex):
             type "{self.type.name}", \
             {version_text}, id {self.id()}'
 
-    def add(self, strict_add=False):
+    @authenticated
+    def add(self, strict_add=False, permissions = None):
         """Add this Component to the serverside.
         """
 
@@ -918,7 +938,8 @@ class Component(Vertex):
 #        print(f"Added {self}")
         return self
 
-    def replace(self, newVertex, disable_time: int = int(time.time())):
+    @authenticated
+    def replace(self, newVertex, disable_time: int = int(time.time()), permissions = None):
         """Replaces the Component vertex in the serverside.
 
         :param newVertex: The new Component vertex that is replacing the old
@@ -942,7 +963,8 @@ class Component(Vertex):
 
         Vertex.replace(self=self, id=newVertexId)
 
-    def get_property(self, type, at_time: int):
+    @authenticated
+    def get_property(self, type, at_time: int, permissions = None):
         """
         Given a property type, get a property of this component active at time
         :param time:. 
@@ -988,7 +1010,8 @@ class Component(Vertex):
 
         return Property.from_id(vs[0].id)
 
-    def get_all_properties(self):
+    @authenticated
+    def get_all_properties(self, permissions = None):
         """Return all properties, along with their edges of this component as
         a tuple of the form (Property, RelationProperty)
 
@@ -1024,10 +1047,12 @@ class Component(Vertex):
 
         return result
 
+    @authenticated
     def get_all_properties_of_type(
         self, type,
         from_time: int = -1,
-        to_time: int = g._TIMESTAMP_NO_ENDTIME_VALUE
+        to_time: int = g._TIMESTAMP_NO_ENDTIME_VALUE,
+        permissions = None
     ):
         """
         Given a property type, return all edges that connected them between time
@@ -1079,7 +1104,8 @@ class Component(Vertex):
             id=e['id']['@value']['relationId']  # weird but you have to
         ) for e in edges]
 
-    def get_all_flags(self):
+    @authenticated
+    def get_all_flags(self, permissions = None):
         """Return all flags connected to this component of the form (Flag)
 
         :rtype: [Flag]
@@ -1104,7 +1130,8 @@ class Component(Vertex):
 
         return result
 
-    def get_subcomponents(self):
+    @authenticated
+    def get_subcomponents(self, permissions = None):
         """Return all subcomponents connected to this component.
 
         :rtype: [Component]
@@ -1120,7 +1147,8 @@ class Component(Vertex):
 
         return [Component.from_id(q) for q in query.toList()]
 
-    def get_supercomponents(self):
+    @authenticated
+    def get_supercomponents(self, permissions = None):
         """Return all supercomponents connected to this component of the form
         (Component)
 
@@ -1247,7 +1275,8 @@ class Component(Vertex):
 
         return prop_copy
 
-    def unset_property(self, property, end: Timestamp):
+    @authenticated
+    def unset_property(self, property, end: Timestamp, permissions = None):
         """
         Given a property that is connected to this component,
         set the "end" attributes of the edge connecting the component and
@@ -1316,8 +1345,9 @@ class Component(Vertex):
            .property('end_edit_time', end.edit_time) \
            .property('end_comments', end.comments).iterate()
 
+    @authenticated
     def replace_property(self, propertyTypeName: str, property, at_time: int,
-                         uid: str, start: Timestamp, comments="",):
+                         uid: str, start: Timestamp, comments="", permissions = None):
         """Replaces the Component property vertex in the serverside.
 
         :param propertyTypeName: The name of the property type being replaced.
@@ -1384,7 +1414,7 @@ class Component(Vertex):
            .property('active', False).property('time_disabled', disable_time)\
            .next()
 
-    # @authenticated
+    @authenticated
     def connect(
         self, component, start: Timestamp, end: Timestamp = None,
         strict_add: bool = True, is_replacement: bool = False,
@@ -1480,8 +1510,8 @@ class Component(Vertex):
         curr_conn.add()
 #        print(f'connected: {self} -> {component}  ({start.uid} {start.time})')
 
-
-    def disconnect(self, component, end):
+    @authenticated
+    def disconnect(self, component, end, permissions = None):
         """Given another Component :param component:, disconnect the two
         components at time :param time:.
 
@@ -1517,9 +1547,9 @@ class Component(Vertex):
         else:
             curr_conn[0]._end(end)
 
-
+    @authenticated
     def disable_connection(self, component,
-                           disable_time: int = int(time.time())):
+                           disable_time: int = int(time.time()), permissions = None):
         """Disables the connection in the serverside
 
         :param component: Component that this component has connection with.
@@ -1529,9 +1559,11 @@ class Component(Vertex):
         """
         raise RuntimeError("Deprecated!")
 
+    @authenticated
     def get_connections(self, component = None, at_time = None,
                         from_time = None, to_time = None,
-                        exclude_subcomponents: bool = False):
+                        exclude_subcomponents: bool = False,
+                        permissions = None):
         """
         Get connections to another component, or all other components, at a
         time, at all times or in a time range, depending on the parameters.
@@ -1636,8 +1668,10 @@ class Component(Vertex):
 
         return result
 
+    @authenticated
     def get_all_connections_at_time(
-        self, at_time: int, exclude_subcomponents: bool = False
+        self, at_time: int, exclude_subcomponents: bool = False,
+        permissions = None
     ):
         """
         Given a component, return all connections between this Component and 
@@ -1713,9 +1747,11 @@ class Component(Vertex):
 
         return result
 
+    @authenticated
     def get_all_connections_with(
         self, component, from_time: int = -1,
-        to_time: int = g._TIMESTAMP_NO_ENDTIME_VALUE
+        to_time: int = g._TIMESTAMP_NO_ENDTIME_VALUE,
+        permissions = None
     ):
         """
         Given two components, return all edges that connected them between time
@@ -1764,8 +1800,10 @@ class Component(Vertex):
             id=e['id']['@value']['relationId']  # weird but you have to
         ) for e in edges]
 
+    @authenticated
     def get_connection(
-        self, component, at_time: int
+        self, component, at_time: int,
+        permissions = None
     ):
         """Given two components, return the edge that connected them at
         time :param at_time:.
@@ -1848,8 +1886,9 @@ class Component(Vertex):
 
         return result
 
+    @authenticated
     def subcomponent_connect(
-            self, component, strict_add=False):
+            self, component, strict_add=False, permissions = None):
         """
         Given another Component :param component:, make it a subcomponent of the current component.
 
@@ -1902,8 +1941,8 @@ class Component(Vertex):
             current_subcomponent.add()
 #            print(f'subcomponent connected: {self} -> {component}')
 
-
-    def get_subcomponent(self, component):
+    @authenticated
+    def get_subcomponent(self, component, permissions = None):
         """Given the component itself and its subcomponent, return the edge between them.
 
         :param component: The other component which is the subcomponent of the current component.
@@ -1938,8 +1977,10 @@ class Component(Vertex):
             id=e[0]['id']['@value']['relationId']
         )
 
+    @authenticated
     def disable_subcomponent(self, otherComponent,
-                             disable_time: int = int(time.time())):
+                             disable_time: int = int(time.time()),
+                             permissions = None):
         """Disabling an edge for a subcomponent
 
         :param otherComponent: Another Component that this component has 
@@ -1956,7 +1997,8 @@ class Component(Vertex):
            .property('active', False)\
            .property('time_disabled', disable_time).next()
 
-    def added_to_db(self) -> bool:
+    @authenticated
+    def added_to_db(self, permissions = None) -> bool:
         """Return whether this Component is added to the database,
         that is, whether the ID is not the virtual ID placeholder and perform a 
         query to the database to determine if the vertex has already been added.
@@ -2025,8 +2067,9 @@ class Component(Vertex):
 
         return g._vertex_cache[id]
 
+    @authenticated
     @classmethod
-    def from_db(cls, name: str):
+    def from_db(cls, name: str, permissions = None):
         """Query the database and return a Component instance based on
         name :param name:.
 
@@ -2057,8 +2100,9 @@ class Component(Vertex):
             time_added
         )
 
+    @authenticated
     @classmethod
-    def from_id(cls, id: int):
+    def from_id(cls, id: int, permissions = None):
         """Query the database and return a Component instance based on
         the ID :param id:
 
@@ -2087,12 +2131,14 @@ class Component(Vertex):
         else:
             return g._vertex_cache[id]
 
+    @authenticated
     @classmethod
     def get_list(cls,
                  range: tuple,
                  order_by: str,
                  order_direction: str,
-                 filters: list = []):
+                 filters: list = [],
+                 permissions = None):
         """
         Return a list of Components based in the range :param range:,
         based on the filters in :param filters:, and order them based on 
@@ -2245,8 +2291,9 @@ class Component(Vertex):
 
         return components
 
+    @authenticated
     @classmethod
-    def get_count(cls, filters: str):
+    def get_count(cls, filters: str, permissions = None):
         """Return the count of components given a list of filters.
 
         :param filters: A list of 3-tuples of the format (name, ctype, version)
@@ -2302,7 +2349,8 @@ class Component(Vertex):
 
         return traversal.count().next()
 
-    def as_dict(self, at_time: int = None, bare = False):
+    @authenticated
+    def as_dict(self, at_time: int = None, bare = False, permissions = None):
         """Return a dictionary representation of this Component at time
         :param at_time: The time to check the component at. Pass `None` to get
           properties/flags/connexions at all times.

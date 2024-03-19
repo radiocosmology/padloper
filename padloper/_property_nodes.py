@@ -604,6 +604,7 @@ class Property(Vertex):
 
         Vertex.__init__(self, id=id)
 
+    # Shouldn't be called directly, but will add authentication.
     def _add(self):
         """
         Add this Property to the serverside.

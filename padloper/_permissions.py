@@ -22,10 +22,78 @@ from gremlin_python.process.graph_traversal import __, constant
 #from sympy import true
 
 # TODO:
+# component_protected = ['component_add', 'component_edit', 'component_delete', 'component_replace',
+#                        'component_unset_property', 'component_disable_property', 'component_replace_property',
+#                         'component_edit_connection', 'component_remove_connection', 'component_disable_connection',]
+# component_general = ['component_connect', 'component_set_property']
+# component_unprotected = ['component_get', 'component_get_property', 'component_get_connections', 'component_get_list']
+component_protected = ['component_protected']
+component_general = ['component_general']
+component_unprotected = ['component_unprotected']
+
+# NOTE: maybe better to have each permission map to itself, and then the protected/unprotected/general 
+# be default user groups? Allows for more fine-tuned permissions per user based on use case.
+
 permission_mapping = {
-    'Component;set_property' : ['perm1', 'perm2'],
-    'Component;disable_property' : ['perm1', 'perm2', 'perm3'],
-    'Component;connect': ['perm1', 'perm4', 'perm10']
+    # Component:
+    # protected
+    'Component;add': component_protected,
+    'Component;replace': component_protected,
+    'Component;unset_property': component_protected,
+    'Component;replace_property': component_protected,
+    'Component;disable_property': component_protected,
+    'Component;disconnect': component_protected,
+    'Component;disable_connection': component_protected,
+    'Component;disable_subcomponent': component_protected,
+    
+    # general
+    'Component;connect': component_general,
+    'Component;set_property': component_general,
+    'Component;subcomponent_connect': component_general,
+
+    # unprotected
+    'Component;get_property': component_unprotected,
+    'Component;get_all_properties': component_unprotected,
+    'Component;get_all_properties_of_type': component_unprotected,
+    'Component;get_connections': component_unprotected,
+    'Component;get_list': component_unprotected,
+    'Component;get_count': component_unprotected,
+    'Component;get_all_flags': component_unprotected,
+    'Component;get_subcomponents': component_unprotected,
+    'Component;get_subcomponent': component_unprotected,
+    'Component;get_supercomponents': component_unprotected,
+    'Component;added_to_db': component_unprotected,
+    'Component;from_db': component_unprotected,
+    'Component;from_id': component_unprotected,
+    'Component;as_dict': component_unprotected,
+
+    # Component types:
+    # protected
+    'ComponentType;add': component_protected,
+    'ComponentType;replace': component_protected,
+
+    # unprotected
+    'ComponentType;as_dict': component_unprotected,
+    'ComponentType;added_to_db': component_unprotected,
+    'ComponentType;from_db': component_unprotected,
+    'ComponentType;from_id': component_unprotected,
+    'ComponentType;get_names_of_types_and_versions': component_unprotected,
+    'ComponentType;get_list': component_unprotected,
+    'ComponentType;get_count': component_unprotected,
+
+    # Component version:
+    # protected
+    'ComponentVersion;add': component_protected,
+    'ComponentVersion;replace': component_protected,
+
+    # unprotected
+    'ComponentVersion;as_dict': component_unprotected,
+    'ComponentVersion;added_to_db': component_unprotected,
+    'ComponentVersion;from_db': component_unprotected,
+    'ComponentVersion;from_id': component_unprotected,
+    'ComponentVersion;get_list': component_unprotected,
+    'ComponentVersion;get_count': component_unprotected,
+
 }
 
 def check_permission(permission, class_name, method_name):
