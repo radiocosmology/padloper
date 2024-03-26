@@ -451,7 +451,7 @@ useEffect(() => {
         nds.map((node) => {
             // TODO: change component select from list to have properties
             if (node.data.properties && node.data.properties.length > 0) {
-
+                console.log(node.data.properties)
                 console.log(node.data.properties.reduce((listOfLists, property) => {
                     const { type: { name, units }, values } = property;
                     listOfLists.push([name, values, units]);
@@ -1184,19 +1184,19 @@ async function formatSubcomponents() {
                         });
                     } else if (node2.id === node1.id) {
 
-                        // let newHeight = (data.result.length > 0) ? nodeHeight * 2 : 0;
+                        let newHeight = (data.result.length > 0) ? nodeHeight * 2 : 0;
 
                         let newWidth = data.result.length * (nodeWidth + 20);
 
                         const maxWidth = node2.style.width > 0 ? Math.max(node2, newWidth) : newWidth;
 
-                        // const maxHeight = node2.style.height + newHeight;
+                        const maxHeight = node2.style.height > 0 ? Math.max(newHeight, node2.style.height) : newHeight;
                         return ({
                             ...node2,
                             data: { ...node2.data, label: node2.id,},
                             style : {
                                 width: maxWidth,
-                                height: node2.style.height,
+                                height: maxHeight,
                             }
                         });
                     }
