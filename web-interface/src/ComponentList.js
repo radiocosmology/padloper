@@ -233,7 +233,7 @@ function ComponentList() {
         nameComponent= {c.name}
         toggleReload={toggleReload}
         typeComponent={c.type.name}
-        versionComponent={c.version.name}
+        versionComponent={c.version ? c.version.name : null}
         />,
         <AlertDialog
         name={c.name}
