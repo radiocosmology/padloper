@@ -226,7 +226,7 @@ function ComponentList() {
             {c.name}
         </Link>,
         c.type.name,
-        c.version.name,
+        c.version ? c.version.name : "N/A",
         <ComponentReplaceButton
         types_and_versions={types_and_versions}
         nameComponent= {c.name}

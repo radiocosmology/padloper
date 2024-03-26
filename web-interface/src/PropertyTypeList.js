@@ -251,7 +251,9 @@ export default function PropertyTypeList() {
      */
     let tableRowContent = elements.map((e) => [
         e.name,
-        e.allowed_types.sort().join(', '),
+        e.allowed_types.reduce(function(pV, cV) {
+            pV.push(cV.name);
+            return pV}, []).sort().join(", "),
         e.units,
         e.allowed_regex,
         e.n_values,
@@ -261,7 +263,9 @@ export default function PropertyTypeList() {
         name = {e.name}
         units = {e.units}
         allowed_regex = {e.allowed_regex}
-        allowed_types = {e.allowed_types}
+        allowed_types = {e.allowed_types.reduce(function(pV, cV) {
+                             pV.push(cV.name);
+                             return pV}, [])}
         values = {e.n_values ? e.n_values : 0}
         comments = {e.comments ? e.comments : ''}
         componentTypes={componentTypes}
