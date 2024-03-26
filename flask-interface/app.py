@@ -105,7 +105,7 @@ def login():
             else:
                 return ({'error': 'Username does not match'}), 401
 
-        # print(session.get('user'))
+
 
         return ({'error': 'Failed to retrieve user data from proxy server'}), 500
     # TODO: make more specific
@@ -141,7 +141,7 @@ def get_component_by_name(name):
     :rtype: dict
     """
     return {
-        'result': p.Component.from_db(str(escape(name))).as_dict()
+        'result': p.Component.from_db(str(escape(name)), permissions=session.get('perms')).as_dict(permissions=session.get('perms'))
     }
 
 
@@ -277,7 +277,7 @@ def replace_component_type():
         # Gets the old component type from the database.
         component_type_old = p.ComponentType.from_db(val_component_type)
 
-        component_type_old.replace(component_type_new)
+        component_type_old.replace(component_type_new, permissions=session.get('perms'))
 
         return {'result': True}
 
@@ -320,7 +320,7 @@ def set_component_version():
         component_version = p.ComponentVersion(
             val_name, component_type, val_comments)
 
-        component_version.add()
+        component_version.add(permissions=session.get('perms'))
 
         return {'result': True}
 
@@ -377,7 +377,7 @@ def replace_component_version():
         component_version_old = p.ComponentVersion.from_db(
             name=val_component_version, allowed_type=component_type_old)
 
-        component_version_old.replace(component_version_new)
+        component_version_old.replace(component_version_new, permissions=session.get('perms'))
 
         return {'result': True}
 
@@ -427,7 +427,7 @@ def set_component():
         for name in val_name:
             # Need to initialize an instance of a component first.
             component = p.Component(name, component_type, component_version)
-            component.add()
+            component.add(permissions=session.get('perms'))
 
         return {'result': True}
 
@@ -478,7 +478,7 @@ def replace_component():
         # Need to initialize an instance of a component first.
         component_new = p.Component(val_name, component_type, component_version)
         component_old = p.Component.from_db(val_component)
-        component_old.replace(component_new)
+        component_old.replace(component_new, permissions=session.get('perms'))
 
         return {'result': True}
 
@@ -551,7 +551,7 @@ def set_property_type():
         # Need to initialize an instance of a property type first.
         property_type = p.PropertyType(val_name, val_units, val_allowed_reg,
                                        val_values, allowed_list, val_comments)
-        property_type.add()
+        property_type.add(permissions=session.get('perms'))
 
         return {'result': True}
 
@@ -609,7 +609,7 @@ def replace_property_type():
                                            val_values, allowed_list,
                                            val_comments)
         property_type_old = p.PropertyType.from_db(val_property_type)
-        property_type_old.replace(property_type_new)
+        property_type_old.replace(property_type_new, permissions=session.get('perms'))
 
         return {'result': True}
 
@@ -983,7 +983,7 @@ def end_component_property():
                 )
 
     t = tmp_timestamp(val_time, val_uid, val_comments)
-    component.unset_property(property, t)
+    component.unset_property(property, t, permissions=session.get('perms'))
 
     return {'result': True}
 
@@ -1040,7 +1040,8 @@ def replace_component_property():
     component.replace_property(propertyTypeName=val_property_type,
                                property=property_new, at_time=val_time, 
                                uid=val_uid,
-                               start = t, comments=val_comments)
+                               start = t, comments=val_comments,
+                               permissions=session.get('perms'))
 
     # component.replace_property()
 
@@ -1149,7 +1150,7 @@ def end_component_connection():
 
     try:
         t = tmp_timestamp(val_time, val_uid, val_comments)
-        c1.disconnect(c2, t)
+        c1.disconnect(c2, t, permissions=session.get('perms'))
     except ComponentsAlreadyDisconnectedError:
         already_disconnected = True
 
@@ -1246,7 +1247,8 @@ def add_component_subcomponent():
 
         try:
             c1.subcomponent_connect(
-                component=c2
+                component=c2,
+                permissions=session.get('perms')
             )
         except ComponentAlreadySubcomponentError:
             already_subcomponent = True
@@ -1278,7 +1280,7 @@ def disable_component_subcomponent():
     val_name2 = escape(request.args.get('name2'))
 
     c1, c2 = p.Component.from_db(val_name1), p.Component.from_db(val_name2)
-    c1.disable_subcomponent(otherComponent=c2)
+    c1.disable_subcomponent(otherComponent=c2, permissions=session.get('perms'))
 
     return {'result': True}
 
@@ -1305,7 +1307,7 @@ def set_flag_type():
 
         # Need to initialize an instance of a component version first.
         flag_type = p.FlagType(val_name, val_comments)
-        flag_type.add()
+        flag_type.add(permissions=session.get('perms'))
 
         return {'result': True}
 
@@ -1340,7 +1342,7 @@ def replace_flag_type():
         # Need to initialize an instance of a flag type first.
         flag_type_new = p.FlagType(val_name, val_comments)
         flag_type_old = p.FlagType.from_db(val_flag_type)
-        flag_type_old.replace(flag_type_new)
+        flag_type_old.replace(flag_type_new, permissions=session.get('perms'))
         return {'result': True}
 
     except Exception as e:
@@ -1364,7 +1366,7 @@ def set_flag_severity():
     # Need to initialize an instance of a component version first.
     flag_severity = p.FlagSeverity(val_name)
 
-    flag_severity.add()
+    flag_severity.add(permissions=session.get('perms'))
 
     return {'result': True}
 
@@ -1387,7 +1389,7 @@ def replace_flag_severity():
     # Need to initialize an instance of a flag severity first.
     flag_severity_new = p.FlagSeverity(val_name)
     flag_severity_old = p.FlagSeverity.from_db(val_flag_severity)
-    flag_severity_old.replace(flag_severity_new)
+    flag_severity_old.replace(flag_severity_new, permissions=session.get('perms'))
 
     return {'result': True}
 
@@ -1452,7 +1454,7 @@ def set_flag():
         flag = p.Flag(val_name, start, severity, type, 
                       comments=val_comments, end=end,
                       components=allowed_list)
-        flag.add()
+        flag.add(permissions=session.get('perms'))
 
         return {'result': True}
 
@@ -1486,7 +1488,7 @@ def unset_flag():
     # Need to initialize an instance of Flag first.
     flag = p.Flag.from_db(val_name)
     t = tmp_timestamp(val_end_time, val_uid, val_comments)
-    flag.end_flag(end)
+    flag.end_flag(end, permissions=session.get('perms'))
 
     return {'result': True}
 
@@ -1555,7 +1557,7 @@ def replace_flag():
         flag_new = Flag(val_name, start, flag_severity, flag_type, 
                         comments=val_comments, end=end, 
                         components=allowed_list)
-        flag_old.replace(flag_new)
+        flag_old.replace(flag_new, permissions=session.get('perms'))
 
         return {'result': True}
 
@@ -1985,4 +1987,4 @@ def get_user_group_list():
 
 @app.route("/api/get_all_permissions", methods=["GET"])
 def get_all_permissions():
-    return {'result': p.permission_groups}
+    return {'result': list(p.permissions_set)}

@@ -23,6 +23,8 @@ from _edges import RelationFlagType, RelationFlagComponent, RelationFlagSeverity
 
 from typing import Optional, List
 
+from padloper.method_decorators import authenticated
+
 class FlagType(Vertex):
     """The representation of a flag type. 
 
@@ -86,12 +88,13 @@ class FlagType(Vertex):
             "comments": self.comments
         }
 
-    def add(self, strict_add=False):
+    @authenticated
+    def add(self, strict_add=False, permissions=None):
         """Add this FlagType to the database.
         """
 
         # If already added.
-        if self.added_to_db():
+        if self.added_to_db(permissions=permissions):
             strictraise(strict_add, VertexAlreadyAddedError,
                 f"FlagType with name {self.name} " +
                 "already exists in the database."
@@ -108,7 +111,8 @@ class FlagType(Vertex):
         print(f"Added {self}")
         return self
 
-    def replace(self, newVertex, disable_time: int = int(time.time())):
+    @authenticated
+    def replace(self, newVertex, disable_time: int = int(time.time()), permissions=None):
         """Replaces the FlagType vertex in the serverside.
 
         :param newVertex: The new FlagType vertex that is replacing the old
@@ -133,7 +137,8 @@ class FlagType(Vertex):
 
         Vertex.replace(self=self, id=newVertexId)
 
-    def added_to_db(self) -> bool:
+    # @authenticated
+    def added_to_db(self, permissions=None) -> bool:
         """Return whether this FlagType is added to the database,
         that is, whether the ID is not the virtual ID placeholder and perform a 
         query to the database to determine if the vertex has already been added.
@@ -384,11 +389,12 @@ class FlagSeverity(Vertex):
         """Return a dictionary representation."""
         return {"name": self.name}
 
-    def add(self, strict_add=False):
+    @authenticated
+    def add(self, strict_add=False, permissions=None):
         """Add this FlagSeverity to the database."""
 
         # If already added.
-        if self.added_to_db():
+        if self.added_to_db(permissions=permissions):
             strictraise(strict_add, VertexAlreadyAddedError,
                 f"FlagSeverity with name {self.name}" +
                 "already exists in the database."
@@ -405,7 +411,8 @@ class FlagSeverity(Vertex):
         print(f"Added {self}")
         return self
 
-    def replace(self, newVertex, disable_time: int = int(time.time())):
+    @authenticated
+    def replace(self, newVertex, disable_time: int = int(time.time()), permissions=None):
         """Replaces the FlagSeverity vertex in the serverside.
 
         :param newVertex: The new FlagSeverity vertex that is replacing the old FlagSeverity vertex.
@@ -427,7 +434,8 @@ class FlagSeverity(Vertex):
 
         Vertex.replace(self=self, id=newVertexId)
 
-    def added_to_db(self) -> bool:
+    # @authenticated
+    def added_to_db(self, permissions=None) -> bool:
         """
         Return whether this FlagSeverity is added to the database, that is, whether the ID is not the virtual ID placeholder and perform a query to the database to determine if the vertex has already been added.
 
@@ -688,13 +696,14 @@ class Flag(Vertex):
             "components": [c.as_dict(bare=True) for c in self.components]
         }
 
-
-    def add(self, strict_add=False):
+    
+    @authenticated
+    def add(self, strict_add=False, permissions=None):
         """
         Add this Flag instance to the database.
         """
 
-        if self.added_to_db():
+        if self.added_to_db(permissions=permissions):
             strictraise(strict_add, VertexAlreadyAddedError,
                 f"Flag with name {self.name}" +
                 "already exists in the database."
@@ -717,7 +726,7 @@ class Flag(Vertex):
 
         Vertex.add(self=self, attributes=attributes)
 
-        if not self.type.added_to_db():
+        if not self.type.added_to_db(permissions=permissions):
             self.type.add()
 
         e = RelationFlagType(
@@ -727,8 +736,8 @@ class Flag(Vertex):
 
         e.add()
 
-        if not self.severity.added_to_db():
-            self.severity.add()
+        if not self.severity.added_to_db(permissions=permissions):
+            self.severity.add(permissions=permissions)
 
         e = RelationFlagSeverity(
             inVertex=self.severity,
@@ -739,8 +748,8 @@ class Flag(Vertex):
 
         for c in self.components:
 
-            if not c.added_to_db():
-                c.add()
+            if not c.added_to_db(permissions=permissions):
+                c.add(permissions=permissions)
 
             e = RelationFlagComponent(
                 inVertex=c,
@@ -752,7 +761,8 @@ class Flag(Vertex):
         print(f"Added {self}")
         return self
 
-    def replace(self, newVertex, disable_time: int = int(time.time())):
+    @authenticated
+    def replace(self, newVertex, disable_time: int = int(time.time()), permissions=None):
         """Replaces the Flag vertex in the serverside.
 
         :param newVertex: The new Flag vertex that is replacing the old Flag vertex.
@@ -774,7 +784,8 @@ class Flag(Vertex):
 
         Vertex.replace(self=self, id=newVertexId)
 
-    def added_to_db(self) -> bool:
+    # @authenticated
+    def added_to_db(self, permissions=None) -> bool:
         """Return whether this Flag is added to the database,that is, whether the ID is not the virtual ID placeholder and perform a query to the database if the vertex has already been added.
 
         :return: True if element is added to database, False otherwise.
@@ -1130,7 +1141,8 @@ class Flag(Vertex):
 
         return traversal.count().next()
 
-    def end_flag(self, end : Timestamp):
+    @authenticated
+    def end_flag(self, end : Timestamp, permissions=None):
         """
         Given a flag, set the "end" attributes of the flag to indicate that this
         flag has been ended.
@@ -1139,7 +1151,7 @@ class Flag(Vertex):
         :type end: Timestamp
         """
 
-        if not self.added_to_db():
+        if not self.added_to_db(permissions=permissions):
             raise FlagNotAddedError(
                 f"Flag {self.name} has not yet been added to the database."
             )

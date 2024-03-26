@@ -36,69 +36,157 @@ permission_groups = ['component_protected', 'component_general', 'component_unpr
 # NOTE: maybe better to have each permission map to itself, and then the protected/unprotected/general 
 # be default user groups? Allows for more fine-tuned permissions per user based on use case.
 
-permission_mapping = {
+# permission_mapping = {
+#     # Component:
+#     # protected
+#     'Component;add': component_protected,
+#     'Component;replace': component_protected,
+#     'Component;unset_property': component_protected,
+#     'Component;replace_property': component_protected,
+#     'Component;disable_property': component_protected,
+#     'Component;disconnect': component_protected,
+#     'Component;disable_connection': component_protected,
+#     'Component;disable_subcomponent': component_protected,
+#     'Component;subcomponent_connect': component_protected,
+    
+#     # general
+#     'Component;connect': component_general,
+#     'Component;set_property': component_general,
+
+#     # unprotected
+#     'Component;get_property': component_unprotected,
+#     'Component;get_all_properties': component_unprotected,
+#     'Component;get_all_properties_of_type': component_unprotected,
+#     'Component;get_connections': component_unprotected,
+#     'Component;get_list': component_unprotected,
+#     'Component;get_count': component_unprotected,
+#     'Component;get_all_flags': component_unprotected,
+#     'Component;get_subcomponents': component_unprotected,
+#     'Component;get_subcomponent': component_unprotected,
+#     'Component;get_supercomponents': component_unprotected,
+#     'Component;added_to_db': component_unprotected,
+#     'Component;from_db': component_unprotected,
+#     'Component;from_id': component_unprotected,
+#     'Component;as_dict': component_unprotected,
+
+#     # Component types:
+#     # protected
+#     'ComponentType;add': component_protected,
+#     'ComponentType;replace': component_protected,
+
+#     # unprotected
+#     'ComponentType;as_dict': component_unprotected,
+#     'ComponentType;added_to_db': component_unprotected,
+#     'ComponentType;from_db': component_unprotected,
+#     'ComponentType;from_id': component_unprotected,
+#     'ComponentType;get_names_of_types_and_versions': component_unprotected,
+#     'ComponentType;get_list': component_unprotected,
+#     'ComponentType;get_count': component_unprotected,
+
+#     # Component version:
+#     # protected
+#     'ComponentVersion;add': component_protected,
+#     'ComponentVersion;replace': component_protected,
+
+#     # unprotected
+#     'ComponentVersion;as_dict': component_unprotected,
+#     'ComponentVersion;added_to_db': component_unprotected,
+#     'ComponentVersion;from_db': component_unprotected,
+#     'ComponentVersion;from_id': component_unprotected,
+#     'ComponentVersion;get_list': component_unprotected,
+#     'ComponentVersion;get_count': component_unprotected,
+# }
+
+permissions_set = {
     # Component:
     # protected
-    'Component;add': component_protected,
-    'Component;replace': component_protected,
-    'Component;unset_property': component_protected,
-    'Component;replace_property': component_protected,
-    'Component;disable_property': component_protected,
-    'Component;disconnect': component_protected,
-    'Component;disable_connection': component_protected,
-    'Component;disable_subcomponent': component_protected,
-    'Component;subcomponent_connect': component_protected,
+    'Component;add',
+    'Component;replace',
+    'Component;unset_property',
+    'Component;replace_property',
+    'Component;disable_property',
+    'Component;disconnect',
+    'Component;disable_connection',
+    'Component;disable_subcomponent',
+    'Component;subcomponent_connect',
     
     # general
-    'Component;connect': component_general,
-    'Component;set_property': component_general,
+    'Component;connect',
+    'Component;set_property',
 
     # unprotected
-    'Component;get_property': component_unprotected,
-    'Component;get_all_properties': component_unprotected,
-    'Component;get_all_properties_of_type': component_unprotected,
-    'Component;get_connections': component_unprotected,
-    'Component;get_list': component_unprotected,
-    'Component;get_count': component_unprotected,
-    'Component;get_all_flags': component_unprotected,
-    'Component;get_subcomponents': component_unprotected,
-    'Component;get_subcomponent': component_unprotected,
-    'Component;get_supercomponents': component_unprotected,
-    'Component;added_to_db': component_unprotected,
-    'Component;from_db': component_unprotected,
-    'Component;from_id': component_unprotected,
-    'Component;as_dict': component_unprotected,
+    # 'Component;get_property',
+    # 'Component;get_all_properties',
+    # 'Component;get_all_properties_of_type',
+    # 'Component;get_connections',
+    # 'Component;get_list',
+    # 'Component;get_count',
+    # 'Component;get_all_flags',
+    # 'Component;get_subcomponents',
+    # 'Component;get_subcomponent',
+    # 'Component;get_supercomponents',
+    # 'Component;added_to_db',
+    # 'Component;from_db',
+    # 'Component;from_id',
+    # 'Component;as_dict',
 
     # Component types:
     # protected
-    'ComponentType;add': component_protected,
-    'ComponentType;replace': component_protected,
+    'ComponentType;add',
+    'ComponentType;replace',
 
     # unprotected
-    'ComponentType;as_dict': component_unprotected,
-    'ComponentType;added_to_db': component_unprotected,
-    'ComponentType;from_db': component_unprotected,
-    'ComponentType;from_id': component_unprotected,
-    'ComponentType;get_names_of_types_and_versions': component_unprotected,
-    'ComponentType;get_list': component_unprotected,
-    'ComponentType;get_count': component_unprotected,
+    # 'ComponentType;as_dict',
+    # 'ComponentType;added_to_db',
+    # 'ComponentType;from_db',
+    # 'ComponentType;from_id',
+    # 'ComponentType;get_names_of_types_and_versions',
+    # 'ComponentType;get_list',
+    # 'ComponentType;get_count',
 
     # Component version:
     # protected
-    'ComponentVersion;add': component_protected,
-    'ComponentVersion;replace': component_protected,
+    'ComponentVersion;add',
+    'ComponentVersion;replace',
 
     # unprotected
-    'ComponentVersion;as_dict': component_unprotected,
-    'ComponentVersion;added_to_db': component_unprotected,
-    'ComponentVersion;from_db': component_unprotected,
-    'ComponentVersion;from_id': component_unprotected,
-    'ComponentVersion;get_list': component_unprotected,
-    'ComponentVersion;get_count': component_unprotected,
+#     'ComponentVersion;as_dict',
+#     'ComponentVersion;added_to_db',
+#     'ComponentVersion;from_db',
+#     'ComponentVersion;from_id',
+#     'ComponentVersion;get_list',
+#     'ComponentVersion;get_count',
 
+    # PropertyType:
+    # protected
+    'PropertyType;add',
+    'PropertyType;replace',
+
+    # Property:
+    # protected
+    'Property;_add',
+
+    # FlagType:
+    # protected
+    'FlagType;add',
+    'FlagType;replace',
+
+    # FlagSeverity:
+    # protected
+    'FlagSeverity;add',
+    'FlagSeverity;replace',
+
+    # Flag:
+    # protected
+    'Flag;replace',
+
+    # general
+    'Flag;add',
+    'Flag;end_flag',
 }
 
 def check_permission(permission, class_name, method_name):
+    print(f"{class_name};{method_name}")
     if permission is None:
         # check for global variable
         # if user is a string:
@@ -118,10 +206,20 @@ def check_permission(permission, class_name, method_name):
         # check permissions
     
     # raise error if user does not have all required permissions
-    if not all(perm in permission for perm in permission_mapping[f"{class_name};{method_name}"]):
-            raise NoPermissionsError(
+
+    # check default permissions (logged in as a valid user)
+    # if not '*' in permission:
+    #     raise NoPermissionsError("Invalid user. Account must be validated by an admin.")
+    
+    if f"{class_name};{method_name}" in permissions_set and f"{class_name};{method_name}" not in permission:
+        raise NoPermissionsError(
             "User does not have the required permissions to perform this action."
-            )
+        )
+
+    # if not all(perm in permission for perm in permission_mapping[f"{class_name};{method_name}"]):
+    #         raise NoPermissionsError(
+    #         "User does not have the required permissions to perform this action."
+    #         )
 
 
 class User(Vertex):
@@ -197,6 +295,10 @@ class User(Vertex):
         }
 
         super().add(attributes)
+
+        # add to default user group (must be set from init_user-groups.py)
+        default_group = UserGroup.from_db('Default')
+        self.set_user_group(default_group)
 
     @classmethod
     def from_db(cls, name: str):

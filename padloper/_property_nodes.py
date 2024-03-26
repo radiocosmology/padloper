@@ -23,6 +23,8 @@ from _exceptions import *
 
 from typing import Optional, List
 
+from padloper.method_decorators import authenticated
+
 class PropertyType(Vertex):
     """
     The representation of a property type.
@@ -151,12 +153,13 @@ class PropertyType(Vertex):
             'comments': self.comments
         }
 
-    def add(self, strict_add=False):
+    @authenticated
+    def add(self, strict_add=False, permissions=None):
         """Add this PropertyType to the serverside.
         """
 
         # If already added, raise an error!
-        if self.added_to_db():
+        if self.added_to_db(permissions=permissions):
             strictraise(strict_add, VertexAlreadyAddedError,
                 f"PropertyType with name {self.name} " +
                 "already exists in the database."
@@ -176,8 +179,8 @@ class PropertyType(Vertex):
 
         for ctype in self.allowed_types:
 
-            if not ctype.added_to_db():
-                ctype.add()
+            if not ctype.added_to_db(permissions=permissions):
+                ctype.add(permissions=permissions)
 
             e = RelationPropertyAllowedType(
                 inVertex=ctype,
@@ -189,7 +192,8 @@ class PropertyType(Vertex):
         print(f"Added {self}")
         return self
 
-    def replace(self, newVertex, disable_time: int = int(time.time())):
+    @authenticated
+    def replace(self, newVertex, disable_time: int = int(time.time()), permissions=None):
         """Replaces the PropertyType vertex in the serverside.
 
         :param newVertex: The new PropertyType vertex that is replacing the old PropertyType vertex.
@@ -211,7 +215,8 @@ class PropertyType(Vertex):
 
         Vertex.replace(self=self, id=newVertexId)
 
-    def added_to_db(self) -> bool:
+    # @authenticated
+    def added_to_db(self, permissions=None) -> bool:
         """Return whether this PropertyType is added to the database,
         that is, whether the ID is not the virtual ID placeholder and perform a 
         query to the database to determine if the vertex has already been added.
@@ -584,8 +589,6 @@ class Property(Vertex):
         if isinstance(values, str):
             values = [values]
 
-        # TODO: check that casting as int is fine; or should the type be
-        # enforced in the DB?
         if len(values) != int(type.n_values):
             raise PropertyWrongNValuesError
 
@@ -605,7 +608,8 @@ class Property(Vertex):
         Vertex.__init__(self, id=id)
 
     # Shouldn't be called directly, but will add authentication.
-    def _add(self):
+    @authenticated
+    def _add(self, permissions=None):
         """
         Add this Property to the serverside.
         """
@@ -616,8 +620,8 @@ class Property(Vertex):
 
         Vertex.add(self, attributes)
 
-        if not self.type.added_to_db():
-            self.type.add()
+        if not self.type.added_to_db(permissions=permissions):
+            self.type.add(permissions=permissions)
 
         e = RelationPropertyType(
             inVertex=self.type,

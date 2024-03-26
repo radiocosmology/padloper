@@ -89,7 +89,7 @@ class ComponentType(Vertex):
         """
 
         # If already added.
-        if self.added_to_db():
+        if self.added_to_db(permissions=permissions):
             strictraise(strict_add, VertexAlreadyAddedError,
                         f"ComponentType with name {self.name} " +
                          "already exists in the database.")
@@ -100,7 +100,7 @@ class ComponentType(Vertex):
             'comments': self.comments
         }
 
-        Vertex.add(self=self, attributes=attributes)
+        Vertex.add(self=self, attributes=attributes, permissions=permissions)
 #        print(f"Added {self}")
         return self
 
@@ -131,7 +131,7 @@ class ComponentType(Vertex):
         # Replaces the ComponentType vertex with the new ComponentType vertex.
         Vertex.replace(self=self, id=newVertexId)
 
-    @authenticated
+    # @authenticated
     def added_to_db(self, permissions = None) -> bool:
         """Return whether this ComponentType is added to the database,
         that is, whether the ID is not the virtual ID placeholder and perform 
@@ -444,7 +444,7 @@ class ComponentVersion(Vertex):
         """
 
         # If already added.
-        if self.added_to_db():
+        if self.added_to_db(permissions=permissions):
             strictraise(strict_add, VertexAlreadyAddedError, 
                 f"ComponentVersion with name {self.name} " +
                 f"and allowed type {self.allowed_type.name} " +
@@ -459,8 +459,8 @@ class ComponentVersion(Vertex):
 
         Vertex.add(self=self, attributes=attributes)
 
-        if not self.allowed_type.added_to_db():
-            self.allowed_type.add()
+        if not self.allowed_type.added_to_db(permissions=permissions):
+            self.allowed_type.add(permissions=permissions)
 
         e = RelationVersionAllowedType(
             inVertex=self.allowed_type,
@@ -496,7 +496,7 @@ class ComponentVersion(Vertex):
 
         Vertex.replace(self=self, id=newVertexId)
 
-    @authenticated
+    # @authenticated
     def added_to_db(self, permissions = None) -> bool:
         """Return whether this ComponentVersion is added to the database,
         that is, whether the ID is not the virtual ID placeholder and perform 
@@ -509,7 +509,7 @@ class ComponentVersion(Vertex):
 
         return (
             self.id() != g._VIRTUAL_ID_PLACEHOLDER or (
-                self.allowed_type.added_to_db() and
+                self.allowed_type.added_to_db(permissions=permissions) and
                 g.t.V(self.allowed_type.id())\
                    .both(RelationVersionAllowedType.category)
                    .has('name', self.name)\
@@ -550,7 +550,7 @@ class ComponentVersion(Vertex):
         return g._vertex_cache[id]
 
     @classmethod
-    def from_db(cls, name: str, allowed_type: ComponentType, permissions = None):
+    def from_db(cls, name: str, allowed_type: ComponentType, permissions=None):
         """Query the database and return a ComponentVersion instance based on
         component version of name :param name: connected to component type
         :param allowed_type:.
@@ -565,7 +565,7 @@ class ComponentVersion(Vertex):
         :rtype: ComponentVersion
         """
 
-        if allowed_type.added_to_db():
+        if allowed_type.added_to_db(permissions=permissions):
 
             try:
                 d = g.t.V(allowed_type.id()).has('active', True) \
@@ -735,7 +735,7 @@ class ComponentVersion(Vertex):
             id, name, comments, type_id = entry['id'], entry['name'], \
                 entry['comments'], entry['type_id']
 
-            t = ComponentType.from_id(id=type_id)
+            t = ComponentType.from_id(id=type_id, permissions=permissions)
 
             component_versions.append(
                 ComponentVersion._attrs_to_version(
@@ -890,7 +890,7 @@ class Component(Vertex):
 
 #        CONTINUE HERE: figure out how to check if a vertex already exists!!
 #        print(">>>>> ", self.name)
-        if self.added_to_db():
+        if self.added_to_db(permissions=permissions):
             strictraise(strict_add, VertexAlreadyAddedError, 
                 f"Component with name {self.name} " +
                 "already exists in the database."
@@ -905,8 +905,8 @@ class Component(Vertex):
         Vertex.add(self, attributes)
 
         if self.version is not None:
-            if not self.version.added_to_db():
-                self.version.add()
+            if not self.version.added_to_db(permissions=permissions):
+                self.version.add(permissions=permissions)
 
             rev_edge = RelationVersion(
                 inVertex=self.version,
@@ -915,8 +915,8 @@ class Component(Vertex):
 
             rev_edge._add()
 
-        if not self.type.added_to_db():
-            self.type.add()
+        if not self.type.added_to_db(permissions=permissions):
+            self.type.add(permissions=permissions)
 
         type_edge = RelationComponentType(
             inVertex=self.type,
@@ -953,7 +953,7 @@ class Component(Vertex):
 
         Vertex.replace(self=self, id=newVertexId)
 
-    @authenticated
+    # @authenticated
     def get_property(self, type, at_time: int, permissions = None):
         """
         Given a property type, get a property of this component active at time
@@ -968,12 +968,12 @@ class Component(Vertex):
         """
         from _property_nodes import Property
 
-        if not self.added_to_db():
+        if not self.added_to_db(permissions=permissions):
             raise ComponentNotAddedError(
                 f"Component {self.name} has not yet been added to the database."
             )
 
-        if not type.added_to_db():
+        if not type.added_to_db(permissions=permissions):
             raise PropertyTypeNotAddedError(
                 f"Property type {type.name} of component " +
                  "{self.name} " +
@@ -1009,7 +1009,7 @@ class Component(Vertex):
         """
         from _property_nodes import Property
 
-        if not self.added_to_db():
+        if not self.added_to_db(permissions=permissions):
             raise ComponentNotAddedError(
                 f"Component {self.name} has not yet been added to the database."
             )
@@ -1060,7 +1060,7 @@ class Component(Vertex):
         :rtype: list[RelationProperty]
         """
 
-        if not self.added_to_db():
+        if not self.added_to_db(permissions=permissions):
             raise ComponentNotAddedError(
                 f"Component {self.name} has not yet been added to the database."
             )
@@ -1101,7 +1101,7 @@ class Component(Vertex):
         :rtype: [Flag]
         """
 
-        if not self.added_to_db():
+        if not self.added_to_db(permissions=permissions):
             raise ComponentNotAddedError(
                 f"Component {self.name} has not yet been added to the database."
             )
@@ -1127,7 +1127,7 @@ class Component(Vertex):
         :rtype: [Component]
         """
 
-        if not self.added_to_db():
+        if not self.added_to_db(permissions=permissions):
             raise ComponentNotAddedError(
                 f"Component {self.name} has not yet been added to the database."
             )
@@ -1135,7 +1135,7 @@ class Component(Vertex):
         query = g.t.V(self.id()).inE(RelationSubcomponent.category) \
                    .has('active', True).otherV().id_()
 
-        return [Component.from_id(q) for q in query.toList()]
+        return [Component.from_id(q, permissions=permissions) for q in query.toList()]
 
     @authenticated
     def get_supercomponents(self, permissions = None):
@@ -1145,7 +1145,7 @@ class Component(Vertex):
         :rtype: [Component]
         """
 
-        if not self.added_to_db():
+        if not self.added_to_db(permissions=permissions):
             raise ComponentNotAddedError(
                 f"Component {self.name} has not yet been added to the database."
             )
@@ -1155,7 +1155,7 @@ class Component(Vertex):
         query = g.t.V(self.id()).outE(RelationSubcomponent.category) \
                    .has('active', True).otherV().id_()
 
-        return [Component.from_id(q) for q in query.toList()]
+        return [Component.from_id(q, permissions=permissions) for q in query.toList()]
 
     @authenticated
     def set_property(
@@ -1184,7 +1184,7 @@ class Component(Vertex):
         # print(kwargs['method_name'])
         # print(self.__class__.__name__)
 
-        if not self.added_to_db():
+        if not self.added_to_db(permissions=permissions):
             raise ComponentNotAddedError(
                 f"Component {self.name} has not yet been added to the database."
             )
@@ -1196,7 +1196,8 @@ class Component(Vertex):
             )
 
         current_property = self.get_property(
-            type=property.type, at_time=start.time
+            type=property.type, at_time=start.time,
+            permissions=permissions
         )
 
         if current_property is not None:
@@ -1219,13 +1220,15 @@ class Component(Vertex):
 #                )
             else:
                 # end that property.
-                self.unset_property(current_property, start)
+                self.unset_property(current_property, start,
+                permissions=permissions)
 
         else:
 
             existing_properties = self.get_all_properties_of_type(
                 type=property.type,
-                from_time=start.time
+                from_time=start.time,
+                permissions=permissions
             )
 
             if len(existing_properties) > 0:
@@ -1257,7 +1260,7 @@ class Component(Vertex):
             type=property.type
         )
 
-        prop_copy._add()
+        prop_copy._add(permissions=permissions)
 
         e = RelationProperty(inVertex=prop_copy, outVertex=self, start=start,
                              end=end)
@@ -1291,12 +1294,12 @@ class Component(Vertex):
         :type comments: str, optional
         """
 
-        if not self.added_to_db():
+        if not self.added_to_db(permissions=permissions):
             raise ComponentNotAddedError(
                 f"Component {self.name} has not yet been added to the database."
             )
 
-        if not property.added_to_db():
+        if not property.added_to_db(permissions=permissions):
             raise PropertyNotAddedError(
                 f"Property of component {self.name} " +
                 f"of values {property.values} being unset " +
@@ -1378,7 +1381,8 @@ class Component(Vertex):
         # Sets a new property
         self.set_property(
             property=property,
-            start=start
+            start=start,
+            permissions=permissions
         )
 
     @authenticated
@@ -1431,12 +1435,12 @@ class Component(Vertex):
         if is_replacement:
             raise RuntimeError(f"Is_replacement feature not implemented yet. {is_replacement}")
 
-        if not self.added_to_db():
+        if not self.added_to_db(permissions=permissions):
             raise ComponentNotAddedError(
                 f"Component {self.name} has not yet been added to the database."
             )
 
-        if not component.added_to_db():
+        if not component.added_to_db(permissions=permissions):
             raise ComponentNotAddedError(
                 f"Component {component.name} has not yet " +
                 "been added to the database."
@@ -1448,7 +1452,8 @@ class Component(Vertex):
             )
 
         curr_conn = self.get_connections(component=component,
-                                         at_time=start.time)
+                                         at_time=start.time,
+                                         permissions=permissions)
         # If this doesn't pass, something is very broken!
         assert(len(curr_conn) <= 1)
 
@@ -1468,7 +1473,8 @@ class Component(Vertex):
             return
 
         all_conn = self.get_connections(component=component,
-                                        from_time=start.time)
+                                        from_time=start.time,
+                                        permissions=permissions)
 
         if len(all_conn) > 0:
             if end == None:
@@ -1512,19 +1518,20 @@ class Component(Vertex):
         """
 
         # Done for troubleshooting (so you know which component is not added?)
-        if not self.added_to_db():
+        if not self.added_to_db(permissions=permissions):
             raise ComponentNotAddedError(
                 f"Component {self.name} has not yet been added to the database."
             )
 
-        if not component.added_to_db():
+        if not component.added_to_db(permissions=permissions):
             raise ComponentNotAddedError(
                 f"Component {component.name} has not yet " +
                 "been added to the database."
             )
 
         curr_conn = self.get_connections(component=component,
-                                         at_time = end.time)
+                                         at_time = end.time,
+                                         permissions=permissions)
         assert(len(curr_conn) <= 1)
 
         if len(curr_conn) == 0:
@@ -1576,7 +1583,7 @@ class Component(Vertex):
 
         :rtype: list[RelationConnection]
         """
-        if not self.added_to_db():
+        if not self.added_to_db(permissions=permissions):
             raise ComponentNotAddedError(
                 f"Component {self.name} has not yet been added to the database."
             )
@@ -1585,7 +1592,7 @@ class Component(Vertex):
                 component = [component]
             comp_id = [c.id() for c in component]
             for c in component:
-                if not c.added_to_db():
+                if not c.added_to_db(permissions=permissions):
                     raise ComponentNotAddedError(
                         f"Component {c.name} has not yet " +
                         "been added to the database."
@@ -1886,12 +1893,12 @@ class Component(Vertex):
         :type component: Component
         """
 
-        if not self.added_to_db():
+        if not self.added_to_db(permissions=permissions):
             raise ComponentNotAddedError(
                 f"Component {self.name} has not yet been added to the database."
             )
 
-        if not component.added_to_db():
+        if not component.added_to_db(permissions=permissions):
             raise ComponentNotAddedError(
                 f"Component {component.name} has not yet" +
                 "been added to the database."
@@ -1903,11 +1910,13 @@ class Component(Vertex):
             )
 
         current_subcomponent = self.get_subcomponent(
-            component=component
+            component=component,
+            permissions=permissions
         )
 
         component_to_subcomponent = component.get_subcomponent(
-            component=self
+            component=self,
+            permissions=permissions
         )
 
         if component_to_subcomponent is not None:
@@ -1928,7 +1937,7 @@ class Component(Vertex):
                 outVertex=component
             )
 
-            current_subcomponent.add()
+            current_subcomponent.add(permissions=permissions)
 #            print(f'subcomponent connected: {self} -> {component}')
 
     @authenticated
@@ -1940,12 +1949,12 @@ class Component(Vertex):
         """
 
         # Done for troubleshooting (so you know which component is not added?)
-        if not self.added_to_db():
+        if not self.added_to_db(permissions=permissions):
             raise ComponentNotAddedError(
                 f"Component {self.name} has not yet been added to the database."
             )
 
-        if not component.added_to_db():
+        if not component.added_to_db(permissions=permissions):
             raise ComponentNotAddedError(
                 f"Component {component.name} has not yet" +
                 "been added to the database."
@@ -1987,7 +1996,7 @@ class Component(Vertex):
            .property('active', False)\
            .property('time_disabled', disable_time).next()
 
-    @authenticated
+    # @authenticated
     def added_to_db(self, permissions = None) -> bool:
         """Return whether this Component is added to the database,
         that is, whether the ID is not the virtual ID placeholder and perform a 
@@ -2008,7 +2017,7 @@ class Component(Vertex):
         )
 
     @classmethod
-    def _attrs_to_component(self, name, id, type_id, rev_ids, time_added):
+    def _attrs_to_component(self, name, id, type_id, rev_ids, time_added, permissions=None):
         """Given the name ID of the component :param id: and the ID of the 
         component type :param type_id: and a list of the IDs of the
         component version vertices :param rev_ids:, 
@@ -2359,22 +2368,22 @@ class Component(Vertex):
 
         if not bare:
             prop_dicts = [{**prop.as_dict(), **rel.as_dict()} \
-                for (prop, rel) in self.get_all_properties()
+                for (prop, rel) in self.get_all_properties(permissions=permissions)
             ]
 
             conn_dicts = [{**{"name": conn.other_vertex(self).name},
                            **conn.as_dict()} \
-                for conn in self.get_connections(exclude_subcomponents=True)
+                for conn in self.get_connections(exclude_subcomponents=True, permissions=permissions)
             ]
 
-            flag_dicts = [flag.as_dict() for flag in self.get_all_flags()]
+            flag_dicts = [flag.as_dict() for flag in self.get_all_flags(permissions=permissions)]
 
             subcomponent_dicts = [{"name": subcomponents.name} \
-                for subcomponents in self.get_subcomponents()
+                for subcomponents in self.get_subcomponents(permissions=permissions)
             ]
         
             supercomponent_dicts = [{"name": supercomponents.name} \
-                for supercomponents in self.get_supercomponents()
+                for supercomponents in self.get_supercomponents(permissions=permissions)
             ]
             extra = {
                 'properties': prop_dicts,
