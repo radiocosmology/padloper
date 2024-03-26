@@ -6,7 +6,7 @@ import PropertyTypeFilter from './PropertyTypeFilter.js';
 import Button from '@mui/material/Button'
 import PropertyTypeAddButton from './PropertyTypeAddButton.js';
 import PropertyTypeReplaceButton from './PropertyTypeReplaceButton.js';
-
+import Authenticator from './components/Authenticator.js';
 
 
 
@@ -52,7 +52,6 @@ export default function PropertyTypeList() {
         ]
     */
     const [filters, setFilters] = useState([]);
-
     
 
     /**
@@ -276,6 +275,7 @@ export default function PropertyTypeList() {
 
     return (
         <>
+            <Authenticator />
             <ElementRangePanel
                 width="800px"
                 min={min}

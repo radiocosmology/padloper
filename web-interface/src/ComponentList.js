@@ -8,6 +8,7 @@ import Button from '@mui/material/Button';
 import ComponentAddButton from './ComponentAddButton.js';
 import ComponentReplaceButton from './ComponentReplaceButton.js';
 import AlertDialog from './ComponentDisableButton'
+import Authenticator from './components/Authenticator.js';
 
 /**
  * A MUI component that represents a list of components.
@@ -241,6 +242,7 @@ function ComponentList() {
 
     return (
         <>
+            <Authenticator />
             <ElementRangePanel
                 min={min}
                 updateMin={(n) => { setMin(n) }}

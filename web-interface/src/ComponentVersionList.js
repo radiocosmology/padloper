@@ -9,6 +9,7 @@ from '@mui/material';
 import ComponentVersionFilter from './ComponentVersionFilter.js';
 import ComponentVersionAddButton from './ComponentVersionAddButton.js';
 import ComponentVersionReplaceButton from './ComponentVersionReplaceButton.js';
+import Authenticator from './components/Authenticator.js';
 
 /**
  * A MUI component that renders a list of component versions.
@@ -53,6 +54,7 @@ function ComponentVersionList() {
         ]
     */
     const [filters, setFilters] = useState([]);
+
 
     /**
      * add an empty filter to filters
@@ -241,7 +243,8 @@ function ComponentVersionList() {
     ]);
 
     return (
-        <>
+        <> 
+            <Authenticator />
             <ElementRangePanel
                 min={min}
                 updateMin={(n) => { setMin(n) }}

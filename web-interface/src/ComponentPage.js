@@ -41,6 +41,7 @@ import {
     useParams
 } from "react-router-dom";
 import { Typography } from '@mui/material';
+import Authenticator from './components/Authenticator.js';
 
 /**
  * A styled Paper component that represents the root for the component page.
@@ -366,6 +367,7 @@ function ComponentPage() {
 
     /*Contains the message when there is an error while adding a new connection */
     const [errorConnectionMessage,setErrorConnectionMessage] = useState(null)
+
 
 
     /**
@@ -1226,9 +1228,12 @@ function ComponentPage() {
 
     // return all the good stuff
     return (
+        <>
+        <Authenticator />
         <Root>
             {content}
         </Root>
+        </>
     )
 }
 
