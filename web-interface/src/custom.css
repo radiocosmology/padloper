@@ -1,3 +1,5 @@
+iframe#webpack-dev-server-client-overlay{display:none!important}
+
 .react-flow__node {
     z-index: -1 !important;
  }
