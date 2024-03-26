@@ -9,7 +9,7 @@ from '@mui/material';
 
 import ComponentTypeAddButton from './ComponentTypeAddButton'
 import ComponentTypeReplaceButton from './ComponentTypeReplaceButton.js';
-
+import Authenticator from './components/Authenticator.js';
 
 /**
  * A MUI component that renders a list of component types.
@@ -134,6 +134,7 @@ function ComponentTypeList() {
 
     return (
         <>
+            <Authenticator />
             <ElementRangePanel
                 min={min}
                 updateMin={(n) => { setMin(n) }}

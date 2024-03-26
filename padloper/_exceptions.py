@@ -4,11 +4,28 @@ exceptions.py
 Contains declarations of custom exceptions.
 """
 
+# This needs to be overhauled because we don't want an exception for
+# everything! New exceptions at the top; ones below the marker below should be
+# phased out/deprecated.
 
 class Error(Exception):
     """Base class for exceptions in this module."""
     pass
 
+class NotInDatabase(Error):
+    """Exception raised when an element does not exist in the database.
+    """
+    pass
+
+class AlreadyInDatabase(Error):
+    """Exception raised when an element does not exist in the database.
+    """
+    pass
+
+
+################################################################################
+# Exceptions below here should be phased out once more general ones are added.
+################################################################################
 
 class VertexAlreadyAddedError(Error):
     """

@@ -53,14 +53,18 @@ export JAVA_HOME=/usr/lib/jvm/java-8-openjdk-amd64
 
 From the [JanusGraph Releases](https://github.com/JanusGraph/janusgraph/releases), download the .zip of the "full" installation of the latest JanusGraph version (the file name should resemble `janusgraph-full-X.X.X.zip`, where `X.X.X` is the version number), and extract the contents. This "full" installation includes pre-configured JanusGraph, Apache Cassandra and Elasticsearch.
 
-**Important**: the default memory settings can cause the JanusGraph to use quite a bit of RAM. Here are the parameters you can/should tune:
-* With the default settings, the biggest hog is the Cassandra backend (which uses 25% of the RAM or 8GB, whichever is less!). For something more reasonable, edit the `MAX_HEAP_SIZE` setting in `cassandra/conf/cassandra-env.sh`. You can set it to something like `512M` or `1024M`. So far 512 MB has proven perfectly adequate.
-* You can also set the JVM heap size for JanusGraph and the ElasticSearch backend. The relevant parameters are `-Xms` and `-Xmx` in each of `elasticsearch/config/jvm.options` and `conf/jvm-11.options`. These represent the initial and maximum heap size allowed, respectively, and you should set them to the same value. For instance, for a heap size of 1 GB, set them to `-Xms1g` and `-Xmx1g`; for 512 MB, `-Xms512m` and `-Xmx512m`. If you put these settings in each of the configuration files listed earlier, then a total of 2 GB would be used.
+**Important**: You should follow all the steps below for proper functioning of
+padloper.
 
-From here, start the JanusGraph server by running
-```
-bin/janusgraph.sh start
-```
+* Add `schema.default=none` to the graph properties, i.e., to `conf/janusgraph-cql-es.properties`. This will only allow vertices/edges of the right type to be added and will throw an exception if you break the schema.
+* The default memory settings can cause the JanusGraph to use quite a bit of RAM. Here are the parameters you can/should tune:
+  * With the default settings, the biggest hog is the Cassandra backend (which uses 25% of the RAM or 8GB, whichever is less!). For something more reasonable, edit the `MAX_HEAP_SIZE` setting in `cassandra/conf/cassandra-env.sh`. You can set it to something like `512M` or `1024M`. So far 512 MB has proven perfectly adequate.
+  * You can also set the JVM heap size for JanusGraph and the ElasticSearch backend. The relevant parameters are `-Xms` and `-Xmx` in each of `elasticsearch/config/jvm.options`, `conf/jvm-8.options` and `conf/jvm-11.options`. These represent the initial and maximum heap size allowed, respectively, and you should set them to the same value. For instance, for a heap size of 1 GB, set them to `-Xms1g` and `-Xmx1g`; for 512 MB, `-Xms512m` and `-Xmx512m`. If you put these settings in each of the configuration files listed earlier, then a total of 2 GB would be used.
+* From here, start the JanusGraph server by running
+  ```
+  bin/janusgraph.sh start
+  ```
+* Finally, you need to define the schema. Open the Gremlin console as described in the next session, and execute the commands in the `index_setup.txt` file. This will tell JanusGraph which vertex/edge properties are allowed, their type and will also create indices for faster searching.
 
 ## Connecting to JanusGraph
 
@@ -137,9 +141,3 @@ This will install `Flask` version 2.0.1 and `python-dotenv` version 0.19.0 (see 
 ## Setting up React
 
 In `web-interface`, run `npm install` to install all dependencies. However, `react-scripts` must be set to version `4.0.3` (see the TODOs). 
-
-## More Setup
-
-### Set up indexing
-
-To make certain queries faster, graph indexes should be added. Run the commands in the `index_setup.txt` file in a Gremlin console to add indexing suitable for Padloper. This is best done on a *fresh install*.

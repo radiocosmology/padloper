@@ -10,10 +10,14 @@ import padloper as p
 import json
 from urllib.parse import unquote
 
-# CONTINUE HERE: use the as_dict() methods from padloper …
-
 # The flask application
 app = Flask(__name__)
+
+print("=================================")
+print("REMOVE ME!!!!!!!!!!!!!!!!!!!!!!!!")
+print("=================================")
+
+p.set_user("test")
 
 def tmp_timestamp(t, uid, comments):
     print("Note: needs to be replaced with proper user registration.")
@@ -147,7 +151,7 @@ def set_component_type():
         val_comments = escape(request.args.get('comments'))
 
         # Need to initialize an instance of a component type first.
-        component_type = p.ComponentType(val_name, val_comments)
+        component_type = p.ComponentType(name=val_name, comments=val_comments)
 
         component_type.add()
 
@@ -186,7 +190,8 @@ def replace_component_type():
         val_component_type = escape(request.args.get('component_type'))
 
         # Need to initialize an instance of the new component type first.
-        component_type_new = p.ComponentType(val_name, val_comments)
+        component_type_new = p.ComponentType(name=val_name,
+                                             comments=val_comments)
 
         # Gets the old component type from the database.
         component_type_old = p.ComponentType.from_db(val_component_type)
@@ -232,7 +237,7 @@ def set_component_version():
 
         # Need to initialize an instance of a component version first.
         component_version = p.ComponentVersion(
-            val_name, component_type, val_comments)
+            name=val_name, type=component_type, comments=val_comments)
 
         component_version.add()
 
@@ -267,6 +272,8 @@ def replace_component_version():
     with the corresponding value of appropriate exception.  
     :rtype: dict
     """
+    return {'error': "This routine is broken … " +
+                     "val_component_version_allowed_type == undefined"}
     try:
         val_name = escape(request.args.get('name'))
         val_type = escape(request.args.get('type'))
@@ -286,10 +293,10 @@ def replace_component_version():
 
         # Need to initialize an instance of a component version.
         component_version_new = p.ComponentVersion(
-            val_name, component_type_new, val_comments)
+            name=val_name, type=component_type_new, comments=val_comments)
 
         component_version_old = p.ComponentVersion.from_db(
-            name=val_component_version, allowed_type=component_type_old)
+            val_component_version)
 
         component_version_old.replace(component_version_new)
 
@@ -318,7 +325,6 @@ def set_component():
     with the corresponding value of appropriate exception.  
     :rtype: dict
     """
-
     try:
 
         val_name = escape(request.args.get('name')).split(';')
@@ -333,18 +339,18 @@ def set_component():
         # component version name and
         # component type name.
         if val_version:
-            component_version = p.ComponentVersion.from_db(val_version,
-                                                           component_type)
+            component_version = p.ComponentVersion.from_db(val_version)
         else:
             component_version = None
 
         for name in val_name:
             # Need to initialize an instance of a component first.
-            component = p.Component(name, component_type, component_version)
+            print(name, component_type, component_version)
+            component = p.Component(name=name, type=component_type,
+                                    version=component_version)
             component.add()
 
         return {'result': True}
-
     except Exception as e:
         print(e)
         return {'error': json.dumps(e, default=str)}
@@ -390,7 +396,8 @@ def replace_component():
             component_version = None
 
         # Need to initialize an instance of a component first.
-        component_new = p.Component(val_name, component_type, component_version)
+        component_new = p.Component(name=val_name, type=component_type,
+                                    version=component_version)
         component_old = p.Component.from_db(val_component)
         component_old.replace(component_new)
 
@@ -463,8 +470,11 @@ def set_property_type():
             allowed_list.append(p.ComponentType.from_db(name))
         
         # Need to initialize an instance of a property type first.
-        property_type = p.PropertyType(val_name, val_units, val_allowed_reg,
-                                       val_values, allowed_list, val_comments)
+        property_type = p.PropertyType(name=val_name, units=val_units, 
+                                       allowed_regex=val_allowed_reg,
+                                       n_values=int(val_values), 
+                                       allowed_types=allowed_list,
+                                       comments=val_comments)
         property_type.add()
 
         return {'result': True}
@@ -519,9 +529,11 @@ def replace_property_type():
         for name in val_type:
             allowed_list.append(p.ComponentType.from_db(name))
         # Need to initialize an instance of a property type first.
-        property_type_new = p.PropertyType(val_name, val_units, val_allowed_reg,
-                                           val_values, allowed_list,
-                                           val_comments)
+        property_type_new = p.PropertyType(name=val_name, units=val_units, 
+                                           allowed_regex=val_allowed_reg,
+                                           n_values=int(val_values), 
+                                           allowed_types=allowed_list,
+                                           comments=val_comments)
         property_type_old = p.PropertyType.from_db(val_property_type)
         property_type_old.replace(property_type_new)
 
@@ -1061,7 +1073,7 @@ def end_component_connection():
     try:
         t = tmp_timestamp(val_time, val_uid, val_comments)
         c1.disconnect(c2, t)
-    except ComponentsAlreadyDisconnectedError:
+    except p.ComponentsAlreadyDisconnectedError:
         already_disconnected = True
 
     return {'result': not already_disconnected}
@@ -1128,6 +1140,32 @@ def get_connections():
         ]
     }
 
+@app.route("/api/get_subcomponents", methods=['GET'])
+def get_subcomponents():
+    """Given a component name, return the names of all subcomponents of the component.
+
+    The URL parameters are:
+
+    name - the name of the component to query the subcomponents for.
+
+    :return: Return a dictionary with a key 'result' and value being a list of
+    names for subcomponents.
+    :rtype: dict
+    """
+
+    val_name = escape(request.args.get('name'))
+
+    c = p.Component.from_db(val_name)
+
+    subcomponents = c.get_subcomponents()
+
+    return {
+        'result': [
+            subcomponent.name \
+            for subcomponent in subcomponents
+        ]
+    }
+
 
 @app.route("/api/component_add_subcomponent", methods=['POST'])
 def add_component_subcomponent():
@@ -1156,10 +1194,8 @@ def add_component_subcomponent():
         already_subcomponent = False
 
         try:
-            c1.subcomponent_connect(
-                component=c2
-            )
-        except ComponentAlreadySubcomponentError:
+            c1.subcomponent_connect(c2)
+        except p.ComponentAlreadySubcomponentError:
             already_subcomponent = True
 
         return {'result': not already_subcomponent}
@@ -1215,7 +1251,7 @@ def set_flag_type():
         val_comments = escape(request.args.get('comments'))
 
         # Need to initialize an instance of a component version first.
-        flag_type = p.FlagType(val_name, val_comments)
+        flag_type = p.FlagType(name=val_name, comments=val_comments)
         flag_type.add()
 
         return {'result': True}
@@ -1249,7 +1285,7 @@ def replace_flag_type():
         val_flag_type = escape(request.args.get('flag_type'))
 
         # Need to initialize an instance of a flag type first.
-        flag_type_new = p.FlagType(val_name, val_comments)
+        flag_type_new = p.FlagType(name=val_name, comments=val_comments)
         flag_type_old = p.FlagType.from_db(val_flag_type)
         flag_type_old.replace(flag_type_new)
         return {'result': True}
