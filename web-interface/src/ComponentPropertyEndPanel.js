@@ -77,12 +77,13 @@ function ComponentPropertyEndPanel(
     {
         theme,
         onClose,
-        onSet
+        onSet,
+        uid
     }
 ) {
 
     // the ID of the user ending the property
-    const [uid, setUid] = useState("");
+    // const [uid, setUid] = useState("");
 
     // Default time is now; set the display time and the internal time variable
     // to this to start with.
@@ -132,15 +133,15 @@ function ComponentPropertyEndPanel(
                     </Grid>
                 </Grid>
 
-                <Grid container spacing={2} justifyContent="space-around">
-                    <Grid item>
+                <Grid container spacing={2} justifyContent="center">
+                    {/* <Grid item>
                         <TextField 
                             required
                             label="User" 
                             sx={{ width: 150 }}
                             onChange={(event) => setUid(event.target.value)}
                         />
-                    </Grid>
+                    </Grid> */}
 
                     <Grid item>
                         <TextField

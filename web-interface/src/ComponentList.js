@@ -232,6 +232,8 @@ function ComponentList() {
         types_and_versions={types_and_versions}
         nameComponent= {c.name}
         toggleReload={toggleReload}
+        typeComponent={c.type.name}
+        versionComponent={c.version ? c.version.name : null}
         />,
         <AlertDialog
         name={c.name}

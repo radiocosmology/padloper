@@ -1,4 +1,4 @@
-import React, { useState } from 'react';
+import React, { useEffect, useState } from 'react';
 
 import Button from '@mui/material/Button';
 import TextField from '@mui/material/TextField';
@@ -38,7 +38,7 @@ const ReplaceButton = styled((props) => (
 }))
 
 
-  export default function ComponentReplaceButton ({types_and_versions,toggleReload,nameComponent}){
+  export default function ComponentReplaceButton ({types_and_versions,toggleReload,nameComponent,typeComponent,versionComponent}){
 
   // opens and closes the pop up form.
   const [open, setOpen] = useState(false);
@@ -59,6 +59,13 @@ const ReplaceButton = styled((props) => (
 
   // whether the submit button has been clicked or not
   const [loading, setLoading] = useState(false);
+
+  // set initial values based on previous
+  useEffect(() => {
+    setName(nameComponent ? nameComponent : '');
+    setComponentType(typeComponent ? typeComponent : '');
+    setComponentVersion(versionComponent ? versionComponent : '');
+  }, [nameComponent, typeComponent, versionComponent])
 
   /*
   Function that is used to open the form when the user clicks
@@ -115,6 +122,7 @@ const ReplaceButton = styled((props) => (
             margin="dense"
             id="name"
             label="Component Name"
+            value={name}
             type='text'
             fullWidth
             variant="outlined"
@@ -157,6 +165,7 @@ const ReplaceButton = styled((props) => (
         <TextField
           id="ComponentVersion"
           label="Component Version"
+          value={componentVersion}
           type='text'
           variant='outlined'
           onChange={(e)=> setComponentVersion(e.target.value)}

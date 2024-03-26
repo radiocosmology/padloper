@@ -368,6 +368,39 @@ function ComponentPage() {
     /*Contains the message when there is an error while adding a new connection */
     const [errorConnectionMessage,setErrorConnectionMessage] = useState(null)
 
+    const [userData, setUserData] = useState({});
+
+    const [uid, setUid] = useState('');
+
+    // load user data when the page loads
+    useEffect(() => {
+        getUserData();
+    }, [])
+
+
+    // set user id
+    useEffect(() => {
+        if (userData) {
+            setUid(userData.login);
+        }
+    }, [userData])
+
+    /**
+     * Get the user data via GitHub
+     */
+    async function getUserData() {
+        await fetch("http://localhost:4000/getUserData", {
+            method: "GET",
+            headers: {
+                "Authorization": "Bearer " + localStorage.getItem('accessToken')
+            }
+            }).then((response) => {
+                return response.json();
+            }).then((data) => {
+                setUserData(data);
+            });
+        }
+
 
 
     /**
@@ -481,6 +514,7 @@ function ComponentPage() {
         input += `&time=${time}`;
         input += `&uid=${uid}`;
         input += `&comments=${comments}`;
+        input += `&isreplacement=False`;
 
         axios.post(input).then(
                 (response) => {
@@ -533,15 +567,16 @@ function ComponentPage() {
     async function replaceConnection(time, uid, comments) {
         
         // build up the string to query the API
-        let input = `/api/component_replace_connection`;
+        let input = `/api/component_add_connection`;
         input += `?name1=${name}`;
         input += `&name2=${otherName}`;
         input += `&time=${time}`;
         input += `&uid=${uid}`;
         input += `&comments=${comments}`;
+        input += `&isreplacement=True`;
 
         return new Promise((resolve, reject) => {
-            fetch(input).then(
+            fetch(input, {method: 'POST'}).then(
                 res => res.json()
             ).then(data => {
                 if (data.result) {
@@ -743,7 +778,17 @@ function ComponentPage() {
                         ''}
                         {activeindexpropertyReplace === index 
                         ?
-                         properties_edit_panel_content
+
+                        (open_properties_replace_panel) ? (
+                            <ComponentPropertyReplacePanel 
+                                theme={theme} 
+                                onClose={() => setOpenPropertiesReplacePanel(false)}
+                                onSet={replaceProperty}
+                                selected={prop.type}
+                                oldTextFieldValues={prop.values}
+                                oldComments={prop.start. comments}
+                            />
+                        ) : <></>
                         :
                         ''}
                     </EntryAccordion>
@@ -767,16 +812,19 @@ function ComponentPage() {
                 onClose={() => setOpenConnectionsEndPanel(false)}
                 onSet={endConnection}
                 name={name}
+                uid={uid}
             />
         ) : <></>;
 
-        let connections_replace_panel_content = (open_connections_replace_panel) ? (
-            <ComponentConnectionReplacePanel 
-                theme={theme} 
-                onClose={() => setOpenConnectionsReplacePanel(false)}
-                onSet={replaceConnection}
-            />
-        ) : <></>;
+        // let connections_replace_panel_content = (open_connections_replace_panel) ? (
+        //     <ComponentConnectionReplacePanel 
+        //         theme={theme} 
+        //         onClose={() => setOpenConnectionsReplacePanel(false)}
+        //         onSet={replaceConnection}
+        //         uid={uid}
+        //         time={}
+        //     />
+        // ) : <></>;
 
         let connections_content = (
             <Stack spacing={1}>
@@ -842,7 +890,16 @@ function ComponentPage() {
                                     }
                                     {conn.end.uid
                         ?
-                        ""
+                        <ReplaceButton 
+                        onClick={
+                                () => 
+                                {
+                                    setOtherName(conn.name)
+                                    setOpenConnectionsReplacePanel(true)
+                                    setActiveIndexConnectionReplace(index)
+                                }
+                            }
+                            />
                         :
                         <>
                         <ReplaceButton 
@@ -886,7 +943,16 @@ function ComponentPage() {
                         ''}
                          {activeIndexConnectionReplace === index 
                         ?
-                         connections_replace_panel_content
+                        //  connections_replace_panel_content
+                        (open_connections_replace_panel) ? (
+                            <ComponentConnectionReplacePanel 
+                                theme={theme} 
+                                onClose={() => setOpenConnectionsReplacePanel(false)}
+                                onSet={replaceConnection}
+                                uid={uid}
+                                conn={conn}
+                            />
+                        ) : <></>
                         :
                         ''}
                     </EntryAccordion>

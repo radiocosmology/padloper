@@ -12,6 +12,7 @@ import TextField from '@mui/material/TextField';
 export default function ComponentPropertyAutocomplete(
     {
         onSelect,
+        selected
     }
 ) {
 
@@ -26,6 +27,16 @@ export default function ComponentPropertyAutocomplete(
 
     // whether the list of options is currently loading the list of components
     const [loading, setLoading] = useState(open && options.length === 0);
+
+    const [selectedOption, setSelectedOption] = useState({});
+
+    useEffect(() => {
+        // setEnteredString(selected ? selected : "");
+        if (selected) {
+            setSelectedOption(selected);
+            onSelect(selected);
+        }
+    }, [])
 
     /**
      * When the entered string is changed or the autocomplete has been opened,
@@ -76,9 +87,15 @@ export default function ComponentPropertyAutocomplete(
         }}
         options={options}
         isOptionEqualToValue={(option, value) => option.name === value.name}
-        getOptionLabel={(option) => option.name}
-        onInputChange={(option, value, details) => setEnteredString(value)}
-        onChange={(event, value, reason, details) => onSelect(value)}
+        getOptionLabel={(option) =>  option && option.name ? option.name : ''}
+        onInputChange={(option, value, details) => {
+            setEnteredString(value);
+            if (option && option.name) {
+                setSelectedOption(option)
+            }
+        }}
+        onChange={(event, value, reason, details) => {onSelect(value); setSelectedOption(value); console.log(value)}}
+        value={selectedOption}
         loading={loading}
         renderInput={(params) => (
             <TextField  

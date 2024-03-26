@@ -126,6 +126,38 @@ function ComponentConnectionAddPanel(
         setSelectedOption(option);
     }
 
+    const [userData, setUserData] = useState({});
+
+    // load user data when the page loads
+    useEffect(() => {
+        getUserData();
+    }, [])
+
+
+    // set user id
+    useEffect(() => {
+        if (userData) {
+            setUid(userData.login);
+        }
+    }, [userData])
+
+    /**
+     * Get the user data via GitHub
+     */
+    async function getUserData() {
+        await fetch("http://localhost:4000/getUserData", {
+            method: "GET",
+            headers: {
+                "Authorization": "Bearer " + localStorage.getItem('accessToken')
+            }
+            }).then((response) => {
+                return response.json();
+            }).then((data) => {
+                console.log(data);
+                setUserData(data);
+            });
+        }
+
     // return the MUI component.
     return (
         <ThemeProvider theme={theme}>
@@ -152,7 +184,7 @@ function ComponentConnectionAddPanel(
                     </Grid>
                 </Grid>
 
-                <Grid container spacing={2} justifyContent="space-around">
+                <Grid container spacing={2} justifyContent="center">
                     <Grid item>
                         <ComponentAutocomplete 
                             onSelect={selectOption} 
@@ -160,14 +192,15 @@ function ComponentConnectionAddPanel(
                         />
                     </Grid>
 
-                    <Grid item>
+                    {/* <Grid item>
                         <TextField 
                             required
                             label="User" 
                             sx={{ width: 150 }}
                             onChange={(event) => setUid(event.target.value)}
+                            value={uid}
                         />
-                    </Grid>
+                    </Grid> */}
 
                     <Grid item>
                         <TextField

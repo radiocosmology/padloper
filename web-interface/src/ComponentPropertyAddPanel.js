@@ -145,8 +145,9 @@ function ComponentPropertyAddPanel(
         getUserData();
     }, [])
 
+
+    // set user id
     useEffect(() => {
-        console.log(userData.login)
         if (userData) {
             setUid(userData.login);
         }
@@ -164,7 +165,6 @@ function ComponentPropertyAddPanel(
             }).then((response) => {
                 return response.json();
             }).then((data) => {
-                console.log(data);
                 setUserData(data);
             });
         }
@@ -199,11 +199,10 @@ function ComponentPropertyAddPanel(
 
             // create the textFieldAccepted array.
             let acceptedSoFar = [];
-            // TODO: fix
+            
             for (let i = 0; i < option.n_values; i++) {
                 acceptedSoFar.push(verifyRegex("", option.allowed_regex));
             }
-            console.log(acceptedSoFar);
             setTextFieldAccepted(acceptedSoFar);
         }
 
@@ -229,9 +228,6 @@ function ComponentPropertyAddPanel(
         // set the element at index to the new filter
         valuesCopy[index] = value;
         acceptedCopy[index] = regexCheck(value);
-
-        console.log(valuesCopy)
-        console.log(acceptedCopy)
 
         // update the state array
         setTextFieldValues(valuesCopy);
@@ -287,14 +283,14 @@ function ComponentPropertyAddPanel(
                     </Grid>
                 </Grid>
 
-                <Grid container spacing={2} justifyContent="space-around">
+                <Grid container spacing={2} justifyContent="center">
                     <Grid item>
                         <ComponentPropertyAutocomplete 
                             onSelect={selectOption} 
                         />
                     </Grid>
 
-                    <Grid item>
+                    {/* <Grid item>
                         <TextField 
                             required
                             label="User" 
@@ -305,7 +301,7 @@ function ComponentPropertyAddPanel(
                             sx={{ width: 150 }}
                             // onChange={(event) => setUid(event.target.value)}
                         />
-                    </Grid>
+                    </Grid> */}
 
                     <Grid item>
                         <TextField

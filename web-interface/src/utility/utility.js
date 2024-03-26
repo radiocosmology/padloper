@@ -77,20 +77,7 @@ export function emDashIfEmpty(str) {
  * See https://developer.mozilla.org/en-US/docs/Web/JavaScript/Reference/Global_Objects/String/match
  */
 export function verifyRegex(value, regex) {
-    // this ideally should never be called but...
-    // console.log(value, regex)
-    // if (!regex || typeof value !== 'string') {
-    //     return false;
-    // }
-    // else {
-    //     // TODO: regex should already by regex object
-    //     const regexObj = new RegExp(regex);
-    //     if (regexObj) {
-    //         return value.match(regexObj);
-    //     } else {
-    //         return false
-    //     }
-    // }
+
     const pattern = new RegExp(regex);
     return pattern.test(value);
 }
