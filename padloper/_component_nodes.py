@@ -100,7 +100,7 @@ class ComponentType(Vertex):
             'comments': self.comments
         }
 
-        Vertex.add(self=self, attributes=attributes, permissions=permissions)
+        Vertex.add(self=self, attributes=attributes)
 #        print(f"Added {self}")
         return self
 
@@ -1937,7 +1937,7 @@ class Component(Vertex):
                 outVertex=component
             )
 
-            current_subcomponent.add(permissions=permissions)
+            current_subcomponent.add()
 #            print(f'subcomponent connected: {self} -> {component}')
 
     @authenticated
