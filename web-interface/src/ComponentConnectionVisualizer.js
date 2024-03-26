@@ -451,7 +451,7 @@ useEffect(() => {
         nds.map((node) => {
             // TODO: change component select from list to have properties
             if (node.data.properties && node.data.properties.length > 0) {
-                console.log(node.data.properties)
+
                 console.log(node.data.properties.reduce((listOfLists, property) => {
                     const { type: { name, units }, values } = property;
                     listOfLists.push([name, values, units]);
@@ -500,7 +500,6 @@ function sortNodes () {
           const isParentB = isParentNode.current[b.id];
           const aInB = childrenNodes.current[b.id].includes(a.id);
           const bInA = childrenNodes.current[a.id].includes(b.id);
-          console.log(isParentNode)
     
           if (isParentA && !isParentB) {
             return -1;
@@ -897,11 +896,8 @@ return (
 * of the components added.
 */
 async function expandConnections(name, time) {
-if (expandedNodes.current[name] === true) {
-    return;
-}
 // setExpanded((prev) => [...prev, name]);
-expandedNodes.current[name] = true;
+
 
 let input = `/api/get_connections`;
 input += `?name=${name}`;
@@ -946,6 +942,54 @@ resolve => {
                 // add normal edge to this component
                 edges.push(edge)
             }
+        }
+
+        // expand to add child nodes to parent
+        if (expandedNodes.current[name] === true) {
+            let subLastAdded = {x: -nodeWidth, y: 120 - nodeHeight}
+            let maxSubHeight = nodeHeight;
+            for (const sub of subcomponents) {
+                // console.log(sub.name + ':')
+                // debugger;
+                let subAdded = addComponent(sub, subLastAdded.x + nodeWidth + 10, subLastAdded.y, true, curr.name);
+                // console.log(subAdded)
+                if (subAdded) {
+                    isParentNode.current[curr.name] = true;
+                    componentsAdded.push(sub)
+                    subLastAdded.x += nodeWidth + 10;
+
+                    // set sub as a child of curr
+                    childrenNodes.current[curr.name] = [...childrenNodes.current[curr.name], sub.name]
+                } else {
+                    // subcomponent exists -> set as child of curr
+
+                    setNodes((nodes) => nodes.map((node) => {
+                        if (node.id === sub.name) {
+
+                            // console.log(node.id)
+                            // console.log(sub.name)
+                            // console.log(curr)
+
+                            maxSubHeight = Math.max(maxSubHeight, node.style.height)
+                            return ({
+                                ...node,
+                                data: { ...node.data, label: node.id,},
+                                position: {
+                                    x: subLastAdded.x + nodeWidth + 10,
+                                    y: subLastAdded.y
+                                },
+                                parentNode: curr.name,
+                                extent: 'parent'
+                            });
+                        } else {
+                            return node;
+                        }
+                    }));
+                    subLastAdded.x += nodeWidth + 10;
+                }
+            }
+            resolve(componentsAdded);
+            return;
         }
 
         if (parent) {
@@ -1099,12 +1143,71 @@ resolve => {
             setExpanded((prev) => [...prev, name]);
         }
         // console.log({...lastAdded})
+        expandedNodes.current[name] = true;
         setLastAdded({...lastAdded});
         sortNodes();
+        formatSubcomponents();
         resolve(componentsAdded);
     });
 }
 )
+}
+
+async function formatSubcomponents() {
+    setNodes((nodes) => nodes.map((node1) => {
+        if (isParentNode.current[node1.id] === true) {
+            // get subcomponents
+            let input = `/api/get_subcomponents`;
+            input += `?name=${node1.id}`;
+            fetch(input).then(
+                res => res.json()
+            ).then(data => {
+
+
+                let subLastAdded = {x: -nodeWidth, y: 120 - nodeHeight}
+                let maxSubHeight = nodeHeight;
+                setNodes((nodes) => nodes.map((node2) => {
+                    // console.log('node node node 2')
+                    // console.log(node2.id)
+                    if (data.result.includes(node2.id)) {
+                        // console.log("I AM HERE HERE HERE")
+                        maxSubHeight = Math.max(maxSubHeight, node2.style.height)
+                        return ({
+                            ...node2,
+                            data: { ...node2.data, label: node2.id,},
+                            position: {
+                                x: subLastAdded.x + nodeWidth + 10,
+                                y: subLastAdded.y
+                            },
+                            parentNode: node1.id,
+                            extent: 'parent'
+                        });
+                    } else if (node2.id === node1.id) {
+
+                        // let newHeight = (data.result.length > 0) ? nodeHeight * 2 : 0;
+
+                        let newWidth = data.result.length * (nodeWidth + 20);
+
+                        const maxWidth = node2.style.width > 0 ? Math.max(node2, newWidth) : newWidth;
+
+                        // const maxHeight = node2.style.height + newHeight;
+                        return ({
+                            ...node2,
+                            data: { ...node2.data, label: node2.id,},
+                            style : {
+                                width: maxWidth,
+                                height: node2.style.height,
+                            }
+                        });
+                    }
+                    else {
+                        return node2;
+                    }
+                }));
+            });
+        }
+            return node1;
+    }));
 }
 
 const nodeTypes = useMemo(
