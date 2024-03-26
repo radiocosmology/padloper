@@ -23,17 +23,20 @@ function UserGroupManagementPage() {
         fetch(input).then(
             res => res.json()
         ).then(data => {
+            console.log(data.result)
             setUserGroups(data.result);
         })
     };
 
-    const fetchPermissionsForGroup = (groupId) => {
+    const fetchPermissionsForGroup = (group) => {
         // Make API call to fetch permissions for the selected user group
-        // Example API call: fetch(`/api/userGroups/${groupId}/permissions`).then(response => response.json()).then(data => setPermissions(data.permissions));
-        // Replace the above line with actual API call once it's implemented
-        // Mocking permissions data for demonstration
-        const mockPermissions = ['Permission 1', 'Permission 2', 'Permission 3'];
-        setPermissions(mockPermissions);
+        // Fetch all permissions from API
+        let input = '/api/get_all_permissions'
+        fetch(input).then(
+            res => res.json()
+        ).then(data => {
+            setPermissions(data.result.filter(item => !group.permissions.includes(item)));
+        })
     };
 
     const handleUserGroupSelect = (event, value) => {
@@ -41,7 +44,7 @@ function UserGroupManagementPage() {
         setSelectedUserGroup(value);
         if (value) {
             // Fetch permissions for the selected user group
-            fetchPermissionsForGroup(value.id);
+            fetchPermissionsForGroup(value);
             // Reset selected permissions
             setSelectedPermissions([]);
         }
@@ -55,6 +58,14 @@ function UserGroupManagementPage() {
     const handleCreateNewGroup = () => {
         // Open modal for creating new user group
         setOpenModal(true);
+
+        // Fetch all permissions from API
+        let input = '/api/get_all_permissions'
+        fetch(input).then(
+            res => res.json()
+        ).then(data => {
+            setPermissions(data.result);
+        })
     };
 
     const handleCloseModal = () => {
@@ -112,6 +123,21 @@ function UserGroupManagementPage() {
             </div>
             {selectedUserGroup && (
                 <div style={{ marginBottom: '20px', width: '300px' }}>
+                    <h2>Current permissions for {selectedUserGroup.name}</h2>
+                    <table>
+                        <thead>
+                            <tr>
+                                <th>Permission</th>
+                            </tr>
+                        </thead>
+                        <tbody>
+                            {selectedUserGroup.permissions.map((permission, index) => (
+                                <tr key={index}>
+                                    <td>{permission}</td>
+                                </tr>
+                            ))}
+                        </tbody>
+                    </table>
                     <h2>Add permissions for {selectedUserGroup.name}</h2>
                     <Autocomplete
                         multiple

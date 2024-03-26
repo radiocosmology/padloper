@@ -31,6 +31,8 @@ component_protected = ['component_protected']
 component_general = ['component_general']
 component_unprotected = ['component_unprotected']
 
+permission_groups = ['component_protected', 'component_general', 'component_unprotected']
+
 # NOTE: maybe better to have each permission map to itself, and then the protected/unprotected/general 
 # be default user groups? Allows for more fine-tuned permissions per user based on use case.
 
@@ -45,11 +47,11 @@ permission_mapping = {
     'Component;disconnect': component_protected,
     'Component;disable_connection': component_protected,
     'Component;disable_subcomponent': component_protected,
+    'Component;subcomponent_connect': component_protected,
     
     # general
     'Component;connect': component_general,
     'Component;set_property': component_general,
-    'Component;subcomponent_connect': component_general,
 
     # unprotected
     'Component;get_property': component_unprotected,
@@ -110,6 +112,8 @@ def check_permission(permission, class_name, method_name):
             "User not set."
             )
         
+        if isinstance(user, str):
+            user = User.from_db(name=user)
         permission = user.get_permissions()
         # check permissions
     

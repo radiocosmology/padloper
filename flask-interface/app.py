@@ -204,6 +204,7 @@ def get_component_list():
         order_by=order_by,
         order_direction=order_direction,
         filters=filter_triples,
+        permissions=session.get('perms')
     )
     
     return {"result": [c.as_dict(bare=True) for c in components]}
@@ -233,7 +234,8 @@ def set_component_type():
         # Need to initialize an instance of a component type first.
         component_type = p.ComponentType(val_name, val_comments)
 
-        component_type.add()
+
+        component_type.add(permissions=session.get('perms'))
 
         return {'result': True}
 
@@ -635,7 +637,7 @@ def get_component_count():
 
     filter_triples = read_filters(filters)
 
-    return {'result': p.Component.get_count(filters=filter_triples)}
+    return {'result': p.Component.get_count(filters=filter_triples, permissions=session.get('perms'))}
 
 
 @app.route("/api/component_types_and_versions")
@@ -654,7 +656,7 @@ def get_component_types_and_versions():
     :rtype: dict
     """
 
-    types = p.ComponentType.get_names_of_types_and_versions()
+    types = p.ComponentType.get_names_of_types_and_versions(permissions=session.get('perms'))
     ret = {}
     for t in types:
         ret[t["name"]] = t["versions"]
@@ -698,10 +700,12 @@ def get_component_type_list():
     assert order_direction in {'asc', 'desc'}
 
     # query to padloper
+    print(session.get('perms'))
     component_types = p.ComponentType.get_list(range=range_bounds,
                                                order_by=order_by,
                                                order_direction=order_direction,
-                                               name_substring=name_substring)
+                                               name_substring=name_substring,
+                                               permissions=session.get('perms'))
 
     return {"result": [c.as_dict() for c in component_types]}
 
@@ -1978,3 +1982,7 @@ def get_user_groups():
 def get_user_group_list():
     groups = p.UserGroup.get_list()
     return {'result': [p.UserGroup.as_dict(gr) for gr in groups]}
+
+@app.route("/api/get_all_permissions", methods=["GET"])
+def get_all_permissions():
+    return {'result': p.permission_groups}

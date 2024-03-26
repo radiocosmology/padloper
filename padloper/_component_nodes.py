@@ -79,7 +79,6 @@ class ComponentType(Vertex):
         self.comments = comments
         Vertex.__init__(self, id=id)
 
-    @authenticated
     def as_dict(self, permissions = None):
         """Return a dictionary representation."""
         return {"name": self.name, "comments": self.comments}
@@ -151,7 +150,6 @@ class ComponentType(Vertex):
             )
         )
 
-    @authenticated
     @classmethod
     def from_db(cls, name: str, permissions = None):
         """Query the database and return a ComponentType instance based on
@@ -184,7 +182,6 @@ class ComponentType(Vertex):
 
         return g._vertex_cache[id_]
 
-    @authenticated
     @classmethod
     def from_id(cls, id: int, permissions = None):
         """Query the database and return a ComponentType instance based on
@@ -235,7 +232,6 @@ class ComponentType(Vertex):
 
         return g._vertex_cache[id]
 
-    @authenticated
     @classmethod
     def get_names_of_types_and_versions(cls, permissions = None):
         """
@@ -264,7 +260,6 @@ class ComponentType(Vertex):
 
         return ts
 
-    @authenticated
     @classmethod
     def get_list(
         cls,
@@ -351,7 +346,6 @@ class ComponentType(Vertex):
 
         return component_types
 
-    @authenticated
     @classmethod
     def get_count(cls, name_substring: str, permissions = None):
         """Return the count of ComponentTypes given a substring of the name
@@ -439,7 +433,6 @@ class ComponentVersion(Vertex):
 
         Vertex.__init__(self, id=id)
 
-    @authenticated
     def as_dict(self, permissions = None):
         """Return a dictionary representation."""
         return {"name": self.name, "comments": self.comments,
@@ -556,7 +549,6 @@ class ComponentVersion(Vertex):
 
         return g._vertex_cache[id]
 
-    @authenticated
     @classmethod
     def from_db(cls, name: str, allowed_type: ComponentType, permissions = None):
         """Query the database and return a ComponentVersion instance based on
@@ -603,7 +595,7 @@ class ComponentVersion(Vertex):
                 "to the database."
             )
 
-    @authenticated
+    
     @classmethod
     def from_id(cls, id: int, permissions = None):
         """Query the database and return a ComponentVersion instance based on
@@ -634,7 +626,6 @@ class ComponentVersion(Vertex):
 
         return g._vertex_cache[id]
 
-    @authenticated
     @classmethod
     def get_list(
         cls,
@@ -756,7 +747,6 @@ class ComponentVersion(Vertex):
             )
         return component_versions
 
-    @authenticated
     @classmethod
     def get_count(cls, filters: list, permissions = None):
         """Return the count of ComponentVersions given a list of filters
@@ -2067,7 +2057,6 @@ class Component(Vertex):
 
         return g._vertex_cache[id]
 
-    @authenticated
     @classmethod
     def from_db(cls, name: str, permissions = None):
         """Query the database and return a Component instance based on
@@ -2100,7 +2089,6 @@ class Component(Vertex):
             time_added
         )
 
-    @authenticated
     @classmethod
     def from_id(cls, id: int, permissions = None):
         """Query the database and return a Component instance based on
@@ -2131,7 +2119,6 @@ class Component(Vertex):
         else:
             return g._vertex_cache[id]
 
-    @authenticated
     @classmethod
     def get_list(cls,
                  range: tuple,
@@ -2291,7 +2278,6 @@ class Component(Vertex):
 
         return components
 
-    @authenticated
     @classmethod
     def get_count(cls, filters: str, permissions = None):
         """Return the count of components given a list of filters.
@@ -2349,7 +2335,6 @@ class Component(Vertex):
 
         return traversal.count().next()
 
-    @authenticated
     def as_dict(self, at_time: int = None, bare = False, permissions = None):
         """Return a dictionary representation of this Component at time
         :param at_time: The time to check the component at. Pass `None` to get
