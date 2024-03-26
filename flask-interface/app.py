@@ -1171,6 +1171,32 @@ def get_connections():
         ]
     }
 
+@app.route("/api/get_subcomponents", methods=['GET'])
+def get_subcomponents():
+    """Given a component name, return the names of all subcomponents of the component.
+
+    The URL parameters are:
+
+    name - the name of the component to query the subcomponents for.
+
+    :return: Return a dictionary with a key 'result' and value being a list of
+    names for subcomponents.
+    :rtype: dict
+    """
+
+    val_name = escape(request.args.get('name'))
+
+    c = p.Component.from_db(val_name)
+
+    subcomponents = c.get_subcomponents()
+
+    return {
+        'result': [
+            subcomponent.name \
+            for subcomponent in subcomponents
+        ]
+    }
+
 
 @app.route("/api/component_add_subcomponent", methods=['POST'])
 def add_component_subcomponent():
