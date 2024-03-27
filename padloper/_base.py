@@ -609,7 +609,7 @@ class Vertex(Element):
         o_edges_values_list = g.t.V(self.id()).bothE().valueMap().toList()
 
         # List of all the outgoing vertices connected to the self vertex.
-        o_vertices_list = g.t.V(self.id()).both().id_().toList()
+        o_vertices_list = g.t.V(self.id()).out().id_().toList()
 
         # These edges are not copied when replacing a vertex because these edges
         # are selected by the user while adding a new component version, or a
