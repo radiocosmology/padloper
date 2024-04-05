@@ -723,11 +723,11 @@ class Component(Vertex):
                 .select('edge_props').toList()
         if len(vs) == 0:
             raise PropertyNotAddedError(
-                "Property of type {property.type.name} cannot be unset for "\
-                "component {this.name} because it has not been set yet."
+                f"Property of type {property.type.name} cannot be unset for "\
+                f"component {self.name} because it has not been set prior "\
+                f"to this time."
             )
         assert(len(vs) == 1)
-#        print(vs[0])
         if vs[0]['end_time'] < g._TIMESTAMP_NO_ENDTIME_VALUE:
             raise PropertyIsSameError(
                 f"Property of type {property.type.name} cannot be unset for "\

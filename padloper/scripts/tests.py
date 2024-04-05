@@ -209,8 +209,13 @@ except p.PropertyWrongType:
 
 comp_a2 = p.Component.from_db(tnm("comp_a2")) # Because type_a was replaced …
 comp_a2.set_property(prop_1a, t2)
-comp_a2.unset_property(prop_1a, t2)
-comp_a2.set_property(prop_1b, t3)
+try:
+    comp_a2.unset_property(prop_1a, t1)
+    raise RuntimeError("Should not be able to unset a property in the past.")
+except p.PropertyNotAddedError:
+    pass
+comp_a2.unset_property(prop_1a, t3)
+comp_a2.set_property(prop_1b, t4)
 comp_a2.set_property(prop_1a, t5) # Unsets prop_1b and sets prop_1a at t4.
 try:
     comp_a2.set_property(prop_1a, t4)
@@ -220,5 +225,29 @@ except p.PropertyIsSameError:
     pass
 
 # Test flags.
-ftype_severe = p.FlagType(name="severe", comments="Something's broken!!")
-ftype_comment = p.FlagType(name="comment")
+ftype_weather = p.FlagType(name=tnm("weather"),
+                           comments="Flag weather events!").add()
+ftype_history = p.FlagType(name=tnm("history")).add()
+fsev_info = p.FlagSeverity(name=tnm("info")).add()
+fsev_warning = p.FlagSeverity(name=tnm("warning")).add()
+flag_w1 = p.Flag(type=ftype_weather, severity=fsev_warning, 
+                 notes="Big thunderstorm!!",
+                 start=t1, end=t5, components=[]).add()
+flag_w2 = p.Flag(type=ftype_weather, severity=fsev_warning, 
+                 notes="Hailstorm, with really big hail.",
+                 start=t2, components=[]).add()
+flag_h1 = p.Flag(type=ftype_history, severity=fsev_info,
+                 notes="Upgraded firmware to v2.",
+                 start=t3, components=[comp_a1, comp_a2])
+try:
+    flag_w2.set_end(t1)
+    raise RuntimeError("Should not be able to end flag before it starts.")
+except ValueError:
+    pass
+flag_w2.set_end(t5)
+try:
+    flag_w1.set_end(t7)
+    raise RuntimeError("Should not be able to change end time of flag.")
+except ValueError:
+    pass
+ 

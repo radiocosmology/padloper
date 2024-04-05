@@ -168,187 +168,13 @@ class FlagType(Vertex):
 class FlagSeverity(Vertex):
     """
     The representation of a flag severity.
-
-    :ivar name: The name of the severity.
     """
     category: str = "flag_severity"
-
-    name: str
-
-    def __new__(cls, name: str, id: int = g._VIRTUAL_ID_PLACEHOLDER):
-        """
-        Return a FlagSeverity instance given the desired attribute.
-
-        :param name: Indicates the severity of a flag.
-        :type name: str
-
-        :param id: The serverside ID of the FlagType,
-        defaults to _VIRTUAL_ID_PLACEHOLDER
-        :type id: int, optional
-        """
-
-        if id is not g._VIRTUAL_ID_PLACEHOLDER and id in g._vertex_cache:
-            return g._vertex_cache[id]
-
-        else:
-            return object.__new__(cls)
-
-    def __init__(self, name: str, id: int = g._VIRTUAL_ID_PLACEHOLDER):
-        """
-        Initialize a FlagSeverity instance given the FlagSeverity instance given the desired attributes.
-
-        :param name: Indicates the severity of a flag.
-        :type name: str
-
-        :param id: The serverside ID of the FlagType,
-        defaults to _VIRTUAL_ID_PLACEHOLDER
-        :type id: int, optional
-        """
-
-        self.name = name
-
-        Vertex.__init__(self, id=id)
-
-    def as_dict(self):
-        """Return a dictionary representation."""
-        return {"name": self.name}
-
-    def add(self, strict_add=False):
-        """Add this FlagSeverity to the database."""
-
-        # If already added.
-        if self.added_to_db():
-            strictraise(strict_add, VertexAlreadyAddedError,
-                f"FlagSeverity with name {self.name}" +
-                "already exists in the database."
-            )
-            return self.from_db(self.name)
-
-
-        attributes = {
-            'name': self.name
-        }
-
-        Vertex.add(self=self, attributes=attributes)
-
-        print(f"Added {self}")
-        return self
-
-    def replace(self, newVertex, disable_time: int = int(time.time())):
-        """Replaces the FlagSeverity vertex in the serverside.
-
-        :param newVertex: The new FlagSeverity vertex that is replacing the old FlagSeverity vertex.
-        :type newVertex: FlagSeverity
-
-        :param disable_time: When this vertex was disabled in the database (UNIX time).
-        :type disable_time: int
-        """
-
-        # Step 1
-        g.t.V(self.id()).property('active', False)\
-           .property('time_disabled', disable_time).iterate()
-
-        # Step 2
-        newVertex.add()
-
-        # Step 3
-        newVertexId = newVertex.id()
-
-        Vertex.replace(self=self, id=newVertexId)
-
-    def added_to_db(self) -> bool:
-        """
-        Return whether this FlagSeverity is added to the database, that is, whether the ID is not the virtual ID placeholder and perform a query to the database to determine if the vertex has already been added.
-
-        :return: True if element is added to database, False otherwise.
-        :rtype: bool
-        """
-
-        return (
-            self.id() != g._VIRTUAL_ID_PLACEHOLDER or (\
-                g.t.V().has('category', FlagSeverity.category)\
-                   .has('name', self.name)\
-                   .has('active', True).count().next() == 1 \
-            )
-        )
-
-    @classmethod
-    def from_db(cls, name: str):
-        """Query the database and return a FlagSeverity instance based on Flag Severity name :param name:.
-
-        :param name: Indicated the severity of a flag.
-        :type name: str
-
-        :return: A FlagSeverity instance with the correct name and ID.
-        :rtype: FlagSeverity.
-        """
-
-        try:
-            d = g.t.V().has('active', True) \
-                   .has('category', FlagSeverity.category).has('name', name) \
-                   .as_('v').valueMap().as_('props')\
-                   .select('v').id_().as_('id') \
-                   .select('props', 'id').next()
-        except StopIteration:
-            raise FlagSeverityNotAddedError
-
-        props, id = d['props'], d['id']
-
-        Vertex._cache_vertex(
-            FlagSeverity(
-                name=name,
-                id=id
-            )
-        )
-
-        return g._vertex_cache[id]
-
-    @classmethod
-    def from_id(cls, id: int):
-        """Query the database and return a FlagSeverity instance based on the ID.
-
-        :param id: The serverside ID of the FlagSeverity vertex.
-        :type id: int
-
-        :return: Return a FlagSeverity from that ID.
-        :rtype: FlagSeverity
-        """
-
-        if id not in g._vertex_cache:
-
-            d = g.t.V(id).valueMap().next()
-
-            Vertex._cache_vertex(
-                FlagSeverity(
-                    name=d['name'][0],
-                    id=id
-                )
-            )
-
-        return g._vertex_cache[id]
-
-    @classmethod
-    def _attrs_to_type(cls, name: str, id: int):
-        """Given name of a FlagSeverity, see if one
-        exists in the cache. If so, return the cached FlagSeverity.
-        Otherwise, create a new one, cache it, and return it.
-
-        :param name: Indicates the severity of flag.
-        :type name: str
-
-        :param id: The ID of the ComponentType vertex.
-        :type id: int
-        """
-
-        if id not in g._vertex_cache:
-            Vertex._cache_vertex(
-                FlagSeverity(
-                    name=name,
-                    id=id
-                )
-            )
-
-        return g._vertex_cache[id]
+    _vertex_attrs: list = [
+        VertexAttr("name", str),
+        VertexAttr("comments", str, optional=True, default="")
+    ]
+    primary_attr = "name"
 
     @classmethod
     def get_list(
@@ -439,324 +265,17 @@ class Flag(Vertex):
     """
 
     category: str = "flag"
-    _vertex_attr: list = [
-        VertexAttr("name", str),
-        VertexAttr("comments", str)
+    _vertex_attrs: list = [
+        VertexAttr("type", FlagType, edge_class=RelationFlagType),
+        VertexAttr("severity", FlagSeverity, edge_class=RelationFlagSeverity),
+        VertexAttr("notes", str, optional=True),
+        VertexAttr("start", Timestamp),
+        VertexAttr("end", Timestamp, optional=True,
+                   default=Timestamp._no_end()),
+        VertexAttr("components", Component, edge_class=RelationFlagComponent,
+                   is_list=True, list_len=(0, int(1e10)))
     ]
-
-    name: str
-    comments: str
-    start: Timestamp
-    end: Timestamp
-    severity: FlagSeverity
-    type: FlagType
-    components: List[Component]
-
-    def __new__(cls, name: str, start: Timestamp, severity: FlagSeverity, 
-                type: FlagType, comments: str = "", end: Timestamp = None, 
-                components: List[Component] = [],
-                id: int = g._VIRTUAL_ID_PLACEHOLDER):
-        """
-        Return a Flag instance with the specified properties.
-
-        :param name: The name of the flag.
-        :type name: str
-        :param comments: Comments associated with the flag in general,
-            defaults to ""
-        :type comments: str, optional
-        :param start: The starting timestamp of the flag.
-        :type start: Timestamp
-        :param severity: The flag severity that indicates the severity of the
-            flag.
-        :type severity: FlagSeverity
-        :param type: The flag type that indicates the type of the flag.
-        :type type: FlagType
-        :param components: A list of The flag components that have this flag.
-        :type components: List[Component]
-        :param end: The ending timestamp of the flag.
-        :type end: Timestamp or None.
-        """
-        if id is not g._VIRTUAL_ID_PLACEHOLDER and id in g._vertex_cache:
-            return g._vertex_cache[id]
-
-        else:
-            return object.__new__(cls)
-
-    def __init__(self, name: str, start: Timestamp, severity: FlagSeverity, 
-                type: FlagType, comments: str = "", end: Timestamp = None, 
-                components: List[Component] = [],
-                id: int = g._VIRTUAL_ID_PLACEHOLDER):
-        self.name = name
-        self.comments = comments
-        self.start = start
-        self.severity = severity
-        self.type = type
-        self.components = components
-        if end:
-            self.end = end
-        else:
-            self.end = Timestamp._no_end()
-
-        Vertex.__init__(self=self, id=id)
-
-    def as_dict(self):
-        """Return a dictionary representation."""
-        return {
-            "name": self.name,
-            "comments": self.comments,
-            "type": self.type.as_dict(),
-            "severity": self.severity.as_dict(),
-            "start": {
-                "time": self.start.time,
-                "uid": self.start.uid,
-                "edit_time": self.start.edit_time,
-                "comments": self.start.comments
-            },
-            "end": {
-                "time": self.end.time,
-                "uid": self.end.uid,
-                "edit_time": self.end.edit_time,
-                "comments": self.end.comments
-            },
-            "components": [c.as_dict(bare=True) for c in self.components]
-        }
-
-
-    def add(self, strict_add=False):
-        """
-        Add this Flag instance to the database.
-        """
-
-        if self.added_to_db():
-            strictraise(strict_add, VertexAlreadyAddedError,
-                f"Flag with name {self.name}" +
-                "already exists in the database."
-            )
-            return self.from_db(self.name)
-
-
-        attributes = {
-            'name': self.name,
-            'comments': self.comments,
-            'start_time': self.start.time,
-            'start_uid': self.start.uid,
-            'start_edit_time': self.start.edit_time,
-            'start_comments': self.start.comments,
-            'end_time': self.end.time,
-            'end_uid': self.end.uid,
-            'end_edit_time': self.end.edit_time,
-            'end_comments': self.end.comments
-        }
-
-        Vertex.add(self=self, attributes=attributes)
-
-        if not self.type.added_to_db():
-            self.type.add()
-
-        e = RelationFlagType(
-            inVertex=self.type,
-            outVertex=self
-        )
-
-        e.add()
-
-        if not self.severity.added_to_db():
-            self.severity.add()
-
-        e = RelationFlagSeverity(
-            inVertex=self.severity,
-            outVertex=self
-        )
-
-        e.add()
-
-        for c in self.components:
-
-            if not c.added_to_db():
-                c.add()
-
-            e = RelationFlagComponent(
-                inVertex=c,
-                outVertex=self
-            )
-
-            e.add()
-
-        print(f"Added {self}")
-        return self
-
-    def replace(self, newVertex, disable_time: int = int(time.time())):
-        """Replaces the Flag vertex in the serverside.
-
-        :param newVertex: The new Flag vertex that is replacing the old Flag vertex.
-        :type newVertex: Flag
-
-        :param disable_time: When this vertex was disabled in the database (UNIX time).
-        :type disable_time: int
-        """
-
-        # Step 1
-        g.t.V(self.id()).property('active', False)\
-           .property('time_disabled', disable_time).iterate()
-
-        # Step 2
-        newVertex.add()
-
-        # Step 3
-        newVertexId = newVertex.id()
-
-        Vertex.replace(self=self, id=newVertexId)
-
-    def added_to_db(self) -> bool:
-        """Return whether this Flag is added to the database,that is, whether the ID is not the virtual ID placeholder and perform a query to the database if the vertex has already been added.
-
-        :return: True if element is added to database, False otherwise.
-        :rtype: bool
-        """
-
-        return (
-            self.id() != g._VIRTUAL_ID_PLACEHOLDER or (\
-                g.t.V().has('category', Flag.category)\
-                   .has('name', self.name)\
-                   .has('active', True).count().next() > 0 \
-            )
-        )
-
-    @classmethod
-    def _attrs_to_flag(cls, name: str, start: Timestamp,
-                       severity: FlagSeverity, type: FlagType,
-                       comments: str = "", end: Timestamp = None, 
-                       components: List[Component] = [],
-                       id: int = g._VIRTUAL_ID_PLACEHOLDER):
-        """Given the id and attributes of a Flag, see if one exists in the
-        cache. If so, return the cached Flag. Otherwise, create a new one,
-        cache it, and return it.
-
-        :param name: The name of the flag.
-        :type name: str
-        :param comments: Comments associated with the flag in general,
-            defaults to ""
-        :type comments: str, optional
-        :param start: The starting timestamp of the flag.
-        :type start: Timestamp
-        :param severity: The flag severity that indicates the severity of the
-            flag.
-        :type severity: FlagSeverity
-        :param type: The flag type that indicates the type of the flag.
-        :type type: FlagType
-        :param components: A list of The flag components that have this flag.
-        :type components: List[Component]
-        :param end: The ending timestamp of the flag.
-        :type end: Timestamp or None.
-        """
-
-        if id not in g._vertex_cache:
-            Vertex._cache_vertex(
-                Flag(
-                    name=name,
-                    comments=comments,
-                    start=start,
-                    severity=severity,
-                    type=type,
-                    components=components,
-                    end=end,
-                    id=id
-                )
-            )
-
-        return g._vertex_cache[id]
-
-    @classmethod
-    def from_db(cls, name: str):
-        """Query the database and return a Flag instance based on the name
-        :param name:, connected to the necessary Components, FlagType
-        instances and FlagSeverity instance.
-
-        :param name: The name of the Flag instance
-        :type name: str
-        """
-
-        try:
-            d = g.t.V().has('active', True).has('category', Flag.category) \
-                   .has('name', name) \
-                   .project('id', 'attrs', 'type_id', 'severity_id',
-                            'component_ids') \
-                   .by(__.id_()) \
-                   .by(__.valueMap()) \
-                   .by(__.both(RelationFlagType.category).id_()) \
-                   .by(__.both(RelationFlagSeverity.category).id_()) \
-                   .by(__.both(RelationFlagComponent.category).id_()\
-                   .fold()).next()
-        except StopIteration:
-            raise FlagNotAddedError
-
-        id, attrs, type_id, severity_id, component_ids = d['id'], d['attrs'], \
-            d['type_id'], d['severity_id'], d['component_ids']
-
-        if id not in g._vertex_cache:
-
-            Vertex._cache_vertex(FlagType.from_id(type_id))
-
-            Vertex._cache_vertex(FlagSeverity.from_id(severity_id))
-
-            components = []
-
-            for c_id in component_ids:
-                components.append(Component.from_id(c_id))
-
-            Vertex._cache_vertex(
-                Flag(
-                    name=name,
-                    comments=attrs['comments'][0],
-                    start=Timestamp._from_dict(attrs, "start_"),
-                    severity=g._vertex_cache[severity_id],
-                    type=g._vertex_cache[type_id],
-                    components=components,
-                    end=Timestamp._from_dict(attrs, "end_"),
-                    id=id
-                )
-            )
-
-        return g._vertex_cache[id]
-
-    @classmethod
-    def from_id(cls, id: int):
-        """Given an ID of a serverside flag vertex, return a Flag instance.
-        """
-
-        if id not in g._vertex_cache:
-
-            d = g.t.V(id).project('attrs', 'fseverity_id', 'ftype_id',
-                                  'fcomponent_ids')\
-                   .by(__.valueMap())\
-                   .by(__.both(RelationFlagSeverity.category).id_())\
-                   .by(__.both(RelationFlagType.category).id_())\
-                   .by(__.both(RelationFlagComponent.category).id_().fold())\
-                   .next()
-
-            # to access attributes from attrs, do attrs[...][0]
-            attrs, fseverity_id, ftype_id, fcomponent_ids = d['attrs'], d[
-                'fseverity_id'], d['ftype_id'], d['fcomponent_ids']
-
-            components = []
-
-            for component_id in fcomponent_ids:
-                components.append(Component.from_id(component_id))
-
-            Vertex._cache_vertex(
-                Flag(
-                    name=attrs['name'][0],
-                    comments=attrs['comments'][0],
-                    start=Timestamp._from_dict(attrs, "start_"),
-                    severity=FlagSeverity.from_id(fseverity_id),
-                    type=FlagType.from_id(ftype_id),
-                    components=components,
-                    end=Timestamp._from_dict(attrs, "end_"),
-                    id=id
-                )
-            )
-
-        return g._vertex_cache[id]
+    _primary_attr = None
 
     @classmethod
     def get_list(cls,
@@ -963,7 +482,10 @@ class Flag(Vertex):
 
         return traversal.count().next()
 
-    def end_flag(self, end : Timestamp):
+    def end_flag(self, dummy):
+        raise RuntimeError("Method deprecated. Use set_end().")
+
+    def set_end(self, end : Timestamp):
         """
         Given a flag, set the "end" attributes of the flag to indicate that this
         flag has been ended.
@@ -972,10 +494,14 @@ class Flag(Vertex):
         :type end: Timestamp
         """
 
-        if not self.added_to_db():
+        if not self.in_db(strict_check=False):
             raise FlagNotAddedError(
                 f"Flag {self.name} has not yet been added to the database."
             )
+        if self.end.time < g._TIMESTAMP_NO_ENDTIME_VALUE:
+            raise ValueError("Flag already has an end time.")
+        if self.start.time > end.time:
+            raise ValueError("Flag ending time should be >= starting time.")
 
         self.end = end
 
