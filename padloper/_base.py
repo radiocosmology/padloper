@@ -728,10 +728,61 @@ class Vertex(Element):
         return self.id() in g._vertex_cache
 
     @classmethod
-    def get_list(cls, range: tuple, order_by: str, order_direction: str = "asc",
-                 filters: list = []):
-#        CONTINUE HERE: implement superclass for get_list
-        pass
+    def get_list(cls, range: tuple = (0, -1), order_by: list = [], 
+                 filters: list = [], allow_disabled: bool = False):
+        """
+        Return a list of Vertex instances based in the range :param range:,
+        optionally filtered and ordered according to specified parameters.
+
+        An example filter: [{"name": TextP.containing("a"), "type": "filter"},
+        {"name": TextP.startingWith("antenna_")}]. This will search for vertices
+        with "name" containing the letter "a" and type "filter", or with "name"
+        starting with "antenna_".
+
+        :param range: The range of ComponentTypes to query. If the second
+            coordinate is -1, then the range is (range[0], inf)
+        :type range: tuple[int, int]
+
+        :param order_by: A list of what attribute(s) to order the results by;
+            each list item can either be a string naming the attribute, or a
+            tuple with (attribute, asc/desc); if no "asc" or "desc" is included,
+            "asc" is assumed.
+        :type order_by: list of str, or of (str, str) tuples. (If just a string
+            or just a tuple is passed, then it is automatically converted to a
+            list of length one.)
+
+        :param ascending: Whether to order in ascending (True) or descending
+            (False) order.
+        :type order_by: bool
+
+        :param filters: A list of dictionaries, with key-value pairs being
+            field name, field value. If the field is a connexion to another
+            vertex, then the match will be with its `primary_attr`. Note that
+            the field value can use a gremlin method such as
+            `TextP.containing()`. Within a dictionary, all matches must occur
+            (boolean AND) and between dictionaries in the list, any match may
+            occur (boolean OR).
+        :type filters: A list of dictionaries; if a single dictionary is passed
+            it is automatically treated as list of length one.
+        :param allow_disabled: Whether to only select vertices with active=True.
+        :type allow_disabled: bool
+        """
+        # Validation of input.
+        if not isinstance(order_by, list):
+            order_by = [order_by]
+        if not isinstance(filters, list):
+            filters = [filters]
+        for i in range(len(order_by)):
+            if not instance(order_by[i], tuple):
+                order_by[i] = (order_by[i], "asc")
+            assert order_by[i][1].lower() in ("asc", "desc")
+
+        # Build traversal.
+CONTINUE HERE
+        t = g.t.V().has
+
+
+
 
 
 
