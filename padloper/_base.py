@@ -778,8 +778,11 @@ class Vertex(Element):
             assert order_by[i][1].lower() in ("asc", "desc")
 
         # Build traversal.
+        t = g.t.V().has("category", self.category)
+        if not allow_disabled:
+            t = t.has("active", True)
 CONTINUE HERE
-        t = g.t.V().has
+
 
 
 
