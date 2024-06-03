@@ -61,7 +61,7 @@ class ComponentType(Vertex):
         return ts
 
     @classmethod
-    def get_list(
+    def a_get_list(
         cls,
         range: tuple,
         order_by: str,
@@ -185,7 +185,7 @@ class ComponentVersion(Vertex):
     primary_attr: str = "name"
 
     @classmethod
-    def get_list(
+    def a_get_list(
         cls,
         range: tuple,
         order_by: str,
@@ -1381,7 +1381,7 @@ class Component(Vertex):
            .property('time_disabled', disable_time).next()
 
     @classmethod
-    def get_list(cls,
+    def a_get_list(cls,
                  range: tuple,
                  order_by: str,
                  order_direction: str,

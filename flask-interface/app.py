@@ -119,6 +119,7 @@ def get_component_list():
     assert len(range_bounds) == 2
     assert order_direction in {'asc', 'desc'}
 
+    CONTINUE HERE: switch over to new API.
     components = p.Component.get_list(
         range=range_bounds,
         order_by=order_by,

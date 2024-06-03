@@ -30,7 +30,12 @@ ver_a_b   = p.ComponentVersion(name=tnm("ver_a-b"), type=type_a,
                                comments="Comment A").add()
 comp_a1 = p.Component(name=tnm("comp_A1"), type=type_a, version=ver_a_a).add()
 comp_a2 = p.Component(name=tnm("comp_a2"), type=type_a, version=ver_a_b).add()
+comp_a3 = p.Component(name=tnm("comp_a3"), type=type_a, version=ver_a_a).add()
+comp_a4 = p.Component(name=tnm("comp_a4"), type=type_a, version=ver_a_b).add()
+comp_a5 = p.Component(name=tnm("comp_a5"), type=type_a, version=ver_a_b).add()
+comp_a6 = p.Component(name=tnm("comp_a6"), type=type_a, version=ver_a_a).add()
 comp_b = p.Component(name=tnm("comp_b"), type=type_b).add()
+comp_b2 = p.Component(name=tnm("comp_b2_a-test"), type=type_b).add()
 comp_b_sub = p.Component(name=tnm("comp_b_sub"), type=type_c).add()
 comp_b_super = p.Component(name=tnm("comp_b_super"), type=type_c).add()
 
@@ -251,3 +256,27 @@ try:
 except ValueError:
     pass
  
+# Test searching.
+print("Testing get_list().")
+print("    All component types:")
+for ct in p.ComponentType.get_list():
+    print("        ", ct.name.replace(test_prefix, ""))
+print("    All component types, ordered by name:")
+for ct in p.ComponentType.get_list(order_by="name"):
+    print("        ", ct.name.replace(test_prefix, ""))
+print("    Components of type \"type_a\".")
+for c in p.Component.get_list(filters=[{"type": tnm("type_a")}]):
+    print("        ", nmt(c.name))
+print("    Components containing \"_a\" in the name.")
+for c in p.Component.get_list(filters=[{"name": TextP.containing("_a")}]):
+    print("        ", c.name.replace(test_prefix, ""))
+print("    Components containing \"_a\" in the name and version ver_a_b.")
+for c in p.Component.get_list(filters=[{"name": TextP.containing("_a"),
+                                        "version": tnm("ver_a-b")}]):
+    print("        ", c.name.replace(test_prefix, ""))
+print("    Components containing \"_a\" in the name and version ver_a_b, or "\
+      "of\n    type \"type_b\".")
+for c in p.Component.get_list(filters=[{"name": TextP.containing("_a"),
+                                        "version": tnm("ver_a-b")},
+                                       {"type": tnm("type_b")}]):
+    print("        ", c.name.replace(test_prefix, ""))
