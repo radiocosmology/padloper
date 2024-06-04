@@ -3,8 +3,6 @@ import padloper as p
 
 # In this example, make a graph for a few computers connected on a network.
 p.set_user("ahincks")
-p.g.t.V().drop().iterate()
-p.g.t.E().drop().iterate()
 
 # Add/initialise component types.
 t_computer         = p.ComponentType(name="computer",
