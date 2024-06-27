@@ -18,6 +18,13 @@ cd flask-interface/
 flask run --no-debugger -p 4300
 ```
 
+Once that is finished, open up another terminal and start the Oauth server
+```
+cd oauth-proxy-server
+npm install # For the first time running the project
+npm start
+```
+
 Finally, we start the React server:
 ```
 cd web-interface/
