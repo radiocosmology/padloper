@@ -280,3 +280,7 @@ for c in p.Component.get_list(filters=[{"name": TextP.containing("_a"),
                                         "version": tnm("ver_a-b")},
                                        {"type": tnm("type_b")}]):
     print("        ", c.name.replace(test_prefix, ""))
+print("    Components sorted by type ascending and then by name descending.")
+for c in p.Component.get_list(order_by=["type", ("name", "desc")]):
+    print("        %s -- %s" % (c.name.replace(test_prefix, ""),
+                                c.type.name.replace(test_prefix, "")))

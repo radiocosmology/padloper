@@ -24,6 +24,9 @@ from _exceptions import *
 #from sympy import true
 #from typing import Optional, List
 
+# Hack because we use this built-in function name for a variable at points …
+_range = range
+
 def strictraise(strict, err, msg):
     if strict:
         raise err(msg)
@@ -773,10 +776,8 @@ class Vertex(Element):
         if not isinstance(filters, list):
             filters = [filters]
         if len(order_by) > 0:
-            CONTINUE HERE: make order_by() work.
-            print(order_by)
-            for i in range(len(order_by)):
-                if not instance(order_by[i], tuple):
+            for i in _range(len(order_by)):
+                if not isinstance(order_by[i], tuple):
                     order_by[i] = (order_by[i], "asc")
                 assert order_by[i][1].lower() in ("asc", "desc")
 
@@ -805,7 +806,19 @@ class Vertex(Element):
         if len(order_by) > 0:
             t = t.order()
             for ob in order_by:
-                t = t.by(ob[0], Order.asc if ob[1] == "asc" else Order.desc)
+                # The following is inefficient … But hopefully not limiting.
+                va = None
+                for va in cls._vertex_attrs:
+                    if va.name == ob[0]:
+                        break
+                if va is None:
+                    raise TypeError("Filter key %s not in Vertex." % and_key)
+                if issubclass(va.type, Vertex):
+                    t = t.by(__.both(va.edge_class.category)\
+                               .values(va.type.primary_attr), 
+                               Order.asc if ob[1] == "asc" else Order.desc)
+                else:
+                    t = t.by(ob[0], Order.asc if ob[1] == "asc" else Order.desc)
         t = t.range(range[0], range[1])
         t = cls._attrs_query(t, allow_disabled)
         return [cls._from_attrs(t_i) for t_i in t.toList()]

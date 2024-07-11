@@ -4,6 +4,7 @@
 from re import split
 from flask import Flask, request
 from flask.scaffold import F
+from gremlin_python.process.traversal import TextP
 from markupsafe import escape
 import time
 import padloper as p
@@ -44,6 +45,24 @@ def read_filters(filters):
 
     else:
         return None
+
+def parse_filters(filtstr, attrs, funcs):
+    """Return a list of dictionaries as specified by the `filters` parameter of 
+    Vertex.get_list()"""
+    ret = []
+    if filtstr is not None and filtstr != "":
+        for filt in filtstr.split(";"):
+            rdict = {}
+            for f, a, fc in zip(filt.split(","), attrs, funcs):
+                if f != "":
+                    rdict[a] = fc(f)
+            if len(rdict) > 0:
+                ret.append(rdict)
+    print("Remove debug: ")
+    print(ret)
+    print()
+    return ret
+
 
 # Can also implement something like this.
 # @app.route("/api/components_id/<id>")
@@ -112,19 +131,22 @@ def get_component_list():
     filters = request.args.get('filters')
 
     # read the filters, put them into the three-tuples
-    filter_triples = read_filters(filters)
+#    CONTINUE HERE: change to dictionary system.
+#    filter_triples = read_filters(filters)
+    filt = parse_filters(filters, ["name", "type", "version"],
+                         [TextP.containing, lambda x: x, lambda x: x])
 
     # make sure that the range bounds only consist of a min/max, and that
     # the order direction is either asc or desc.
     assert len(range_bounds) == 2
     assert order_direction in {'asc', 'desc'}
 
-    CONTINUE HERE: switch over to new API.
+    CONTINUE HERE: now add order_by, then switch all other get_list() to use new
+    scheme
     components = p.Component.get_list(
         range=range_bounds,
-        order_by=order_by,
-        order_direction=order_direction,
-        filters=filter_triples,
+        order_by=[],
+        filters=filt,
     )
     
     return {"result": [c.as_dict(bare=True) for c in components]}
