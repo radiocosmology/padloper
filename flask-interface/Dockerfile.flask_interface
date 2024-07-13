@@ -1,0 +1,12 @@
+FROM python:3.8-slim-buster
+
+WORKDIR /flask-interface
+
+COPY requirements.txt requirements.txt
+RUN pip3 install -r requirements.txt
+
+COPY ./flask-interface /flask-interface
+COPY ./padloper /padloper
+COPY ./flask-interface/.flaskenv .flaskenv
+
+CMD ["python3", "-m", "flask", "run", "--no-debugger", "-p", "4300"]

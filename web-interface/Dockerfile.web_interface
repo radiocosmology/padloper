@@ -1,0 +1,11 @@
+FROM node:18-alpine
+
+WORKDIR /web-interface
+
+COPY ./web-interface/public/ /web-interface/public
+COPY ./web-interface/src/ /web-interface/src
+COPY ./web-interface/package.json /web-interface/
+
+RUN npm install
+
+CMD [ "npm", "start" ]
