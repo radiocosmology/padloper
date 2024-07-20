@@ -9,4 +9,5 @@ COPY ./flask-interface /flask-interface
 COPY ./padloper /padloper
 COPY ./flask-interface/.flaskenv .flaskenv
 
-CMD ["python3", "-m", "flask", "run", "--no-debugger", "-p", "4300"]
+ENV DB_HOST="ws://janusgraph"
+CMD ["python3", "-m", "flask", "run", "--no-debugger", "--host=0.0.0.0", "-p", "4300"]
