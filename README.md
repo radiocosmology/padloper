@@ -148,3 +148,18 @@ This will install `Flask` version 2.0.1 and `python-dotenv` version 0.19.0 (see 
 ## Setting up React
 
 In `web-interface`, run `npm install` to install all dependencies. However, `react-scripts` must be set to version `4.0.3` (see the TODOs). 
+
+
+## Setting up Docker
+
+We've recently added a way for developers to launch the application in a set of Docker containers (for testing on a common platform and deployment). Ensure that you have an up-to-date
+docker version that supports Docker Compose V2 (i.e. you can run `docker compose up`).
+
+You can setup the containers by simply running
+
+```
+docker compose up
+```
+
+Indexing requires manual intervention for right now, which can be done by running `index_setup.groovy` in the gremlin console with the command
+`./bin/gremlin.sh -e /path/to/index_setup.groovy`

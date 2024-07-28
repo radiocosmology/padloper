@@ -1,7 +1,0 @@
-FROM tinkerpop/gremlin-console:latest
-
-WORKDIR /scripts
-
-COPY ./index_setup.groovy /scripts/index_setup.groovy
-
-CMD ["gremlin.sh", "-e", "/scripts/index_setup.groovy"]
