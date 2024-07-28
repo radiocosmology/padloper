@@ -11,13 +11,22 @@ services:
     networks:
       padloper-network:
         ipv4_address: 172.20.0.20
+  gremlin-console:
+    build:
+      context: .
+      dockerfile: Dockerfile.gremlin_console
+    container_name: gremlin-console
+    depends_on:
+      - janusgraph
+    networks:
+      - padloper-network
   nginx:
     image: nginx:latest
     container_name: nginx
     depends_on:
       - flask-interface
     ports:
-      - "80:80"
+      - "3000:3000"
     volumes:
       - ./nginx.conf:/etc/nginx/conf.d/default.conf
     networks:

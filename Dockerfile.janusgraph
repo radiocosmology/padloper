@@ -12,12 +12,10 @@ ENV JAVA_HOME=/usr/lib/jvm/java-8-openjdk-amd64
 ENV JAVA_OPTS="-Xms512m -Xmx512m"
 
 # Add custom JanusGraph configuration
-COPY conf/janusgraph-cql-es.properties /opt/janusgraph/conf/janusgraph-cql-es.properties
-COPY index_setup.groovy /opt/janusgraph/index_setup.groovy
+COPY conf/janusgraph-cql-es-prod.properties /opt/janusgraph/conf/janusgraph-cql-es.properties
 
 # Expose the necessary port
 EXPOSE 8182
 
 RUN sed -i 's/-Xms4096m/-Xms512m/; s/-Xmx4096m/-Xmx512m/' /opt/janusgraph/conf/jvm-8.options
 RUN sed -i 's/-Xms4096m/-Xms512m/; s/-Xmx4096m/-Xmx512m/' /opt/janusgraph/conf/jvm-11.options
-# CMD ["bin/gremlin.sh", "-i", "/opt/janusgraph/index_setup.groovy"]
