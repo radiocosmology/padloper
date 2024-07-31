@@ -13,6 +13,7 @@ ENV JAVA_OPTS="-Xms512m -Xmx512m"
 
 # Add custom JanusGraph configuration
 COPY conf/janusgraph-cql-es-prod.properties /opt/janusgraph/conf/janusgraph-cql-es.properties
+COPY index_setup.groovy /docker-entrypoint-initdb.d/index_setup.groovy
 
 # Expose the necessary port
 EXPOSE 8182
