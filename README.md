@@ -158,8 +158,8 @@ docker version that supports Docker Compose V2 (i.e. you can run `docker compose
 You can setup the containers by simply running
 
 ```
-docker compose up
+docker compose up -d
 ```
-
-Indexing requires manual intervention for right now, which can be done by running `index_setup.groovy` in the gremlin console with the command
-`./bin/gremlin.sh -e /path/to/index_setup.groovy`
+If you wish to add some sample data, you should exec into the flask-interface container and
+run the setup scripts since currently, they are not able to synchronize with the janusgraph
+database
