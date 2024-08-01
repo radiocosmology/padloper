@@ -163,3 +163,10 @@ docker compose up -d
 If you wish to add some sample data, you should exec into the flask-interface container and
 run the setup scripts since currently, they are not able to synchronize with the janusgraph
 database
+
+### Brief explanation of Nginx and Gunicorn
+
+For the dockerization, we added Gunicorn so that the backend is able to handle multiple requests
+simultaneously since the built-in `flask` server is single-threaded is meant for development purposes.
+
+Nginx provides provides another layer of managing requests and load balancing, in addition to providing a layer of security by hiding the Gunicorn server from the public internet.
