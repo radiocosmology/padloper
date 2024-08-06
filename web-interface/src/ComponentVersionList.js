@@ -9,6 +9,7 @@ from '@mui/material';
 import ComponentVersionFilter from './ComponentVersionFilter.js';
 import ComponentVersionAddButton from './ComponentVersionAddButton.js';
 import ComponentVersionReplaceButton from './ComponentVersionReplaceButton.js';
+import Authenticator from './components/Authenticator.js';
 
 /**
  * A MUI component that renders a list of component versions.
@@ -53,6 +54,7 @@ function ComponentVersionList() {
         ]
     */
     const [filters, setFilters] = useState([]);
+
 
     /**
      * add an empty filter to filters
@@ -210,7 +212,7 @@ function ComponentVersionList() {
             allowOrdering: true,
         },
         {
-            id: 'allowed_type', 
+            id: 'type', 
             label: 'Allowed Type',
             allowOrdering: true,
         },
@@ -230,10 +232,10 @@ function ComponentVersionList() {
      */
     let tableRowContent = elements.map((e) => [
         e.name,
-        e.allowed_type.name,
+        e.type.name,
         e.comments,
         <ComponentVersionReplaceButton
-        allowed_type = {e.allowed_type.name}
+        type = {e.type.name}
         componentTypes={componentTypes}
         name = {e.name}
         toggleReload={toggleReload}
@@ -241,7 +243,8 @@ function ComponentVersionList() {
     ]);
 
     return (
-        <>
+        <> 
+            <Authenticator />
             <ElementRangePanel
                 min={min}
                 updateMin={(n) => { setMin(n) }}

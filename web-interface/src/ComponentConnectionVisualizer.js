@@ -30,6 +30,7 @@ import ComponentAutocomplete from './ComponentAutocomplete.js';
 import { ThemeProvider } from '@emotion/react';
 
 import { unixTimeToISOString } from './utility/utility.js';
+import Authenticator from './components/Authenticator.js';
 
 window.addEventListener("error", (e) => {
 if (e.message === 'ResizeObserver loop completed with undelivered notifications.' || e.message === 'ResizeObserver loop limit exceeded') {
@@ -343,6 +344,7 @@ const time = useRef(Math.floor(Date.now() / 1000));
 const defaultViewport = {x: 0, y: 0};
 
 
+
 /**
  * Set the URL based on actions performed.
  */
@@ -500,7 +502,6 @@ function sortNodes () {
           const isParentB = isParentNode.current[b.id];
           const aInB = childrenNodes.current[b.id].includes(a.id);
           const bInA = childrenNodes.current[a.id].includes(b.id);
-          console.log(isParentNode)
     
           if (isParentA && !isParentB) {
             return -1;
@@ -550,12 +551,14 @@ if (subcomponent) {
       connectable: false,
       type: 'component',
   //            dragHandle: '.drag-handle',
-      data: { name: comp.name, ctype: comp.type, version: comp.version, properties: comp.properties, shownProperties: ''  },
+      data: { name: comp.name, ctype: comp.type, version: comp.version, properties: comp.properties, shownProperties: '',  
+            minHeight: height
+        },
   //            data: {label: name},
       position: { x: x, y: y },
       style: {
         width: width,
-        height: height
+        minHeight: height
       },
       parentNode: parent,
       extent: 'parent',
@@ -566,12 +569,13 @@ if (subcomponent) {
       connectable: false,
       type: 'component',
   //            dragHandle: '.drag-handle',
-      data: { name: comp.name, ctype: comp.type, version: comp.version, properties: comp.properties, shownProperties: ''  },
+      data: { name: comp.name, ctype: comp.type, version: comp.version, properties: comp.properties, shownProperties: '',
+            minHeight: height  },
   //            data: {label: name},
       position: { x: x, y: y },
       style: {
         width: width,
-        height: height
+        minHeight: height
       },
   //            position: { x: 10, y: 10 },
   }
@@ -806,7 +810,7 @@ fitView();
 * @param {*} data - data for the React Flow component.
 * Really only need data.name from here.
 */
-function ComponentNode({ data }) {
+function ComponentNode({ data, style }) {
 return (
 <ThemeProvider theme={theme}>
     <Handle 
@@ -829,7 +833,8 @@ return (
             justifyContent="center"
             // alignItems="center"
             style={{
-                height: '100%'
+                height: '100%',
+                minHeight: data.minHeight
             }}
         >
             <Grid item xs={9}>
@@ -862,7 +867,7 @@ return (
                     {data.shownProperties ? data.shownProperties.map(([propertyName, values, unit]) => (
                         <div key={propertyName}>
                         <p>
-                            <strong>{propertyName}:</strong> {values.join(', ')} {unit}
+                            <u>{propertyName}:</u> {values.join(', ')} {unit}
                         </p>
                         </div>
                     ))
@@ -893,11 +898,8 @@ return (
 * of the components added.
 */
 async function expandConnections(name, time) {
-if (expandedNodes.current[name] === true) {
-    return;
-}
 // setExpanded((prev) => [...prev, name]);
-expandedNodes.current[name] = true;
+
 
 let input = `/api/get_connections`;
 input += `?name=${name}`;
@@ -942,6 +944,54 @@ resolve => {
                 // add normal edge to this component
                 edges.push(edge)
             }
+        }
+
+        // expand to add child nodes to parent
+        if (expandedNodes.current[name] === true) {
+            let subLastAdded = {x: -nodeWidth, y: 120 - nodeHeight}
+            let maxSubHeight = nodeHeight;
+            for (const sub of subcomponents) {
+                // console.log(sub.name + ':')
+                // debugger;
+                let subAdded = addComponent(sub, subLastAdded.x + nodeWidth + 10, subLastAdded.y, true, curr.name);
+                // console.log(subAdded)
+                if (subAdded) {
+                    isParentNode.current[curr.name] = true;
+                    componentsAdded.push(sub)
+                    subLastAdded.x += nodeWidth + 10;
+
+                    // set sub as a child of curr
+                    childrenNodes.current[curr.name] = [...childrenNodes.current[curr.name], sub.name]
+                } else {
+                    // subcomponent exists -> set as child of curr
+
+                    setNodes((nodes) => nodes.map((node) => {
+                        if (node.id === sub.name) {
+
+                            // console.log(node.id)
+                            // console.log(sub.name)
+                            // console.log(curr)
+
+                            maxSubHeight = Math.max(maxSubHeight, node.style.height)
+                            return ({
+                                ...node,
+                                data: { ...node.data, label: node.id,},
+                                position: {
+                                    x: subLastAdded.x + nodeWidth + 10,
+                                    y: subLastAdded.y
+                                },
+                                parentNode: curr.name,
+                                extent: 'parent'
+                            });
+                        } else {
+                            return node;
+                        }
+                    }));
+                    subLastAdded.x += nodeWidth + 10;
+                }
+            }
+            resolve(componentsAdded);
+            return;
         }
 
         if (parent) {
@@ -1095,12 +1145,71 @@ resolve => {
             setExpanded((prev) => [...prev, name]);
         }
         // console.log({...lastAdded})
+        expandedNodes.current[name] = true;
         setLastAdded({...lastAdded});
         sortNodes();
+        formatSubcomponents();
         resolve(componentsAdded);
     });
 }
 )
+}
+
+async function formatSubcomponents() {
+    setNodes((nodes) => nodes.map((node1) => {
+        if (isParentNode.current[node1.id] === true) {
+            // get subcomponents
+            let input = `/api/get_subcomponents`;
+            input += `?name=${node1.id}`;
+            fetch(input).then(
+                res => res.json()
+            ).then(data => {
+
+
+                let subLastAdded = {x: -nodeWidth, y: 120 - nodeHeight}
+                let maxSubHeight = nodeHeight;
+                setNodes((nodes) => nodes.map((node2) => {
+                    // console.log('node node node 2')
+                    // console.log(node2.id)
+                    if (data.result.includes(node2.id)) {
+                        // console.log("I AM HERE HERE HERE")
+                        maxSubHeight = Math.max(maxSubHeight, node2.style.height)
+                        return ({
+                            ...node2,
+                            data: { ...node2.data, label: node2.id,},
+                            position: {
+                                x: subLastAdded.x + nodeWidth + 10,
+                                y: subLastAdded.y
+                            },
+                            parentNode: node1.id,
+                            extent: 'parent'
+                        });
+                    } else if (node2.id === node1.id) {
+
+                        let newHeight = (data.result.length > 0) ? nodeHeight * 2 : 0;
+
+                        let newWidth = data.result.length * (nodeWidth + 20);
+
+                        const maxWidth = node2.style.width > 0 ? Math.max(node2, newWidth) : newWidth;
+
+                        const maxHeight = node2.style.height > 0 ? Math.max(newHeight, node2.style.height) : newHeight;
+                        return ({
+                            ...node2,
+                            data: { ...node2.data, label: node2.id,},
+                            style : {
+                                width: maxWidth,
+                                height: maxHeight,
+                            }
+                        });
+                    }
+                    else {
+                        return node2;
+                    }
+                }));
+            });
+        }
+            return node1;
+    }));
 }
 
 const nodeTypes = useMemo(
@@ -1115,6 +1224,8 @@ e.stopImmediatePropagation();
 });
 
 return (
+<>
+<Authenticator />
 <Grid 
 container 
 direction="column"
@@ -1271,7 +1382,6 @@ spacing={2}
 </Grid>
 
 </Grid>
-
+</>
 )
-
 }

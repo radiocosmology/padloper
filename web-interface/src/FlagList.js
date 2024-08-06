@@ -18,7 +18,7 @@ import Stack from '@mui/material/Stack';
 import ComponentEvent from './ComponentEvent.js';
 import FlagEvent from './FlagEvent.js';
 import DeleteIcon from '@mui/icons-material/Delete';
-
+import Authenticator from './components/Authenticator.js';
 
 /**
  * A styling for an MUI Accordion component.
@@ -520,6 +520,7 @@ export default function FlagList() {
 
     return (
         <>
+            <Authenticator />
             <ElementRangePanel
                 width="800px"
                 min={min}

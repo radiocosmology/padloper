@@ -16,9 +16,10 @@ from sympy import true
 import _global as g
 from gremlin_python.process.graph_traversal import __, constant
 
-from _base import Vertex, strictraise
+from _base import Vertex, VertexAttr, strictraise
 from _component_nodes import ComponentType
-from _edges import RelationPropertyType, RelationPropertyAllowedType
+from _edges import RelationPropertyType, RelationPropertyAllowedType, \
+                   RelationComponentType
 from _exceptions import *
 
 from typing import Optional, List
@@ -42,6 +43,7 @@ class PropertyType(Vertex):
     """
 
     category: str = "property_type"
+<<<<<<< HEAD
 
     name: str
     units: str
@@ -372,6 +374,19 @@ class PropertyType(Vertex):
             )
 
         return g._vertex_cache[id]
+=======
+    _vertex_attrs: list = [
+        VertexAttr("name", str),
+        VertexAttr("units", str, optional=True, default=""),
+        VertexAttr("allowed_regex", str, optional=True, default=".*"),
+        VertexAttr("n_values", int),
+        VertexAttr("allowed_types", ComponentType, 
+                   edge_class=RelationPropertyAllowedType, is_list=True,
+                   list_len=(1, int(1e10))),
+        VertexAttr("comments", str, optional=True, default="")
+    ]
+    primary_attr = "name"
+>>>>>>> main
 
     @classmethod
     def get_list(cls,
@@ -466,34 +481,34 @@ class PropertyType(Vertex):
 
         # Component type query to DB
         pts = traversal.range(range[0], range[1]) \
-            .project('id', 'attrs', 'type_ids') \
-            .by(__.id_()) \
-            .by(__.valueMap()) \
-            .by(__.both(RelationPropertyAllowedType.category).id_().fold()) \
-            .toList()
+                       .project("id", "time_added", "uid_added",
+                                "time_disabled", "uid_disabled", "name",
+                                "units", "allowed_regex", "n_values",
+                                "allowed_types", "comments") \
+                       .by(__.id_()) \
+                       .by(__.values('time_added')) \
+                       .by(__.values('uid_added')) \
+                       .by(__.values('time_disabled')) \
+                       .by(__.values('uid_disabled')) \
+                       .by(__.values('name')) \
+                       .by(__.values("units")) \
+                       .by(__.values("allowed_regex")) \
+                       .by(__.values("n_values")) \
+                       .by(__.both(RelationPropertyAllowedType.category) \
+                                   .id_().fold()) \
+                       .by(__.values("comments")) \
+                       .toList()
 
         types = []
 
         for entry in pts:
-            id, ctype_ids, attrs = entry['id'], entry['type_ids'], \
-                entry['attrs']
-
             ctypes = []
 
-            for ctype_id in ctype_ids:
+            for ctype_id in entry["allowed_types"]:
                 ctypes.append(ComponentType.from_id(ctype_id))
 
-            types.append(
-                PropertyType._attrs_to_type(
-                    id=id,
-                    name=attrs['name'][0],
-                    units=attrs['units'][0],
-                    allowed_regex=attrs['allowed_regex'][0],
-                    n_values=attrs['n_values'][0],
-                    comments=attrs['comments'][0],
-                    allowed_types=ctypes,
-                )
-            )
+            print(entry)
+            types.append(PropertyType._from_attrs(entry))
 
         return types
 
@@ -575,33 +590,49 @@ class Property(Vertex):
     :ivar type: The PropertyType instance representing the property
     type of this property.
     """
-
     category: str = "property"
 
-    values: List[str]
-    type: PropertyType
+    _vertex_attrs: list = [
+        VertexAttr("type", PropertyType, edge_class=RelationPropertyType),
+        VertexAttr("values", str, is_list=True)
+    ]
+    primary_attr = None
 
-    def __init__(
-        self, values: List[str], type: PropertyType,
-        id: int = g._VIRTUAL_ID_PLACEHOLDER
-    ):
-        # If the user passes a string rather than a list of strings, fix it.
-        if isinstance(values, str):
-            values = [values]
+    def _validate(self, **kwargs):
+        """This is called by the initialiser; to do some important checks."""
+        try:
+            # If the user passes a string rather than a list of strings,
+            # interpret it as a list of length one.
+            if not isinstance(kwargs["values"], list):
+                kwargs["values"] = [kwargs["values"]]
+        except KeyError:
+            raise TypeError("%s() missing required keyword \"values\"." %\
+                            self.__class__.__name__)
 
+<<<<<<< HEAD
         if len(values) != int(type.n_values):
             raise PropertyWrongNValuesError
+=======
+        try:
+            nn = kwargs["type"].n_values
+            if len(kwargs["values"]) != nn:
+                raise TypeError("%d value%s %s required." %\
+                                (nn, "" if nn == 1 else "s",
+                                 "is" if nn == 1 else "are"))
+        except KeyError:
+            raise TypeError("%s() missing required keyword \"type\"." %\
+                            self.__class__.__name__)
+>>>>>>> main
 
-        for val in values:
-
-            # If the value does not match the property type's regex
-            if not bool(re.fullmatch(type.allowed_regex, val)):
-                raise PropertyNotMatchRegexError(
-                    f"Property with values {values} of type " +
-                    f"{type.name} does not match regex " +
-                    f"{type.allowed_regex} for value {val}."
+        for val in kwargs["values"]:
+            if not bool(re.fullmatch(kwargs["type"].allowed_regex, val)):
+                raise ValueError(
+                    f"Property with value {val} of type " +
+                    f"{kwargs['type'].name} does not match regex " +
+                    f"{kwargs['type'].allowed_regex}."
                 )
 
+<<<<<<< HEAD
         self.values = values
         self.type = type
 
@@ -610,6 +641,9 @@ class Property(Vertex):
     # Shouldn't be called directly, but will add authentication.
     @authenticated
     def _add(self, permissions=None):
+=======
+    def _add(self):
+>>>>>>> main
         """
         Add this Property to the serverside.
         """
@@ -637,32 +671,5 @@ class Property(Vertex):
             'type': self.type.as_dict()
         }
 
-    @classmethod
-    def from_id(cls, id: int):
-        """Given an ID of a serverside property vertex, 
-        return a Property instance. 
-        """
-
-        if id not in g._vertex_cache:
-
-            d = g.t.V(id).project('values', 'ptype_id') \
-                   .by(__.properties('values').value().fold()) \
-                   .by(__.both(RelationPropertyType.category).id_()).next()
-
-            values, ptype_id = d['values'], d['ptype_id']
-
-            if not isinstance(values, list):
-                values = [values]
-
-            Vertex._cache_vertex(
-                Property(
-                    values=values,
-                    type=PropertyType.from_id(ptype_id),
-                    id=id
-                )
-            )
-
-        return g._vertex_cache[id]
-
     def __repr__(self):
-        return f"{self.category}: {self.property_type.name} ({self.values})"
+        return f"{self.category}: {self.type.name} ({self.values})"

@@ -40,11 +40,14 @@ mgmt.makePropertyKey('allowed_regex').dataType(String.class).make()
 mgmt.makePropertyKey('n_values').dataType(Long.class).make()
 mgmt.makePropertyKey('values').dataType(String.class).cardinality(Cardinality.LIST).make()
 
+<<<<<<< HEAD
 # for user auth
 mgmt.makePropertyKey('institution').dataType(String.class).make()
 
 
 
+=======
+>>>>>>> main
 # Edges
 connection = mgmt.makeEdgeLabel("rel_connection").make()
 mgmt.makeEdgeLabel("rel_property").make()
@@ -60,7 +63,10 @@ mgmt.makeEdgeLabel("rel_flag_severity").make()
 mgmt.makeEdgeLabel("rel_user_group").make()
 mgmt.makeEdgeLabel("rel_group_permission").make()
 
+<<<<<<< HEAD
 
+=======
+>>>>>>> main
 # Indices, for fast searching.
 mgmt.buildIndex('byCategoryComposite', Vertex.class).addKey(category).buildCompositeIndex()
 mgmt.buildIndex('byActiveComposite', Vertex.class).addKey(active).buildCompositeIndex()
@@ -87,4 +93,8 @@ mgmt.commit()
 
 mgmt = graph.openManagement()
 #vals = mgmt.makePropertyKey('values').dataType(String.class).cardinality(org.janusgraph.core.Cardinality.LIST).make()
+<<<<<<< HEAD
 mgmt.commit()
+=======
+mgmt.commit()
+>>>>>>> main

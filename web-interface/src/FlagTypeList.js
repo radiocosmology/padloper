@@ -8,7 +8,7 @@ import {
 from '@mui/material';
 import FlagTypeAddButton from './FlagTypeAddButton.js';
 import FlagTypeReplaceButton from './FlagTypeReplaceButton.js'
-
+import Authenticator from './components/Authenticator.js';
 
 /**
  * A MUI component that renders a list of flag types.
@@ -48,7 +48,6 @@ function FlagTypeList() {
     function toggleReload() {
         setReloadBool(!reloadBool);
     }
-
 
     /*
     The function that updates the list of flag types when the site is 
@@ -132,6 +131,7 @@ function FlagTypeList() {
     ]);
     return (
         <>
+            <Authenticator />
             <ElementRangePanel
                 min={min}
                 updateMin={(n) => { setMin(n) }}

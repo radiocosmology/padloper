@@ -11,6 +11,7 @@ import { useState, useEffect, useContext } from 'react';
 import { OAuthContext } from './contexts/OAuthContext';
 
 import HeaderMenuButton from './HeaderMenuButton.js';
+import { useNavigate } from 'react-router-dom';
 
 /**
  * MUI Component that returns the header that is seen at the top of the web
@@ -21,6 +22,7 @@ function Header() {
     const open = Boolean(anchorEl);
     const [userData, setUserData] = useState({});
     const { accessToken, setAccessToken } = useContext(OAuthContext); 
+    const navigate = useNavigate()
 
     useEffect(() => {
         // TODO: remove local storage
@@ -197,6 +199,7 @@ function Header() {
                     </MenuItem>
                     <MenuItem
                         // remove local storage 
+<<<<<<< HEAD
                         onClick={() => { 
                             localStorage.removeItem("accessToken");
                             axios.post("/api/logout")
@@ -208,6 +211,9 @@ function Header() {
                             })
                             window.location.reload(false);
                         }
+=======
+                        onClick={() => { localStorage.removeItem("accessToken"); navigate("/") ; window.location.reload(false);}
+>>>>>>> main
                         // onClick={() => { setAccessToken(''); }
                     }>
                         Sign out

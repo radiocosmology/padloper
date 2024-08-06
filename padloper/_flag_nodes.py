@@ -16,7 +16,7 @@ from sympy import true
 from gremlin_python.process.graph_traversal import __, constant
 
 import _global as g
-from _base import Vertex, Timestamp, strictraise
+from _base import Vertex, VertexAttr, Timestamp, strictraise
 from _component_nodes import Component
 from _exceptions import *
 from _edges import RelationFlagType, RelationFlagComponent, RelationFlagSeverity
@@ -33,6 +33,7 @@ class FlagType(Vertex):
     """
 
     category: str = "flag_type"
+<<<<<<< HEAD
 
     name: str
     comments: str
@@ -212,6 +213,13 @@ class FlagType(Vertex):
             )
 
         return g._vertex_cache[id]
+=======
+    _vertex_attrs: list = [
+        VertexAttr("name", str),
+        VertexAttr("comments", str, optional=True, default="")
+    ]
+    primary_attr = "name"
+>>>>>>> main
 
     @classmethod
     def _attrs_to_type(cls, name: str, comments: str, id: int):
@@ -618,6 +626,10 @@ class Flag(Vertex):
     """
 
     category: str = "flag"
+    _vertex_attr: list = [
+        VertexAttr("name", str),
+        VertexAttr("comments", str)
+    ]
 
     name: str
     comments: str
