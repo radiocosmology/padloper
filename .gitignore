@@ -11,3 +11,5 @@ package*
 subgraph.pdf
 *.swp
 *.egg-info
+elasticsearch-data
+cassandra-data
