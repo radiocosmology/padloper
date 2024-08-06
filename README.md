@@ -4,6 +4,8 @@ A repository containing Python interface for accessing the HIRAX Layout DB, as w
 
 ## How to start everything up
 
+**N.B.**: It is possible to run everything in Docker: scroll to the end of this README for instructions on this option. The information in this and subsequent sections is for installing everything by hand, which is probaby best for development environments and perhaps for some production environments.
+
 Assuming that JanusGraph, Flask, and React are installed and configured (see sections below), we can start the JanusGraph server, followed by the Flask server, and then the React server for testing.
 
 To start the JanusGraph server, do
@@ -150,7 +152,7 @@ This will install `Flask` version 2.0.1 and `python-dotenv` version 0.19.0 (see 
 In `web-interface`, run `npm install` to install all dependencies. However, `react-scripts` must be set to version `4.0.3` (see the TODOs). 
 
 
-## Setting up Docker
+## Running Padloper in Docker
 
 We've recently added a way for developers to launch the application in a set of Docker containers (for testing on a common platform and deployment). Ensure that you have an up-to-date
 docker version that supports Docker Compose V2 (i.e. you can run `docker compose up`).
@@ -160,6 +162,9 @@ You can setup the containers by simply running
 ```
 docker compose up -d
 ```
+
+The default address for the web interface is `localhost:4301`, and is configurable in the `docker-compose.yml` file.
+
 If you wish to add some sample data, you should exec into the flask-interface container and
 run the setup scripts since currently, they are not able to synchronize with the janusgraph
 database. For instance, to put in the toy model of a database included with
