@@ -162,7 +162,12 @@ docker compose up -d
 ```
 If you wish to add some sample data, you should exec into the flask-interface container and
 run the setup scripts since currently, they are not able to synchronize with the janusgraph
-database
+database. For instance, to put in the toy model of a database included with
+Padloper, run:
+
+```
+docker exec -it flask-interface sh -c "export PYTHONPATH=$PYTHONPATH:/; python3 padloper/scripts/init_simple-db.py"
+```
 
 ### Brief explanation of Nginx and Gunicorn
 
