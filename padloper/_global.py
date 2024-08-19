@@ -4,7 +4,7 @@ _global.py
 Contains declarations and methods for graph connections. Also holds our global
 variables.
 """
-
+import os
 from gremlin_python.process.graph_traversal import GraphTraversalSource
 import gremlin_python.structure.graph as gremlin_graph
 from gremlin_python.driver.driver_remote_connection \
@@ -35,8 +35,8 @@ _user = None
 
 
 
-def start_connection(port: int=8182, traversal_source: str='g') -> None:
-    """Start a connection on localhost with port :param port: 
+def start_connection(host: str = "ws://localhost", port: int=8182, traversal_source: str='g') -> None:
+    """Start a connection with janusgraph with port :param port: 
     with traversal source :traversal_source:.
 
     :param port: The port to connect to on localhost, defaults to 8182
@@ -50,7 +50,7 @@ def start_connection(port: int=8182, traversal_source: str='g') -> None:
     global t
 
     _conn = DriverRemoteConnection(
-        f'ws://localhost:{port}/gremlin', 
+        f'{host}:{port}/gremlin', 
         traversal_source
     )
 
@@ -69,4 +69,4 @@ def end_connection() -> None:
     _conn.close()
 
 # Start the default connection when this module is loaded.
-start_connection()
+start_connection(host=os.environ.get('DB_HOST', 'ws://localhost'))
