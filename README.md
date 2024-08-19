@@ -154,10 +154,10 @@ In `web-interface`, run `npm install` to install all dependencies. However, `rea
 
 ## Running Padloper in Docker
 
-We've recently added a way for developers to launch the application in a set of Docker containers (for testing on a common platform and deployment). Ensure that you have an up-to-date
-docker version that supports Docker Compose V2 (i.e. you can run `docker compose up`).
+Padloper comes with ready-made scripts to launch the application in a set of Docker containers (for testing on a common platform and deployment). Ensure that you have an up-to-date
+docker version that supports Docker Compose V2 (i.e., you can run `docker compose up`).
 
-You can setup the containers by simply running
+You can set up the containers by simply running:
 
 ```
 docker compose up -d
