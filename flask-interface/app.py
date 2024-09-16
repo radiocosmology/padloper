@@ -19,10 +19,6 @@ app.secret_key = os.urandom(24)
 # set this to the oauth-proxy-server URL
 PROXY_SERVER_URL = 'http://localhost:4000/'
 
-print("=================================")
-print("REMOVE ME!!!!!!!!!!!!!!!!!!!!!!!!")
-print("=================================")
-
 p.set_user("test")
 
 def tmp_timestamp(t, uid, comments):
@@ -1161,13 +1157,8 @@ def end_component_connection():
 
     try:
         t = tmp_timestamp(val_time, val_uid, val_comments)
-<<<<<<< HEAD
         c1.disconnect(c2, t, permissions=session.get('perms'))
     except ComponentsAlreadyDisconnectedError:
-=======
-        c1.disconnect(c2, t)
-    except p.ComponentsAlreadyDisconnectedError:
->>>>>>> main
         already_disconnected = True
 
     return {'result': not already_disconnected}
@@ -1288,16 +1279,11 @@ def add_component_subcomponent():
         already_subcomponent = False
 
         try:
-<<<<<<< HEAD
             c1.subcomponent_connect(
                 component=c2,
                 permissions=session.get('perms')
             )
         except ComponentAlreadySubcomponentError:
-=======
-            c1.subcomponent_connect(c2)
-        except p.ComponentAlreadySubcomponentError:
->>>>>>> main
             already_subcomponent = True
 
         return {'result': not already_subcomponent}
@@ -1353,13 +1339,8 @@ def set_flag_type():
         val_comments = escape(request.args.get('comments'))
 
         # Need to initialize an instance of a component version first.
-<<<<<<< HEAD
         flag_type = p.FlagType(val_name, val_comments)
         flag_type.add(permissions=session.get('perms'))
-=======
-        flag_type = p.FlagType(name=val_name, comments=val_comments)
-        flag_type.add()
->>>>>>> main
 
         return {'result': True}
 

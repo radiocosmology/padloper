@@ -10,19 +10,149 @@ variables in *this* file.
 https://stackoverflow.com/questions/7799286/how-to-split-a-python-module-into-multiple-files
 """
 import datetime
+from functools import wraps
 from gremlin_python.process.graph_traversal import __, constant
 from gremlin_python.process.traversal import Order, P, TextP
 import time
 import _global as g
 from _exceptions import *
 
-#import re
-#from unicodedata import name
-#import warnings
-#from xmlrpc.client import boolean
-#from attr import attr, attributes
-#from sympy import true
-#from typing import Optional, List
+permissions_set = {
+    # Component:
+    # protected
+    'Component;add',
+    'Component;replace',
+    'Component;unset_property',
+    'Component;replace_property',
+    'Component;disable_property',
+    'Component;disconnect',
+    'Component;disable_connection',
+    'Component;disable_subcomponent',
+    'Component;subcomponent_connect',
+
+    # general
+    'Component;connect',
+    'Component;set_property',
+
+    # unprotected
+    # 'Component;get_property',
+    # 'Component;get_all_properties',
+    # 'Component;get_all_properties_of_type',
+    # 'Component;get_connections',
+    # 'Component;get_list',
+    # 'Component;get_count',
+    # 'Component;get_all_flags',
+    # 'Component;get_subcomponents',
+    # 'Component;get_subcomponent',
+    # 'Component;get_supercomponents',
+    # 'Component;added_to_db',
+    # 'Component;from_db',
+    # 'Component;from_id',
+    # 'Component;as_dict',
+
+    # Component types:
+    # protected
+    'ComponentType;add',
+    'ComponentType;replace',
+
+    # unprotected
+    # 'ComponentType;as_dict',
+    # 'ComponentType;added_to_db',
+    # 'ComponentType;from_db',
+    # 'ComponentType;from_id',
+    # 'ComponentType;get_names_of_types_and_versions',
+    # 'ComponentType;get_list',
+    # 'ComponentType;get_count',
+
+    # Component version:
+    # protected
+    'ComponentVersion;add',
+    'ComponentVersion;replace',
+
+    # unprotected
+#     'ComponentVersion;as_dict',
+#     'ComponentVersion;added_to_db',
+#     'ComponentVersion;from_db',
+#     'ComponentVersion;from_id',
+#     'ComponentVersion;get_list',
+#     'ComponentVersion;get_count',
+
+    # PropertyType:
+    # protected
+    'PropertyType;add',
+    'PropertyType;replace',
+
+    # Property:
+    # protected
+    'Property;_add',
+
+    # FlagType:
+    # protected
+    'FlagType;add',
+    'FlagType;replace',
+
+    # FlagSeverity:
+    # protected
+    'FlagSeverity;add',
+    'FlagSeverity;replace',
+
+    # Flag:
+    # protected
+    'Flag;replace',
+
+    # general
+    'Flag;add',
+    'Flag;end_flag',
+}
+
+CONTINUE HERE: format the following and copy the rest from _permissions.
+
+def check_permission(permission, class_name, method_name):
+    """Called by the @authenticated decorator."""
+    print(f"{class_name};{method_name}")
+    if permission is None:
+        # Check for global variable.
+        # If user is a string:
+            # user = User.from_db(name=user)
+
+        # User to be stored as a user vertex.
+        try:
+            user = g._user['id']
+        except Exception as e:
+            raise NoPermissionsError("User not set.")
+
+        if isinstance(user, str):
+            user = User.from_db(name=user)
+        permission = user.get_permissions()
+
+    # Raise error if user does not have all required permissions.
+    #
+    # Check default permissions (logged in as a valid user).
+    # If not '*' in permission:
+    # raise NoPermissionsError("Invalid user. Account must be validated by "\
+    #                          "an admin.")
+
+    if f"{class_name};{method_name}" in permissions_set and \
+        f"{class_name};{method_name}" not in permission:
+        raise NoPermissionsError("User does not have the required " +\
+                                 "permissions to perform this action.")
+
+
+def authenticated(func):
+    """A custom decorator for authentication of methods."""
+    @wraps(func)
+    def wrapper(*args, **kwargs):
+        # get the class name
+        class_name = func.__qualname__.split('.')[0]
+
+        # get the method name
+        method_name = func.__name__
+
+        # get the permissions
+        kw_permissions = kwargs.get('permissions')
+        check_permission(kw_permissions, class_name, method_name)
+        return func(*args, **kwargs)
+    return wrapper
 
 def strictraise(strict, err, msg):
     if strict:
@@ -944,7 +1074,8 @@ class TimestampedEdge(Edge):
             "end": self.end.as_dict()
         }
 
-    def add(self):
+    @authenticated
+    def add(self, permissions=None):
         """Add this timestamped edge to the database.
         """
 
@@ -961,8 +1092,6 @@ class TimestampedEdge(Edge):
 
         Edge.add(self, attributes=attributes)
 
-    CONTINUE HERE: see if there are more @authenticated to add and then continue
-    with next file to resolve conflicts.
     def _end(self, end: Timestamp):
         """Set the end timestamp.
 
