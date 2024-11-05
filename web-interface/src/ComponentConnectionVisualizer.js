@@ -345,11 +345,6 @@ const time = useRef(Math.floor(Date.now() / 1000));
 // the default position of nodes in the visualization.
 const defaultViewport = {x: 0, y: 0};
 
-//DEBUGGING
-useEffect(() => {
-    console.log("CHANGE");
-    console.log(lastAdded);
-}, [lastAdded]);
 
 /**
  * Set the URL based on actions performed.
@@ -911,8 +906,6 @@ return (
             <Grid item>
                     <ExpandConnectionsButton 
                         onClick={() => {
-                          console.log("Clicked expand");
-                          console.log(lastAdded);
                           expandConnections(data.name, time.current);
                         }
                       }
