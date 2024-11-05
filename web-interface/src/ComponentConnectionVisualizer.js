@@ -279,7 +279,7 @@ const childrenNodes = useRef({});
 const { fitView } = useReactFlow();
 
 // store position
-const [lastAdded, setLastAdded] = useState({x: 350, y: 100})
+const [lastAdded, setLastAdded] = useState({x: 350, y: 100});
 
 // store sub component position
 // const [subLastAdded, setSubLastAdded] = useState({x: -nodeWidth, y: 120 - nodeHeight})
@@ -345,7 +345,11 @@ const time = useRef(Math.floor(Date.now() / 1000));
 // the default position of nodes in the visualization.
 const defaultViewport = {x: 0, y: 0};
 
-
+//DEBUGGING
+useEffect(() => {
+    console.log("CHANGE");
+    console.log(lastAdded);
+}, [lastAdded]);
 
 /**
  * Set the URL based on actions performed.
@@ -727,6 +731,7 @@ const x = getNode(nodes, parent);
 * using breadth first search.
 */
 const visualizeComponent = async () => {
+
     if (component === undefined) {
         return;
     }
@@ -906,6 +911,8 @@ return (
             <Grid item>
                     <ExpandConnectionsButton 
                         onClick={() => {
+                          console.log("Clicked expand");
+                          console.log(lastAdded);
                           expandConnections(data.name, time.current);
                         }
                       }
@@ -946,6 +953,7 @@ resolve => {
         res => res.json()
     ).then(data => {
         console.log("Expanding Connections", name)
+        console.log(lastAdded);
         let subcomponents = [];
         let parent;
         let curr
@@ -971,8 +979,11 @@ resolve => {
                     parent = other;
                 }
             } else {
-                // add normal edge to this component
-                edges.push(edge)
+                if (!edgeIds.current[edge.id]) {
+                    // if edge is not already in graph
+                    // add normal edge to this component
+                    edges.push(edge)
+                }
             }
         }
 
@@ -1060,6 +1071,7 @@ resolve => {
                 let added = addComponent(parent, lastAdded.x, lastAdded.y + nodeHeight + 20, false, null, newWidth * 1.5 + 'px', newHeight * 2 + 'px');
                 if (added) {
                     componentsAdded.push(parent);
+                    console.log("adding");
                     lastAdded.y += nodeHeight + 20;
 
                     // point curr to parent
@@ -1162,8 +1174,14 @@ resolve => {
             curr_x += nodeCoords.current[curr.name].parentCoords.x
             curr_y += nodeCoords.current[curr.name].parentCoords.y
         }
-        curr_x -= nodeWidth + 100
+        // Get starting coordinates of child component:
+        curr_x -= Math.floor((edges.length - 1)/2) * (nodeWidth + 30);
+        if (edges.length % 2 == 0) {
+            curr_x -= (nodeWidth + 30) / 2;
+        }
+        console.log(curr_x);
         console.log(lastAdded.y)
+        console.log(edges.length);
         for (let i=0; i < edges.length; i++) {
             let edge = edges[i]
             // find other node from curr
@@ -1181,8 +1199,10 @@ resolve => {
 
             if (added) {
                 componentsAdded.push(other);
-                if (i == edges.length - 1)
+                if (i == edges.length - 1) {
+                    console.log("adding");
                     lastAdded.y += nodeHeight + 40;
+                }
             }
         }
 
@@ -1193,7 +1213,9 @@ resolve => {
             setExpanded((prev) => [...prev, name]);
         }
         // console.log({...lastAdded})
+        console.log(lastAdded);
         expandedNodes.current[name] = true;
+        console.log("setting");
         setLastAdded({...lastAdded});
         sortNodes();
         formatSubcomponents();
