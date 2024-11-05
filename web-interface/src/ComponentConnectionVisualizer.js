@@ -1189,7 +1189,7 @@ resolve => {
             let other = (name === edge.inVertex.name) ? 
                     edge.outVertex : edge.inVertex;
             console.log("addComponent4")
-            let added = addComponent(other, curr_x, lastAdded.y + nodeHeight + 40);
+            let added = addComponent(other, curr_x, lastAdded.y + nodeHeight + 50);
             curr_x += nodeWidth + 30;
             addEdge(
                 edge.id, 
@@ -1202,7 +1202,7 @@ resolve => {
                 componentsAdded.push(other);
                 if (i == edges.length - 1) {
                     console.log("adding");
-                    lastAdded.y += nodeHeight + 40;
+                    lastAdded.y += nodeHeight + 50;
                 }
             }
         }
