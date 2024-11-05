@@ -1180,8 +1180,9 @@ resolve => {
             curr_x -= (nodeWidth + 30) / 2;
         }
         console.log(curr_x);
-        console.log(lastAdded.y)
         console.log(edges.length);
+        lastAdded.y = curr_y;
+        console.log(lastAdded.y);
         for (let i=0; i < edges.length; i++) {
             let edge = edges[i]
             // find other node from curr
@@ -1401,9 +1402,9 @@ spacing={2}
                 onClick= {() => {
                     // clear URL
                     // clear components + states
+                    setLastAdded({x: 350, y: 100});
                     setExpanded([]);
                     removeAllElements();
-                    setLastAdded({x: 350, y: 100});
                     visualizeComponent();
                 }}
                 disabled={component === undefined}
