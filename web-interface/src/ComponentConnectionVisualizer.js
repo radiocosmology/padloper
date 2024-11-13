@@ -1280,21 +1280,26 @@ async function formatRows(startingRow, height, ignoreNodes = null) {
         }
     }
     console.log(nodes);
-    updateCoordinates();
+    setNodes((nodes) => nodes.map((node1) => {
+        return {
+            ...node1,
+            position: {x: node1.position.x, y: nodeCoords.current[node1.id].coords.y}
+        };
+    }));
 }
 
 
 /**
 * Updates position attributes in the react flow object to reflect changes in nodeCoords
 */
-async function updateCoordinates() {
-    setNodes((nodes) => nodes.map((node1) => {
-        return {
-            ...node1,
-            position: nodeCoords.current[node1.id].coords
-        };
-    }));
-}
+// async function updateCoordinates() {
+//     setNodes((nodes) => nodes.map((node1) => {
+//         return {
+//             ...node1,
+//             position: {x: node1.position.x, y: nodeCoords.current[node1.id].coords.y}
+//         };
+//     }));
+// }
 
 
 async function formatSubcomponents() {
