@@ -279,7 +279,7 @@ const childrenNodes = useRef({});
 const { fitView } = useReactFlow();
 
 // store position
-const [lastAdded, setLastAdded] = useState({x: 350, y: 100});
+const lastAdded = useRef({x: 350, y: 100});
 
 // store sub component position
 // const [subLastAdded, setSubLastAdded] = useState({x: -nodeWidth, y: 120 - nodeHeight})
@@ -1061,11 +1061,11 @@ resolve => {
 
                 // create parent node
                 console.log("addComponent2")
-                let added = addComponent(parent, lastAdded.x, lastAdded.y + nodeHeight + 20, false, null, newWidth * 1.5 + 'px', newHeight * 2 + 'px');
+                let added = addComponent(parent, lastAdded.current.x, lastAdded.current.y + nodeHeight + 20, false, null, newWidth * 1.5 + 'px', newHeight * 2 + 'px');
                 if (added) {
                     componentsAdded.push(parent);
                     console.log("adding");
-                    lastAdded.y += nodeHeight + 20;
+                    lastAdded.current.y += nodeHeight + 20;
 
                     // point curr to parent
                     setNodes((nodes) => nodes.map((node) => {
@@ -1174,15 +1174,14 @@ resolve => {
         }
         console.log(curr_x);
         console.log(edges.length);
-        lastAdded.y = curr_y;
-        console.log(lastAdded.y);
+        console.log(lastAdded.current.y);
         for (let i=0; i < edges.length; i++) {
             let edge = edges[i]
             // find other node from curr
             let other = (name === edge.inVertex.name) ? 
                     edge.outVertex : edge.inVertex;
             console.log("addComponent4")
-            let added = addComponent(other, curr_x, lastAdded.y + nodeHeight + 50);
+            let added = addComponent(other, curr_x, lastAdded.current.y + nodeHeight + 50);
             curr_x += nodeWidth + 30;
             addEdge(
                 edge.id, 
@@ -1195,7 +1194,7 @@ resolve => {
                 componentsAdded.push(other);
                 if (i == edges.length - 1) {
                     console.log("adding");
-                    lastAdded.y += nodeHeight + 50;
+                    lastAdded.current.y += nodeHeight + 50;
                 }
             }
         }
@@ -1207,12 +1206,12 @@ resolve => {
             setExpanded((prev) => [...prev, name]);
         }
         // console.log({...lastAdded})
-        console.log(lastAdded);
+        console.log(lastAdded.current);
         expandedNodes.current[name] = true;
         console.log("setting");
-        setLastAdded({...lastAdded});
+        lastAdded.current = ({...lastAdded.current});
         sortNodes();
-        formatSubcomponents();
+        // formatSubcomponents();
         resolve(componentsAdded);
     });
 }
@@ -1395,7 +1394,7 @@ spacing={2}
                 onClick= {() => {
                     // clear URL
                     // clear components + states
-                    setLastAdded({x: 350, y: 100});
+                    lastAdded.current = {x: 350, y: 100};
                     setExpanded([]);
                     removeAllElements();
                     visualizeComponent();
