@@ -987,7 +987,8 @@ resolve => {
         // expand to add child nodes to parent
         if (expandedNodes.current[name] === true) {
             let subLastAdded = {x: -nodeWidth, y: 120 - nodeHeight}
-            let maxSubHeight = nodeHeight;
+            // TODO: remove these?
+            // let maxSubHeight = nodeHeight;
             for (const sub of subcomponents) {
                 // console.log(sub.name + ':')
                 // debugger;
@@ -1014,7 +1015,7 @@ resolve => {
                             // console.log(sub.name)
                             // console.log(curr)
 
-                            maxSubHeight = Math.max(maxSubHeight, node.style.height)
+                            // maxSubHeight = Math.max(maxSubHeight, node.style.height)
                             return ({
                                 ...node,
                                 data: { ...node.data, label: node.id,},
@@ -1084,17 +1085,19 @@ resolve => {
                     // format rows according to parent row number
                     // formatRows(nodeCoords.current[parent.name].row, nodeHeight);
                     console.log("formatting rows");
-                    for (const node in nodeCoords.current) {
-                        if ((nodeCoords.current[node].row >= nodeCoords.current[parent.name].row) &&
-                            (node != parent.name)
-                        ) {
-                            nodeCoords.current[node].coords.y += 2 * nodeHeight;
-                        }
-                    }
-                    console.log(nodes);
-                    updateCoordinates();
-                    }
+                    // for (const node in nodeCoords.current) {
+                    //     if ((nodeCoords.current[node].row >= nodeCoords.current[parent.name].row) &&
+                    //         (node != parent.name)
+                    //     ) {
+                    //         nodeCoords.current[node].coords.y += 2 * nodeHeight;
+                    //     }
+                    // }
+                    // console.log(nodes);
+                    // updateCoordinates();
+                    
 
+                    formatRows(nodeCoords.current[parent.name].row, 2 * nodeHeight, [parent.name]);
+                
                     // point curr to parent
                     setNodes((nodes) => nodes.map((node) => {
                         if (node.id === curr.name) {
@@ -1112,6 +1115,7 @@ resolve => {
                             return node;
                         }
                     }));
+                }
             }
             // set parent node status to true
             isParentNode.current[parent.name] = true;
@@ -1121,11 +1125,13 @@ resolve => {
 
             // add to node coords
             nodeCoords.current[curr.name].parentCoords = nodeCoords.current[parent.name].coords;
+            nodeCoords.current[curr.name].coords = {x: 10, y: nodeHeight};
+            
         }
         
 
         if (subcomponents.length > 0) {
-            let subLastAdded = {x: -nodeWidth, y: 120 - nodeHeight}
+            let subLastAdded = {x: -nodeWidth, y: nodeHeight}
             let maxSubHeight = nodeHeight;
 
             for (const sub of subcomponents) {
@@ -1140,7 +1146,8 @@ resolve => {
                     subLastAdded.x += nodeWidth + 10;
 
                     // set sub as a child of curr
-                    childrenNodes.current[curr.name] = [...childrenNodes.current[curr.name], sub.name]
+                    childrenNodes.current[curr.name] = [...childrenNodes.current[curr.name], sub.name];
+
                 } else {
                     // subcomponent exists -> set as child of curr
                     setNodes((nodes) => nodes.map((node) => {
@@ -1163,7 +1170,9 @@ resolve => {
                             return node;
                         }
                     }));
+                    // update nodeCoords
                     subLastAdded.x += nodeWidth + 10;
+                    console.log(nodeCoords);
                 }
             }
             
@@ -1178,7 +1187,7 @@ resolve => {
                         data: { ...node.data, label: node.id},
                         style: {
                             width: newWidth,
-                            height: newHeight
+                            height: node.style.height
                         }
                     });
                 } else {
@@ -1205,7 +1214,7 @@ resolve => {
         }
         console.log(curr_x);
         console.log(edges.length);
-        console.log("last added y ", lastAdded.current.y);
+        console.log("last added y", lastAdded.current.y);
         console.log("current node y", curr_y);
         for (let i=0; i < edges.length; i++) {
             let edge = edges[i]
@@ -1256,14 +1265,18 @@ resolve => {
 /**
 * "Pushes" down rows in the graph. 
 * @param {number} startingRow - first row to push down. All rows beneath it will be pushed down as well.
-* @param {number} height - the amount by which to push down the rows
+* @param {number} height - the amount by which to push down the rows.
+* @param {Array<string>} ignoreNodes - nodes to ignore during the reformatting. 
 */
-async function formatRows(startingRow, height) {
+async function formatRows(startingRow, height, ignoreNodes = null) {
     console.log("formatting rows");
+    console.log(ignoreNodes);
     for (const node in nodeCoords.current) {
-        console.log(node);
-        if (nodeCoords.current[node].row >= startingRow) {
+        if ((nodeCoords.current[node].row >= startingRow) && (ignoreNodes.indexOf(node) === -1)) {
             nodeCoords.current[node].coords.y += height;
+            if (nodeCoords.current[node].parentCoords) {
+                nodeCoords.current[node].parentCoords += height;
+            }
         }
     }
     console.log(nodes);
@@ -1276,13 +1289,6 @@ async function formatRows(startingRow, height) {
 */
 async function updateCoordinates() {
     setNodes((nodes) => nodes.map((node1) => {
-        // match parent coords, if necessary
-        // if (nodeCoords.current[node1.id].parentCoords) {
-        //     return {
-        //         ...node1,
-        //         position: nodeCoords.current[node1.id].parentCoords
-        //     }
-        // }
         return {
             ...node1,
             position: nodeCoords.current[node1.id].coords
