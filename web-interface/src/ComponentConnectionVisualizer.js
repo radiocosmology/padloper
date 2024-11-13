@@ -503,6 +503,7 @@ useEffect(() => {
     }
 }, [propertiesVisible])
 
+
 /**
  * Sort the nodes so that "parent" nodes appear before "children"
  * nodes.
@@ -541,9 +542,10 @@ nodeIds.current[id] = true;
 function addEdgeId(id) {
 edgeIds.current[id] = true;
 }
-function addNodeCoords(id, coords, parent=null) {
+function addNodeCoords(id, coords, row, parent=null) {
     nodeCoords.current[id] = {
-        coords : coords,
+        coords: coords,
+        row: row,
         parentCoords: null
     };
     if (parent !== null) {
@@ -556,11 +558,12 @@ function addNodeCoords(id, coords, parent=null) {
 * @param {string} name - the name of the component to add
 * @param {number} x - the x-coordinate of where to add the component
 * @param {number} y - the y-coordinate of where to add the component
+* @param {number} row - the "row" that this component will occupy
 * @returns A Boolean indicating whether the component 
 * was successfully added.
 */
 // TODO: need for async??
-function addComponent(comp, x, y, subcomponent=false, parent=null, width='250px', height='50px') {
+function addComponent(comp, x, y, row, subcomponent=false, parent=null, width='250px', height='50px') {
 // catch it
 if (nodeIds.current[comp.name]) {
   return false;
@@ -586,10 +589,10 @@ if (subcomponent) {
       parentNode: parent,
       extent: 'parent',
   }
-  addNodeCoords(comp.name, {x: x, y: y}, parent)
+  addNodeCoords(comp.name, {x: x, y: y}, row, parent)
 } else {
-  console.log("Adding comp ", comp)
-  console.log("Coords: ", x, y)
+  console.log("Adding non-subcomponent ", comp)
+//   console.log("Coords: ", x, y)
   newNode = {
       id: comp.name,
       connectable: false,
@@ -605,7 +608,7 @@ if (subcomponent) {
       },
   //            position: { x: 10, y: 10 },
   }
-  addNodeCoords(comp.name, {x: x, y: y})
+  addNodeCoords(comp.name, {x: x, y: y}, row)
 }
 addNodeId(comp.name);
 // set parent node status to false
@@ -746,6 +749,7 @@ const visualizeComponent = async () => {
         component, 
         350, 
         100,
+        1
     );
 
 
@@ -988,7 +992,10 @@ resolve => {
                 // console.log(sub.name + ':')
                 // debugger;
                 console.log("addComponent1");
-                let subAdded = addComponent(sub, subLastAdded.x + nodeWidth + 10, subLastAdded.y, true, curr.name);
+                let subAdded = addComponent(sub, subLastAdded.x + nodeWidth + 10, subLastAdded.y, 
+                                            nodeCoords.current[curr.name].row + 1, true, curr.name);
+                console.log(nodeCoords);
+
                 // console.log(subAdded)
                 if (subAdded) {
                     isParentNode.current[curr.name] = true;
@@ -1061,11 +1068,32 @@ resolve => {
 
                 // create parent node
                 console.log("addComponent2")
-                let added = addComponent(parent, lastAdded.current.x, lastAdded.current.y + nodeHeight + 20, false, null, newWidth * 1.5 + 'px', newHeight * 2 + 'px');
+                console.log(nodeCoords.current);
+                let current_node = nodeCoords.current[curr.name];
+                console.log("current node ", current_node);
+                let added = addComponent(parent, current_node.coords.x, current_node.coords.y + nodeHeight, 
+                                        current_node.row, false, null, newWidth * 1.5 + 'px', 
+                                        newHeight * 2 + 'px');
+                console.log(nodeCoords);
+
                 if (added) {
                     componentsAdded.push(parent);
                     console.log("adding");
                     lastAdded.current.y += nodeHeight + 20;
+
+                    // format rows according to parent row number
+                    // formatRows(nodeCoords.current[parent.name].row, nodeHeight);
+                    console.log("formatting rows");
+                    for (const node in nodeCoords.current) {
+                        if ((nodeCoords.current[node].row >= nodeCoords.current[parent.name].row) &&
+                            (node != parent.name)
+                        ) {
+                            nodeCoords.current[node].coords.y += 2 * nodeHeight;
+                        }
+                    }
+                    console.log(nodes);
+                    updateCoordinates();
+                    }
 
                     // point curr to parent
                     setNodes((nodes) => nodes.map((node) => {
@@ -1084,13 +1112,15 @@ resolve => {
                             return node;
                         }
                     }));
-                }
             }
             // set parent node status to true
             isParentNode.current[parent.name] = true;
 
             // set curr as a child of parent
-            childrenNodes.current[parent.name] = [...childrenNodes.current[parent.name], curr.name]
+            childrenNodes.current[parent.name] = [...childrenNodes.current[parent.name], curr.name];
+
+            // add to node coords
+            nodeCoords.current[curr.name].parentCoords = nodeCoords.current[parent.name].coords;
         }
         
 
@@ -1102,7 +1132,8 @@ resolve => {
                 // console.log(sub.name + ':')
                 // debugger;
                 console.log("addComponent3")
-                let subAdded = addComponent(sub, subLastAdded.x + nodeWidth + 10, subLastAdded.y, true, curr.name);
+                let subAdded = addComponent(sub, subLastAdded.x + nodeWidth + 10, subLastAdded.y, 
+                                            nodeCoords.current[curr.name].row + 1, true, curr.name);
                 if (subAdded) {
                     isParentNode.current[curr.name] = true;
                     componentsAdded.push(sub)
@@ -1157,10 +1188,10 @@ resolve => {
         }
         console.log(nodeCoords.current)
         console.log(curr.name)
-        let node_coords = nodeCoords.current[curr.name].coords
+        let node_coords = nodeCoords.current[curr.name]
         console.log(node_coords)
-        let curr_x = node_coords.x
-        let curr_y = node_coords.y
+        let curr_x = node_coords.coords.x
+        let curr_y = node_coords.coords.y
         if (nodeCoords.current[curr.name].parentCoords !== null) {
             // Then the current component is a sub component of a super
             // Need to add some offset to get true coordinates
@@ -1174,14 +1205,17 @@ resolve => {
         }
         console.log(curr_x);
         console.log(edges.length);
-        console.log(lastAdded.current.y);
+        console.log("last added y ", lastAdded.current.y);
+        console.log("current node y", curr_y);
         for (let i=0; i < edges.length; i++) {
             let edge = edges[i]
             // find other node from curr
             let other = (name === edge.inVertex.name) ? 
                     edge.outVertex : edge.inVertex;
-            console.log("addComponent4")
-            let added = addComponent(other, curr_x, lastAdded.current.y + nodeHeight + 50);
+            console.log("addComponent4");
+            let added = addComponent(other, curr_x, curr_y + nodeHeight + 50, 
+                                    node_coords.row + 1);
+            console.log(nodeCoords);
             curr_x += nodeWidth + 30;
             addEdge(
                 edge.id, 
@@ -1217,6 +1251,45 @@ resolve => {
 }
 )
 }
+
+
+/**
+* "Pushes" down rows in the graph. 
+* @param {number} startingRow - first row to push down. All rows beneath it will be pushed down as well.
+* @param {number} height - the amount by which to push down the rows
+*/
+async function formatRows(startingRow, height) {
+    console.log("formatting rows");
+    for (const node in nodeCoords.current) {
+        console.log(node);
+        if (nodeCoords.current[node].row >= startingRow) {
+            nodeCoords.current[node].coords.y += height;
+        }
+    }
+    console.log(nodes);
+    updateCoordinates();
+}
+
+
+/**
+* Updates position attributes in the react flow object to reflect changes in nodeCoords
+*/
+async function updateCoordinates() {
+    setNodes((nodes) => nodes.map((node1) => {
+        // match parent coords, if necessary
+        // if (nodeCoords.current[node1.id].parentCoords) {
+        //     return {
+        //         ...node1,
+        //         position: nodeCoords.current[node1.id].parentCoords
+        //     }
+        // }
+        return {
+            ...node1,
+            position: nodeCoords.current[node1.id].coords
+        };
+    }));
+}
+
 
 async function formatSubcomponents() {
     console.log("Formatting subcomponents")
