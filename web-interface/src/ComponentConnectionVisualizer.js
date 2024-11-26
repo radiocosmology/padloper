@@ -763,7 +763,6 @@ const visualizeComponent = async () => {
     // this is the first component, so row/level = 0
     // 30 is horizontal padding between rows
     addOccupiedSpace(0, 350 - nodeWidth/2 - 30, 350 + nodeWidth/2 + 30);
-    // rowsOccupied.current[0] = [{start: 350 - nodeWidth / 2 - 30, end: 350 + nodeWidth / 2 + 30}];
 
     // depth will be decremented by 1 each time, like BFS.
 
@@ -1202,7 +1201,13 @@ resolve => {
                     return node;
                 }
             }));
+            let node_x = nodeCoords.current[curr.name].coords.x;
+            console.log("node_x: ", node_x);
+            console.log("new width", newWidth);
+            console.log(curr.name);
+            addOccupiedSpace(nodeCoords.current[curr.name].row, node_x, node_x + newWidth);
             console.log("rows occupied", rowsOccupied.current);
+            console.log("new nodes coords", nodeCoords.current);
             return;
         }
         console.log(nodeCoords.current);
@@ -1447,14 +1452,17 @@ async function addOccupiedSpace(rowNumber, start, end) {
         let i = 0;
         let currentRowOccupied = rowsOccupied.current[rowNumber];
         console.log("bAAAAHHHHH", currentRowOccupied, i);
-        while (i + 1 < currentRowOccupied.length && currentRowOccupied[i].start < end) {
+        while (i < currentRowOccupied.length - 1 && currentRowOccupied[i].start < end) {
             i += 1;
         }
         if (currentRowOccupied[i].start > start) {
+            console.log(currentRowOccupied[i], i, "start", start);
             // i is the index we want to insert into
+            console.log("option a");
             currentRowOccupied.splice(i, 0, {start: start, end: end});
         }
         else {
+            console.log("option b");
             currentRowOccupied.splice(i + 1, 0, {start: start, end: end});
         }
         // reformat anything in case of overlapping blocks
