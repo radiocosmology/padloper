@@ -762,7 +762,7 @@ const visualizeComponent = async () => {
 
     // this is the first component, so row/level = 0
     // 30 is horizontal padding between rows
-    addOccupiedSpace(0, 350 - nodeWidth/2 - 30, 350 + nodeWidth/2 + 30);
+    addOccupiedSpace(0, 350 - 30, 350 + nodeWidth + 30);
 
     // depth will be decremented by 1 each time, like BFS.
 
@@ -961,7 +961,6 @@ resolve => {
         res => res.json()
     ).then(data => {
         console.log("Expanding Connections", name)
-        console.log(lastAdded);
         let subcomponents = [];
         let parent;
         let curr
@@ -1006,7 +1005,6 @@ resolve => {
                 console.log("addComponent1");
                 let subAdded = addComponent(sub, subLastAdded.x + nodeWidth + 10, subLastAdded.y, 
                                             nodeCoords.current[curr.name].row + 1, true, curr.name);
-                console.log(nodeCoords);
 
                 // console.log(subAdded)
                 if (subAdded) {
@@ -1021,10 +1019,6 @@ resolve => {
 
                     setNodes((nodes) => nodes.map((node) => {
                         if (node.id === sub.name) {
-
-                            // console.log(node.id)
-                            // console.log(sub.name)
-                            // console.log(curr)
 
                             // maxSubHeight = Math.max(maxSubHeight, node.style.height)
                             return ({
@@ -1080,24 +1074,18 @@ resolve => {
 
                 // create parent node
                 console.log("addComponent2")
-                console.log(nodeCoords.current);
-                console.log(rowsOccupied.current);
                 let current_node = nodeCoords.current[curr.name];
-                console.log("current node ", current_node);
                 let added = addComponent(parent, current_node.coords.x, current_node.coords.y + nodeHeight, 
                                         current_node.row, false, null, newWidth * 1.5 + 'px', 
                                         newHeight * 2 + 'px');
-                console.log(nodeCoords);
 
                 if (added) {
                     // add occupied space
-                    addOccupiedSpace(current_node.row, current_node.coords.x - newWidth * 1.5 / 2, 
-                        current_node.coords.x + newWidth * 1.5);
+                    addOccupiedSpace(current_node.row, current_node.coords.x - 30, 
+                        current_node.coords.x + newWidth * 1.5 + 30);
                     componentsAdded.push(parent);
-                    console.log("adding");
                     lastAdded.current.y += nodeHeight + 20;
 
-                    console.log("formatting rows");
                     formatRows(nodeCoords.current[parent.name].row, 2 * nodeHeight, [parent.name]);
                 
                     // point curr to parent
@@ -1126,7 +1114,6 @@ resolve => {
             childrenNodes.current[parent.name] = [...childrenNodes.current[parent.name], curr.name];
 
             if (!nodeCoords.current[curr.name]) {
-                console.log("updating the evil", curr.name);
                 // add to node coords
                 addNodeCoords(curr.name, {x: 10, y: nodeHeight}, nodeCoords.current[parent.name].row, parent.name);
             }
@@ -1152,7 +1139,6 @@ resolve => {
                     childrenNodes.current[curr.name] = [...childrenNodes.current[curr.name], sub.name];
                     // update nodeCoords. curr is parent node of node to be added
                     addNodeCoords(sub.name, {x: subLastAdded.x, y: subLastAdded.y}, nodeCoords.current[curr.name].row, curr.name);
-                    console.log("updated node coords", nodeCoords);
 
                 } else {
                     subLastAdded.x += nodeWidth + 10;
@@ -1179,7 +1165,6 @@ resolve => {
                     }));
                     // update nodeCoords. curr is parent node of node to be added
                     addNodeCoords(sub.name, {x: subLastAdded.x, y: subLastAdded.y}, nodeCoords.current[curr.name].row, curr.name);
-                    console.log("updated node coords", nodeCoords);
                 }
             }
             
@@ -1202,23 +1187,14 @@ resolve => {
                 }
             }));
             let node_x = nodeCoords.current[curr.name].coords.x;
-            console.log("node_x: ", node_x);
-            console.log("new width", newWidth);
-            console.log(curr.name);
-            addOccupiedSpace(nodeCoords.current[curr.name].row, node_x, node_x + newWidth);
-            console.log("rows occupied", rowsOccupied.current);
-            console.log("new nodes coords", nodeCoords.current);
+            addOccupiedSpace(nodeCoords.current[curr.name].row, node_x - 30, node_x + newWidth + 30);
             return;
         }
-        console.log(nodeCoords.current);
-        console.log(curr.name);
         let node_coords = nodeCoords.current[curr.name];
-        console.log(node_coords);
         let curr_x = node_coords.coords.x;
         let rowNumber = node_coords.row + 1;
         
         let curr_y = node_coords.coords.y
-        console.log(curr.name);
         if (nodeCoords.current[curr.name].parentCoords !== null) {
             // Then the current component is a sub component of a super
             // Need to add some offset to get true coordinates
@@ -1226,18 +1202,14 @@ resolve => {
             curr_y += nodeCoords.current[curr.name].parentCoords.y;
             // rowNumber -= 1;
         }
-        console.log("row: ", rowNumber);
-        console.log("what is x", curr_x);
-        curr_x = getAvailableSpace(rowNumber, curr_x, edges.length * (nodeWidth + 30) - 30);
-        console.log("available x", curr_x);
-        console.log(rowsOccupied.current);
-
+        
         // Get starting coordinates of child component:
         curr_x -= Math.floor((edges.length - 1)/2) * (nodeWidth + 30);
         if (edges.length % 2 == 0) {
             curr_x -= (nodeWidth + 30) / 2;
         }
-        let start = curr_x - nodeWidth/2 - 30;
+        curr_x = getAvailableSpace(rowNumber, curr_x, edges.length * (nodeWidth + 30) - 30);
+        let start = curr_x;
         let num_added = 0;
         for (let i=0; i < edges.length; i++) {
             let edge = edges[i]
@@ -1248,7 +1220,6 @@ resolve => {
             console.log(other.name);
             let added = addComponent(other, curr_x, curr_y + nodeHeight + 50, 
                                     rowNumber);
-            console.log(nodeCoords);
             curr_x += nodeWidth + 30;
             addEdge(
                 edge.id, 
@@ -1259,7 +1230,6 @@ resolve => {
             if (added) {
                 componentsAdded.push(other);
                 if (i == edges.length - 1) {
-                    console.log("adding");
                     lastAdded.current.y += nodeHeight + 50;
                 }
                 num_added += 1;
@@ -1267,8 +1237,7 @@ resolve => {
         }
         if (num_added > 0) {
             // keep track of the occupied block (+ padding):
-            addOccupiedSpace(rowNumber, start, curr_x - nodeWidth / 2);
-            console.log("ROWS OCCUPIED:", rowsOccupied.current);
+            addOccupiedSpace(rowNumber, start - 30, curr_x);
         }
         // console.log(childrenNodes.current)
 
@@ -1279,11 +1248,9 @@ resolve => {
         // console.log({...lastAdded})
         console.log(lastAdded.current);
         expandedNodes.current[name] = true;
-        console.log("setting");
         lastAdded.current = ({...lastAdded.current});
         sortNodes();
         // formatSubcomponents();
-        console.log("corrent rows occupied", rowsOccupied.current);
         resolve(componentsAdded);
     });
 }
@@ -1298,8 +1265,6 @@ resolve => {
 * @param {Array<string>} ignoreNodes - nodes to ignore during the reformatting. 
 */
 async function formatRows(startingRow, height, ignoreNodes = null) {
-    console.log("formatting rows");
-    console.log(ignoreNodes);
     for (const node in nodeCoords.current) {
         if ((nodeCoords.current[node].row >= startingRow) && (ignoreNodes.indexOf(node) === -1)) {
             nodeCoords.current[node].coords.y += height;
@@ -1308,7 +1273,6 @@ async function formatRows(startingRow, height, ignoreNodes = null) {
             }
         }
     }
-    console.log(nodes);
     setNodes((nodes) => nodes.map((node1) => {
         return {
             ...node1,
@@ -1322,37 +1286,34 @@ async function formatRows(startingRow, height, ignoreNodes = null) {
 * TODO: update this description for clarity
 * Gets space in row number [rowNumber] closest to x-value [x] that will fit the object with width [width] 
 * @param {number} rowNumber - rownumber
-* @param {number} x - x-coordinate of center of "block" to be added
+* @param {number} x - x-coordinate of leftmost edge of "block" to be added
 * @param {number} width - the width of the block to be added
 * returns the x-coordinate of the new center of the block. 
 */
 function getAvailableSpace(rowNumber, x, width) {
     if (!rowsOccupied.current[rowNumber]) {      // row is empty
-        console.log("row empty", rowNumber);
         return x;
     }
     let currentRowOccupied = rowsOccupied.current[rowNumber];
     let numBlocks = currentRowOccupied.length;
-    if (x <= (currentRowOccupied[0].start + currentRowOccupied[0].end) / 2) {
+    if (x + width/2 <= (currentRowOccupied[0].start + currentRowOccupied[0].end) / 2) {
         // case where we want to put the new nodes to the left of everything
-        console.log("left of everything");
         // first check if it fits
-        if (x + width/2 <= currentRowOccupied[0].start) {
+        if (x + width <= currentRowOccupied[0].start) {
             // if it fits, just return x
             return x;
         }
         // otherwise return the new x
-        return currentRowOccupied[0].start - width / 2
+        return currentRowOccupied[0].start - width;
     }
 
-    else if (x >= (currentRowOccupied[0].start + currentRowOccupied[0].end) / 2) {
+    else if (x + width/2 >= (currentRowOccupied[numBlocks - 1].start + currentRowOccupied[numBlocks - 1].end) / 2) {
         // similar case for the very last one
-        console.log("right of everything");
-        if (x - width/2 >= currentRowOccupied[numBlocks - 1].end) {
+        if (x >= currentRowOccupied[numBlocks - 1].end) {
             return x;
         }
         // else 
-        return currentRowOccupied[numBlocks - 1].end + width / 2
+        return currentRowOccupied[numBlocks - 1].end;
         // return currentRowOccupied[numBlocks - 1].end;
     }
 
@@ -1361,8 +1322,8 @@ function getAvailableSpace(rowNumber, x, width) {
     let i = 0;
     let fit;
     while (currentRowOccupied[i + 1]) {
-        if ((x >= (currentRowOccupied[i].start + currentRowOccupied[i].end) / 2) && 
-        (x <= (currentRowOccupied[i+1].start + currentRowOccupied[i+1].end) / 2)) {
+        if ((x + width/2 >= (currentRowOccupied[i].start + currentRowOccupied[i].end) / 2) && 
+        (x + width/2 <= (currentRowOccupied[i+1].start + currentRowOccupied[i+1].end) / 2)) {
             // then the closest "gap" for the block will be between blocks i and i+1
             // first check if it fits:
             fit = fitObjectInGap(currentRowOccupied[i], currentRowOccupied[i+1], width, x);
@@ -1426,14 +1387,14 @@ function getAvailableSpace(rowNumber, x, width) {
 function fitObjectInGap(block1, block2, width, x) {
     if (block2.start - block1.end >= width) {
         // it fits 
-        if ((x - width/2 >= block1.end) && (x + width/2 <= block2.start)) {
+        if ((x >= block1.end) && (x + width <= block2.start)) {
             return x;
         }
         // if above not true, need to figure out which direction to move the block in and how far
         else if (x - width/2 < block1.end) {
-            return block1.end + width/2;
+            return block1.end;
         }
-        return block2.start - width/2;
+        return block2.start - width;
     }
     // it doesn't fit
     return null;
@@ -1446,23 +1407,18 @@ function fitObjectInGap(block1, block2, width, x) {
 async function addOccupiedSpace(rowNumber, start, end) {
     if (!rowsOccupied.current[rowNumber]) {
         rowsOccupied.current[rowNumber] = [{start: start, end: end}];
-        console.log("first one, ", rowsOccupied.current);
     }
     else {
         let i = 0;
         let currentRowOccupied = rowsOccupied.current[rowNumber];
-        console.log("bAAAAHHHHH", currentRowOccupied, i);
         while (i < currentRowOccupied.length - 1 && currentRowOccupied[i].start < end) {
             i += 1;
         }
         if (currentRowOccupied[i].start > start) {
-            console.log(currentRowOccupied[i], i, "start", start);
             // i is the index we want to insert into
-            console.log("option a");
             currentRowOccupied.splice(i, 0, {start: start, end: end});
         }
         else {
-            console.log("option b");
             currentRowOccupied.splice(i + 1, 0, {start: start, end: end});
         }
         // reformat anything in case of overlapping blocks
