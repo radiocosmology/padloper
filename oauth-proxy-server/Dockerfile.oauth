@@ -1,0 +1,10 @@
+FROM node:18-alpine
+
+WORKDIR /oauth-proxy-server
+
+COPY ./oauth-proxy-server/server.js /oauth-proxy-server//
+COPY ./oauth-proxy-server/package.json /oauth-proxy-server//
+
+RUN npm install
+
+CMD [ "npm", "start" ]
