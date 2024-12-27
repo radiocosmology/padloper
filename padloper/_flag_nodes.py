@@ -62,24 +62,6 @@ class FlagType(Vertex):
 
         return g._vertex_cache[id]
 
-    @classmethod
-    def get_count(cls, name_substring: str):
-        """Return the count of FlagTypes given a substring of the name
-        property.
-
-        :param name_substring: A substring of the name property of the
-        FlagType
-        :type name_substring: str
-
-        :return: The number of FlagTypes that contain 
-        :param name_substring: as a substring in the name property.
-        :rtype: int
-        """
-
-        return g.t.V().has('active', True).has('category', FlagType.category) \
-                  .has('name', TextP.containing(name_substring)) \
-                  .count().next()
-
 
 class FlagSeverity(Vertex):
     """
@@ -119,60 +101,6 @@ class Flag(Vertex):
                    is_list=True, list_len=(0, int(1e10)))
     ]
     _primary_attr = None
-
-    @classmethod
-    def get_count(cls, filters: str):
-        """Return the count of flags given a list of filters.
-
-        :param filters: A list of 3-tuples of the format (name,ftype,fseverity)
-        :type order_by: list
-
-        :return: The number of flags.
-        :rtype: int
-        """
-        traversal = g.t.V().has('active', True).has('category', Flag.category)
-
-        # FILTERS
-
-        if filters is not None:
-
-            ands = []
-
-            for f in filters:
-
-                assert len(f) == 3
-
-                contents = []
-
-                # substring of flag name
-                if f[0] != "":
-                    contents.append(__.has('name', TextP.containing(f[0])))
-
-                # flag type
-                if f[1] != "":
-                    contents.append(
-                        __.both(RelationFlagType.category).has(
-                            'name',
-                            f[1]
-                        )
-                    )
-
-                # flag severity
-                if f[2] != "":
-                    contents.append(
-                        __.both(RelationFlagSeverity.category).has(
-                            'name',
-                            f[2]
-                        )
-                    )
-
-                if len(contents) > 0:
-                    ands.append(__.and_(*contents))
-
-            if len(ands) > 0:
-                traversal = traversal.or_(*ands)
-
-        return traversal.count().next()
 
     def end_flag(self, dummy):
         raise RuntimeError("Method deprecated. Use set_end().")

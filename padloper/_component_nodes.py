@@ -61,24 +61,6 @@ class ComponentType(Vertex):
         return ts
 
     @classmethod
-    def get_count(cls, name_substring: str):
-        """Return the count of ComponentTypes given a substring of the name
-        property.
-
-        :param name_substring: A substring of the name property of the
-        ComponentType
-        :type name_substring: str
-
-        :return: The number of ComponentTypes that contain 
-        :param name_substring: as a substring in the name property.
-        :rtype: int
-        """
-
-        return g.t.V().has('active', True)\
-                      .has('category', ComponentType.category) \
-                      .has('name', TextP.containing(name_substring)) \
-                      .count().next()
-
     def __repr__(self):
         return f"{self.category}: {self.name} ({self._id})"
 
@@ -101,52 +83,6 @@ class ComponentVersion(Vertex):
         VertexAttr("type", ComponentType, edge_class=RelationVersionAllowedType)
     ]
     primary_attr: str = "name"
-
-    @classmethod
-    def get_count(cls, filters: list):
-        """Return the count of ComponentVersions given a list of filters
-
-        :param filters: A list of 2-tuples of the format (name, ctype)
-        :type order_by: list
-
-        :return: The number of ComponentVersions that agree with
-        :param filters:.
-        :rtype: int
-        """
-
-        traversal = g.t.V().has('active', True)\
-                       .has('category', ComponentVersion.category)
-
-        if filters is not None:
-
-            ands = []
-
-            for f in filters:
-
-                assert len(f) == 2
-
-                contents = []
-
-                # substring of component version name
-                if f[0] != "":
-                    contents.append(__.has('name', TextP.containing(f[0])))
-
-                # component type
-                if f[1] != "":
-                    contents.append(
-                        __.both(RelationVersionAllowedType.category).has(
-                            'name',
-                            f[1]
-                        )
-                    )
-
-                if len(contents) > 0:
-                    ands.append(__.and_(*contents))
-
-            if len(ands) > 0:
-                traversal = traversal.or_(*ands)
-
-        return traversal.count().next()
 
     def __repr__(self):
         return f"{self.category}: {self.name}"
@@ -1183,63 +1119,6 @@ class Component(Vertex):
            .where(__.otherV().hasId(otherComponent.id()))\
            .property('active', False)\
            .property('time_disabled', disable_time).next()
-
-    @classmethod
-    def get_count(cls, filters: str):
-        """Return the count of components given a list of filters.
-
-        :param filters: A list of 3-tuples of the format (name, ctype, version)
-        :type order_by: list
-
-        :return: The number of Components.
-        :rtype: int
-        """
-
-        traversal = g.t.V().has('active', True)\
-                       .has('category', Component.category)
-
-        # FILTERS
-
-        if filters is not None:
-
-            ands = []
-
-            for f in filters:
-
-                assert len(f) == 3
-
-                contents = []
-
-                # substring of component name
-                if f[0] != "":
-                    contents.append(__.has('name', TextP.containing(f[0])))
-
-                # component type
-                if f[1] != "":
-                    contents.append(
-                        __.both(RelationComponentType.category).has(
-                            'name',
-                            f[1]
-                        )
-                    )
-
-                    # component version
-
-                    if f[2] != "":
-                        contents.append(
-                            __.both(RelationVersion.category).has(
-                                'name',
-                                f[2]
-                            )
-                        )
-
-                if len(contents) > 0:
-                    ands.append(__.and_(*contents))
-
-            if len(ands) > 0:
-                traversal = traversal.or_(*ands)
-
-        return traversal.count().next()
 
     def as_dict(self, at_time: int = None, bare = False):
         """Return a dictionary representation of this Component at time

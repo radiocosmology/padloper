@@ -574,10 +574,10 @@ def get_component_count():
     """
 
     filters = request.args.get('filters')
+    filt = parse_filters(filters, ["name", "type", "version"],
+                         [TextP.containing, lambda x: x, lambda x: x])
 
-    filter_triples = read_filters(filters)
-
-    return {'result': p.Component.get_count(filters=filter_triples)}
+    return {'result': p.Component.get_count(filters=filt)}
 
 
 @app.route("/api/component_types_and_versions")
@@ -635,12 +635,6 @@ def get_component_type_list():
 
     range_bounds = tuple(map(int, component_range.split(';')))
 
-
-    # extract the filters
-    filters = request.args.get('filters')
-    filt = parse_filters(filters, ["name", "type", "version"],
-                         [TextP.containing, lambda x: x, lambda x: x])
-
     # make sure that the range bounds only consist of a min/max, and that
     # the order direction is either asc or desc.
     assert len(range_bounds) == 2
@@ -670,7 +664,8 @@ def get_component_type_count():
 
     name_substring = escape(request.args.get('nameSubstring'))
 
-    return {'result': p.ComponentType.get_count(name_substring=name_substring)}
+    return {'result': p.ComponentType.get_count(
+            filters=[{"name": TextP.containing(name_substring)}])}
 
 
 @app.route("/api/component_version_list")
@@ -739,12 +734,10 @@ def get_component_version_count():
     """
 
     filters = request.args.get('filters')
+    filt = parse_filters(filters, ["name", "type"],
+                         [TextP.containing, lambda x: x])
 
-    filter_tuples = read_filters(filters)
-
-    return {
-        'result': p.ComponentVersion.get_count(filters=filter_tuples)
-    }
+    return {'result': p.ComponentVersion.get_count(filters=filt)}
 
 
 @app.route("/api/property_type_count")
@@ -763,11 +756,11 @@ def get_property_type_count():
     """
 
     filters = request.args.get('filters')
-
-    filter_tuples = read_filters(filters)
+    filt = parse_filters(filters, ["name", "allowed_types"],
+                         [TextP.containing, lambda x: x])
 
     return {
-        'result': p.PropertyType.get_count(filters=filter_tuples)
+        'result': p.PropertyType.get_count(filters=filt)
     }
 
 
@@ -1692,7 +1685,9 @@ def get_flag_type_count():
 
     name_substring = escape(request.args.get('nameSubstring'))
 
-    return {'result': p.FlagType.get_count(name_substring=name_substring)}
+    return {'result': p.FlagType.get_count(
+            filters=[{"name": TextP.containing(name_substring)}]
+)}
 
 
 @app.route("/api/flag_severity_list")

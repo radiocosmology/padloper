@@ -731,7 +731,56 @@ class Vertex(Element):
         return self.id() in g._vertex_cache
 
     @classmethod
-    CONTINUE HERE: make a get_count to replace individual versions …
+    def _list_filter_traversal(cls, filters):
+        """Helper class for get_count() and get_list() with common code needed
+        by both.
+        """
+        t = g.t.V().has("category", cls.category)
+        ands = []
+        for f_or in filters:
+            contents = []
+            for and_key, and_val in f_or.items():
+                # The following is inefficient … But hopefully not limiting.
+                va = None
+                for va in cls._vertex_attrs:
+                    if va.name == and_key:
+                        break
+                if va is None:
+                    raise TypeError("Filter key %s not in Vertex." % and_key)
+                if issubclass(va.type, Vertex):
+                    contents.append(__.both(va.edge_class.category)\
+                                      .has(va.type.primary_attr, and_val))
+                else:
+                    contents.append(__.has(and_key, and_val))
+            if len(contents) > 0:
+                ands.append(__.and_(*contents))
+        if len(ands) > 0:
+            t = t.or_(*ands)
+        return t
+
+    @classmethod
+    def get_count(cls, filters: list = [], allow_disabled: bool = False):
+        """
+        Return the number of vertices in the DB of this type, subject to
+        provided filters. See docstring for `Vertex.get_list()` for more on 
+        filters.
+        
+        :param filters: See `Vertex.get_list()` documentation.
+        :type filters: A list of dictionaries; if a single dictionary is passed
+            it is automatically treated as list of length one.
+
+        :param allow_disabled: Whether to only select vertices with active=True.
+        :type allow_disabled: bool
+        """
+        if not isinstance(filters, list):
+            filters = [filters]
+        
+        q = cls._list_filter_traversal(filters)
+        if not allow_disabled:
+            q = q.has("active", True)
+        return q.count().next()
+
+    @classmethod
     def get_list(cls, range: tuple = (0, -1), order_by: list = [], 
                  filters: list = [], allow_disabled: bool = False):
         """
@@ -780,27 +829,7 @@ class Vertex(Element):
                 assert order_by[i][1].lower() in ("asc", "desc")
 
         # Build traversal.
-        t = g.t.V().has("category", cls.category)
-        ands = []
-        for f_or in filters:
-            contents = []
-            for and_key, and_val in f_or.items():
-                # The following is inefficient … But hopefully not limiting.
-                va = None
-                for va in cls._vertex_attrs:
-                    if va.name == and_key:
-                        break
-                if va is None:
-                    raise TypeError("Filter key %s not in Vertex." % and_key)
-                if issubclass(va.type, Vertex):
-                    contents.append(__.both(va.edge_class.category)\
-                                      .has(va.type.primary_attr, and_val))
-                else:
-                    contents.append(__.has(and_key, and_val))
-            if len(contents) > 0:
-                ands.append(__.and_(*contents))
-        if len(ands) > 0:
-            t = t.or_(*ands)
+        t = cls._list_filter_traversal(filters)
         if len(order_by) > 0:
             t = t.order()
             for ob in order_by:
