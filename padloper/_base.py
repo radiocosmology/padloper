@@ -731,6 +731,7 @@ class Vertex(Element):
         return self.id() in g._vertex_cache
 
     @classmethod
+    CONTINUE HERE: make a get_count to replace individual versions …
     def get_list(cls, range: tuple = (0, -1), order_by: list = [], 
                  filters: list = [], allow_disabled: bool = False):
         """
@@ -754,10 +755,6 @@ class Vertex(Element):
             or just a tuple is passed, then it is automatically converted to a
             list of length one.)
 
-        :param ascending: Whether to order in ascending (True) or descending
-            (False) order.
-        :type order_by: bool
-
         :param filters: A list of dictionaries, with key-value pairs being
             field name, field value. If the field is a connexion to another
             vertex, then the match will be with its `primary_attr`. Note that
@@ -767,6 +764,7 @@ class Vertex(Element):
             occur (boolean OR).
         :type filters: A list of dictionaries; if a single dictionary is passed
             it is automatically treated as list of length one.
+
         :param allow_disabled: Whether to only select vertices with active=True.
         :type allow_disabled: bool
         """

@@ -58,9 +58,6 @@ def parse_filters(filtstr, attrs, funcs):
                     rdict[a] = fc(f)
             if len(rdict) > 0:
                 ret.append(rdict)
-    print("Remove debug: ")
-    print(ret)
-    print()
     return ret
 
 
@@ -129,10 +126,6 @@ def get_component_list():
 
     # extract the filters
     filters = request.args.get('filters')
-
-    # read the filters, put them into the three-tuples
-#    CONTINUE HERE: change to dictionary system.
-#    filter_triples = read_filters(filters)
     filt = parse_filters(filters, ["name", "type", "version"],
                          [TextP.containing, lambda x: x, lambda x: x])
 
@@ -141,11 +134,9 @@ def get_component_list():
     assert len(range_bounds) == 2
     assert order_direction in {'asc', 'desc'}
 
-    CONTINUE HERE: now add order_by, then switch all other get_list() to use new
-    scheme
     components = p.Component.get_list(
         range=range_bounds,
-        order_by=[],
+        order_by=[(order_by, order_direction)],
         filters=filt,
     )
     
@@ -644,17 +635,24 @@ def get_component_type_list():
 
     range_bounds = tuple(map(int, component_range.split(';')))
 
-    # A bunch of assertions to make sure everything is as intended.
+
+    # extract the filters
+    filters = request.args.get('filters')
+    filt = parse_filters(filters, ["name", "type", "version"],
+                         [TextP.containing, lambda x: x, lambda x: x])
+
+    # make sure that the range bounds only consist of a min/max, and that
+    # the order direction is either asc or desc.
     assert len(range_bounds) == 2
     assert order_direction in {'asc', 'desc'}
 
-    # query to padloper
-    component_types = p.ComponentType.get_list(range=range_bounds,
-                                               order_by=order_by,
-                                               order_direction=order_direction,
-                                               name_substring=name_substring)
-
-    return {"result": [c.as_dict() for c in component_types]}
+    types = p.ComponentType.get_list(
+        range=range_bounds,
+        order_by=[(order_by, order_direction)],
+        filters=[{"name": TextP.containing(name_substring)}]
+    )
+    
+    return {"result": [t.as_dict() for t in types]}
 
 
 @app.route("/api/component_type_count")
@@ -708,8 +706,8 @@ def get_component_version_list():
     order_direction = escape(request.args.get('orderDirection'))
 
     filters = request.args.get('filters')
-
-    filter_tuples = read_filters(filters)
+    filt = parse_filters(filters, ["name", "type"],
+                         [TextP.containing, lambda x: x])
 
     range_bounds = tuple(map(int, list_range.split(';')))
 
@@ -717,15 +715,13 @@ def get_component_version_list():
     assert len(range_bounds) == 2
     assert order_direction in {'asc', 'desc'}
 
-    # query to padloper
-    component_versions =\
-        p.ComponentVersion.get_list(range=range_bounds,
-                                    order_by=order_by,
-                                    order_direction=order_direction,
-                                    filters=filter_tuples)
-
-    return {"result": [c.as_dict() for c in component_versions]}
-
+    vers = p.ComponentVersion.get_list(
+        range=range_bounds,
+        order_by=[(order_by, order_direction)],
+        filters=filt
+    )
+    
+    return {"result": [v.as_dict() for v in vers]}
 
 @app.route("/api/component_version_count")
 def get_component_version_count():
@@ -809,8 +805,8 @@ def get_property_type_list():
     order_direction = escape(request.args.get('orderDirection'))
 
     filters = request.args.get('filters')
-
-    filter_tuples = read_filters(filters)
+    filt = parse_filters(filters, ["name", "allowed_types"],
+                         [TextP.containing, lambda x: x])
 
     range_bounds = tuple(map(int, list_range.split(';')))
 
@@ -818,13 +814,13 @@ def get_property_type_list():
     assert len(range_bounds) == 2
     assert order_direction in {'asc', 'desc'}
 
-    # query to padloper
-    property_types = p.PropertyType.get_list(range=range_bounds,
-                                             order_by=order_by,
-                                             order_direction=order_direction,
-                                             filters=filter_tuples)
-    
-    return {"result": [pt.as_dict() for pt in property_types]}
+    ptypes = p.PropertyType.get_list(
+        range=range_bounds,
+        order_by=[(order_by, order_direction)],
+        filters=filt
+    )
+
+    return {"result": [pt.as_dict() for pt in ptypes]}
 
 
 @app.route("/api/component_set_property", methods=['POST'])
@@ -1609,13 +1605,16 @@ def get_flag_list():
     :rtype: dict
 
     """
+    raise RuntimeError("Flags have not been properly implemented in the "\
+                       "web interface.")
+    return
     list_range = escape(request.args.get('range'))
     order_by = escape(request.args.get('orderBy'))
     order_direction = escape(request.args.get('orderDirection'))
 
     filters = request.args.get('filters')
-
-    filter_triples = read_filters(filters)
+    filt = parse_filters(filters, ["type", "severity"],
+                         [lambda x: x, lambda x: x])
 
     range_bounds = tuple(map(int, list_range.split(';')))
 
@@ -1624,9 +1623,11 @@ def get_flag_list():
     assert order_direction in {'asc', 'desc'}
 
     # query to padloper
-    flags = p.Flag.get_list(range=range_bounds, order_by=order_by,
-                            order_direction=order_direction,
-                            filters=filter_triples)
+    flags = p.Flag.get_list(
+        range=range_bounds,
+        order_by=[(order_by, order_direction)],
+        filters=filt
+    )
 
     return {"result": [f.as_dict() for f in flags]}
 
@@ -1668,21 +1669,13 @@ def get_flag_type_list():
     assert order_direction in {'asc', 'desc'}
 
     # query to padloper
-    flag_types = p.FlagType.get_list(range=range_bounds, order_by=order_by,
-                                     order_direction=order_direction,
-                                     name_substring=name_substring)
+    flag_types = p.FlagType.get_list(
+        range=range_bounds,
+        order_by=[(order_by, order_direction)],
+        filters=[{"name": TextP.containing(name_substring)}]
+    )
 
-    return {
-        'result': [
-            {
-                'name': f.name,
-                'id': f.id(),
-                'comments': f.comments
-            }
-            for f in flag_types
-        ]
-    }
-
+    return {"result": [ft.as_dict() for ft in flag_types]}
 
 @app.route("/api/flag_type_count")
 def get_flag_type_count():
@@ -1737,18 +1730,9 @@ def get_flag_severity_list():
 
     # query to padloper
     flag_severities = p.FlagSeverity.get_list(range=range_bounds,
-                                              order_by=order_by,
-                                              order_direction=order_direction)
+            order_by=[(order_by, order_direction)])
 
-    return {
-        'result': [
-            {
-                'name': f.name,
-                'id': f.id(),
-            }
-            for f in flag_severities
-        ]
-    }
+    return {"result": [fs.as_dict() for fs in flag_severities]}
 
 
 @app.route("/api/set_permission", methods=['POST'])
