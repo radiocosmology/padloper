@@ -34,7 +34,7 @@ import Authenticator from './components/Authenticator.js';
 
 window.addEventListener("error", (e) => {
 if (e.message === 'ResizeObserver loop completed with undelivered notifications.' || e.message === 'ResizeObserver loop limit exceeded') {
-console.log("Oh, yeah × 22!!!!");
+//console.log("Oh, yeah × 22!!!!");
 e.stopImmediatePropagation();
 }
 });
@@ -287,6 +287,8 @@ const [lastAdded, setLastAdded] = useState({x: 350, y: 100})
 // a dictionary that will store the React Flow IDs of the nodes used
 const nodeIds = useRef({});
 
+// a dictionary that maps the node IDs to their coordinates
+const nodeCoords = useRef({});
 // a dictionary to store which nodes were expanded already
 const expandedNodes = useRef({});
 
@@ -449,12 +451,23 @@ useEffect(() => {
 useEffect(() => {
     // console.log(nodes)
     if (propertiesVisible) {
+        console.log('propertiesVisible')
+        console.log(enteredTime.current)
         setNodes((nds) =>
         nds.map((node) => {
             // TODO: change component select from list to have properties
             if (node.data.properties && node.data.properties.length > 0) {
                 console.log(node.data.properties)
-                console.log(node.data.properties.reduce((listOfLists, property) => {
+                // console.log(unixTimeToISOString(node.data.properties[0].start.time * 1000))
+                // console.log(unixTimeToISOString(node.data.properties[0].end.time * 1000))
+                // console.log(unixTimeToISOString(enteredTime.current))
+                const filteredProperties = node.data.properties.filter((property) => {
+                    // console.log(property.start.time * 1000 <= enteredTime.current)
+                    // console.log(enteredTime.current <= property.end.time * 1000)
+                    return property.start.time * 1000 <= enteredTime.current && enteredTime.current <= property.end.time * 1000
+                })
+                console.log(filteredProperties)
+                console.log(filteredProperties.reduce((listOfLists, property) => {
                     const { type: { name, units }, values } = property;
                     listOfLists.push([name, values, units]);
                     return listOfLists;
@@ -464,7 +477,7 @@ useEffect(() => {
                     data: {
                     ...node.data,
                     // shownProperties: node.data.properties[0].type.name + ':' + node.data.properties[0].values[0],
-                    shownProperties: node.data.properties.reduce((listOfLists, property) => {
+                    shownProperties: filteredProperties.reduce((listOfLists, property) => {
                         const { type: { name, units }, values } = property;
                         listOfLists.push([name, values, units]);
                         return listOfLists;
@@ -529,6 +542,15 @@ nodeIds.current[id] = true;
 function addEdgeId(id) {
 edgeIds.current[id] = true;
 }
+function addNodeCoords(id, coords, parent=null) {
+    nodeCoords.current[id] = {
+        coords : coords,
+        parentCoords: null
+    };
+    if (parent !== null) {
+        nodeCoords.current[id].parentCoords = nodeCoords.current[parent].coords;
+    }
+}
 
 /**
 * Add a component to the React Flow graph.
@@ -546,6 +568,8 @@ if (nodeIds.current[comp.name]) {
 }
 let newNode;
 if (subcomponent) {
+  console.log("Adding sub component ", comp)
+  console.log("Coords: ", x, y)
   newNode = {
       id: comp.name,
       connectable: false,
@@ -563,7 +587,10 @@ if (subcomponent) {
       parentNode: parent,
       extent: 'parent',
   }
+  addNodeCoords(comp.name, {x: x, y: y}, parent)
 } else {
+  console.log("Adding comp ", comp)
+  console.log("Coords: ", x, y)
   newNode = {
       id: comp.name,
       connectable: false,
@@ -572,13 +599,14 @@ if (subcomponent) {
       data: { name: comp.name, ctype: comp.type, version: comp.version, properties: comp.properties, shownProperties: '',
             minHeight: height  },
   //            data: {label: name},
-      position: { x: x, y: y },
+      position: { x: x, y: y},
       style: {
         width: width,
         minHeight: height
       },
   //            position: { x: 10, y: 10 },
   }
+  addNodeCoords(comp.name, {x: x, y: y})
 }
 addNodeId(comp.name);
 // set parent node status to false
@@ -699,73 +727,74 @@ const x = getNode(nodes, parent);
 * using breadth first search.
 */
 const visualizeComponent = async () => {
-if (component === undefined) {
-return;
-}
-
-removeAllElements();
-
-// the time should be in seconds instead of milliseconds
-time.current = Math.floor(enteredTime.current / 1000);
-
-// add the component
-/**
-* TODO: Change the position of the component so it appears below the
-* other components.
-*/
-addComponent(
-component, 
-350, 
-100,
-);
-
-
-// depth will be decremented by 1 each time, like BFS.
-
-/**
-* this will act as a quasi-queue (just increment the index each time
-* you dequeue something)  
-*/ 
-let queue = [];
-
-// this will store names that are visited already.
-let visited = {};
-
-// the index of the element at the front of the queue,
-// to be incremented each time you "dequeue"
-let queueFrontIndex = 0;
-
-queue.push({name: component.name, currDepth: 0});
-
-if (depth == 0) {
-    return;
-}
-
-// funny breadth first search
-while (queueFrontIndex < queue.length) {
-
-// so you don't add nodes that you've already visited
-visited[queue[queueFrontIndex].name] = true;
-
-let newComponents = await expandConnections(
-    queue[queueFrontIndex].name, 
-    time.current
-);
-
-if (queue[queueFrontIndex].currDepth + 1 < depth) {
-    for (let thisComp of newComponents) {
-        if (!visited[thisComp.name]) {
-            queue.push({
-                name: thisComp.name,
-                currDepth: queue[queueFrontIndex].currDepth + 1
-            })
-        }
+    if (component === undefined) {
+        return;
     }
-}
-queueFrontIndex++;
 
-//            toggleLayout();
-}
+    removeAllElements();
+
+    // the time should be in seconds instead of milliseconds
+    time.current = Math.floor(enteredTime.current / 1000);
+
+    // add the component
+    /**
+    * TODO: Change the position of the component so it appears below the
+    * other components.
+    */
+    console.log("addComponent5")
+    addComponent(
+        component, 
+        350, 
+        100,
+    );
+
+
+    // depth will be decremented by 1 each time, like BFS.
+
+    /**
+    * this will act as a quasi-queue (just increment the index each time
+    * you dequeue something)  
+    */ 
+    let queue = [];
+
+    // this will store names that are visited already.
+    let visited = {};
+
+    // the index of the element at the front of the queue,
+    // to be incremented each time you "dequeue"
+    let queueFrontIndex = 0;
+
+    queue.push({name: component.name, currDepth: 0});
+
+    if (depth == 0) {
+        return;
+    }
+
+    // funny breadth first search
+    while (queueFrontIndex < queue.length) {
+
+        // so you don't add nodes that you've already visited
+        visited[queue[queueFrontIndex].name] = true;
+
+        let newComponents = await expandConnections(
+            queue[queueFrontIndex].name, 
+            time.current
+        );
+
+        if (queue[queueFrontIndex].currDepth + 1 < depth) {
+            for (let thisComp of newComponents) {
+                if (!visited[thisComp.name]) {
+                    queue.push({
+                        name: thisComp.name,
+                        currDepth: queue[queueFrontIndex].currDepth + 1
+                    })
+                }
+            }
+        }
+        queueFrontIndex++;
+
+        // toggleLayout();
+    }
 
 }
 
@@ -916,6 +945,7 @@ resolve => {
     fetch(input).then(
         res => res.json()
     ).then(data => {
+        console.log("Expanding Connections", name)
         let subcomponents = [];
         let parent;
         let curr
@@ -953,6 +983,7 @@ resolve => {
             for (const sub of subcomponents) {
                 // console.log(sub.name + ':')
                 // debugger;
+                console.log("addComponent1");
                 let subAdded = addComponent(sub, subLastAdded.x + nodeWidth + 10, subLastAdded.y, true, curr.name);
                 // console.log(subAdded)
                 if (subAdded) {
@@ -1025,6 +1056,7 @@ resolve => {
                 newHeight = (newHeight === 0) ? nodeHeight : newHeight;
 
                 // create parent node
+                console.log("addComponent2")
                 let added = addComponent(parent, lastAdded.x, lastAdded.y + nodeHeight + 20, false, null, newWidth * 1.5 + 'px', newHeight * 2 + 'px');
                 if (added) {
                     componentsAdded.push(parent);
@@ -1040,7 +1072,7 @@ resolve => {
                                 extent: 'parent',
                                 position: {
                                     x: 10,
-                                    y: 90 - nodeHeight
+                                    y: nodeHeight
                                 },
                             });
                         } else {
@@ -1064,6 +1096,7 @@ resolve => {
             for (const sub of subcomponents) {
                 // console.log(sub.name + ':')
                 // debugger;
+                console.log("addComponent3")
                 let subAdded = addComponent(sub, subLastAdded.x + nodeWidth + 10, subLastAdded.y, true, curr.name);
                 if (subAdded) {
                     isParentNode.current[curr.name] = true;
@@ -1117,14 +1150,28 @@ resolve => {
                 }
             }));
         }
-
-        for (const edge of edges) {
+        console.log(nodeCoords.current)
+        console.log(curr.name)
+        let node_coords = nodeCoords.current[curr.name].coords
+        console.log(node_coords)
+        let curr_x = node_coords.x
+        let curr_y = node_coords.y
+        if (nodeCoords.current[curr.name].parentCoords !== null) {
+            // Then the current component is a sub component of a super
+            // Need to add some offset to get true coordinates
+            curr_x += nodeCoords.current[curr.name].parentCoords.x
+            curr_y += nodeCoords.current[curr.name].parentCoords.y
+        }
+        curr_x -= nodeWidth + 100
+        console.log(lastAdded.y)
+        for (let i=0; i < edges.length; i++) {
+            let edge = edges[i]
             // find other node from curr
             let other = (name === edge.inVertex.name) ? 
                     edge.outVertex : edge.inVertex;
-            
-            let added = addComponent(other, lastAdded.x, lastAdded.y + nodeHeight + 20);
-    
+            console.log("addComponent4")
+            let added = addComponent(other, curr_x, lastAdded.y + nodeHeight + 40);
+            curr_x += nodeWidth + 30;
             addEdge(
                 edge.id, 
                 edge.outVertex.name, 
@@ -1134,7 +1181,8 @@ resolve => {
 
             if (added) {
                 componentsAdded.push(other);
-                lastAdded.y += nodeHeight + 20;
+                if (i == edges.length - 1)
+                    lastAdded.y += nodeHeight + 40;
             }
         }
 
@@ -1156,9 +1204,13 @@ resolve => {
 }
 
 async function formatSubcomponents() {
+    console.log("Formatting subcomponents")
     setNodes((nodes) => nodes.map((node1) => {
         if (isParentNode.current[node1.id] === true) {
-            // get subcomponents
+            // If node1 is a parent, then we
+            // want to format it's subcomponents
+
+            // get subcomponents of node1
             let input = `/api/get_subcomponents`;
             input += `?name=${node1.id}`;
             fetch(input).then(
@@ -1166,26 +1218,28 @@ async function formatSubcomponents() {
             ).then(data => {
 
 
-                let subLastAdded = {x: -nodeWidth, y: 120 - nodeHeight}
+                let subLastAdded = {x: -nodeWidth, y:nodeHeight - (nodeHeight / 2)}
                 let maxSubHeight = nodeHeight;
                 setNodes((nodes) => nodes.map((node2) => {
                     // console.log('node node node 2')
                     // console.log(node2.id)
                     if (data.result.includes(node2.id)) {
-                        // console.log("I AM HERE HERE HERE")
+                        // This is a subcomponent of node1
+                        console.log("subcomponent of node1")
                         maxSubHeight = Math.max(maxSubHeight, node2.style.height)
-                        return ({
-                            ...node2,
-                            data: { ...node2.data, label: node2.id,},
-                            position: {
-                                x: subLastAdded.x + nodeWidth + 10,
-                                y: subLastAdded.y
-                            },
-                            parentNode: node1.id,
-                            extent: 'parent'
-                        });
+                        return node2
+                        // return ({
+                        //     ...node2,
+                        //     data: { ...node2.data, label: node2.id,},
+                        //     position: {
+                        //         x: subLastAdded.x + nodeWidth + 10,
+                        //         y: subLastAdded.y
+                        //     },
+                        //     parentNode: node1.id,
+                        //     extent: 'parent'
+                        // });
                     } else if (node2.id === node1.id) {
-
+                        console.log("node2 and node1 are the same")
                         let newHeight = (data.result.length > 0) ? nodeHeight * 2 : 0;
 
                         let newWidth = data.result.length * (nodeWidth + 20);
@@ -1208,6 +1262,7 @@ async function formatSubcomponents() {
                 }));
             });
         }
+            // If node1 is not a parent, then it has no subcomponents to format
             return node1;
     }));
 }
@@ -1218,7 +1273,7 @@ const nodeTypes = useMemo(
 
 window.addEventListener("error", (e) => {
 if (e.message === 'ResizeObserver loop completed with undelivered notifications.' || e.message === 'ResizeObserver loop limit exceeded') {
-console.log("Oh, yeah × 2!!!!");
+//console.log("Oh, yeah × 2!!!!");
 e.stopImmediatePropagation();
 }
 });

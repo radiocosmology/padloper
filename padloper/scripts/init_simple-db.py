@@ -25,7 +25,7 @@ v_cat6 = p.ComponentVersion(name="cat6", type=t_ethernet_cable,
                             comments="up to 1 Gbps").add()
 
 # Add/initialise property types.
-p_os = p.PropertyType(name="OS", units="", allowed_regex=".*", n_values=1, 
+p_os = p.PropertyType(name="OS", units="", allowed_regex=".*", n_values=1,
                       allowed_types=[t_computer],
                       comments="operating system").add()
 
@@ -33,9 +33,9 @@ p_os = p.PropertyType(name="OS", units="", allowed_regex=".*", n_values=1,
 router   = p.Component(name="link-master-a1234", type=t_router).add()
 switch1  = p.Component(name="switch-wiz-snABC", type=t_switch).add()
 switch2  = p.Component(name="switch-wiz-snDEF", type=t_switch).add()
-eth_0000 = p.Component(name="eth_0000", type=t_ethernet_cable, 
+eth_0000 = p.Component(name="eth_0000", type=t_ethernet_cable,
                        version=v_cat6).add()
-eth_0009 = p.Component(name="eth_0009", type=t_ethernet_cable, 
+eth_0009 = p.Component(name="eth_0009", type=t_ethernet_cable,
                        version=v_cat6).add()
 
 switch1_port = []
