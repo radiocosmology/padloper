@@ -30,7 +30,12 @@ ver_a_b   = p.ComponentVersion(name=tnm("ver_a-b"), type=type_a,
                                comments="Comment A").add()
 comp_a1 = p.Component(name=tnm("comp_A1"), type=type_a, version=ver_a_a).add()
 comp_a2 = p.Component(name=tnm("comp_a2"), type=type_a, version=ver_a_b).add()
+comp_a3 = p.Component(name=tnm("comp_a3"), type=type_a, version=ver_a_a).add()
+comp_a4 = p.Component(name=tnm("comp_a4"), type=type_a, version=ver_a_b).add()
+comp_a5 = p.Component(name=tnm("comp_a5"), type=type_a, version=ver_a_b).add()
+comp_a6 = p.Component(name=tnm("comp_a6"), type=type_a, version=ver_a_a).add()
 comp_b = p.Component(name=tnm("comp_b"), type=type_b).add()
+comp_b2 = p.Component(name=tnm("comp_b2_a-test"), type=type_b).add()
 comp_b_sub = p.Component(name=tnm("comp_b_sub"), type=type_c).add()
 comp_b_super = p.Component(name=tnm("comp_b_super"), type=type_c).add()
 
@@ -209,8 +214,13 @@ except p.PropertyWrongType:
 
 comp_a2 = p.Component.from_db(tnm("comp_a2")) # Because type_a was replaced …
 comp_a2.set_property(prop_1a, t2)
-comp_a2.unset_property(prop_1a, t2)
-comp_a2.set_property(prop_1b, t3)
+try:
+    comp_a2.unset_property(prop_1a, t1)
+    raise RuntimeError("Should not be able to unset a property in the past.")
+except p.PropertyNotAddedError:
+    pass
+comp_a2.unset_property(prop_1a, t3)
+comp_a2.set_property(prop_1b, t4)
 comp_a2.set_property(prop_1a, t5) # Unsets prop_1b and sets prop_1a at t4.
 try:
     comp_a2.set_property(prop_1a, t4)
@@ -220,5 +230,57 @@ except p.PropertyIsSameError:
     pass
 
 # Test flags.
-ftype_severe = p.FlagType(name="severe", comments="Something's broken!!")
-ftype_comment = p.FlagType(name="comment")
+ftype_weather = p.FlagType(name=tnm("weather"),
+                           comments="Flag weather events!").add()
+ftype_history = p.FlagType(name=tnm("history")).add()
+fsev_info = p.FlagSeverity(name=tnm("info")).add()
+fsev_warning = p.FlagSeverity(name=tnm("warning")).add()
+flag_w1 = p.Flag(type=ftype_weather, severity=fsev_warning, 
+                 notes="Big thunderstorm!!",
+                 start=t1, end=t5, components=[]).add()
+flag_w2 = p.Flag(type=ftype_weather, severity=fsev_warning, 
+                 notes="Hailstorm, with really big hail.",
+                 start=t2, components=[]).add()
+flag_h1 = p.Flag(type=ftype_history, severity=fsev_info,
+                 notes="Upgraded firmware to v2.",
+                 start=t3, components=[comp_a1, comp_a2])
+try:
+    flag_w2.set_end(t1)
+    raise RuntimeError("Should not be able to end flag before it starts.")
+except ValueError:
+    pass
+flag_w2.set_end(t5)
+try:
+    flag_w1.set_end(t7)
+    raise RuntimeError("Should not be able to change end time of flag.")
+except ValueError:
+    pass
+ 
+# Test searching.
+print("Testing get_list().")
+print("    All component types:")
+for ct in p.ComponentType.get_list():
+    print("        ", ct.name.replace(test_prefix, ""))
+print("    All component types, ordered by name:")
+for ct in p.ComponentType.get_list(order_by="name"):
+    print("        ", ct.name.replace(test_prefix, ""))
+print("    Components of type \"type_a\".")
+for c in p.Component.get_list(filters=[{"type": tnm("type_a")}]):
+    print("        ", nmt(c.name))
+print("    Components containing \"_a\" in the name.")
+for c in p.Component.get_list(filters=[{"name": TextP.containing("_a")}]):
+    print("        ", c.name.replace(test_prefix, ""))
+print("    Components containing \"_a\" in the name and version ver_a_b.")
+for c in p.Component.get_list(filters=[{"name": TextP.containing("_a"),
+                                        "version": tnm("ver_a-b")}]):
+    print("        ", c.name.replace(test_prefix, ""))
+print("    Components containing \"_a\" in the name and version ver_a_b, or "\
+      "of\n    type \"type_b\".")
+for c in p.Component.get_list(filters=[{"name": TextP.containing("_a"),
+                                        "version": tnm("ver_a-b")},
+                                       {"type": tnm("type_b")}]):
+    print("        ", c.name.replace(test_prefix, ""))
+print("    Components sorted by type ascending and then by name descending.")
+for c in p.Component.get_list(order_by=["type", ("name", "desc")]):
+    print("        %s -- %s" % (c.name.replace(test_prefix, ""),
+                                c.type.name.replace(test_prefix, "")))
