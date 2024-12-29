@@ -10,13 +10,12 @@ from gremlin_python.process.graph_traversal import __, constant
 
 from _exceptions import *
 from _base import strictraise, Edge, Timestamp, Vertex, VertexAttr,\
-                  _parse_time
+                  _parse_time, authenticated
 from _edges import RelationVersionAllowedType, RelationVersion,\
                    RelationComponentType, RelationSubcomponent,\
                    RelationProperty, RelationPropertyType,\
                    RelationFlagComponent, RelationConnection
 from _permissions import Permission, check_permission
-from padloper.method_decorators import authenticated
 
 class ComponentType(Vertex):
     """
@@ -721,7 +720,7 @@ class Component(Vertex):
     @authenticated
     def get_connections(self, comp = None, at_time = None,
                         from_time = None, to_time = None,
-                        exclude_subcomponents: bool = False,
+                        exclude_subcomps: bool = False,
                         permissions = None):
         """
         Get connections to another component, or all other components, at a
@@ -745,7 +744,7 @@ class Component(Vertex):
 
         :rtype: list[RelationConnection]
         """
-        if not self.in_db(strict_check=False, permissions=perimssions):
+        if not self.in_db(strict_check=False, permissions=permissions):
             raise ComponentNotAddedError(
                 f"Component {self.name} has not yet been added to the database."
             )
@@ -754,7 +753,7 @@ class Component(Vertex):
                 comp = [comp]
             comp_id = [c.id() for c in comp]
             for c in comp:
-                if not c.in_db(strict_check=False, permissions):
+                if not c.in_db(strict_check=False, permissions=permissions):
                     raise ComponentNotAddedError(
                         f"Component {c.name} has not yet " +
                         "been added to the database."
@@ -829,7 +828,7 @@ class Component(Vertex):
 
     @authenticated
     def get_all_connections_at_time(
-        self, at_time: int, exclude_subcomponents: bool = False,
+        self, at_time: int, exclude_subcomps: bool = False,
         permissions = None
     ):
         """
@@ -837,7 +836,7 @@ class Component(Vertex):
         all other components.
 
         :param at_time: Time to check connections at. 
-        :param exclude_subcomponents: If True, then do not return connections
+        :param exclude_subcomps: If True, then do not return connections
             to subcomponents or supercomponents.
 
         :rtype: list[RelationConnection/RelationSubcomponent]
@@ -852,7 +851,7 @@ class Component(Vertex):
         # Build up the result of format (property vertex, relation)
         result = []
 
-        if not exclude_subcomponents:
+        if not exclude_subcomps:
             # First do subcomponents.
             for q in g.t.V(self.id()).inE(RelationSubcomponent.category) \
                         .has('active', True).as_('e') \
@@ -1073,8 +1072,8 @@ class Component(Vertex):
 
         current_subcomp = self.get_subcomponent(comp=comp,
                                                 permissions=permissions)
-        comp_to_subcomp = component.get_subcomponent(comp=self,
-                                                     permissions=permissions)
+        comp_to_subcomp = comp.get_subcomponent(comp=self,
+                                                permissions=permissions)
 
         if comp_to_subcomp is not None:
             strictraise(strict_add,
@@ -1175,7 +1174,8 @@ class Component(Vertex):
 
         if not bare:
             prop_dicts = [{**prop.as_dict(), **rel.as_dict()} \
-                for (prop, rel) in self.get_all_properties(permissions=permissions)
+                for (prop, rel) in \
+                    self.get_all_properties(permissions=permissions)
             ]
 
             conn_dicts = [{**{"name": conn.other_vertex(self).name},

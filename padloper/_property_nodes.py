@@ -16,15 +16,13 @@ from sympy import true
 import _global as g
 from gremlin_python.process.graph_traversal import __, constant
 
-from _base import Vertex, VertexAttr, strictraise
+from _base import Vertex, VertexAttr, strictraise, authenticated
 from _component_nodes import ComponentType
 from _edges import RelationPropertyType, RelationPropertyAllowedType, \
                    RelationComponentType
 from _exceptions import *
 
 from typing import Optional, List
-
-from padloper.method_decorators import authenticated
 
 class PropertyType(Vertex):
     """

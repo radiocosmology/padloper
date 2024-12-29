@@ -199,7 +199,6 @@ function Header() {
                     </MenuItem>
                     <MenuItem
                         // remove local storage 
-<<<<<<< HEAD
                         onClick={() => { 
                             localStorage.removeItem("accessToken");
                             axios.post("/api/logout")
@@ -211,9 +210,6 @@ function Header() {
                             })
                             window.location.reload(false);
                         }
-=======
-                        onClick={() => { localStorage.removeItem("accessToken"); navigate("/") ; window.location.reload(false);}
->>>>>>> main
                         // onClick={() => { setAccessToken(''); }
                     }>
                         Sign out

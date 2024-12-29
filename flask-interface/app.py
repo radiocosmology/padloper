@@ -20,6 +20,7 @@ app.secret_key = os.urandom(24)
 # set this to the oauth-proxy-server URL
 PROXY_SERVER_URL = 'http://localhost:4000/'
 
+CONTINUE HERE: user authentication not properly set, I don't think.
 p.set_user("test")
 
 def tmp_timestamp(t, uid, comments):
@@ -217,8 +218,7 @@ def get_component_list():
     components = p.Component.get_list(
         range=range_bounds,
         order_by=[(order_by, order_direction)],
-        filters=filt,
-        permissions=session.get('perms')
+        filters=filt
     )
     
     return {"result": [c.as_dict(bare=True) for c in components]}
@@ -422,7 +422,6 @@ def set_component():
     :rtype: dict
     """
     try:
-
         val_name = escape(request.args.get('name')).split(';')
         val_type = escape(request.args.get('type'))
         val_version = escape(request.args.get('version'))
@@ -441,8 +440,10 @@ def set_component():
 
         for name in val_name:
             # Need to initialize an instance of a component first.
+            print("Oh yeah!")
             component = p.Component(name=name, type=component_type,
                                     version=component_version)
+            print("Oh yeah 22!")
             component.add(permissions=session.get('perms'))
 
         return {'result': True}
@@ -658,8 +659,7 @@ def get_component_count():
     filt = parse_filters(filters, ["name", "type", "version"],
                          [TextP.containing, lambda x: x, lambda x: x])
 
-    return {'result': p.Component.get_count(filters=filt, 
-                                            permissions=session.get('perms'))}
+    return {'result': p.Component.get_count(filters=filt)}
 
 
 @app.route("/api/component_types_and_versions")
@@ -1984,7 +1984,7 @@ def new_set_user_group():
         # user, group = p.User.from_db(val_user), p.UserGroup.from_db(val_group)
         for gr in groups:
             group = p.UserGroup.from_db(gr)
-            user.set_user_group(group)
+            user.set_group(group)
 
         return {'result': True}
 
@@ -2013,7 +2013,7 @@ def get_user_list():
 def get_user_groups():
     val_username = request.args.get('username')
     user = p.User.from_db(val_username)
-    groups = user.get_user_groups()
+    groups = user.get_groups()
     return {'result': [gr[0].as_dict() for gr in groups]}
 
 @app.route("/api/get_user_group_list", methods=["GET"])

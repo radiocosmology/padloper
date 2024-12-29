@@ -16,14 +16,12 @@ from sympy import true
 from gremlin_python.process.graph_traversal import __, constant
 
 import _global as g
-from _base import Vertex, VertexAttr, Timestamp, strictraise
+from _base import Vertex, VertexAttr, Timestamp, strictraise, authenticated
 from _component_nodes import Component
 from _exceptions import *
 from _edges import RelationFlagType, RelationFlagComponent, RelationFlagSeverity
 
 from typing import Optional, List
-
-from padloper.method_decorators import authenticated
 
 class FlagType(Vertex):
     """The representation of a flag type. 

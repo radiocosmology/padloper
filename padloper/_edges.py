@@ -226,7 +226,7 @@ class RelationUserGroup(Edge):
         Edge.__init__(self=self, id=id,
                       inVertex=inVertex, outVertex=outVertex)
     
-    def _add(self):
+    def add(self):
         """Add this relation to the serverside
         """
         Edge.add(self, attributes={})
