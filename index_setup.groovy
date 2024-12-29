@@ -1,23 +1,10 @@
-# The following commands should be pasted into Gremlin console to set up
-# indexing when a Gremlin server is FIRST CREATED.
-
-# These commands add:
-# composite index on "name" for vertices: g.V().has('name', ...)
-# composite index on "category" for vertices: g.V().has('category', ...)
-# composite index for "category" THEN "name" for vertices: 
-# 	g.V().has('category', ...).has('name', ...)
-# mixed index on "start_time" THEN "end_time" for edges:
-# 	g.E().hasLabel('connection').has('start_time', ...).has('end_time', ...)
-# a LIST cardinality on the "values" attribute of vertices (for property vertices)
-
-# Read more here: https://docs.janusgraph.org/index-management/index-performance/
-
 :remote connect tinkerpop.server conf/remote.yaml session
 :remote console
+
 mgmt = graph.openManagement()
 
-# Properties. The ones for which we record the return value for (e.g., active,
-# category) we will also create indices for since they tend to be used for searches.
+// Properties. The ones for which we record the return value for (e.g., active,
+// category) we will also create indices for since they tend to be used for searches.
 name = mgmt.makePropertyKey('name').dataType(String.class).make()
 active = mgmt.makePropertyKey('active').dataType(Boolean.class).make()
 category = mgmt.makePropertyKey('category').dataType(String.class).make()
@@ -39,10 +26,8 @@ mgmt.makePropertyKey('units').dataType(String.class).make()
 mgmt.makePropertyKey('allowed_regex').dataType(String.class).make()
 mgmt.makePropertyKey('n_values').dataType(Long.class).make()
 mgmt.makePropertyKey('values').dataType(String.class).cardinality(Cardinality.LIST).make()
-mgmt.makePropertyKey('notes').dataType(String.class).make()
-mgmt.makePropertyKey('institution').dataType(String.class).make()
 
-# Edges
+// Edges
 connection = mgmt.makeEdgeLabel("rel_connection").make()
 mgmt.makeEdgeLabel("rel_property").make()
 mgmt.makeEdgeLabel("rel_version").make()
@@ -57,7 +42,7 @@ mgmt.makeEdgeLabel("rel_flag_severity").make()
 mgmt.makeEdgeLabel("rel_user_group").make()
 mgmt.makeEdgeLabel("rel_group_permission").make()
 
-# Indices, for fast searching.
+// Indices, for fast searching.
 mgmt.buildIndex('byCategoryComposite', Vertex.class).addKey(category).buildCompositeIndex()
 mgmt.buildIndex('byActiveComposite', Vertex.class).addKey(active).buildCompositeIndex()
 mgmt.buildIndex('byNameComposite', Vertex.class).addKey(name).buildCompositeIndex()
@@ -82,6 +67,5 @@ mgmt.updateIndex(mgmt.getGraphIndex("byCategoryAndActiveAndNameComposite"),Schem
 mgmt.commit()
 
 mgmt = graph.openManagement()
-#vals = mgmt.makePropertyKey('values').dataType(String.class).cardinality(org.janusgraph.core.Cardinality.LIST).make()
-
+// vals = mgmt.makePropertyKey('values').dataType(String.class).cardinality(org.janusgraph.core.Cardinality.LIST).make()
 mgmt.commit()

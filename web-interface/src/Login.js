@@ -28,7 +28,7 @@ export default function Login() {
       if (codeParam && (localStorage.getItem("accessToken") === null)) {
         // if (codeParam && (!accessToken)) {
         async function getAccessToken() {
-          await fetch("http://localhost:4000/getAccessToken?code=" + codeParam, {
+          await fetch(`${process.env.OAUTH_URL || "http://localhost"}:4000/getAccessToken?code=` + codeParam, {
             method: "GET"
           }).then((response) => {
             return response.json();

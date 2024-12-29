@@ -61,7 +61,7 @@ function Header() {
 
     // TODO: export function to use elsewhere
     async function getUserData() {
-    await fetch("http://localhost:4000/getUserData", {
+    await fetch(`${process.env.OAUTH_URL || "http://localhost"}:4000/getUserData`, {
         method: "GET",
         headers: {
             "Authorization": "Bearer " + localStorage.getItem('accessToken')
