@@ -353,6 +353,9 @@ const defaultViewport = {x: 0, y: 0};
 useEffect(() => {
     const cmp = component != undefined ? component.name : '';
     if (component != undefined) {
+        // TODO: remove
+        console.log("NEW COMPONENT", cmp);
+
         window.location.hash = `#cmp=${cmp}&time=${enteredTime.current}&depth=${depth}&expanded=${expanded}`;
     }
 }, [component, expanded, depth]);
@@ -381,6 +384,10 @@ useEffect(() => {
             depth: initialDepth,
             expanded: initialExpanded,
         } = getHashParams();
+
+        // TODO: remove
+        console.log("INITIALCMP?");
+        console.log("INITIALCMP:", initialCmp);
         
         // enteredTime.current = +initialTime;
         if (initialDepth) {
@@ -401,7 +408,7 @@ useEffect(() => {
         }
     };
     fetchData();
-}, []);
+}, [window.location.hash]);
 
 /**
  * To visualize component
@@ -733,6 +740,9 @@ const visualizeComponent = async () => {
 
     removeAllElements();
 
+    // TODO: remove this
+    console.log("THE COMPONENT:", component);
+
     // the time should be in seconds instead of milliseconds
     time.current = Math.floor(enteredTime.current / 1000);
 
@@ -833,6 +843,7 @@ fitView();
 //        onLayout();
 //    }, [toggleLayoutBool]);
 
+// TODO: put properties information here
 
 /**
 * A MUI component representing a component node.
@@ -1392,7 +1403,11 @@ spacing={2}
 
             <Button
                 variant='contained'
-                onClick={() => setPropertiesVisible(!propertiesVisible)}
+                onClick={() =>
+                    {setPropertiesVisible(!propertiesVisible);
+                    // TODO: remove
+                    console.log("ALL NODES:", nodes);
+                }}
                 disabled={nodes && nodes.length === 0}
             >
                 {propertiesVisible ? 'Hide' : 'Show'} properties
