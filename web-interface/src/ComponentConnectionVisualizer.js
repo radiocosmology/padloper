@@ -307,6 +307,10 @@ const edgeIds = useRef({});
 // which component is to be considered
 const [component, setComponent] = useState(undefined);
 
+// "next" component selected by the user, if any
+// not sure if this is the best way to do this
+const selectedComponent = useRef(undefined);
+
 // actual depth of the BFS search
 const [depth, setDepth] = useState(0);
 
@@ -325,6 +329,8 @@ const [expanded, setExpanded] = useState([]);
 const [urlSet, setUrlSet] = useState(false);
 
 const [propertiesVisible, setPropertiesVisible] = useState(false);
+const propertiesVisibleRef = useRef();
+propertiesVisibleRef.current = propertiesVisible;
 
 /**
 * The useRef hook is used as doing
@@ -362,56 +368,65 @@ useEffect(() => {
         console.log("NEW COMPONENT", cmp);
 
         window.location.hash = `#cmp=${cmp}&time=${enteredTime.current}&depth=${depth}&expanded=${expanded}`;
+        // TODO: remove
+        console.log("HASH", window.location.hash.substring(1));
     }
-}, [component, expanded, depth]);
+}, [component]);
 
 /**
  * Run series of functions from the URL.
  */
-useEffect(() => {
-    const fetchData = async () => {
-        // Function to parse hash parameters from the URL
-        const getHashParams = () => {
-            const hash = window.location.hash.substring(1);
-            const params = new URLSearchParams(hash);
-            return {
-                component: params.get('cmp') || undefined,
-                time: params.get('time') || Math.floor(Date.now() / 1000),
-                depth: params.get('depth'),
-                expanded: params.get('expanded') ? params.get('expanded').split(',') : [],
-            };
+
+const fetchData = async () => {
+    // Function to parse hash parameters from the URL
+    const getHashParams = () => {
+        const hash = window.location.hash.substring(1);
+        const params = new URLSearchParams(hash);
+        return {
+            component: params.get('cmp') || undefined,
+            time: params.get('time') || Math.floor(Date.now() / 1000),
+            depth: params.get('depth'),
+            expanded: params.get('expanded') ? params.get('expanded').split(',') : [],
         };
-
-        // get params
-        const {
-            component: initialCmp,
-            time: initialTime,
-            depth: initialDepth,
-            expanded: initialExpanded,
-        } = getHashParams();
-
-        // TODO: remove
-        console.log("INITIALCMP?");
-        console.log("INITIALCMP:", initialCmp);
-        
-        // enteredTime.current = +initialTime;
-        if (initialDepth) {
-            setDepth(initialDepth);
-            setDepthInputValue(initialDepth);
-        }
-        setExpanded(initialExpanded);
-
-        if (initialCmp) {
-            try {
-                const response = await fetch(`/api/components_name/${initialCmp}`)
-                const data = await response.json();
-                setUrlSet(true);
-                setComponent(data.result);
-            } catch (error) {
-                console.error('Failed to get component', error);
-            }
-        }
     };
+
+    // get params
+    const {
+        component: initialCmp,
+        time: initialTime,
+        depth: initialDepth,
+        expanded: initialExpanded,
+    } = getHashParams();
+
+    // TODO: remove
+    console.log("INITIALCMP?");
+    console.log("INITIALCMP:", initialCmp);
+    
+    // enteredTime.current = +initialTime;
+    if (initialDepth) {
+        setDepth(initialDepth);
+        setDepthInputValue(initialDepth);
+    }
+    setExpanded(initialExpanded);
+
+    if (initialCmp) {
+        try {
+            const response = await fetch(`/api/components_name/${initialCmp}`)
+            const data = await response.json();
+            setUrlSet(true);
+            setComponent(data.result);
+        } catch (error) {
+            console.error('Failed to get component', error);
+        }
+    }
+};
+
+useEffect(() => {
+    // TODO: this does not get run for when you re-visualise the same component if the 
+    // expanded and depth do not change. So it fails to fetch the properties again. 
+    // how to fix this?
+
+
     fetchData();
 }, [window.location.hash]);
 
@@ -460,6 +475,43 @@ useEffect(() => {
 //     // }
 //     setPropertiesVisible(!propertiesVisible)
 // }
+
+function revealProperties(node) {
+    console.log("reveal the", node.data.properties);
+    // TODO: change component select from list to have properties
+    if (node.data.properties && node.data.properties.length > 0) {
+        console.log(node.data.properties)
+        // console.log(unixTimeToISOString(node.data.properties[0].start.time * 1000))
+        // console.log(unixTimeToISOString(node.data.properties[0].end.time * 1000))
+        // console.log(unixTimeToISOString(enteredTime.current))
+        const filteredProperties = node.data.properties.filter((property) => {
+            // console.log(property.start.time * 1000 <= enteredTime.current)
+            // console.log(enteredTime.current <= property.end.time * 1000)
+            return property.start.time * 1000 <= enteredTime.current && enteredTime.current <= property.end.time * 1000
+        })
+        console.log(filteredProperties)
+        console.log(filteredProperties.reduce((listOfLists, property) => {
+            const { type: { name, units }, values } = property;
+            listOfLists.push([name, values, units]);
+            return listOfLists;
+          }, []))
+        return {
+            ...node,
+            data: {
+            ...node.data,
+            // shownProperties: node.data.properties[0].type.name + ':' + node.data.properties[0].values[0],
+            shownProperties: filteredProperties.reduce((listOfLists, property) => {
+                const { type: { name, units }, values } = property;
+                listOfLists.push([name, values, units]);
+                return listOfLists;
+              }, [])
+            },
+        };
+    } else {
+        return node;
+    }
+}
+
 useEffect(() => {
     // console.log(nodes)
     if (propertiesVisible) {
@@ -467,38 +519,7 @@ useEffect(() => {
         console.log(enteredTime.current)
         setNodes((nds) =>
         nds.map((node) => {
-            // TODO: change component select from list to have properties
-            if (node.data.properties && node.data.properties.length > 0) {
-                console.log(node.data.properties)
-                // console.log(unixTimeToISOString(node.data.properties[0].start.time * 1000))
-                // console.log(unixTimeToISOString(node.data.properties[0].end.time * 1000))
-                // console.log(unixTimeToISOString(enteredTime.current))
-                const filteredProperties = node.data.properties.filter((property) => {
-                    // console.log(property.start.time * 1000 <= enteredTime.current)
-                    // console.log(enteredTime.current <= property.end.time * 1000)
-                    return property.start.time * 1000 <= enteredTime.current && enteredTime.current <= property.end.time * 1000
-                })
-                console.log(filteredProperties)
-                console.log(filteredProperties.reduce((listOfLists, property) => {
-                    const { type: { name, units }, values } = property;
-                    listOfLists.push([name, values, units]);
-                    return listOfLists;
-                  }, []))
-                return {
-                    ...node,
-                    data: {
-                    ...node.data,
-                    // shownProperties: node.data.properties[0].type.name + ':' + node.data.properties[0].values[0],
-                    shownProperties: filteredProperties.reduce((listOfLists, property) => {
-                        const { type: { name, units }, values } = property;
-                        listOfLists.push([name, values, units]);
-                        return listOfLists;
-                      }, [])
-                    },
-                };
-            } else {
-                return node;
-            }
+            return revealProperties(node);
         })
       );
     } else {
@@ -628,6 +649,11 @@ addNodeId(comp.name);
 // set parent node status to false
 isParentNode.current[comp.name] = false;
 childrenNodes.current[comp.name] = [];
+// reveal properties if showProperties is visible
+console.log("PROPS VIS?", propertiesVisibleRef.current);
+if (propertiesVisibleRef.current) {
+    newNode = revealProperties(newNode);
+}
 setNodes((els) => els.concat(newNode));
 return true;
 }
@@ -748,9 +774,7 @@ const visualizeComponent = async () => {
     if (component === undefined) {
         return;
     }
-
     removeAllElements();
-
     // TODO: remove this
     console.log("THE COMPONENT:", component);
 
@@ -918,7 +942,7 @@ return (
                         </p>
                         </div>
                     ))} */}
-                    {/* {data.shownProperties ? data.shownProperties.size.units : 'HELLO'} */}
+                    {propertiesVisible ? <div><p>hey</p></div> : ''}
                     {data.shownProperties ? data.shownProperties.map(([propertyName, values, unit]) => (
                         <div key={propertyName}>
                         <p>
@@ -976,6 +1000,7 @@ resolve => {
         let parent;
         let curr
         let edges = [];
+        let vertPadding = propertiesVisibleRef.current ? 150 : 50;
         for (const edge of data.result) {
 
             // find other node from curr
@@ -1205,7 +1230,7 @@ resolve => {
         let curr_x = node_coords.coords.x;
         let rowNumber = node_coords.row + 1;
         
-        let curr_y = node_coords.coords.y
+        let curr_y = node_coords.coords.y;
         if (nodeCoords.current[curr.name].parentCoords !== null) {
             // Then the current component is a sub component of a super
             // Need to add some offset to get true coordinates
@@ -1231,7 +1256,7 @@ resolve => {
                     edge.outVertex : edge.inVertex;
             console.log("addComponent4");
             console.log(other.name);
-            let added = addComponent(other, curr_x, curr_y + nodeHeight + 50, 
+            let added = addComponent(other, curr_x, curr_y + nodeHeight + vertPadding, 
                                     rowNumber);
             addOccupiedSpace(rowNumber, curr_x, curr_x + nodeWidth, false);
             curr_x += nodeWidth + 30;
@@ -1244,7 +1269,7 @@ resolve => {
             if (added) {
                 componentsAdded.push(other);
                 if (i == edges.length - 1) {
-                    lastAdded.current.y += nodeHeight + 50;
+                    lastAdded.current.y += nodeHeight + vertPadding;
                 }
                 num_added += 1;
             }
@@ -1608,7 +1633,10 @@ spacing={2}
             spacing={4}
         >
             <ComponentAutocomplete 
-                onSelect={setComponent} 
+                onSelect={(val) => {
+                    console.log("hi", val);
+                    selectedComponent.current = val;
+                }} 
             />
             <TextField
                 required
@@ -1689,12 +1717,15 @@ spacing={2}
                 onClick= {() => {
                     // clear URL
                     // clear components + states
+                    // set new component
                     lastAdded.current = {x: 350, y: 100};
                     setExpanded([]);
                     removeAllElements();
+                    setComponent(selectedComponent.current);
+                    fetchData();
                     visualizeComponent();
                 }}
-                disabled={component === undefined}
+                disabled={selectedComponent === undefined}
             >
                 Visualize
             </Button>
@@ -1704,8 +1735,6 @@ spacing={2}
                 variant='contained'
                 onClick={() =>
                     {setPropertiesVisible(!propertiesVisible);
-                    // TODO: remove
-                    console.log("ALL NODES:", nodes);
                 }}
                 disabled={nodes && nodes.length === 0}
             >
