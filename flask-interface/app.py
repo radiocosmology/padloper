@@ -523,6 +523,10 @@ def replace_property_type():
         val_comments = escape(request.args.get('comments'))
         val_property_type = escape(request.args.get('property_type'))
 
+        # throw errors if necessary
+        if int(val_values) < 1:
+            raise Exception(f"Values cannot be less than 1.")
+
         allowed_list = []
         # Query the database and return a list of ComponentType instance based
         # on the component type name.

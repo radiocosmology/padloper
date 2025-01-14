@@ -386,17 +386,20 @@ class Vertex(Element):
         return g._vertex_cache[vertex.id()]
 
 
-    def add(self, strict_add=False):
+    def add(self, strict_add=False, strict_check=True):
         """Add the vertex to the Janusgraph DB.
 
         :param strict_add: If False, then do not throw an error if the vertex
             already exists.
         :type strict_add: bool
+        :param strict_check: If False, then add the vertex even if a vertex 
+            exists in the database with the same name and category.
+        : type strict_check: bool
 
         :return: self
         :rtype: self
         """
-        if self.in_db():
+        if self.in_db(strict_check=strict_check):
             strictraise(strict_add, VertexAlreadyAddedError,
                         f"Vertex already exists in the database.")
             return self.__class__.from_db(self.name)
@@ -596,7 +599,7 @@ class Vertex(Element):
                             "the vertex it is replacing.")
 
         if not newVertex.in_db(strict_check=False):
-            newVertex.add(strict_add=True)
+            newVertex.add(strict_add=True, strict_check=False)
 
         # The 'replacement' property now points to the new vertex that replaced
         # the self vertex, and it needs to be disabled.
