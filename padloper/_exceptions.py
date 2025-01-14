@@ -18,7 +18,7 @@ class NotInDatabase(Error):
     pass
 
 class AlreadyInDatabase(Error):
-    """Exception raised when an element does not exist in the database.
+    """Exception raised when an element already exists in the database.
     """
     pass
 

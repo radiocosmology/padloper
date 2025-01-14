@@ -51,7 +51,7 @@ try:
     p.Component(name=tnm("comp_a1"), type=type_a, 
                          version=ver_a_a).add(strict_add=True)
     raise RuntimeError("Should not be able to add the same component again!")
-except p.VertexAlreadyAddedError:
+except p.AlreadyInDatabase:
     pass
 
 # Check retrieval.

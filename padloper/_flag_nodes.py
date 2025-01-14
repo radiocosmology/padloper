@@ -218,7 +218,7 @@ class FlagSeverity(Vertex):
 
         # If already added.
         if self.added_to_db():
-            strictraise(strict_add, VertexAlreadyAddedError,
+            strictraise(strict_add, AlreadyInDatabase,
                 f"FlagSeverity with name {self.name}" +
                 "already exists in the database."
             )
@@ -528,7 +528,7 @@ class Flag(Vertex):
         """
 
         if self.added_to_db():
-            strictraise(strict_add, VertexAlreadyAddedError,
+            strictraise(strict_add, AlreadyInDatabase,
                 f"Flag with name {self.name}" +
                 "already exists in the database."
             )
