@@ -169,7 +169,7 @@ const g = new Dagre.graphlib.Graph().setDefaultEdgeLabel(() => ({}));
 
 
 // TODO: Probably don't hardcode this.
-const nodeWidth = 250, nodeHeight = 50;
+let nodeWidth = 250, nodeHeight = 50;
 
 /**
 * Lays out the nodes of the graph visualization in a top-to-bottom fashion.
@@ -515,6 +515,7 @@ function revealProperties(node) {
 useEffect(() => {
     // console.log(nodes)
     if (propertiesVisible) {
+        nodeHeight = 100;
         console.log('propertiesVisible')
         console.log(enteredTime.current)
         setNodes((nds) =>
@@ -523,6 +524,7 @@ useEffect(() => {
         })
       );
     } else {
+        nodeHeight = 50;
         setNodes((nds) => 
         nds.map((node) => {
             return {
@@ -1000,7 +1002,7 @@ resolve => {
         let parent;
         let curr
         let edges = [];
-        let vertPadding = propertiesVisibleRef.current ? 150 : 50;
+        let vertPadding = propertiesVisibleRef.current ? 100 : 50;
         for (const edge of data.result) {
 
             // find other node from curr
@@ -1111,7 +1113,7 @@ resolve => {
                 // create parent node
                 console.log("addComponent2")
                 let current_node = nodeCoords.current[curr.name];
-                let added = addComponent(parent, current_node.coords.x, current_node.coords.y + nodeHeight, 
+                let added = addComponent(parent, current_node.coords.x, current_node.coords.y, 
                                         current_node.row, false, null, newWidth * 1.5 + 'px', 
                                         newHeight * 2 + 'px');
 
