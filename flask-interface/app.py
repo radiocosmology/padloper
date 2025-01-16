@@ -20,7 +20,7 @@ app.secret_key = os.urandom(24)
 # set this to the oauth-proxy-server URL
 PROXY_SERVER_URL = 'http://localhost:4000/'
 
-CONTINUE HERE: user authentication not properly set, I don't think.
+#CONTINUE HERE: user authentication not properly set, I don't think.
 p.set_user("test")
 
 def tmp_timestamp(t, uid, comments):
