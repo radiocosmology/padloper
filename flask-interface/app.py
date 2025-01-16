@@ -2,22 +2,25 @@
 
 #from crypt import methods
 from re import split
-from flask import Flask, request
+from flask import Flask, request, session
+import requests
 from flask.scaffold import F
 from gremlin_python.process.traversal import TextP
 from markupsafe import escape
 import time
 import padloper as p
 import json
+import os
 from urllib.parse import unquote
 
 # The flask application
 app = Flask(__name__)
+app.secret_key = os.urandom(24)
 
-print("=================================")
-print("REMOVE ME!!!!!!!!!!!!!!!!!!!!!!!!")
-print("=================================")
+# set this to the oauth-proxy-server URL
+PROXY_SERVER_URL = 'http://localhost:4000/'
 
+#CONTINUE HERE: user authentication not properly set, I don't think.
 p.set_user("test")
 
 def tmp_timestamp(t, uid, comments):
@@ -65,6 +68,82 @@ def parse_filters(filtstr, attrs, funcs):
 # @app.route("/api/components_id/<id>")
 # def get_component_by_id(id):
 #     return str(Component.from_id(escape(id)))
+    
+def set_perms(username):
+    """ Get user permissions from the database, and set as a sessions variable. 
+    """
+    try:
+        user = p.User.from_db(username)
+        perms = user.get_permissions()
+        if perms:
+            session['perms'] = perms
+        else:
+            session['perms'] = []
+
+
+    except Exception as e:
+
+        # For printing the exception in the terminal.
+        print(e)
+
+        return {'error': json.dumps(e, default=str)}
+
+
+@app.route("/api/login", methods=['POST'])
+def login():
+    """ Handle user login.
+
+    This function handles the login process for users. It expects a POST request
+    with a JSON payload containing the user's username and GitHub access token.
+    It then calls a proxy server to retrieve user data from GitHub using the access token,
+    verifies that the retrieved username matches the provided username, and returns
+    a response accordingly.
+
+    Returns:
+        A JSON response indicating the result of the login attempt.
+    """
+    try:
+        username = request.json.get('username')
+        access_token = request.json.get('accessToken')
+
+        if not username or not access_token:
+            return ({'error': 'Username and access token are required'}), 400
+        
+        headers = {'Authorization': 'Bearer ' + access_token}
+        response = requests.get(PROXY_SERVER_URL + 'getUserData', headers=headers)
+
+        if response.status_code == 200:
+            data = response.json()
+
+            if data.get('login') == username:
+                session['user'] = username
+                set_perms(username)
+                return ({'message': f'Logged in as {username}'}), 200
+            else:
+                return ({'error': 'Username does not match'}), 401
+
+
+
+        return ({'error': 'Failed to retrieve user data from proxy server'}), 500
+    # TODO: make more specific
+    except Exception as e:
+
+        # For printing the exception in the terminal.
+        print(e)
+
+        return {'error': json.dumps(e, default=str)}
+    
+
+@app.route("/api/logout", methods=['POST'])
+def logout():
+    """Handle user logout.
+
+    This function handles the logout process for users. It clears the session data,
+    effectively logging the user out.
+    """
+    session.clear()
+
+    return ({'message': 'Logged out successfully'}), 200
 
 
 @app.route("/api/components_name/<name>")
@@ -79,7 +158,7 @@ def get_component_by_name(name):
     :rtype: dict
     """
     return {
-        'result': p.Component.from_db(str(escape(name))).as_dict()
+        'result': p.Component.from_db(str(escape(name)), permissions=session.get('perms')).as_dict(permissions=session.get('perms'))
     }
 
 
@@ -111,6 +190,8 @@ def get_component_list():
     desired list.
     :rtype: dict
     """
+    print(session.get('user'))
+    print(session.get('perms'))
 
     # extract the component range from the url parameters
     component_range = escape(request.args.get('range'))
@@ -137,7 +218,7 @@ def get_component_list():
     components = p.Component.get_list(
         range=range_bounds,
         order_by=[(order_by, order_direction)],
-        filters=filt,
+        filters=filt
     )
     
     return {"result": [c.as_dict(bare=True) for c in components]}
@@ -167,7 +248,8 @@ def set_component_type():
         # Need to initialize an instance of a component type first.
         component_type = p.ComponentType(name=val_name, comments=val_comments)
 
-        component_type.add()
+
+        component_type.add(permissions=session.get('perms'))
 
         return {'result': True}
 
@@ -210,7 +292,7 @@ def replace_component_type():
         # Gets the old component type from the database.
         component_type_old = p.ComponentType.from_db(val_component_type)
 
-        component_type_old.replace(component_type_new)
+        component_type_old.replace(component_type_new, permissions=session.get('perms'))
 
         return {'result': True}
 
@@ -253,7 +335,7 @@ def set_component_version():
         component_version = p.ComponentVersion(
             name=val_name, type=component_type, comments=val_comments)
 
-        component_version.add()
+        component_version.add(permissions=session.get('perms'))
 
         return {'result': True}
 
@@ -312,7 +394,7 @@ def replace_component_version():
         component_version_old = p.ComponentVersion.from_db(
             val_component_version)
 
-        component_version_old.replace(component_version_new)
+        component_version_old.replace(component_version_new, permissions=session.get('perms'))
 
         return {'result': True}
 
@@ -340,7 +422,6 @@ def set_component():
     :rtype: dict
     """
     try:
-
         val_name = escape(request.args.get('name')).split(';')
         val_type = escape(request.args.get('type'))
         val_version = escape(request.args.get('version'))
@@ -359,10 +440,11 @@ def set_component():
 
         for name in val_name:
             # Need to initialize an instance of a component first.
-            print(name, component_type, component_version)
+            print("Oh yeah!")
             component = p.Component(name=name, type=component_type,
                                     version=component_version)
-            component.add()
+            print("Oh yeah 22!")
+            component.add(permissions=session.get('perms'))
 
         return {'result': True}
     except Exception as e:
@@ -413,7 +495,7 @@ def replace_component():
         component_new = p.Component(name=val_name, type=component_type,
                                     version=component_version)
         component_old = p.Component.from_db(val_component)
-        component_old.replace(component_new)
+        component_old.replace(component_new, permissions=session.get('perms'))
 
         return {'result': True}
 
@@ -489,7 +571,7 @@ def set_property_type():
                                        n_values=int(val_values), 
                                        allowed_types=allowed_list,
                                        comments=val_comments)
-        property_type.add()
+        property_type.add(permissions=session.get('perms'))
 
         return {'result': True}
 
@@ -549,7 +631,7 @@ def replace_property_type():
                                            allowed_types=allowed_list,
                                            comments=val_comments)
         property_type_old = p.PropertyType.from_db(val_property_type)
-        property_type_old.replace(property_type_new)
+        property_type_old.replace(property_type_new, permissions=session.get('perms'))
 
         return {'result': True}
 
@@ -596,7 +678,7 @@ def get_component_types_and_versions():
     :rtype: dict
     """
 
-    types = p.ComponentType.get_names_of_types_and_versions()
+    types = p.ComponentType.get_names_of_types_and_versions(permissions=session.get('perms'))
     ret = {}
     for t in types:
         ret[t["name"]] = t["versions"]
@@ -643,7 +725,8 @@ def get_component_type_list():
     types = p.ComponentType.get_list(
         range=range_bounds,
         order_by=[(order_by, order_direction)],
-        filters=[{"name": TextP.containing(name_substring)}]
+        filters=[{"name": TextP.containing(name_substring)}],
+        permissions=session.get('perms')
     )
     
     return {"result": [t.as_dict() for t in types]}
@@ -866,7 +949,8 @@ def set_component_property():
         property = p.Property(values=values, type=property_type)
 
         t = tmp_timestamp(val_time, val_uid, val_comments)
-        component.set_property(property, start=t) 
+        component.set_property(property, start=t,
+                               permissions=session.get('perms')) 
 
         return {'result': True}
 
@@ -919,7 +1003,7 @@ def end_component_property():
                 )
 
     t = tmp_timestamp(val_time, val_uid, val_comments)
-    component.unset_property(property, t)
+    component.unset_property(property, t, permissions=session.get('perms'))
 
     return {'result': True}
 
@@ -976,7 +1060,8 @@ def replace_component_property():
     component.replace_property(propertyTypeName=val_property_type,
                                property=property_new, at_time=val_time, 
                                uid=val_uid,
-                               start = t, comments=val_comments)
+                               start = t, comments=val_comments,
+                               permissions=session.get('perms'))
 
     # component.replace_property()
 
@@ -994,7 +1079,8 @@ def disable_component_property():
     component = p.Component.from_db(val_name)
 
     component.disable_property(
-        propertyTypeName=val_property_type
+        propertyTypeName=val_property_type,
+        permissions=session.get('perms')
     )
 
     return {'result': True}
@@ -1038,7 +1124,7 @@ def add_component_connection():
         c1, c2 = p.Component.from_db(val_name1), p.Component.from_db(val_name2)
 
         t = tmp_timestamp(val_time, val_uid, val_comments)
-        c1.connect(c2, t, is_replacement=val_is_replacement)
+        c1.connect(c2, t, is_replacement=val_is_replacement, permissions=session.get('perms'))
 
         return {'result': True}
 
@@ -1084,8 +1170,8 @@ def end_component_connection():
 
     try:
         t = tmp_timestamp(val_time, val_uid, val_comments)
-        c1.disconnect(c2, t)
-    except p.ComponentsAlreadyDisconnectedError:
+        c1.disconnect(c2, t, permissions=session.get('perms'))
+    except ComponentsAlreadyDisconnectedError:
         already_disconnected = True
 
     return {'result': not already_disconnected}
@@ -1206,8 +1292,11 @@ def add_component_subcomponent():
         already_subcomponent = False
 
         try:
-            c1.subcomponent_connect(c2)
-        except p.ComponentAlreadySubcomponentError:
+            c1.subcomponent_connect(
+                component=c2,
+                permissions=session.get('perms')
+            )
+        except ComponentAlreadySubcomponentError:
             already_subcomponent = True
 
         return {'result': not already_subcomponent}
@@ -1237,7 +1326,7 @@ def disable_component_subcomponent():
     val_name2 = escape(request.args.get('name2'))
 
     c1, c2 = p.Component.from_db(val_name1), p.Component.from_db(val_name2)
-    c1.disable_subcomponent(otherComponent=c2)
+    c1.disable_subcomponent(otherComponent=c2, permissions=session.get('perms'))
 
     return {'result': True}
 
@@ -1263,8 +1352,8 @@ def set_flag_type():
         val_comments = escape(request.args.get('comments'))
 
         # Need to initialize an instance of a component version first.
-        flag_type = p.FlagType(name=val_name, comments=val_comments)
-        flag_type.add()
+        flag_type = p.FlagType(val_name, val_comments)
+        flag_type.add(permissions=session.get('perms'))
 
         return {'result': True}
 
@@ -1299,7 +1388,7 @@ def replace_flag_type():
         # Need to initialize an instance of a flag type first.
         flag_type_new = p.FlagType(name=val_name, comments=val_comments)
         flag_type_old = p.FlagType.from_db(val_flag_type)
-        flag_type_old.replace(flag_type_new)
+        flag_type_old.replace(flag_type_new, permissions=session.get('perms'))
         return {'result': True}
 
     except Exception as e:
@@ -1323,7 +1412,7 @@ def set_flag_severity():
     # Need to initialize an instance of a component version first.
     flag_severity = p.FlagSeverity(val_name)
 
-    flag_severity.add()
+    flag_severity.add(permissions=session.get('perms'))
 
     return {'result': True}
 
@@ -1346,7 +1435,7 @@ def replace_flag_severity():
     # Need to initialize an instance of a flag severity first.
     flag_severity_new = p.FlagSeverity(val_name)
     flag_severity_old = p.FlagSeverity.from_db(val_flag_severity)
-    flag_severity_old.replace(flag_severity_new)
+    flag_severity_old.replace(flag_severity_new, permissions=session.get('perms'))
 
     return {'result': True}
 
@@ -1411,7 +1500,7 @@ def set_flag():
         flag = p.Flag(val_name, start, severity, type, 
                       comments=val_comments, end=end,
                       components=allowed_list)
-        flag.add()
+        flag.add(permissions=session.get('perms'))
 
         return {'result': True}
 
@@ -1445,7 +1534,7 @@ def unset_flag():
     # Need to initialize an instance of Flag first.
     flag = p.Flag.from_db(val_name)
     t = tmp_timestamp(val_end_time, val_uid, val_comments)
-    flag.end_flag(end)
+    flag.end_flag(end, permissions=session.get('perms'))
 
     return {'result': True}
 
@@ -1514,7 +1603,7 @@ def replace_flag():
         flag_new = Flag(val_name, start, flag_severity, flag_type, 
                         comments=val_comments, end=end, 
                         components=allowed_list)
-        flag_old.replace(flag_new)
+        flag_old.replace(flag_new, permissions=session.get('perms'))
 
         return {'result': True}
 
@@ -1744,8 +1833,11 @@ def set_permission():
     :return: A dictionary with a key 'result' of corresponding value True
     :rtype: dict
     """
-    val_name = escape(request.args.get('name'))
-    val_comment = escape(request.args.get('comment'))
+    # val_name = escape(request.args.get('name'))
+    # val_comment = escape(request.args.get('comment'))
+
+    val_name = request.form.get('name')
+    val_comment = request.form.get('comment')
 
     # Need to initialize an instance of a component first.
     permission = p.Permission(val_name, val_comment)
@@ -1771,10 +1863,13 @@ def set_user_group():
     :rtype: dict
     """
 
-    val_name = escape(request.args.get('name'))
-    val_comment = escape(request.args.get('comment'))
+    # val_name = escape(request.args.get('name'))
+    # val_comment = escape(request.args.get('comment'))
+    val_name = request.form.get('name')
+    val_comment = request.form.get('comment')
     # A list of allowed permissions.
-    val_permission = escape(request.args.get('permission')).split(';')
+    # val_permission = escape(request.args.get('permission')).split(';')
+    val_permission = request.form.get('permission').split(';')
 
     allowed_list = []
     # Query the database and return a list of Permission instances based on
@@ -1783,6 +1878,8 @@ def set_user_group():
         allowed_list.append(p.Permission.from_db(name))
 
     user_group = p.UserGroup(val_name, val_comment, allowed_list)
+
+    # print(f"user_group: {user_group}")
 
     user_group.add()
 
@@ -1806,20 +1903,124 @@ def set_user():
     :rtype: dict
     """
 
-    val_uname = escape(request.args.get('uname'))
-    val_pwd_hash = escape(request.args.get('pwd'))
-    val_institution = escape(request.args.get('institution'))
-    val_user_group = escape(request.args.get('user_group')).split(';')
+    # val_uname = escape(request.args.get('uname'))
+    # val_pwd_hash = escape(request.args.get('pwd'))
+    # val_institution = escape(request.args.get('institution'))
+    # val_user_group = ['']
+    # print(escape(request.args.get('user_group')))
+    # if escape(request.args.get('user_group')) != None:
+    #     val_user_group = escape(request.args.get('user_group')).split(';')
+    val_uname = request.form.get('uname')
+    val_pwd_hash = request.form.get('pwd')
+    val_institution = request.form.get('institution')
+    if request.form.get('user_group'):
+        val_user_group = request.form.get('user_group').split(';')
+    else:
+        val_user_group = ['']
+        
+    print(val_user_group)
 
     allowed_list = []
 
     if val_user_group != ['']:
         for name in val_user_group:
             allowed_list.append(p.UserGroup.from_db(name))
-        user = User(val_uname, val_pwd_hash, val_institution, allowed_list)
+        user = p.User(val_uname, val_pwd_hash, val_institution, allowed_list)
     else:
-        user = User(val_uname, val_pwd_hash, val_institution)
+        user = p.User(val_uname, val_pwd_hash, val_institution)
 
     user.add()
 
     return {'result': True}
+
+@app.route("/api/new_user", methods=['POST'])
+def new_user():
+    val_username = request.form.get('username')
+    val_institution = request.form.get('institution')
+    user = p.User(val_username, val_institution)
+    user.add()
+    # print(user)
+    return {'result': True}
+
+@app.route("/api/new_usergroup", methods=['POST'])
+def new_user_group():
+    val_name = request.form.get('name')
+    # val_values = escape(request.args.get('values'))
+    # values = val_values.split(';')
+    val_permissions = escape(request.form.get('permissions'))
+    permissions = val_permissions.split(';')
+    # print(val_permissions)
+    group = p.UserGroup(val_name, permissions)
+    group._add()
+    # print(a.name)
+    # print(a.permissions)
+    return {'result': True}
+
+@app.route("/api/new_set_usergroup", methods=['POST'])
+def new_set_user_group():
+    """Given the names of the two components to connect, the time to make the
+    connection, the ID of the user making this connection, and the comments
+    associated with the connection, connect the two components.
+
+    The URL parameters are:
+
+    user - the name of the user
+
+    group - the name of the group
+
+    :return: Return a dictionary with a key 'result' and value being a boolean
+    that is True if and only if the components were not already connected
+    beforehand, otherwise, a dictionary with a key 'error'
+    with the corresponding value of appropriate exception.  
+    :rtype: dict
+    """
+    try:
+
+        val_user = escape(request.form.get('user'))
+        val_group = escape(request.form.get('group'))
+        groups = val_group.split(';')
+        
+        user = p.User.from_db(val_user)
+        # user, group = p.User.from_db(val_user), p.UserGroup.from_db(val_group)
+        for gr in groups:
+            group = p.UserGroup.from_db(gr)
+            user.set_group(group)
+
+        return {'result': True}
+
+    except Exception as e:
+        print(e)
+        return {'error': json.dumps(e, default=str)}
+    
+@app.route("/api/get_permissions", methods=['GET'])
+def get_permissions():
+    val_username = request.args.get('username')
+    user = p.User.from_db(val_username)
+    perms = user.get_permissions()
+    print(perms)
+    return {'result': perms}
+
+
+@app.route("/api/get_user_list", methods=["GET"])
+def get_user_list():
+    # pass
+    users = p.User.get_list()
+    # return {"result": [c.as_dict(bare=True) for c in components]}
+    # return {'result': [p.User.as_dict(u) for u in users]}
+    return {'result': [p.User.as_dict(u) for u in users]} 
+
+@app.route("/api/get_user_groups", methods=["GET"])
+def get_user_groups():
+    val_username = request.args.get('username')
+    user = p.User.from_db(val_username)
+    groups = user.get_groups()
+    return {'result': [gr[0].as_dict() for gr in groups]}
+
+@app.route("/api/get_user_group_list", methods=["GET"])
+def get_user_group_list():
+    groups = p.UserGroup.get_list()
+    return {'result': [p.UserGroup.as_dict(gr) for gr in groups]}
+
+@app.route("/api/get_all_permissions", methods=["GET"])
+def get_all_permissions():
+    return {'result': list(p.permissions_set)}

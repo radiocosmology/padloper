@@ -16,7 +16,7 @@ from sympy import true
 import _global as g
 from gremlin_python.process.graph_traversal import __, constant
 
-from _base import Vertex, VertexAttr, strictraise
+from _base import Vertex, VertexAttr, strictraise, authenticated
 from _component_nodes import ComponentType
 from _edges import RelationPropertyType, RelationPropertyAllowedType, \
                    RelationComponentType
@@ -100,7 +100,9 @@ class Property(Vertex):
                     f"{kwargs['type'].allowed_regex}."
                 )
 
-    def _add(self):
+    # Shouldn't be called directly, but will add authentication.
+    @authenticated
+    def _add(self, permissions=None):
         """
         Add this Property to the serverside.
         """
@@ -111,8 +113,8 @@ class Property(Vertex):
 
         Vertex.add(self, attributes)
 
-        if not self.type.added_to_db():
-            self.type.add()
+        if not self.type.added_to_db(permissions=permissions):
+            self.type.add(permissions=permissions)
 
         e = RelationPropertyType(
             inVertex=self.type,

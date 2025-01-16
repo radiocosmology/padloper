@@ -10,22 +10,148 @@ variables in *this* file.
 https://stackoverflow.com/questions/7799286/how-to-split-a-python-module-into-multiple-files
 """
 import datetime
+from functools import wraps
 from gremlin_python.process.graph_traversal import __, constant
 from gremlin_python.process.traversal import Order, P, TextP
 import time
 import _global as g
 from _exceptions import *
 
-#import re
-#from unicodedata import name
-#import warnings
-#from xmlrpc.client import boolean
-#from attr import attr, attributes
-#from sympy import true
-#from typing import Optional, List
-
 # Hack because we use this built-in function name for a variable at points …
 _range = range
+
+permissions_set = {
+    # Component:
+    # protected
+    'Component;add',
+    'Component;replace',
+    'Component;unset_property',
+    'Component;replace_property',
+    'Component;disable_property',
+    'Component;disconnect',
+    'Component;disable_connection',
+    'Component;disable_subcomponent',
+    'Component;subcomponent_connect',
+
+    # general
+    'Component;connect',
+    'Component;set_property',
+
+    # unprotected
+    # 'Component;get_property',
+    # 'Component;get_all_properties',
+    # 'Component;get_all_properties_of_type',
+    # 'Component;get_connections',
+    # 'Component;get_list',
+    # 'Component;get_count',
+    # 'Component;get_all_flags',
+    # 'Component;get_subcomponents',
+    # 'Component;get_subcomponent',
+    # 'Component;get_supercomponents',
+    # 'Component;added_to_db',
+    # 'Component;from_db',
+    # 'Component;from_id',
+    # 'Component;as_dict',
+
+    # Component types:
+    # protected
+    'ComponentType;add',
+    'ComponentType;replace',
+
+    # unprotected
+    # 'ComponentType;as_dict',
+    # 'ComponentType;added_to_db',
+    # 'ComponentType;from_db',
+    # 'ComponentType;from_id',
+    # 'ComponentType;get_names_of_types_and_versions',
+    # 'ComponentType;get_list',
+    # 'ComponentType;get_count',
+
+    # Component version:
+    # protected
+    'ComponentVersion;add',
+    'ComponentVersion;replace',
+
+    # unprotected
+#     'ComponentVersion;as_dict',
+#     'ComponentVersion;added_to_db',
+#     'ComponentVersion;from_db',
+#     'ComponentVersion;from_id',
+#     'ComponentVersion;get_list',
+#     'ComponentVersion;get_count',
+
+    # PropertyType:
+    # protected
+    'PropertyType;add',
+    'PropertyType;replace',
+
+    # Property:
+    # protected
+    'Property;_add',
+
+    # FlagType:
+    # protected
+    'FlagType;add',
+    'FlagType;replace',
+
+    # FlagSeverity:
+    # protected
+    'FlagSeverity;add',
+    'FlagSeverity;replace',
+
+    # Flag:
+    # protected
+    'Flag;replace',
+
+    # general
+    'Flag;add',
+    'Flag;set_end',
+}
+
+#CONTINUE HERE: format the following and copy the rest from _permissions. Also go
+#through and check that permissions are part of everything …
+
+def check_permission(permission, class_name, method_name):
+    """Called by the @authenticated decorator."""
+    print(f"{class_name};{method_name}")
+    if permission is None:
+        # Check for global variable. User to be stored as a user vertex.
+        try:
+            user = g._user['id']
+        except Exception as e:
+            raise NoPermissionsError("User not set.")
+
+        if isinstance(user, str):
+            user = User.from_db(user)
+        permission = user.get_permissions()
+
+    # Raise error if user does not have all required permissions.
+    #
+    # Check default permissions (logged in as a valid user).
+    # If not '*' in permission:
+    # raise NoPermissionsError("Invalid user. Account must be validated by "\
+    #                          "an admin.")
+    if f"{class_name};{method_name}" in permissions_set and \
+        f"{class_name};{method_name}" not in permission:
+        raise NoPermissionsError("User does not have the required " +\
+                                 "permissions to perform this action.")
+
+
+def authenticated(func):
+    """A custom decorator for authentication of methods."""
+    @wraps(func)
+    def wrapper(*args, **kwargs):
+        # get the class name
+        class_name = func.__qualname__.split('.')[0]
+
+        # get the method name
+        method_name = func.__name__
+
+        # get the permissions
+        kw_permissions = kwargs.get('permissions')
+        check_permission(kw_permissions, class_name, method_name)
+        return func(*args, **kwargs)
+    return wrapper
 
 def strictraise(strict, err, msg):
     if strict:
@@ -47,6 +173,8 @@ def set_user(uid):
     :param uid: The user ID.
     :type attributes: string
     """
+    # TODO: get user from db
+
     g._user = dict()
     g._user["id"] = uid
 
@@ -104,16 +232,6 @@ class Element(object):
         """
 
         return self._id
-
-    def added_to_db(self) -> bool:
-        """Return whether this element is added to the database,
-        that is, whether the ID is not the virtual ID placeholder.
-
-        :return: True if element is added to database, False otherwise.
-        :rtype: bool
-        """
-        raise RuntimeError("Should not be used.")
-        return self._id != g._VIRTUAL_ID_PLACEHOLDER
 
     def __repr__(self):
         return str(self._id)
@@ -402,7 +520,8 @@ class Vertex(Element):
         return g._vertex_cache[vertex.id()]
 
 
-    def add(self, strict_add=False):
+    @authenticated
+    def add(self, strict_add=False, permissions=None):
         """Add the vertex to the Janusgraph DB.
 
         :param strict_add: If False, then do not throw an error if the vertex
@@ -478,7 +597,9 @@ class Vertex(Element):
 
             return self
 
-    def in_db(self, strict_check=True, allow_removed=False) -> bool:
+    #@authenticated
+    def in_db(self, strict_check=True, allow_removed=False,
+              permissions=None) -> bool:
         """Return whether this Vertex has been added to the database.
 
         :param strict_check: If True, then check whether a vertex exists in the
@@ -556,7 +677,9 @@ class Vertex(Element):
             return False
         return True
 
-    def replace(self, newVertex, disable_time: int = int(time.time())):
+    @authenticated
+    def replace(self, newVertex, disable_time: int = int(time.time()),
+                permissions=None):
         """Replaces the vertex in the JanusGraph DB with the new vertex by
         changing its property 'active' from true to false and transfering
         all the edges to the new vertex. The old vertex contains the ID of
@@ -668,7 +791,8 @@ class Vertex(Element):
 
         return newVertex
 
-    def disable(self, disable_time: int = int(time.time())):
+    @authenticated
+    def disable(self, disable_time: int = int(time.time()), permissions=None):
         """Disables the vertex as well all the edges connected to the vertex by
             setting the property from 'active' from true to false.
 
@@ -689,21 +813,6 @@ class Vertex(Element):
         for i in range(len(edge_count)):
             g.t.V(self.id()).bothE()[i].property('active', False).property(
                 'time_disabled', disable_time).next()
-
-    def added_to_db(self) -> bool:
-        """Return whether this vertex is added to the database,
-        that is, whether the ID is not the virtual ID placeholder and perform 
-        a query to the database to determine if the vertex 
-        has already been added.
-
-        :return: True if element is added to database, False otherwise.
-        :rtype: bool
-        """
-
-        return (
-            self.id() != g._VIRTUAL_ID_PLACEHOLDER or
-            g.t.V(self.id()).count().next() > 0
-        )
 
     def as_dict(self):
         ret = {}
@@ -902,7 +1011,8 @@ class Edge(Element):
         self.inVertex = inVertex
         self.outVertex = outVertex
 
-    def add(self, attributes: dict):
+    @authenticated
+    def add(self, attributes: dict, permissions=None):
         """Add an edge between two vertices in JanusGraph.
 
         :param attributes: Attributes to add to the edge. Must have string
@@ -916,7 +1026,7 @@ class Edge(Element):
         if not self.outVertex.in_db():
             self.outVertex.add()
 
-        if self.added_to_db():
+        if self.added_to_db(permissions=permissions):
             raise EdgeAlreadyAddedError(
                 f"Edge already exists in the database."
             )
@@ -947,17 +1057,8 @@ class Edge(Element):
 
             self._set_id(e.id)
 
-    def disable(self, disable_time: int = int(time.time())):
-        """Disable this connexion by setting active to false.
-
-        :param disable_time: When this edge was disabled in the database.
-        :type disable_time: int
-        """
-        g.t.E(self.id()).property('active', False)\
-                        .property('time_disabled', disable_time).iterate()
-
-
-    def added_to_db(self) -> bool:
+    @authenticated
+    def added_to_db(self, permissions=None) -> bool:
         """Return whether this edge is added to the database,
         that is, whether the ID is not the virtual ID placeholder, and perform a
         query to the database to determine if the vertex has already been
@@ -972,7 +1073,20 @@ class Edge(Element):
             g.t.E(self.id()).count().next() > 0
         )
 
-    def other_vertex(self, v):
+
+    @authenticated
+    def disable(self, disable_time: int = int(time.time()),
+                permissions=None):
+        """Disable this connexion by setting active to false.
+
+        :param disable_time: When this edge was disabled in the database.
+        :type disable_time: int
+        """
+        g.t.E(self.id()).property('active', False)\
+                        .property('time_disabled', disable_time).iterate()
+
+    @authenticated
+    def other_vertex(self, v, permissions=None):
         """Given one vertex of this edge, return the other.
 
         :param v: The vertex on one side of the connexion; the other will be
@@ -1130,7 +1244,8 @@ class TimestampedEdge(Edge):
             "end": self.end.as_dict()
         }
 
-    def add(self):
+    @authenticated
+    def add(self, permissions=None):
         """Add this timestamped edge to the database.
         """
 
@@ -1177,3 +1292,111 @@ class TimestampedEdge(Edge):
         else:
             ret += self.end.as_datetime().strftime(strfmt)
         return ret
+
+
+class User(Vertex):
+    """
+    The representaiton of a user vertex. Contains a name attirbute,
+    and institution attribute.
+
+    :ivar name: The username of the user.
+    :ivar institution: The institution the user belongs to.
+    """
+
+    category: str = "user"
+    _vertex_attrs: list = [
+        VertexAttr("name", str),
+        VertexAttr("institution", str, optional=True, default="")
+    ]
+    primary_attr: str = "name"
+
+    def set_group(self, group, strict_add: bool=True):
+        """
+        Given a UserGroup :param group, connect this User to this group.
+
+        :param group: A UserGroup to connect this User to
+        :type group: UserGroup
+        """
+        if not self.in_db():
+            raise UserNotAddedError(
+                f"User {self.name} has not yet been added to the database."
+            )
+
+        if not group.in_db():
+            raise UserGroupNotAddedError(
+                f"UserGroup {group.name} has not yet been added to the "\
+                 "database."
+            )
+
+        group_edge = RelationUserGroup(
+            inVertex=self,
+            outVertex=group
+        )
+
+        group_edge.add()
+
+    def get_groups(self):
+        from _edges import RelationUserGroup
+
+        if not self.in_db():
+            raise UserNotAddedError(
+                f"User {self.name} has not yet been added to the database."
+            )
+
+        query = g.t.V(self.id()).bothE(RelationUserGroup.category)\
+                .as_('e').valueMap().as_('edge_props')\
+                .select('e').otherV().id_().as_('vertex_id')\
+                .select('edge_props', 'vertex_id').toList()
+
+        # Build up the result 
+        result = []
+        for q in query:
+            group = UserGroup.from_id(q['vertex_id'])
+            edge = RelationUserGroup(
+                inVertex=group,
+                outVertex=self,
+            )
+            result.append([group, edge])
+
+        return result
+
+    def get_permissions(self) -> set:
+        # Store perms
+        perms = []
+
+        groups = self.get_groups()
+        for group in groups:
+            group_perms = group[0].permissions
+            perms.extend(group_perms)
+
+        # Make unique
+        return list(set(perms))
+
+
+class UserGroup(Vertex):
+    """
+    Represents a user group vertex in JanusGraph.
+
+    :ivar name: The name of the user group.
+    """
+
+    category: str = "user_group"
+    _vertex_attrs: list = [
+        VertexAttr("name", str),
+        VertexAttr("permissions", str, is_list=True)
+    ]
+
+
+class Permission(object):
+    _permission_list = []
+    _user_id = None
+
+    def __init__(self, permission_list, uid):
+        self._permission_list = permission_list
+        self._user_id = uid
+
+    def get_permission_list(self):
+        return self._permission_list
+
+    def get_user_id(self):
+        return self._user_id

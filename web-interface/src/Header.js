@@ -6,6 +6,7 @@ import IconButton from '@mui/material/IconButton';
 import Menu from '@mui/material/Menu';
 import MenuItem from '@mui/material/MenuItem';
 import GithubIcon from "mdi-react/GithubIcon";
+import axios from 'axios'
 import { useState, useEffect, useContext } from 'react';
 import { OAuthContext } from './contexts/OAuthContext';
 
@@ -33,6 +34,23 @@ function Header() {
     }, []
     // [accessToken]
     )
+
+    // login to backend
+    useEffect(() => {
+        // userData ? userData.login : ''
+        if (userData.login) {
+            axios.post("/api/login", {
+                username: userData.login,
+                accessToken: localStorage.getItem("accessToken")
+            })
+            .then(res => {
+                console.log(res.data)
+            })
+            .catch(err => {
+                console.error('Error:', err);
+            })
+        }
+    }, [userData])
 
     const handleClick = (event) => {
         setAnchorEl(event.currentTarget);
@@ -132,6 +150,24 @@ function Header() {
                     ]}
                 />
 
+                <HeaderMenuButton
+                    name={"Manage Users"}
+                    links={[
+                        {
+                            name: 'User Management', 
+                            link: `/manage/users`
+                        },
+                        {
+                            name: 'User Group Management',
+                            link: `/manage/users/groups`
+                        },
+                        {
+                            name: 'Add Users',
+                            link: `/users`
+                        }
+                    ]}
+                />
+
                 {/* <a onClick={() => console.log('clicked!')}> */}
                 {/* </a> */}
 
@@ -163,7 +199,17 @@ function Header() {
                     </MenuItem>
                     <MenuItem
                         // remove local storage 
-                        onClick={() => { localStorage.removeItem("accessToken"); navigate("/") ; window.location.reload(false);}
+                        onClick={() => { 
+                            localStorage.removeItem("accessToken");
+                            axios.post("/api/logout")
+                            .then(res => {
+                                console.log(res.data)
+                            })
+                            .catch(err => {
+                                console.error('Error:', err);
+                            })
+                            window.location.reload(false);
+                        }
                         // onClick={() => { setAccessToken(''); }
                     }>
                         Sign out

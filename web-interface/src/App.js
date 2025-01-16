@@ -17,6 +17,9 @@ import {
 } from "react-router-dom";
 import Login from './Login.js';
 import { OAuthContext, useOAuthContext } from './contexts/OAuthContext.js';
+import UserManagementPage from './UserManagement.js';
+import UserGroupManagementPage from './UserGroupManagement.js';
+import UserCreatePage from './UserCreate.js';
 
 /**
  * The main page where the header and site contents are rendered,
@@ -102,7 +105,34 @@ function App() {
               <PropertyTypeList />
             } 
           />
-          
+
+          <Route 
+            exact={true}
+            path="/manage/users"
+            element={
+              <UserManagementPage />
+            }
+          />
+
+
+          <Route 
+            exact={true}
+            path="/manage/users/groups"
+            element={
+              <UserGroupManagementPage />
+            }
+          />
+
+          <Route 
+            exact={true}
+            path="/users"
+            element={
+              <UserCreatePage />
+            }
+          />
+
+         
+
           {
             /**
              * A ReactFlowProvider is wrapped around the visualizer to
