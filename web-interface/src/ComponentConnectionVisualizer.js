@@ -1124,7 +1124,7 @@ resolve => {
                     componentsAdded.push(parent);
                     lastAdded.current.y += nodeHeight + 20;
 
-                    formatRowsVertical(nodeCoords.current[parent.name].row, 2 * nodeHeight, [parent.name]);
+                    formatRowsVertical(nodeCoords.current[parent.name].row, nodeHeight, [parent.name]);
                 
                     // point curr to parent
                     setNodes((nodes) => nodes.map((node) => {
