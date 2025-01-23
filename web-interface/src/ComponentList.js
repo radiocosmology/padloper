@@ -9,6 +9,8 @@ import ComponentAddButton from './ComponentAddButton.js';
 import ComponentReplaceButton from './ComponentReplaceButton.js';
 import AlertDialog from './ComponentDisableButton'
 import Authenticator from './components/Authenticator.js';
+import ErrorIcon from '@mui/icons-material/Error'
+
 
 /**
  * A MUI component that represents a list of components.
@@ -33,6 +35,9 @@ function ComponentList() {
     // property to order the components by.
     // must be in the set {'name', 'type', 'version'}
     const [orderBy, setOrderBy] = useState('name');
+
+    // error data to display, if any
+    const [errorData, setErrorData] = useState(null);
 
     /*
     stores component types as
@@ -152,11 +157,16 @@ function ComponentList() {
     
             // query the URL with flask, and set the input.
             fetch(input).then(
-                res => res.json()
-            ).then(data => {
-                setComponents(data.result);
-                setLoaded(true);
-             
+                (res) => res.json()
+            ).then((data) => {
+                console.log(data);
+                if (data.result) {
+                    setComponents(data.result);
+                    setLoaded(true);
+                }
+                else {
+                    setErrorData(data.error);
+                }
             });
         }
         fetchData();
@@ -284,6 +294,26 @@ function ComponentList() {
                     )
                 )
             }
+            <div 
+                style={{
+                marginTop:'15px',
+                marginBottom:'5px',
+                color:'red',
+                display:'flex',
+                alignItems:'center'
+                }}>
+                    {
+                    errorData
+                    ?
+                    <>
+                    <ErrorIcon
+                    fontSize='small'
+                    /> 
+                    {errorData}
+                    </>
+                    :
+                    null}
+            </div>
 
             <ElementList
                 tableRowContent={tableRowContent}

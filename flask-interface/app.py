@@ -46,7 +46,7 @@ def read_filters(filters):
         return None
 
 # Can also implement something like this.
-# @app.route("/api/components_id/<id>")
+# @app.route("/api/s_id/<id>")
 # def get_component_by_id(id):
 #     return str(Component.from_id(escape(id)))
 
@@ -95,38 +95,43 @@ def get_component_list():
     desired list.
     :rtype: dict
     """
+    try:
+        # extract the component range from the url parameters
+        component_range = escape(request.args.get('range'))
 
-    # extract the component range from the url parameters
-    component_range = escape(request.args.get('range'))
+        # extract the min/max
+        range_bounds = tuple(map(int, component_range.split(';')))
 
-    # extract the min/max
-    range_bounds = tuple(map(int, component_range.split(';')))
+        # extract the orderBy
+        order_by = escape(request.args.get('orderBy'))
 
-    # extract the orderBy
-    order_by = escape(request.args.get('orderBy'))
+        # extract the orderDirection
+        order_direction = escape(request.args.get('orderDirection'))
 
-    # extract the orderDirection
-    order_direction = escape(request.args.get('orderDirection'))
+        # extract the filters
+        filters = request.args.get('filters')
 
-    # extract the filters
-    filters = request.args.get('filters')
+        # read the filters, put them into the three-tuples
+        filter_triples = read_filters(filters)
 
-    # read the filters, put them into the three-tuples
-    filter_triples = read_filters(filters)
+        # make sure that the range bounds only consist of a min/max, and that
+        # the order direction is either asc or desc.
+        assert len(range_bounds) == 2
+        assert order_direction in {'asc', 'desc'}
 
-    # make sure that the range bounds only consist of a min/max, and that
-    # the order direction is either asc or desc.
-    assert len(range_bounds) == 2
-    assert order_direction in {'asc', 'desc'}
+        components = p.Component.get_list(
+            range=range_bounds,
+            order_by=order_by,
+            order_direction=order_direction,
+            filters=filter_triples,
+        )
+        
+        return {"result": [c.as_dict(bare=True) for c in components]}
 
-    components = p.Component.get_list(
-        range=range_bounds,
-        order_by=order_by,
-        order_direction=order_direction,
-        filters=filter_triples,
-    )
+    except Exception as e:
+        print(e)
+        return {'error': json.dumps(e, default=str)}
     
-    return {"result": [c.as_dict(bare=True) for c in components]}
 
 
 @app.route("/api/set_component_type", methods=['POST'])
