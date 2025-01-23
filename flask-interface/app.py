@@ -421,13 +421,18 @@ def disable_component():
     with the corresponding value of appropriate exception.  
     :rtype: dict
     """
-    val_name = escape(request.args.get('name'))
+    try:
+        val_name = escape(request.args.get('name'))
 
-    # Need to initialize an instance of a component first.
-    component = p.Component.from_db(val_name)
-    component.disable()
+        # Need to initialize an instance of a component first.
+        component = p.Component.from_db(val_name)
+        component.disable()
 
-    return {'result': True}
+        return {'result': True}
+
+    except Exception as e:
+        print(e)
+        return {'error': json.dumps(e, default=str)}
 
 
 @app.route("/api/set_property_type", methods=['POST'])

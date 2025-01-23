@@ -9,6 +9,7 @@ import styled from '@mui/material/styles/styled';
 import DeleteIcon from '@mui/icons-material/Delete';
 import DialogContentText from '@mui/material/DialogContentText';
 import CircularProgress from '@mui/material/CircularProgress';
+import ErrorIcon from '@mui/icons-material/Error'
 
 
 /*
@@ -39,6 +40,9 @@ const DisableButton = styled((props) => (
   // whether the submit button has been clicked or not
   const [loading, setLoading] = useState(false);
 
+  // error data to be displayed, if any
+  const [errorData, setErrorData] = useState(null);
+
   /*
   Function that is used to open the form when the user clicks
   on the 'disable' button.
@@ -52,7 +56,8 @@ const DisableButton = styled((props) => (
   */
   const handleClose = () => {
     setOpen(false);
-    setLoading(false)
+    setLoading(false);
+    setErrorData(null);
   };
 
     /**
@@ -67,17 +72,21 @@ const DisableButton = styled((props) => (
         input += `?name=${name}`;
 
         return new Promise((resolve, reject) => {
-            fetch(input).then(
-                res => res.json()
-            ).then(data => {
-                if (data.result) {
-                    toggleReload();
-                    handleClose()
-                }
-                resolve(data.result);
+          fetch(input).then(
+            (res) => res.json())
+            .then((data) => {
+              console.log(data);
+              if (data.result) {
+                toggleReload();
+                handleClose();
+              }
+              else {
+                setErrorData(data.error);
+                setLoading(false);
+              }
+              resolve(data.result);
             });
-        });
-
+          });
     }
   
   return (
@@ -106,6 +115,26 @@ const DisableButton = styled((props) => (
                         /> : "Submit"}
               </Button>
         </DialogActions>
+        <div 
+          style={{
+          marginTop:'15px',
+          marginBottom:'5px',
+          color:'red',
+          display:'flex',
+          alignItems:'center'
+          }}>
+            {
+              errorData
+              ?
+            <>
+            <ErrorIcon
+            fontSize='small'
+            /> 
+            {errorData}
+            </>
+            :
+            null}
+          </div>
       </Dialog>
     </>
   );

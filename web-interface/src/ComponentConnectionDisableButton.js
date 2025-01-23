@@ -74,7 +74,7 @@ const DisableButton = styled((props) => (
 
         return new Promise((resolve, reject) => {
             fetch(input).then(
-              (response) => response.json())
+              (res) => res.json())
               .then((data) => {
                 console.log(data);
                 if (data.result) {
@@ -83,7 +83,6 @@ const DisableButton = styled((props) => (
                 }
                 else {
                   setErrorData(data.error)
-                  console.log("error reached");
                 }
                 resolve(data.result);
               });
