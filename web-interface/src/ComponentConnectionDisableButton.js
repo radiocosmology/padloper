@@ -73,22 +73,6 @@ const DisableButton = styled((props) => (
         input += `&name2=${otherComponentName}`;
 
         return new Promise((resolve, reject) => {
-            // fetch(input).then(
-            //     (res) => {
-            //       console.log(res);
-            //       let data = res.json();
-            //     console.log(data);
-            //     if (data.result) {
-            //         toggleReload();
-            //         handleClose()
-            //     }
-            //     else {
-            //       setErrorData(data.error);
-            //       console.log("error reached");
-            //     }
-            //     resolve(data.result);
-            // });
-
             fetch(input).then(
               (response) => response.json())
               .then((data) => {
@@ -103,8 +87,8 @@ const DisableButton = styled((props) => (
                 }
                 resolve(data.result);
               });
-              });
-              }
+            });
+          }
   
   return (
     <>
