@@ -734,7 +734,6 @@ class Component(Vertex):
                 f"component {self.name} because it is set at this time and "\
                 f"already has an end time."
             )
-#        print("slkdjflskdjfslkdjfslkdfjslkdjf")
 
         g.t.V(property.id()).bothE(RelationProperty.category).as_('e')\
            .otherV() \

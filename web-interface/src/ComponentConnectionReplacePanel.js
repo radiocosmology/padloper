@@ -7,6 +7,7 @@ import Grid from '@mui/material/Grid';
 import CircularProgress from '@mui/material/CircularProgress';
 import MuiTextField from '@mui/material/TextField';
 import CloseIcon from '@mui/icons-material/Close';
+import ErrorIcon from '@mui/icons-material/Error';
 import ThemeProvider from '@mui/material/styles/ThemeProvider';
 import styled from '@mui/material/styles/styled';
 import { Typography } from '@mui/material';
@@ -81,6 +82,7 @@ function ComponentConnectionReplacePanel(
         onSet,
         uid,
         conn,
+        errorMessage
     }
 ) {
 
@@ -182,6 +184,30 @@ function ComponentConnectionReplacePanel(
 
                 </Grid>
 
+                {errorMessage ? 
+                    <Grid 
+                        container 
+                        style={{
+                            marginTop: theme.spacing(1),
+                        }}
+                        spacing={1}
+                        justifyContent="center"
+                    >
+                        <Grid item>
+                            <ErrorIcon sx={{color: 'red'}} />
+                        </Grid>
+                        <Grid item>
+                            <Typography
+                                style={{
+                                    color: 'rgb(255,0,0)',
+                                }}
+                            >
+                                {errorMessage}
+                            </Typography>
+                        </Grid>
+                    </Grid> : <></>
+                }
+
                 <Box 
                     style={{
                         textAlign: "right",
@@ -218,7 +244,7 @@ function ComponentConnectionReplacePanel(
                          * so when the panel is loading, the button
                          * is spinning.
                          */}
-                        {loading ? 
+                        {(loading && !errorMessage) ? 
                         <CircularProgress
                             size={24}
                             sx={{

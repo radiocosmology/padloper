@@ -365,8 +365,20 @@ function ComponentPage() {
     /*Contains the message when there is an error while adding a new property */
     const [errorPropertyMessage,setErrorPropertyMessage] = useState(null)
 
+    /*Contains the message when there is an error while ending a property */
+    const [errorEndPropertyMessage, seterrorEndPropertyMessage] = useState(null)
+
+    /*Contains the message when there is an error while replacing a property */
+    const [errorReplacePropertyMessage, setErrorReplacePropertyMessage] = useState(null)
+
     /*Contains the message when there is an error while adding a new connection */
     const [errorConnectionMessage,setErrorConnectionMessage] = useState(null)
+
+    /*Contains the message when there is an error while ending a connection */
+    const [errorEndConnectionMessage, setErrorEndConnectionMessage] = useState(null)
+
+    /*Contains the message when there is an error while replacing a connection */
+    const [errorReplaceConnectionMessage, setErrorReplaceConnectionMessage] = useState(null);
 
     const [userData, setUserData] = useState({});
 
@@ -429,9 +441,9 @@ function ComponentPage() {
 
         axios.post(input).then(
             (response) => {
-                if(response.data.result){
+                if (response.data.result){
                     setOpenPropertiesAddPanel(false);
-                    setErrorPropertyMessage(null)
+                    setErrorPropertyMessage(null);
                     toggleReload();
                 } else {
                     setErrorPropertyMessage(response.data.error)
@@ -457,10 +469,18 @@ function ComponentPage() {
         input += `&comments=${comments}`;
 
         fetch(input).then(
-            res => res.json()
-        ).then(data => {
-            setOpenPropertiesEndPanel(false);
-            toggleReload();
+            (res) => res.json()
+        ).then((data) => {
+            if (data.result) {
+                setOpenPropertiesEndPanel(false);
+                seterrorEndPropertyMessage(null);
+                toggleReload();
+            }
+            else {
+                console.log("error reached");
+                console.log(data.error);
+                seterrorEndPropertyMessage(data.error);
+            }
         });
     }
 
@@ -491,8 +511,13 @@ function ComponentPage() {
         fetch(input).then(
             res => res.json()
         ).then(data => {
-            setOpenPropertiesReplacePanel(false);
-            toggleReload();
+            if (data.result) {
+                setOpenPropertiesReplacePanel(false);
+                toggleReload();
+            }
+            else {
+                setErrorReplacePropertyMessage(data.error);
+            }
         });
     }
 
@@ -552,6 +577,10 @@ function ComponentPage() {
                     setOpenConnectionsEndPanel(false);
                     toggleReload();
                 }
+                else {
+                    console.log(data.error);
+                    setErrorEndConnectionMessage(data.error);
+                }
                 resolve(data.result);
             });
         });
@@ -582,6 +611,9 @@ function ComponentPage() {
                 if (data.result) {
                     setOpenConnectionsReplacePanel(false);
                     toggleReload();
+                }
+                else {
+                    setErrorReplaceConnectionMessage(data.error);
                 }
                 resolve(data.result);
             });
@@ -662,6 +694,7 @@ function ComponentPage() {
                 theme={theme} 
                 onClose={() => setOpenPropertiesEndPanel(false)}
                 onSet={endProperty}
+                errorMessage={errorEndPropertyMessage}
             />
         ) : <></>;
 
@@ -782,11 +815,15 @@ function ComponentPage() {
                         (open_properties_replace_panel) ? (
                             <ComponentPropertyReplacePanel 
                                 theme={theme} 
-                                onClose={() => setOpenPropertiesReplacePanel(false)}
+                                onClose={() => {
+                                    setErrorReplacePropertyMessage(null); 
+                                    setOpenPropertiesReplacePanel(false)
+                                }}
                                 onSet={replaceProperty}
                                 selected={prop.type}
                                 oldTextFieldValues={prop.values}
                                 oldComments={prop.start. comments}
+                                errorReplacePropertyMessage={errorReplacePropertyMessage}
                             />
                         ) : <></>
                         :
@@ -809,10 +846,14 @@ function ComponentPage() {
         let connections_end_panel_content = (open_connections_end_panel) ? (
             <ComponentConnectionEndPanel 
                 theme={theme} 
-                onClose={() => setOpenConnectionsEndPanel(false)}
+                onClose={() => {
+                    setOpenConnectionsEndPanel(false);
+                    setErrorEndConnectionMessage(null);
+                }}
                 onSet={endConnection}
                 name={name}
                 uid={uid}
+                errorMessage={errorEndConnectionMessage}
             />
         ) : <></>;
 
@@ -951,6 +992,7 @@ function ComponentPage() {
                                 onSet={replaceConnection}
                                 uid={uid}
                                 conn={conn}
+                                errorMessage={errorReplaceConnectionMessage}
                             />
                         ) : <></>
                         :

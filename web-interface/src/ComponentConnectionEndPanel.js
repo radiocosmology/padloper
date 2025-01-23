@@ -81,6 +81,7 @@ function ComponentConnectionEndPanel(
         onClose,
         onSet,
         uid,
+        errorMessage
     }
 ) {
 
@@ -106,9 +107,6 @@ function ComponentConnectionEndPanel(
     // whether the panel is loading: usually happens after the "End" button
     // is made, waiting for a response from the DB.
     const [loading, setLoading] = useState(false);
-
-    // the body of an error message to display, if any.
-    const [errorMessage, setErrorMessage] = useState("");
 
     // return the MUI component.
     return (
@@ -178,7 +176,7 @@ function ComponentConnectionEndPanel(
 
                 </Grid>
 
-                {errorMessage !== "" ? 
+                {errorMessage ? 
                     <Grid 
                         container 
                         style={{
@@ -218,7 +216,6 @@ function ComponentConnectionEndPanel(
                         }
                         onClick={
                             async () => {
-                                setErrorMessage("");
                                 setLoading(true);
                                 onSet( 
                                     time, 
@@ -239,7 +236,7 @@ function ComponentConnectionEndPanel(
                          * so when the panel is loading, the button
                          * is spinning.
                          */}
-                        {loading ? 
+                        {(loading && !errorMessage) ? 
                         <CircularProgress
                             size={24}
                             sx={{

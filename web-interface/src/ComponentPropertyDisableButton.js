@@ -5,11 +5,13 @@ import Dialog from '@mui/material/Dialog';
 import DialogActions from '@mui/material/DialogActions';
 import DialogContent from '@mui/material/DialogContent';
 import DialogTitle from '@mui/material/DialogTitle';
+import Grid from '@mui/material/Grid';
 import styled from '@mui/material/styles/styled';
 import DeleteIcon from '@mui/icons-material/Delete';
 import DialogContentText from '@mui/material/DialogContentText';
 import CircularProgress from '@mui/material/CircularProgress';
-
+import ErrorIcon from '@mui/icons-material/Error';
+import { Typography } from '@mui/material';
 
 /*
 A MUI component representing a button for disabling.
@@ -35,6 +37,8 @@ const DisableButton = styled((props) => (
 
   // opens and closes the alert dialog box.
   const [open, setOpen] = useState(false);
+
+  const [errorMessage, setErrorMessage] = useState(null);
 
   // whether the submit button has been clicked or not
   const [loading, setLoading] = useState(false);
@@ -72,8 +76,12 @@ const DisableButton = styled((props) => (
                 res => res.json()
             ).then(data => {
                 if (data.result) {
+                    setErrorMessage(null);
                     toggleReload();
                     handleClose()
+                }
+                else {
+                  setErrorMessage(data.error);
                 }
                 resolve(data.result);
             });
@@ -102,6 +110,26 @@ const DisableButton = styled((props) => (
                                         ).join(", ") + ' ]'
                                     }. Do you agree ?
           </DialogContentText>
+          {errorMessage ? 
+                    <Grid 
+                        container 
+                        spacing={1}
+                        justifyContent="center"
+                    >
+                        <Grid item>
+                            <ErrorIcon sx={{color: 'red'}} />
+                        </Grid>
+                        <Grid item>
+                            <Typography
+                                style={{
+                                    color: 'rgb(255,0,0)',
+                                }}
+                            >
+                                {errorMessage}
+                            </Typography>
+                        </Grid>
+                    </Grid> : <></>
+                }
         </DialogContent>
         <DialogActions>
           <Button onClick={handleClose}>Cancel</Button>           

@@ -851,7 +851,6 @@ def set_component_property():
     :rtype: dict
     """
     try:
-
         val_name = escape(request.args.get('name'))
         val_property_type = escape(request.args.get('propertyType'))
         val_time = int(escape(request.args.get('time')))
@@ -903,31 +902,36 @@ def end_component_property():
     :return: A dictionary with a key 'result' of corresponding value True
     :rtype: dict
     """
+    try:
+        val_name = escape(request.args.get('name'))
+        val_property_type = escape(request.args.get('propertyType'))
+        val_time = int(escape(request.args.get('time')))
+        val_uid = escape(request.args.get('uid'))
+        val_comments = escape(request.args.get('comments'))
 
-    val_name = escape(request.args.get('name'))
-    val_property_type = escape(request.args.get('propertyType'))
-    val_time = int(escape(request.args.get('time')))
-    val_uid = escape(request.args.get('uid'))
-    val_comments = escape(request.args.get('comments'))
+        property_type = p.PropertyType.from_db(val_property_type)
 
-    property_type = p.PropertyType.from_db(val_property_type)
+        # Initializing the component instance from the name provided as the url
+        # parameter.
+        component = p.Component.from_db(val_name)
 
-    # Initializing the component instance from the name provided as the url
-    # parameter.
-    component = p.Component.from_db(val_name)
+        property = component.get_property(property_type, val_time)
+        if property == None:
+            raise p.ComponentPropertyStartTimeExceedsInputtedTime(
+                        f"{component.name} has no property with the given "\
+                        "combination of time and property type. Make sure time "\
+                        "inputted is later than property start time."
+                    )
 
-    property = component.get_property(property_type, val_time)
-    if property == None:
-        raise p.ComponentPropertyStartTimeExceedsInputtedTime(
-                    f"{component.name} has no property with the given "\
-                     "combination of time and property type. Make sure time "\
-                     "inputted is later than property start time."
-                )
+        t = tmp_timestamp(val_time, val_uid, val_comments)
+        component.unset_property(property, t)
 
-    t = tmp_timestamp(val_time, val_uid, val_comments)
-    component.unset_property(property, t)
-
-    return {'result': True}
+        return {'result': True}
+    
+    except Exception as e:
+        print(e)
+        return {'error': json.dumps(e, default=str)}
+    
 
 
 @app.route("/api/component_replace_property")
@@ -957,36 +961,38 @@ def replace_component_property():
     :return: A dictionary with a key 'result' of corresponding value True
     :rtype: dict
     """
+    try:
+        val_name = escape(request.args.get('name'))
+        val_property_type = escape(request.args.get('propertyType'))
+        val_time = int(escape(request.args.get('time')))
+        val_uid = escape(request.args.get('uid'))
+        val_comments = escape(request.args.get('comments'))
+        val_value_count = int(escape(request.args.get('valueCount')))
+        val_values = escape(request.args.get('values'))
 
-    val_name = escape(request.args.get('name'))
-    val_property_type = escape(request.args.get('propertyType'))
-    val_time = int(escape(request.args.get('time')))
-    val_uid = escape(request.args.get('uid'))
-    val_comments = escape(request.args.get('comments'))
-    val_value_count = int(escape(request.args.get('valueCount')))
-    val_values = escape(request.args.get('values'))
+        values = val_values.split(';')
 
-    values = val_values.split(';')
+        # if this is false, then you put a semicolon in a value name!!!
+        assert len(values) == val_value_count
 
-    # if this is false, then you put a semicolon in a value name!!!
-    assert len(values) == val_value_count
+        property_type = p.PropertyType.from_db(val_property_type)
 
-    property_type = p.PropertyType.from_db(val_property_type)
+        component = p.Component.from_db(val_name)
 
-    component = p.Component.from_db(val_name)
+        property_new = p.Property(values=values, type=property_type)
 
-    property_new = p.Property(values=values, type=property_type)
+        t = tmp_timestamp(val_time, val_uid, val_comments)
 
-    t = tmp_timestamp(val_time, val_uid, val_comments)
+        component.replace_property(propertyTypeName=val_property_type,
+                                property=property_new, at_time=val_time, 
+                                uid=val_uid,
+                                start = t, comments=val_comments)
 
-    component.replace_property(propertyTypeName=val_property_type,
-                               property=property_new, at_time=val_time, 
-                               uid=val_uid,
-                               start = t, comments=val_comments)
+        return {'result': True}
 
-    # component.replace_property()
-
-    return {'result': True}
+    except Exception as e:
+        print(e)
+        return {'error': json.dumps(e, default=str)}
 
 
 @app.route("/api/component_disable_property")
@@ -994,16 +1000,21 @@ def disable_component_property():
     """Given the component name and the name of the property type, disable the
     property from the serverside.
     """
-    val_name = escape(request.args.get('name'))
-    val_property_type = escape(request.args.get('propertyType'))
+    try:
+        val_name = escape(request.args.get('name'))
+        val_property_type = escape(request.args.get('propertyType'))
 
-    component = p.Component.from_db(val_name)
+        component = p.Component.from_db(val_name)
 
-    component.disable_property(
-        propertyTypeName=val_property_type
-    )
+        component.disable_property(
+            propertyTypeName=val_property_type
+        )
 
-    return {'result': True}
+        return {'result': True}
+    
+    except Exception as e:
+        print(e)
+        return {'error': json.dumps(e, default=str)}
 
 
 @app.route("/api/component_add_connection", methods=['POST'])
@@ -1077,24 +1088,28 @@ def end_component_connection():
     beforehand.
     :rtype: dict
     """
-
-    val_name1 = escape(request.args.get('name1'))
-    val_name2 = escape(request.args.get('name2'))
-    val_time = int(escape(request.args.get('time')))
-    val_uid = escape(request.args.get('uid'))
-    val_comments = escape(request.args.get('comments'))
-
-    c1, c2 = p.Component.from_db(val_name1), p.Component.from_db(val_name2)
-
-    already_disconnected = False
-
     try:
-        t = tmp_timestamp(val_time, val_uid, val_comments)
-        c1.disconnect(c2, t)
-    except p.ComponentsAlreadyDisconnectedError:
-        already_disconnected = True
+        val_name1 = escape(request.args.get('name1'))
+        val_name2 = escape(request.args.get('name2'))
+        val_time = int(escape(request.args.get('time')))
+        val_uid = escape(request.args.get('uid'))
+        val_comments = escape(request.args.get('comments'))
 
-    return {'result': not already_disconnected}
+        c1, c2 = p.Component.from_db(val_name1), p.Component.from_db(val_name2)
+
+        already_disconnected = False
+
+        try:
+            t = tmp_timestamp(val_time, val_uid, val_comments)
+            c1.disconnect(c2, t)
+        except p.ComponentsAlreadyDisconnectedError:
+            already_disconnected = True
+
+        return {'result': not already_disconnected}
+    
+    except Exception as e:
+        print(e)
+        return {'error': json.dumps(e, default=str)}
 
 
 @app.route("/api/component_disable_connection")
