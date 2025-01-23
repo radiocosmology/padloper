@@ -159,8 +159,8 @@ function ComponentList() {
             fetch(input).then(
                 (res) => res.json()
             ).then((data) => {
-                console.log(data);
                 if (data.result) {
+                    setErrorData(null);
                     setComponents(data.result);
                     setLoaded(true);
                 }
@@ -186,11 +186,16 @@ function ComponentList() {
     useEffect(() => {
 
         fetch(`/api/component_count?filters=${createFilterString()}`).then(
-            res => res.json()
-        ).then(data => {
-            setCount(data.result);
-
-            setMin(0);
+            (res) => res.json()
+        ).then((data) => {
+            if (data.result) {
+                setErrorData(null);
+                setCount(data.result);
+                setMin(0);
+            }
+            else {
+                setErrorData(data.error);
+            }
         });
     }, [filters,reloadBool]);
 
@@ -199,9 +204,14 @@ function ComponentList() {
     */
     useEffect(() => {
         fetch("/api/component_types_and_versions").then(
-            res => res.json()
-        ).then(data => {
-            setTypesAndVersions(data.result);
+            (res) => res.json()
+        ).then((data) => {
+            if (data.result) {
+                setTypesAndVersions(data.result);
+            }
+            else {
+                setErrorData(data.error);
+            }
         });
     }, []);
 

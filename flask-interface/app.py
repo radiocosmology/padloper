@@ -572,13 +572,17 @@ def get_component_count():
     the number of components that satisfy the filters. 
     :rtype: dict
     """
+    try:
 
-    filters = request.args.get('filters')
+        filters = request.args.get('filters')
 
-    filter_triples = read_filters(filters)
+        filter_triples = read_filters(filters)
 
-    return {'result': p.Component.get_count(filters=filter_triples)}
-
+        return {'result': p.Component.get_count(filters=filter_triples)}
+    
+    except Exception as e:
+            print(e)
+            return {'error': json.dumps(e, default=str)}
 
 @app.route("/api/component_types_and_versions")
 def get_component_types_and_versions():
