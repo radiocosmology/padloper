@@ -1094,16 +1094,20 @@ def disable_component_connection():
 
     name2 - the name of the second component
     """
+    try: 
+        val_name1 = escape(request.args.get('name1'))
+        val_name2 = escape(request.args.get('name2'))
 
-    val_name1 = escape(request.args.get('name1'))
-    val_name2 = escape(request.args.get('name2'))
-
-    c1, c2 = p.Component.from_db(val_name1), p.Component.from_db(val_name2)
-    # Get the connection object, and then disable it.
-    raise RuntimeError("This function needs to be fixed! The time at which " \
-                       "the connection is to be disabled needs to be " \
-                       "specified.")
-    return {'result': True}
+        c1, c2 = p.Component.from_db(val_name1), p.Component.from_db(val_name2)
+        # Get the connection object, and then disable it.
+        raise RuntimeError("This function needs to be fixed! The time at which " \
+                        "the connection is to be disabled needs to be " \
+                        "specified.")
+        return {'result': True}
+    
+    except Exception as e:
+        print(e)
+        return {'error': json.dumps(e, default=str)}
 
 
 @app.route("/api/get_connections")
