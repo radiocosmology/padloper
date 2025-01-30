@@ -151,7 +151,6 @@ def set_component_type():
     :rtype: dict
     """
     try:
-
         val_name = escape(request.args.get('name'))
         val_comments = escape(request.args.get('comments'))
 
@@ -189,7 +188,6 @@ def replace_component_type():
     :rtype: dict
     """
     try:
-
         val_name = escape(request.args.get('name'))
         val_comments = escape(request.args.get('comments'))
         val_component_type = escape(request.args.get('component_type'))
@@ -231,7 +229,6 @@ def set_component_version():
     :rtype: dict
     """
     try:
-
         val_name = escape(request.args.get('name'))
         val_type = escape(request.args.get('type'))
         val_comments = escape(request.args.get('comments'))
@@ -331,7 +328,6 @@ def set_component():
     :rtype: dict
     """
     try:
-
         val_name = escape(request.args.get('name')).split(';')
         val_type = escape(request.args.get('type'))
         val_version = escape(request.args.get('version'))
@@ -382,7 +378,7 @@ def replace_component():
     :rtype: dict
     """
     try:
-
+        raise Exception("replace error")
         val_name = escape(request.args.get('name'))
         val_type = escape(request.args.get('type'))
         val_version = escape(request.args.get('version'))
@@ -1222,7 +1218,6 @@ def add_component_subcomponent():
     :rtype: dict
     """
     try:
-
         val_name1 = escape(request.args.get('name1'))
         val_name2 = escape(request.args.get('name2'))
 
@@ -1257,14 +1252,18 @@ def disable_component_subcomponent():
     that is True.
     :rtype: dict
     """
+    try: 
+        val_name1 = escape(request.args.get('name1'))
+        val_name2 = escape(request.args.get('name2'))
 
-    val_name1 = escape(request.args.get('name1'))
-    val_name2 = escape(request.args.get('name2'))
+        c1, c2 = p.Component.from_db(val_name1), p.Component.from_db(val_name2)
+        c1.disable_subcomponent(otherComponent=c2)
 
-    c1, c2 = p.Component.from_db(val_name1), p.Component.from_db(val_name2)
-    c1.disable_subcomponent(otherComponent=c2)
-
-    return {'result': True}
+        return {'result': True}
+    
+    except Exception as e:
+        print(e)
+        return {'error': json.dumps(e, default=str)}
 
 
 @app.route("/api/set_flag_type", methods=['POST'])
@@ -1343,14 +1342,18 @@ def set_flag_severity():
     :return: A dictionary with a key 'result' of corresponding value True
     :rtype: dict
     """
-    val_name = escape(request.args.get('name'))
+    try:
+        val_name = escape(request.args.get('name'))
 
-    # Need to initialize an instance of a component version first.
-    flag_severity = p.FlagSeverity(val_name)
+        # Need to initialize an instance of a component version first.
+        flag_severity = p.FlagSeverity(val_name)
+        flag_severity.add()
 
-    flag_severity.add()
-
-    return {'result': True}
+        return {'result': True}
+    
+    except Exception as e:
+        print(e)
+        return {'error': json.dumps(e, default=str)}
 
 
 @app.route("/api/replace_flag_severity", methods=['POST'])
@@ -1365,15 +1368,20 @@ def replace_flag_severity():
     :return: A dictionary with a key 'result' of corresponding value True
     :rtype: dict
     """
-    val_name = escape(request.args.get('name'))
-    val_flag_severity = escape(request.args.get('flag_severity'))
+    try: 
+        val_name = escape(request.args.get('name'))
+        val_flag_severity = escape(request.args.get('flag_severity'))
 
-    # Need to initialize an instance of a flag severity first.
-    flag_severity_new = p.FlagSeverity(val_name)
-    flag_severity_old = p.FlagSeverity.from_db(val_flag_severity)
-    flag_severity_old.replace(flag_severity_new)
+        # Need to initialize an instance of a flag severity first.
+        flag_severity_new = p.FlagSeverity(val_name)
+        flag_severity_old = p.FlagSeverity.from_db(val_flag_severity)
+        flag_severity_old.replace(flag_severity_new)
 
-    return {'result': True}
+        return {'result': True}
+
+    except Exception as e:
+        print(e)
+        return {'error': json.dumps(e, default=str)}
 
 
 @app.route("/api/set_flag", methods=['POST'])
@@ -1404,7 +1412,6 @@ def set_flag():
     :rtype: dict
     """
     try:
-
         val_name = escape(request.args.get('name'))
         val_uid = escape(request.args.get('uid'))
         val_start_time = escape(request.args.get('start_time'))
@@ -1462,17 +1469,22 @@ def unset_flag():
     :return: A dictionary with a key 'result' of corresponding value True
     :rtype: dict
     """
-    val_name = escape(request.args.get('name'))
-    val_uid = escape(request.args.get('uid'))
-    val_end_time = escape(request.args.get('end_time'))
-    val_comments = escape(request.args.get('comments'))
+    try: 
+        val_name = escape(request.args.get('name'))
+        val_uid = escape(request.args.get('uid'))
+        val_end_time = escape(request.args.get('end_time'))
+        val_comments = escape(request.args.get('comments'))
 
-    # Need to initialize an instance of Flag first.
-    flag = p.Flag.from_db(val_name)
-    t = tmp_timestamp(val_end_time, val_uid, val_comments)
-    flag.end_flag(end)
+        # Need to initialize an instance of Flag first.
+        flag = p.Flag.from_db(val_name)
+        t = tmp_timestamp(val_end_time, val_uid, val_comments)
+        flag.end_flag(end)
 
-    return {'result': True}
+        return {'result': True}
+
+    except Exception as e:
+        print(e)
+        return {'error': json.dumps(e, default=str)}
 
 
 @app.route("/api/replace_flag", methods=['POST'])
@@ -1505,7 +1517,6 @@ def replace_flag():
     :rtype: dict
     """
     try:
-
         val_name = escape(request.args.get('name'))
         val_uid = escape(request.args.get('uid'))
         val_start_time = escape(request.args.get('start_time'))
@@ -1560,14 +1571,18 @@ def disable_flag():
     :return: A dictionary with a key 'result' of corresponding value True
     :rtype: dict
     """
-    val_name = escape(request.args.get('name'))
+    try: 
+        val_name = escape(request.args.get('name'))
 
-    # Need to initialize an instance of a flag first.
-    flag = p.Flag.from_db(val_name)
+        # Need to initialize an instance of a flag first.
+        flag = p.Flag.from_db(val_name)
+        flag.disable()
 
-    flag.disable()
-
-    return {'result': True}
+        return {'result': True}
+    
+    except Exception as e:
+        print(e)
+        return {'error': json.dumps(e, default=str)}
 
 
 @app.route("/api/flag_count")
