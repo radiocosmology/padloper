@@ -254,12 +254,6 @@ const getNode = (nodes, id) => {
 return nodes.find((node) => node.id === id);
 }
 
-
-function ComponentFlowGraph() {
-    return (<></>)
-}
-
-
 /**
 * The MUI component that represents the visualizer for components along with
 * an option panel for changing the date when the component's connections
@@ -267,7 +261,7 @@ function ComponentFlowGraph() {
 * "branching" (when you press visualize, you have the option of branching out) 
 * @returns 
 */
-export default function ComponentConnectionVisualizer() {
+function ComponentConnectionsPanel() {
 
 // https://reactrouter.com/docs/en/v6/api#usesearchparams
 const [searchParams, setSearchParams] = useSearchParams();
@@ -365,6 +359,10 @@ const defaultViewport = {x: 0, y: 0};
 
 const [reloadComponent, setReloadComponent] = useState(false);
 
+const flowInstance = useReactFlow();
+
+const [addedParent, setAddedParent] = useState(null);
+
 /**
  * Set the URL based on actions performed.
  */
@@ -445,7 +443,7 @@ useEffect(() => {
             // debugger;
             const expandedTemp = expanded.slice()
             for (let expand of expanded) {
-                await expandConnections(expand, time.current, component);
+                await expandConnections(expand, time.current);
             }
             if (expandedTemp != []) {
                 setExpanded(expandedTemp);
@@ -457,29 +455,6 @@ useEffect(() => {
     
 }, [component]);
 
-// function handleProperties() {
-//     console.log('here')
-//     // if (!propertiesVisible === true) {
-//         setNodes((nodes) => {
-//             nodes.map((node) => {
-//                 console.log(node)
-//                 if (node.data.properties[0]) {
-//                     return {
-//                         ...node,
-//                         data: {
-//                             ...node.data,
-//                             // showProperties: node.data.properties[0].values[0]
-//                             showProperties: 'hi'
-//                         }
-//                     }
-//                 } else {
-//                     return node;
-//                 }
-//             })
-//         })
-//     // }
-//     setPropertiesVisible(!propertiesVisible)
-// }
 
 function revealProperties(node) {
     console.log("reveal the", node.data.properties);
@@ -835,7 +810,6 @@ const visualizeComponent = async () => {
         let newComponents = await expandConnections(
             queue[queueFrontIndex].name, 
             time.current,
-            component
         );
 
         if (queue[queueFrontIndex].currDepth + 1 < depth) {
@@ -898,8 +872,6 @@ fitView();
 * Really only need data.name from here.
 */
 function ComponentNode({ data, style }) {
-    const flowInstance = useReactFlow();
-    console.log(flowInstance.getNodes());
 return (
 <ThemeProvider theme={theme}>
     <Handle 
@@ -966,7 +938,15 @@ return (
             <Grid item>
                     <ExpandConnectionsButton 
                         onClick={() => {
-                          expandConnections(data.name, time.current, flowInstance.getNode(data.name));
+                            expandConnections(data.name, time.current).then(
+                                (addedNodes) => {
+                                    console.log("added nodes", addedNodes, addedNodes.length);
+                                    // update height if parent node
+                                    if ((addedNodes.length === 1) && (isParentNode.current[addedNodes[0].name])) {
+                                        setAddedParent(addedNodes[0].name);
+                                    }
+                                }
+                            );
                         }
                       }
                     />
@@ -978,6 +958,38 @@ return (
 )
 } 
 
+
+useEffect(() => {
+    if (addedParent && childrenNodes.current[addedParent]) {
+        console.log("PARENTE", flowInstance.getNode(addedParent));
+        console.log("chidlren", childrenNodes.current[addedParent]);
+        const children = childrenNodes.current[addedParent];
+        const parentHeight = flowInstance.getNode(addedParent).height;
+        console.log(parentHeight);
+        var newHeight = 0;
+
+        for (var i = 0; i < children.length; i ++) {
+            let child = flowInstance.getNode(children[i])
+            newHeight = Math.max(newHeight, parentHeight + child.height);
+            console.log(child.height);
+        }
+        console.log("newheight", newHeight);
+
+        setNodes((nodes) => nodes.map((node) => {
+            if (node.id === addedParent) {
+                return ({
+                    ...node,
+                    style: {...node.style, height: newHeight}, 
+                });
+            } else {
+                return node;
+            }
+        }));
+        }
+    
+}, [addedParent])
+
+
 /**
 * Expand and visualize the components that the component with name "name"
 * is connected to at time "time"
@@ -988,7 +1000,7 @@ return (
 * @returns A Promise, which, when resolved, returns the array of the names
 * of the components added.
 */
-async function expandConnections(name, time, expandedNode) {
+async function expandConnections(name, time) {
 // setExpanded((prev) => [...prev, name]);
 
 
@@ -1002,8 +1014,8 @@ input += `&time=${time}`;
 */
 let componentsAdded = [];
 
-let nodeHeight = expandedNode.height;
-console.log("currheight", nodeHeight);
+let nodeHeight = flowInstance.getNode(name).height;
+console.log("NEW NODE HEIGHT", nodeHeight);
 
 return new Promise(
 resolve => {
@@ -1015,7 +1027,7 @@ resolve => {
         let parent;
         let curr
         let edges = [];
-        let vertPadding = propertiesVisibleRef.current ? 100 : 50;
+        let vertPadding = 50;
         for (const edge of data.result) {
 
             // find other node from curr
@@ -1675,6 +1687,7 @@ spacing={2}
                     console.log("selected", selectedComponent.current, component);
                     setReloadComponent(!reloadComponent);
                     visualizeComponent();
+                    setAddedParent(null);
                 }}
                 disabled={selectedComponent === undefined}
             >
@@ -1698,39 +1711,45 @@ spacing={2}
 
 <Grid item>
     <VisualizerPanel>
-        <ReactFlowProvider>
-            <ReactFlow 
-                nodes={nodes}
-                edges={edges}
-                onNodesChange={onNodesChange}
-                onEdgesChange={onEdgesChange}
-                nodeTypes={nodeTypes}
-                nodesConnectable={false}
-            >
-                <Background
-                    variant="dots"
-                    gap={12}
-                    size={0.5}
-                />
-                <Controls>
-                    <ControlButton 
-                        onClick={() => {onLayout()}}
-                    >
-                        <SortIcon />
-                    </ControlButton>
-                </Controls>
-                {/* <Panel position="top-right"> */}
-                    {/* <button onClick={() => setPropertiesVisible(!propertiesVisible)}>{propertiesVisible ? 'Hide' : 'Show'} properties</button> */}
-                    {/* layout buttons: doesn't work with subcomponents */}
-                    {/* <button onClick={() => onLayout('TB')}>vertical layout</button> */}
-                    {/* <button onClick={() => onLayout('LR')}>horizontal layout</button> */}
-                {/* </Panel> */}
-            </ReactFlow>
-        </ReactFlowProvider>
+        <ReactFlow 
+            nodes={nodes}
+            edges={edges}
+            onNodesChange={onNodesChange}
+            onEdgesChange={onEdgesChange}
+            nodeTypes={nodeTypes}
+            nodesConnectable={false}
+        >
+            <Background
+                variant="dots"
+                gap={12}
+                size={0.5}
+            />
+            <Controls>
+                <ControlButton 
+                    onClick={() => {onLayout()}}
+                >
+                    <SortIcon />
+                </ControlButton>
+            </Controls>
+            {/* <Panel position="top-right"> */}
+                {/* <button onClick={() => setPropertiesVisible(!propertiesVisible)}>{propertiesVisible ? 'Hide' : 'Show'} properties</button> */}
+                {/* layout buttons: doesn't work with subcomponents */}
+                {/* <button onClick={() => onLayout('TB')}>vertical layout</button> */}
+                {/* <button onClick={() => onLayout('LR')}>horizontal layout</button> */}
+            {/* </Panel> */}
+        </ReactFlow>
     </VisualizerPanel>
 </Grid>
 
 </Grid>
 </>
 )
+}
+
+export default function ComponentconnectionVisualizer() {
+    return (
+        <ReactFlowProvider>
+            <ComponentConnectionsPanel/>
+        </ReactFlowProvider>
+    )
 }
