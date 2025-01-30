@@ -169,7 +169,8 @@ const g = new Dagre.graphlib.Graph().setDefaultEdgeLabel(() => ({}));
 
 
 // TODO: Probably don't hardcode this.
-let nodeWidth = 250, nodeHeight = 50;
+// let nodeWidth = 250, nodeHeight = 50;
+let nodeWidth = 250;
 
 /**
 * Lays out the nodes of the graph visualization in a top-to-bottom fashion.
@@ -251,6 +252,11 @@ edges,
 */
 const getNode = (nodes, id) => {
 return nodes.find((node) => node.id === id);
+}
+
+
+function ComponentFlowGraph() {
+    return (<></>)
 }
 
 
@@ -425,10 +431,8 @@ useEffect(() => {
     // TODO: this does not get run for when you re-visualise the same component if the 
     // expanded and depth do not change. So it fails to fetch the properties again. 
     // how to fix this?
-
-
     fetchData();
-}, [window.location.hash]);
+}, [window.location.hash, propertiesVisible]);
 
 /**
  * To visualize component
@@ -440,7 +444,7 @@ useEffect(() => {
             // debugger;
             const expandedTemp = expanded.slice()
             for (let expand of expanded) {
-                await expandConnections(expand, time.current);
+                await expandConnections(expand, time.current, component);
             }
             if (expandedTemp != []) {
                 setExpanded(expandedTemp);
@@ -515,7 +519,7 @@ function revealProperties(node) {
 useEffect(() => {
     // console.log(nodes)
     if (propertiesVisible) {
-        nodeHeight = 100;
+        // nodeHeight = 200;
         console.log('propertiesVisible')
         console.log(enteredTime.current)
         setNodes((nds) =>
@@ -524,7 +528,7 @@ useEffect(() => {
         })
       );
     } else {
-        nodeHeight = 50;
+        // nodeHeight = 50;
         setNodes((nds) => 
         nds.map((node) => {
             return {
@@ -829,7 +833,8 @@ const visualizeComponent = async () => {
 
         let newComponents = await expandConnections(
             queue[queueFrontIndex].name, 
-            time.current
+            time.current,
+            component
         );
 
         if (queue[queueFrontIndex].currDepth + 1 < depth) {
@@ -892,6 +897,8 @@ fitView();
 * Really only need data.name from here.
 */
 function ComponentNode({ data, style }) {
+    const flowInstance = useReactFlow();
+    console.log(flowInstance.getNodes());
 return (
 <ThemeProvider theme={theme}>
     <Handle 
@@ -958,7 +965,7 @@ return (
             <Grid item>
                     <ExpandConnectionsButton 
                         onClick={() => {
-                          expandConnections(data.name, time.current);
+                          expandConnections(data.name, time.current, flowInstance.getNode(data.name));
                         }
                       }
                     />
@@ -975,10 +982,12 @@ return (
 * is connected to at time "time"
 * @param {string} name - name of the component to check connections with 
 * @param {int} time - time to check components at
+* @param {node} expandedNode - the actual node object in the Flow representing the 
+* component to check connections with
 * @returns A Promise, which, when resolved, returns the array of the names
 * of the components added.
 */
-async function expandConnections(name, time) {
+async function expandConnections(name, time, expandedNode) {
 // setExpanded((prev) => [...prev, name]);
 
 
@@ -991,6 +1000,9 @@ input += `&time=${time}`;
 * consider components that were already in the visualization)
 */
 let componentsAdded = [];
+
+let nodeHeight = expandedNode.height;
+console.log("currheight", nodeHeight);
 
 return new Promise(
 resolve => {
@@ -1114,8 +1126,7 @@ resolve => {
                 console.log("addComponent2")
                 let current_node = nodeCoords.current[curr.name];
                 let added = addComponent(parent, current_node.coords.x, current_node.coords.y, 
-                                        current_node.row, false, null, newWidth * 1.5 + 'px', 
-                                        newHeight * 2 + 'px');
+                                        current_node.row, false, null, newWidth * 1.5 + 'px');
 
                 if (added) {
                     // add occupied space
@@ -1125,7 +1136,7 @@ resolve => {
                     lastAdded.current.y += nodeHeight + 20;
 
                     formatRowsVertical(nodeCoords.current[parent.name].row, nodeHeight, [parent.name]);
-                
+
                     // point curr to parent
                     setNodes((nodes) => nodes.map((node) => {
                         if (node.id === curr.name) {
@@ -1139,7 +1150,8 @@ resolve => {
                                     y: nodeHeight
                                 },
                             });
-                        } else {
+                        } 
+                        else {
                             return node;
                         }
                     }));
@@ -1539,71 +1551,6 @@ async function addOccupiedSpace(rowNumber, start, end, replace) {
     }
 }
 
-
-async function formatSubcomponents() {
-    console.log("Formatting subcomponents")
-    setNodes((nodes) => nodes.map((node1) => {
-        if (isParentNode.current[node1.id] === true) {
-            // If node1 is a parent, then we
-            // want to format it's subcomponents
-
-            // get subcomponents of node1
-            let input = `/api/get_subcomponents`;
-            input += `?name=${node1.id}`;
-            fetch(input).then(
-                res => res.json()
-            ).then(data => {
-
-
-                let subLastAdded = {x: -nodeWidth, y:nodeHeight - (nodeHeight / 2)}
-                let maxSubHeight = nodeHeight;
-                setNodes((nodes) => nodes.map((node2) => {
-                    // console.log('node node node 2')
-                    // console.log(node2.id)
-                    if (data.result.includes(node2.id)) {
-                        // This is a subcomponent of node1
-                        console.log("subcomponent of node1")
-                        maxSubHeight = Math.max(maxSubHeight, node2.style.height)
-                        return node2
-                        // return ({
-                        //     ...node2,
-                        //     data: { ...node2.data, label: node2.id,},
-                        //     position: {
-                        //         x: subLastAdded.x + nodeWidth + 10,
-                        //         y: subLastAdded.y
-                        //     },
-                        //     parentNode: node1.id,
-                        //     extent: 'parent'
-                        // });
-                    } else if (node2.id === node1.id) {
-                        console.log("node2 and node1 are the same")
-                        let newHeight = (data.result.length > 0) ? nodeHeight * 2 : 0;
-
-                        let newWidth = data.result.length * (nodeWidth + 20);
-
-                        const maxWidth = node2.style.width > 0 ? Math.max(node2, newWidth) : newWidth;
-
-                        const maxHeight = node2.style.height > 0 ? Math.max(newHeight, node2.style.height) : newHeight;
-                        return ({
-                            ...node2,
-                            data: { ...node2.data, label: node2.id,},
-                            style : {
-                                width: maxWidth,
-                                height: maxHeight,
-                            }
-                        });
-                    }
-                    else {
-                        return node2;
-                    }
-                }));
-            });
-        }
-            // If node1 is not a parent, then it has no subcomponents to format
-            return node1;
-    }));
-}
-
 const nodeTypes = useMemo(
 () => ({component: ComponentNode}), []
 );
@@ -1724,7 +1671,7 @@ spacing={2}
                     setExpanded([]);
                     removeAllElements();
                     setComponent(selectedComponent.current);
-                    fetchData();
+                    console.log("selected", selectedComponent.current, component);
                     visualizeComponent();
                 }}
                 disabled={selectedComponent === undefined}
