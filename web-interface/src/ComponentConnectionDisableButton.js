@@ -9,7 +9,7 @@ import styled from '@mui/material/styles/styled';
 import DeleteIcon from '@mui/icons-material/Delete';
 import DialogContentText from '@mui/material/DialogContentText';
 import CircularProgress from '@mui/material/CircularProgress';
-import ErrorIcon from '@mui/icons-material/Error'
+import ErrorMessage from './ErrorMessage';
 
 
 /*
@@ -82,7 +82,7 @@ const DisableButton = styled((props) => (
                   handleClose();
                 }
                 else {
-                  setErrorData(data.error)
+                  setErrorData(JSON.parse(data.error))
                 }
                 resolve(data.result);
               });
@@ -115,26 +115,11 @@ const DisableButton = styled((props) => (
                         /> : "Submit"}
               </Button>
         </DialogActions>
-        <div 
-          style={{
-          marginTop:'15px',
-          marginBottom:'5px',
-          color:'red',
-          display:'flex',
-          alignItems:'center'
-          }}>
-            {
-              errorData
-              ?
-            <>
-            <ErrorIcon
-            fontSize='small'
-            /> 
-            {errorData}
-            </>
-            :
-            null}
-          </div>
+
+        <ErrorMessage
+          style={{marginTop: '10px', marginBottom:'10px'}}
+          errorMessage={errorData}
+        />
       </Dialog>
     </>
   );

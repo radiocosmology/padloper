@@ -13,6 +13,7 @@ import styled from '@mui/material/styles/styled';
 import { Typography } from '@mui/material';
 
 import moment from 'moment';
+import ErrorMessage from './ErrorMessage';
 
 /**
  * A styled "panel" component, used as the background for the panel.
@@ -184,29 +185,12 @@ function ComponentConnectionReplacePanel(
 
                 </Grid>
 
-                {errorMessage ? 
-                    <Grid 
-                        container 
-                        style={{
-                            marginTop: theme.spacing(1),
-                        }}
-                        spacing={1}
-                        justifyContent="center"
-                    >
-                        <Grid item>
-                            <ErrorIcon sx={{color: 'red'}} />
-                        </Grid>
-                        <Grid item>
-                            <Typography
-                                style={{
-                                    color: 'rgb(255,0,0)',
-                                }}
-                            >
-                                {errorMessage}
-                            </Typography>
-                        </Grid>
-                    </Grid> : <></>
-                }
+                <ErrorMessage
+                    style={{
+                        marginTop: theme.spacing(1),
+                    }}
+                    errorMessage={errorMessage}
+                />
 
                 <Box 
                     style={{
