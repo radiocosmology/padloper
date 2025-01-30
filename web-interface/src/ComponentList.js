@@ -9,8 +9,7 @@ import ComponentAddButton from './ComponentAddButton.js';
 import ComponentReplaceButton from './ComponentReplaceButton.js';
 import AlertDialog from './ComponentDisableButton'
 import Authenticator from './components/Authenticator.js';
-import ErrorIcon from '@mui/icons-material/Error'
-
+import ErrorMessage from './ErrorMessage.js';
 
 /**
  * A MUI component that represents a list of components.
@@ -165,7 +164,7 @@ function ComponentList() {
                     setLoaded(true);
                 }
                 else {
-                    setErrorData(data.error);
+                    setErrorData(JSON.parse(data.error));
                 }
             });
         }
@@ -304,26 +303,10 @@ function ComponentList() {
                     )
                 )
             }
-            <div 
-                style={{
-                marginTop:'15px',
-                marginBottom:'5px',
-                color:'red',
-                display:'flex',
-                alignItems:'center'
-                }}>
-                    {
-                    errorData
-                    ?
-                    <>
-                    <ErrorIcon
-                    fontSize='small'
-                    /> 
-                    {errorData}
-                    </>
-                    :
-                    null}
-            </div>
+            <ErrorMessage
+                style={{marginTop: '10px', marginBottom:'10px'}}
+                errorMessage={errorData}
+            />
 
             <ElementList
                 tableRowContent={tableRowContent}

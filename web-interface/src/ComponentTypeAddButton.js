@@ -12,7 +12,7 @@ import DialogContent from '@mui/material/DialogContent';
 import DialogTitle from '@mui/material/DialogTitle';
 import CircularProgress from '@mui/material/CircularProgress';
 import axios from 'axios'
-import ErrorIcon from '@mui/icons-material/Error';
+import ErrorMessage from './ErrorMessage';
 
 export default function ComponentTypeAddButton ({toggleReload}) {
 
@@ -58,10 +58,10 @@ export default function ComponentTypeAddButton ({toggleReload}) {
       input += `&comments=${comment}`;
       axios.post(input).then((response)=>{
         if(response.data.result){
-          handleClose()
-          toggleReload() //To reload the page once the form has been submitted.
+          handleClose();
+          toggleReload(); //To reload the page once the form has been submitted.
         } else {
-          setErrorData(response.data.error)
+          setErrorData(JSON.parse(response.data.error));
         }
       })
   }
@@ -91,27 +91,11 @@ export default function ComponentTypeAddButton ({toggleReload}) {
             variant="standard"
             onChange={(e)=>setComment(e.target.value)}
           />
-           <div 
-    style={{
-    marginTop:'15px',
-    marginBottom:'5px',
-    color:'red',
-    display:'flex',
-    alignItems:'center'
-    }}>
-      {
-        errorData
-        ?
-      <>
-      <ErrorIcon
-      fontSize='small'
-      /> 
-      {errorData}
-      </>
-      :
-      null}
-    </div>
         </DialogContent>
+        <ErrorMessage
+         style={{marginTop:'5px', marginBottom:'5px'}}
+         errorMessage={errorData}
+        />
         <DialogActions>
           <Button onClick={handleClose}>Cancel</Button>
           {
