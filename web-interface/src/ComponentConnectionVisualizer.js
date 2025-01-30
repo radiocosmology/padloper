@@ -363,6 +363,7 @@ const time = useRef(Math.floor(Date.now() / 1000));
 // the default position of nodes in the visualization.
 const defaultViewport = {x: 0, y: 0};
 
+const [reloadComponent, setReloadComponent] = useState(false);
 
 /**
  * Set the URL based on actions performed.
@@ -432,7 +433,7 @@ useEffect(() => {
     // expanded and depth do not change. So it fails to fetch the properties again. 
     // how to fix this?
     fetchData();
-}, [window.location.hash, propertiesVisible]);
+}, [window.location.hash, reloadComponent]);
 
 /**
  * To visualize component
@@ -1672,6 +1673,7 @@ spacing={2}
                     removeAllElements();
                     setComponent(selectedComponent.current);
                     console.log("selected", selectedComponent.current, component);
+                    setReloadComponent(!reloadComponent);
                     visualizeComponent();
                 }}
                 disabled={selectedComponent === undefined}
