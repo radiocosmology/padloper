@@ -5,9 +5,8 @@ import Button from '@mui/material/Button';
 import Box from '@mui/material/Box';
 import Grid from '@mui/material/Grid';
 import CircularProgress from '@mui/material/CircularProgress';
-
+import ErrorMessage from './ErrorMessage.js';
 import CloseIcon from '@mui/icons-material/Close';
-import ErrorIcon from '@mui/icons-material/Error';
 
 import ThemeProvider from '@mui/material/styles/ThemeProvider';
 import styled from '@mui/material/styles/styled';
@@ -121,33 +120,13 @@ function ComponentSubcomponentAddPanel(
 
                 </Grid>
 
-                {
-                errorSubcomponentMessage
-                ? 
-                <Grid 
-                container 
-                        style={{
-                            marginTop: theme.spacing(1),
-                        }}
-                        spacing={1}
-                        justifyContent="center"
-                        >
-                        <Grid item>
-                            <ErrorIcon sx={{color: 'red'}} />
-                        </Grid>
-                        <Grid item>
-                            <Typography
-                                style={{
-                                    color: 'rgb(255,0,0)',
-                                }}
-                                >
-                                {errorSubcomponentMessage}
-                            </Typography>
-                        </Grid>
-                    </Grid> 
-                    : 
-                    <></>
-                }
+                <ErrorMessage
+                    style={{
+                        marginTop: theme.spacing(1),
+                    }}
+                    errorMessage={errorSubcomponentMessage}
+                />
+
                 <Box 
                     style={{
                         textAlign: "right",
@@ -174,7 +153,8 @@ function ComponentSubcomponentAddPanel(
                          * so when the panel is loading, the button
                          * is spinning.
                          */}
-                        {loading ? 
+                        {(loading && !errorSubcomponentMessage)
+                         ? 
                         errorSubcomponentMessage ?
                         "Set"
                         :

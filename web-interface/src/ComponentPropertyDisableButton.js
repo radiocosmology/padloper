@@ -5,13 +5,11 @@ import Dialog from '@mui/material/Dialog';
 import DialogActions from '@mui/material/DialogActions';
 import DialogContent from '@mui/material/DialogContent';
 import DialogTitle from '@mui/material/DialogTitle';
-import Grid from '@mui/material/Grid';
 import styled from '@mui/material/styles/styled';
 import DeleteIcon from '@mui/icons-material/Delete';
 import DialogContentText from '@mui/material/DialogContentText';
 import CircularProgress from '@mui/material/CircularProgress';
-import ErrorIcon from '@mui/icons-material/Error';
-import { Typography } from '@mui/material';
+import ErrorMessage from './ErrorMessage';
 
 /*
 A MUI component representing a button for disabling.
@@ -56,7 +54,8 @@ const DisableButton = styled((props) => (
   */
   const handleClose = () => {
     setOpen(false);
-    setLoading(false)
+    setLoading(false);
+    setErrorMessage(null);
   };
 
      /**
@@ -76,12 +75,11 @@ const DisableButton = styled((props) => (
                 res => res.json()
             ).then(data => {
                 if (data.result) {
-                    setErrorMessage(null);
                     toggleReload();
-                    handleClose()
+                    handleClose();
                 }
                 else {
-                  setErrorMessage(data.error);
+                  setErrorMessage(JSON.parse(data.error));
                 }
                 resolve(data.result);
             });
@@ -110,31 +108,15 @@ const DisableButton = styled((props) => (
                                         ).join(", ") + ' ]'
                                     }. Do you agree ?
           </DialogContentText>
-          {errorMessage ? 
-                    <Grid 
-                        container 
-                        spacing={1}
-                        justifyContent="center"
-                    >
-                        <Grid item>
-                            <ErrorIcon sx={{color: 'red'}} />
-                        </Grid>
-                        <Grid item>
-                            <Typography
-                                style={{
-                                    color: 'rgb(255,0,0)',
-                                }}
-                            >
-                                {errorMessage}
-                            </Typography>
-                        </Grid>
-                    </Grid> : <></>
-                }
         </DialogContent>
+        <ErrorMessage 
+            style={{marginTop:'5px', marginBottom:'5px'}}
+            errorMessage={errorMessage}
+          />
         <DialogActions>
           <Button onClick={handleClose}>Cancel</Button>           
             <Button onClick={()=>{handleSubmit(propertyType)}}>
-              {loading ? <CircularProgress
+              {(loading && !errorMessage) ? <CircularProgress
                             size={24}
                             sx={{
                                 color: 'blue',

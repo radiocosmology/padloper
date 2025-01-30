@@ -33,8 +33,6 @@ import EastIcon from '@mui/icons-material/East';
 import KeyboardBackspaceIcon from '@mui/icons-material/KeyboardBackspace';
 import axios from 'axios'
 
-
-
 import { Link } from "react-router-dom";
 
 import {
@@ -446,7 +444,7 @@ function ComponentPage() {
                     setErrorPropertyMessage(null);
                     toggleReload();
                 } else {
-                    setErrorPropertyMessage(response.data.error)
+                    setErrorPropertyMessage(JSON.parse(response.data.error));
                 }
             }
         )
@@ -477,9 +475,8 @@ function ComponentPage() {
                 toggleReload();
             }
             else {
-                console.log("error reached");
                 console.log(data.error);
-                seterrorEndPropertyMessage(data.error);
+                seterrorEndPropertyMessage(JSON.parse(data.error));
             }
         });
     }
@@ -516,7 +513,7 @@ function ComponentPage() {
                 toggleReload();
             }
             else {
-                setErrorReplacePropertyMessage(data.error);
+                setErrorReplacePropertyMessage(JSON.parse(data.error));
             }
         });
     }
@@ -548,7 +545,7 @@ function ComponentPage() {
                     setErrorConnectionMessage(null)
                     toggleReload();
                 } else {
-                    setErrorConnectionMessage(response.data.error)
+                    setErrorConnectionMessage(JSON.parse(response.data.error))
                 }
             });
     }
@@ -579,7 +576,7 @@ function ComponentPage() {
                 }
                 else {
                     console.log(data.error);
-                    setErrorEndConnectionMessage(data.error);
+                    setErrorEndConnectionMessage(JSON.parse(data.error));
                 }
                 resolve(data.result);
             });
@@ -613,7 +610,7 @@ function ComponentPage() {
                     toggleReload();
                 }
                 else {
-                    setErrorReplaceConnectionMessage(data.error);
+                    setErrorReplaceConnectionMessage(JSON.parse(data.error));
                 }
                 resolve(data.result);
             });
@@ -638,7 +635,7 @@ function ComponentPage() {
                     setErrorSubcomponentMessage(null)
                     toggleReload();
                 } else {
-                    setErrorSubcomponentMessage(response.data.error)
+                    setErrorSubcomponentMessage(JSON.parse(response.data.error));
                 }
             })
     }
