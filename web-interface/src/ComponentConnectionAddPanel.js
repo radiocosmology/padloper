@@ -271,9 +271,6 @@ function ComponentConnectionAddPanel(
                          * is spinning.
                          */}
                         {(loading && !errorConnectionMessage) ? 
-                        errorConnectionMessage ?
-                        "Set"
-                        :
                         <CircularProgress
                             size={24}
                             sx={{

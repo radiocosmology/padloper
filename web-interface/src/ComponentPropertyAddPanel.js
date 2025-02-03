@@ -420,7 +420,7 @@ function ComponentPropertyAddPanel(
                             }
                         }
                     >
-                        {loading ? 
+                        {(loading && !errorPropertyMessage) ? 
                         errorPropertyMessage ?
                         "Set"
                         :

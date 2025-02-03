@@ -80,6 +80,7 @@ const DisableButton = styled((props) => (
                 }
                 else {
                   setErrorMessage(JSON.parse(data.error));
+                  setLoading(false);
                 }
                 resolve(data.result);
             });
@@ -116,7 +117,7 @@ const DisableButton = styled((props) => (
         <DialogActions>
           <Button onClick={handleClose}>Cancel</Button>           
             <Button onClick={()=>{handleSubmit(propertyType)}}>
-              {(loading && !errorMessage) ? <CircularProgress
+              {loading ? <CircularProgress
                             size={24}
                             sx={{
                                 color: 'blue',

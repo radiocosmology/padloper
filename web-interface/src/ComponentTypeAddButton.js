@@ -62,6 +62,7 @@ export default function ComponentTypeAddButton ({toggleReload}) {
           toggleReload(); //To reload the page once the form has been submitted.
         } else {
           setErrorData(JSON.parse(response.data.error));
+          setLoading(false);
         }
       })
   }

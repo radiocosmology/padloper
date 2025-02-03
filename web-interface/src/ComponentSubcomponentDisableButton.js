@@ -82,6 +82,7 @@ const DisableButton = styled((props) => (
                 }
                 else {
                   setErrorMessage(JSON.parse(data.error));
+                  setLoading(false);
                 }
                 resolve(data.result);
             });
