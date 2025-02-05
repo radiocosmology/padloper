@@ -847,6 +847,8 @@ def set_component_property():
     :rtype: dict
     """
     try:
+
+        raise Exception(f"Test error for add properyty")
         val_name = escape(request.args.get('name'))
         val_property_type = escape(request.args.get('propertyType'))
         val_time = int(escape(request.args.get('time')))
@@ -997,6 +999,7 @@ def disable_component_property():
     property from the serverside.
     """
     try:
+        raise Exception(f"disable property error")
         val_name = escape(request.args.get('name'))
         val_property_type = escape(request.args.get('propertyType'))
 
@@ -1038,7 +1041,6 @@ def add_component_connection():
     :rtype: dict
     """
     try:
-
         val_name1 = escape(request.args.get('name1'))
         val_name2 = escape(request.args.get('name2'))
         val_time = int(escape(request.args.get('time')))
@@ -1097,6 +1099,7 @@ def end_component_connection():
 
         try:
             t = tmp_timestamp(val_time, val_uid, val_comments)
+            print("trying to disconnect....")
             c1.disconnect(c2, t)
         except p.ComponentsAlreadyDisconnectedError:
             already_disconnected = True
@@ -1253,6 +1256,7 @@ def disable_component_subcomponent():
     :rtype: dict
     """
     try: 
+        raise Exception(f"disable subcomponent error")
         val_name1 = escape(request.args.get('name1'))
         val_name2 = escape(request.args.get('name2'))
 

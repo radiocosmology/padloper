@@ -831,9 +831,6 @@ class Component(Vertex):
         :type is_replacement: bool
         """
 
-        if is_replacement:
-            raise RuntimeError(f"Is_replacement feature not implemented yet. {is_replacement}")
-
         if not self.in_db():
             raise ComponentNotAddedError(
                 f"Component {self.name} has not yet been added to the database."
@@ -869,6 +866,10 @@ class Component(Vertex):
                 "{comp.name}, but it does not exist."
             )
             return
+        elif len(curr_conn) == 1 and is_replacement == True:
+            # there is an existing connection between these 2 components
+            existing_connection = curr_conn[0]
+            existing_connection.disable()
 
         all_conn = self.get_connections(comp=comp,
                                         from_time=start.time)
@@ -890,9 +891,6 @@ class Component(Vertex):
                     "overlaps in time."
                 )
 
-        if is_replacement:
-            raise RuntimeError(f"Is_replacement feature not implemented yet. {is_replacement}")
-
         curr_conn = RelationConnection(
             inVertex=self,
             outVertex=comp,
@@ -913,7 +911,6 @@ class Component(Vertex):
         :param end: The starting timestamp for the connection.
         :type end: Timestamp
         """
-
         # Done for troubleshooting (so you know which component is not added?)
         if not self.in_db(strict_check=False):
             raise ComponentNotAddedError(
@@ -928,11 +925,10 @@ class Component(Vertex):
 
         curr_conn = self.get_connections(comp=comp,
                                          at_time = end.time)
-        assert(len(curr_conn) <= 1)
 
         if len(curr_conn) == 0:
             # Not connected yet!
-            raise ComponentsAlreadyDisconnectedError(
+            raise NotInDatabase (
                 f"Components {self.name} and {comp.name} " +
                 "are already disconnected at this time."
             )

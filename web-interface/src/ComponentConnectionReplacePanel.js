@@ -7,7 +7,6 @@ import Grid from '@mui/material/Grid';
 import CircularProgress from '@mui/material/CircularProgress';
 import MuiTextField from '@mui/material/TextField';
 import CloseIcon from '@mui/icons-material/Close';
-import ErrorIcon from '@mui/icons-material/Error';
 import ThemeProvider from '@mui/material/styles/ThemeProvider';
 import styled from '@mui/material/styles/styled';
 import { Typography } from '@mui/material';
