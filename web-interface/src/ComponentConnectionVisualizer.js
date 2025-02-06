@@ -1217,7 +1217,8 @@ resolve => {
                     componentsAdded.push(parent);
                     lastAdded.current.y += nodeHeight + 20;
 
-                    formatRowsVertical(nodeCoords.current[parent.name].row, nodeHeight, [parent.name]);
+                    formatRowsVertical(nodeCoords.current[parent.name].row, nodeHeight, 
+                        [parent.name, current_node.name]);
 
                     // point curr to parent
                     setNodes((nodes) => nodes.map((node) => {
@@ -1391,6 +1392,7 @@ resolve => {
 * @param {Array<string>} ignoreNodes - nodes to ignore during the reformatting. 
 */
 async function formatRowsVertical(startingRow, height, ignoreNodes = null) {
+    console.log("ignore", ignoreNodes);
     setNodes((nodes) => nodes.map((node) => {
         if ((nodeCoords.current[node.id]) && (nodeCoords.current[node.id].row >= startingRow) 
             && (ignoreNodes.indexOf(node) === -1)) {
