@@ -2,6 +2,7 @@ import React from 'react';
 import Grid from '@mui/material/Grid';
 import ErrorIcon from '@mui/icons-material/Error';
 import { Typography } from '@mui/material';
+import Stack from '@mui/material/Stack';
 
 /**
  * Represents any error messages that may be displayed.
@@ -20,15 +21,17 @@ export default function ErrorMessage({style, errorMessage}) {
                     ?
                     <Grid
                         container
+                        direction="row"
                         style={style}
-                        spacing={1}
-                        justifyContent="center"
-                        sx={{paddingX: 2}}
+                        // spacing={1}
+                        // justifyContent="center"
+                        sx={{paddingX: 2,
+                            justifyContent: "center"
+                        }}
                     >
-                        <Grid item>
+                        <Stack direction="row" spacing={2}>
                             <ErrorIcon sx={{ color: 'red' }} />
-                        </Grid>
-                        <Grid item>
+                            
                             <Typography
                                 style={{
                                     color: 'rgb(255,0,0)',
@@ -36,7 +39,8 @@ export default function ErrorMessage({style, errorMessage}) {
                             >
                                 {errorMessage}
                             </Typography>
-                        </Grid>
+                            
+                        </Stack>
                     </Grid>
                     :
                     <></>
