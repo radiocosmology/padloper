@@ -306,6 +306,8 @@ const edgeIds = useRef({});
 
 // which component is to be considered
 const [component, setComponent] = useState(undefined);
+const componentRef = useRef();
+componentRef.current = component;
 
 // "next" component selected by the user, if any
 // not sure if this is the best way to do this
@@ -359,9 +361,12 @@ const defaultViewport = {x: 0, y: 0};
 
 const [reloadComponent, setReloadComponent] = useState(false);
 
+// React flow instance to access internal state (e.g., internal node properties like height)
 const flowInstance = useReactFlow();
 
 const [addedParent, setAddedParent] = useState(null);
+
+const [expandedSupercomponent, setExpandedSupercomponent] = useState(null);
 
 /**
  * Set the URL based on actions performed.
@@ -369,12 +374,7 @@ const [addedParent, setAddedParent] = useState(null);
 useEffect(() => {
     const cmp = component != undefined ? component.name : '';
     if (component != undefined) {
-        // TODO: remove
-        console.log("NEW COMPONENT", cmp);
-
         window.location.hash = `#cmp=${cmp}&time=${enteredTime.current}&depth=${depth}&expanded=${expanded}`;
-        // TODO: remove
-        console.log("HASH", window.location.hash.substring(1));
     }
 }, [component]);
 
@@ -938,13 +938,36 @@ return (
             <Grid item>
                     <ExpandConnectionsButton 
                         onClick={() => {
+                            console.log("NODES", flowInstance.getNodes());
                             expandConnections(data.name, time.current).then(
                                 (addedNodes) => {
-                                    console.log("added nodes", addedNodes, addedNodes.length);
-                                    // update height if parent node
-                                    if ((addedNodes.length === 1) && (isParentNode.current[addedNodes[0].name])) {
-                                        setAddedParent(addedNodes[0].name);
+                                    // Updating the sizes and locations of nodes is done after the 
+                                    // promise is resolved, because it needs to wait for React Flow to finish
+                                    // its calculations first. 
+                                    console.log("component", componentRef.current);
+                                    console.log(isParentNode.current[data.name]);
+                                    for (var i = 0; i < addedNodes.length; i++) {
+                                        // for all added components, if one of them is 
+                                        if (isParentNode.current[addedNodes[i].name]) {
+                                            setAddedParent(addedNodes[i].name);
+                                        }
                                     }
+                                    if (isParentNode.current[data.name]) {      
+                                        console.log(componentRef.current.name);
+                                        if (componentRef.current.name === data.name) {
+                                            setAddedParent(data.name);
+                                            console.log(flowInstance.getNode(data.name))
+                                        }
+
+                                        // if expanded node is a supercomponent
+                                        // update the state
+                                        else {
+                                            setExpandedSupercomponent(data.name)
+
+                                        }
+                                        
+                                    }
+                                    
                                 }
                             );
                         }
@@ -960,34 +983,77 @@ return (
 
 
 useEffect(() => {
+    // Resize the parent, if necessary
+    console.log("added parent reached", addedParent);
     if (addedParent && childrenNodes.current[addedParent]) {
         console.log("PARENTE", flowInstance.getNode(addedParent));
+        console.log(childrenNodes.current);
         console.log("chidlren", childrenNodes.current[addedParent]);
         const children = childrenNodes.current[addedParent];
         const parentHeight = flowInstance.getNode(addedParent).height;
         console.log(parentHeight);
         var newHeight = 0;
 
+        // get the height of the tallest child
         for (var i = 0; i < children.length; i ++) {
-            let child = flowInstance.getNode(children[i])
+            let child = flowInstance.getNode(children[i]);
+            console.log(child);
             newHeight = Math.max(newHeight, parentHeight + child.height);
             console.log(child.height);
         }
         console.log("newheight", newHeight);
 
-        setNodes((nodes) => nodes.map((node) => {
+        flowInstance.setNodes((nodes) => nodes.map((node) => {
             if (node.id === addedParent) {
                 return ({
                     ...node,
                     style: {...node.style, height: newHeight}, 
                 });
-            } else {
+            } 
+            else if (children.includes(node.id)) {
+                // adjust position of the subcomponent if necessary
+                return ({
+                    ...node,
+                    position: {x: node.position.x, y: newHeight - node.height}
+                });
+            }
+            else {
                 return node;
             }
         }));
         }
-    
 }, [addedParent])
+
+
+useEffect(() => {
+    // format subcomponents, if we added some
+    // remember higher y values are lower
+    // this almost works but pass in the parent and then just loop through all its subcomponents
+    // instead. fuck you
+    console.log("expanded supercomponent reached", expandedSupercomponent)
+    if (expandedSupercomponent) {   // so this doesn't run when addedSubcomponents is null
+        // get parent height
+        const superHeight = flowInstance.getNode(expandedSupercomponent).height;
+
+        const subNames = childrenNodes.current[expandedSupercomponent];
+        console.log("SUBCOMPOENNTS", subNames);
+        
+        flowInstance.setNodes((nodes) => nodes.map((node) => {
+            if (subNames.includes(node.id)) {
+                console.log("booh yah x2", node.id);
+                // const newHeight = parentHeight - node.height;
+                console.log(node);
+                return ({
+                    ...node,
+                    position: {x: node.position.x, y: superHeight - node.height}
+                });
+            } else {
+                return node;
+            }
+        }));
+    }
+    
+}, [expandedSupercomponent])
 
 
 /**
@@ -1002,7 +1068,6 @@ useEffect(() => {
 */
 async function expandConnections(name, time) {
 // setExpanded((prev) => [...prev, name]);
-
 
 let input = `/api/get_connections`;
 input += `?name=${name}`;
@@ -1192,7 +1257,7 @@ resolve => {
                 // debugger;
                 console.log("addComponent3")
                 let subAdded = addComponent(sub, subLastAdded.x + nodeWidth + 10, subLastAdded.y, 
-                                            nodeCoords.current[curr.name].row + 1, true, curr.name);
+                                            nodeCoords.current[curr.name].row, true, curr.name);
                 if (subAdded) {
                     isParentNode.current[curr.name] = true;
                     componentsAdded.push(sub)
@@ -1233,8 +1298,7 @@ resolve => {
             
             // update current size
             const newWidth = subcomponents.length * (nodeWidth + 20);
-            // console.log(maxSubHeight)
-            const newHeight = (maxSubHeight) ? maxSubHeight + 100 : nodeHeight * 3;
+
             setNodes((nodes) => nodes.map((node) => {
                 if (node.id === curr.name) {
                     return ({
@@ -1251,7 +1315,7 @@ resolve => {
             }));
             let node_x = nodeCoords.current[curr.name].coords.x;
             addOccupiedSpace(nodeCoords.current[curr.name].row, node_x, node_x + newWidth, true);
-            return;
+            resolve(componentsAdded);
         }
         let node_coords = nodeCoords.current[curr.name];
         let curr_x = node_coords.coords.x;
@@ -1688,6 +1752,7 @@ spacing={2}
                     setReloadComponent(!reloadComponent);
                     visualizeComponent();
                     setAddedParent(null);
+                    setExpandedSupercomponent(null);
                 }}
                 disabled={selectedComponent === undefined}
             >
