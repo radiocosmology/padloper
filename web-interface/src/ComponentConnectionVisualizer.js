@@ -1217,8 +1217,10 @@ resolve => {
                     componentsAdded.push(parent);
                     lastAdded.current.y += nodeHeight + 20;
 
+                    console.log("current node", curr.name)
+
                     formatRowsVertical(nodeCoords.current[parent.name].row, nodeHeight, 
-                        [parent.name, current_node.name]);
+                        [parent.name, curr.name]);
 
                     // point curr to parent
                     setNodes((nodes) => nodes.map((node) => {
@@ -1250,7 +1252,6 @@ resolve => {
                 // add to node coords
                 addNodeCoords(curr.name, {x: 10, y: nodeHeight}, nodeCoords.current[parent.name].row, parent.name);
             }
-            
         }
 
         if (subcomponents.length > 0) {
@@ -1319,7 +1320,9 @@ resolve => {
                 }
             }));
             let node_x = nodeCoords.current[curr.name].coords.x;
-            addOccupiedSpace(nodeCoords.current[curr.name].row, node_x, node_x + newWidth, true);
+            if (newWidth > flowInstance.getNode(curr.name).width) {
+                addOccupiedSpace(nodeCoords.current[curr.name].row, node_x, node_x + newWidth, true);
+            }
             resolve(componentsAdded);
         }
 
@@ -1392,10 +1395,9 @@ resolve => {
 * @param {Array<string>} ignoreNodes - nodes to ignore during the reformatting. 
 */
 async function formatRowsVertical(startingRow, height, ignoreNodes = null) {
-    console.log("ignore", ignoreNodes);
     setNodes((nodes) => nodes.map((node) => {
         if ((nodeCoords.current[node.id]) && (nodeCoords.current[node.id].row >= startingRow) 
-            && (ignoreNodes.indexOf(node) === -1)) {
+            && (ignoreNodes.indexOf(node.id) === -1)) {
             return {
                 ...node,
                 position: {x: node.position.x, y: node.position.y + height}
@@ -1416,42 +1418,47 @@ async function formatRowsVertical(startingRow, height, ignoreNodes = null) {
 * @param {number} startingX - 
 */
 async function formatRowsHorizontal(row, x, startingX) {
-    console.log("formatting horizontal", row, x, startingX);
-    console.log("nodecoords", nodeCoords.current);
+    console.log("formatting horizontal")
+    let toPush = [];        // array that will store nodes to push
     for (const node in nodeCoords.current) {
         if ((nodeCoords.current[node].row == row) && (nodeCoords.current[node].coords.x >= startingX) 
             && (!nodeCoords.current[node].parentCoords)) {
-            pushRight(node, x);
+            toPush = toPush.concat(pushRight(node));
         }
     }
-    setNodes((nodes) => nodes.map((node1) => {
-        return {
-            ...node1,
-            position: {x: nodeCoords.current[node1.id].coords.x, y: node1.position.y}
-        };
+
+    setNodes((nodes) => nodes.map((node) => {
+        if (toPush.includes(node.id)) {
+            return {
+                ...node,
+                position: {x: node.position.x + x + 30, y: node.position.y}
+            };
+        }
+        else {
+            return node;
+        }
     }));
 }
 
 
-async function pushRight(node, x) {
-    console.log("pushing right", node, x);
-    nodeCoords.current[node].coords.x += x;
-    if (nodeCoords.current[node].parentCoords) {
-        nodeCoords.current[node].parentCoords.x += x;
-    }
-    console.log("all edges", edges);
-    for (const edge in edges) {
+function pushRight(node) {
+    let nodesArray = [];
+    nodesArray.push(node);      // add node to array
+    for (var i = 0; i < flowInstance.getEdges().length; i ++) {
+        const edge = flowInstance.getEdges()[i];
         if (edge.source == node) {
             if (nodeCoords.current[edge.target].row >= nodeCoords.current[node].row) {
-                pushRight(edge.target, x);
+                nodesArray = nodesArray.concat(pushRight(edge.target));
             }
         }
         if (edge.target == node) {
             if (nodeCoords.current[edge.source].row >= nodeCoords.current[node].row) {
-                pushRight(edge.source, x);
+                nodesArray = nodesArray.concat(pushRight(edge.source));
             }
         }
     }
+
+    return nodesArray;
 }
 
 
