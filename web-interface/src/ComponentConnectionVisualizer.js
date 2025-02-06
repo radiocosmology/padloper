@@ -1068,6 +1068,10 @@ useEffect(() => {
 */
 async function expandConnections(name, time) {
 // setExpanded((prev) => [...prev, name]);
+if (expandedNodes.current[name]) {
+    // If expanded, return immediately
+    return([]);
+}
 
 let input = `/api/get_connections`;
 input += `?name=${name}`;
@@ -1317,18 +1321,13 @@ resolve => {
             addOccupiedSpace(nodeCoords.current[curr.name].row, node_x, node_x + newWidth, true);
             resolve(componentsAdded);
         }
-        let node_coords = nodeCoords.current[curr.name];
-        let curr_x = node_coords.coords.x;
-        let rowNumber = node_coords.row + 1;
+
+        // absolute node coordinates, even if it's inside another component
+        let node_coords = flowInstance.getNode(curr.name).positionAbsolute;
+        let curr_x = node_coords.x;
+        let rowNumber = nodeCoords.current[curr.name].row + 1;
         
-        let curr_y = node_coords.coords.y;
-        if (nodeCoords.current[curr.name].parentCoords !== null) {
-            // Then the current component is a sub component of a super
-            // Need to add some offset to get true coordinates
-            curr_x += nodeCoords.current[curr.name].parentCoords.x;
-            curr_y += nodeCoords.current[curr.name].parentCoords.y;
-            // rowNumber -= 1;
-        }
+        let curr_y = node_coords.y;
         
         // Get starting coordinates of child component:
         curr_x -= Math.floor((edges.length - 1)/2) * (nodeWidth + 30);
@@ -1392,19 +1391,18 @@ resolve => {
 * @param {Array<string>} ignoreNodes - nodes to ignore during the reformatting. 
 */
 async function formatRowsVertical(startingRow, height, ignoreNodes = null) {
-    for (const node in nodeCoords.current) {
-        if ((nodeCoords.current[node].row >= startingRow) && (ignoreNodes.indexOf(node) === -1)) {
-            nodeCoords.current[node].coords.y += height;
-            if (nodeCoords.current[node].parentCoords) {
-                nodeCoords.current[node].parentCoords += height;
-            }
+    setNodes((nodes) => nodes.map((node) => {
+        if ((nodeCoords.current[node.id]) && (nodeCoords.current[node.id].row >= startingRow) 
+            && (ignoreNodes.indexOf(node) === -1)) {
+            return {
+                ...node,
+                position: {x: node.position.x, y: node.position.y + height}
+            };
         }
-    }
-    setNodes((nodes) => nodes.map((node1) => {
-        return {
-            ...node1,
-            position: {x: node1.position.x, y: nodeCoords.current[node1.id].coords.y}
-        };
+        else {
+            return node;
+        }
+        
     }));
 }
 
