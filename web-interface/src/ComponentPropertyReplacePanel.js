@@ -292,9 +292,11 @@ function ComponentPropertyReplacePanel(
 
                 <Grid container spacing={2} justifyContent="center">
                     <Grid item>
-                        <ComponentPropertyAutocomplete 
-                            onSelect={selectOption} 
-                            selected={selected}
+                        <TextField
+                        variant="filled"
+                        label="Property Type"
+                        defaultValue={selected.name}
+                        InputProps={{readOnly: true, disableUnderline: true}}
                         />
                     </Grid>
 
