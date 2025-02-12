@@ -145,7 +145,7 @@ function ComponentConnectionAddPanel(
      * Get the user data via GitHub
      */
     async function getUserData() {
-        await fetch("http://localhost:4000/getUserData", {
+        await fetch(`${process.env.OUATH_URL || "http://localhost"}:4000/getUserData`, {
             method: "GET",
             headers: {
                 "Authorization": "Bearer " + localStorage.getItem('accessToken')

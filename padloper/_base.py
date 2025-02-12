@@ -16,7 +16,6 @@ import time
 import _global as g
 from _exceptions import *
 
-
 #import re
 #from unicodedata import name
 #import warnings
@@ -24,6 +23,9 @@ from _exceptions import *
 #from attr import attr, attributes
 #from sympy import true
 #from typing import Optional, List
+
+# Hack because we use this built-in function name for a variable at points …
+_range = range
 
 def strictraise(strict, err, msg):
     if strict:
@@ -153,7 +155,13 @@ class VertexAttr(object):
 
 class Vertex(Element):
     """
-    The representation of a vertex. Can contain attributes.
+    The representation of a vertex. The attributes common to all vertices in
+    Padloper are defined by default, while subclasses can customise attributes
+    via a list of VertexAttributes in `vertex_attrs`.
+
+    Note that the attribute `category` plays the role of the vertex label, but
+    because JanusGraph does not index labels for some reason (at least as of
+    April 2024, as far as I am aware), we use a property instead.
 
     :ivar category: The category of the Vertex.
     :ivar time_added: When this vertex was added to the database (UNIX time).
@@ -242,6 +250,47 @@ class Vertex(Element):
         pass
 
     @classmethod
+    def _attrs_query(cls, d, allow_disabled):
+        """Helper class for from_db() and from_id()."""
+        projector = []
+        for a in cls._vertex_attrs:
+            if issubclass(a.type, Timestamp):
+                projector.extend(["%s_time" % a.name,
+                                  "%s_uid" % a.name,
+                                  "%s_edit_time" % a.name,
+                                  "%s_comments" % a.name])
+            else:
+                projector.append(a.name)
+
+        if not allow_disabled:
+            d = d.has("active", True)
+        d = d.project("id", "time_added", "uid_added", "time_disabled",
+                      "uid_disabled", *projector)\
+             .by(__.id_())\
+             .by(__.values("time_added"))\
+             .by(__.values("uid_added"))\
+             .by(__.values("time_disabled"))\
+             .by(__.values("uid_disabled"))
+        for a in cls._vertex_attrs:
+            if issubclass(a.type, Vertex):
+                if allow_disabled:
+                    d = d.by(__.both(a.edge_class.category).id_().fold())
+                else:
+                    d = d.by(__.both(a.edge_class.category) \
+                         .has("active", True).id_().fold())
+            elif issubclass(a.type, Timestamp):
+                d = d.by(__.values("%s_time" % a.name))\
+                     .by(__.values("%s_uid" % a.name))\
+                     .by(__.values("%s_edit_time" % a.name))\
+                     .by(__.values("%s_comments" % a.name))
+            else:
+                if a.is_list:
+                    d = d.by(__.values(a.name).fold())
+                else:
+                    d = d.by(__.values(a.name))
+        return d
+
+    @classmethod
     def from_db(cls, primary_attr: str, allow_disabled: bool = False):
         """Query the database and return an instance of the Vertex by searching
         for its primary attribute (typically "name").
@@ -256,28 +305,10 @@ class Vertex(Element):
         :rtype: Vertex subclass.
 
         """
-        projector = [a.name for a in cls._vertex_attrs]
-        d = g.t.V()
-        if not allow_disabled:
-            d = d.has("active", True)
-        d = d.has("category", cls.category)\
-             .has(cls.primary_attr, primary_attr)\
-             .project("id", "time_added", "uid_added", "time_disabled",
-                      "uid_disabled", *projector)\
-             .by(__.id_())\
-             .by(__.values("time_added"))\
-             .by(__.values("uid_added"))\
-             .by(__.values("time_disabled"))\
-             .by(__.values("uid_disabled"))
-        for a in cls._vertex_attrs:
-            if issubclass(a.type, Vertex):
-                if allow_disabled:
-                    d = d.by(__.both(a.edge_class.category).id_().fold())
-                else:
-                    d = d.by(__.both(a.edge_class.category) \
-                         .has("active", True).id_().fold())
-            else:
-                d = d.by(__.values(a.name))
+        d = g.t.V()\
+             .has("category", cls.category)\
+             .has(cls.primary_attr, primary_attr)
+        d = cls._attrs_query(d, allow_disabled)
         try:
             d = d.next()
         except StopIteration:
@@ -300,25 +331,8 @@ class Vertex(Element):
         :rtype: Vertex subclass
         """
         if id not in g._vertex_cache:
-            projector = [a.name for a in cls._vertex_attrs]
             d = g.t.V(id)
-            if not allow_disabled:
-                d = d.has("active", True)
-            d = d.project("id", "time_added", "uid_added", "time_disabled",
-                          "uid_disabled", *projector)\
-                 .by(__.id_())\
-                 .by(__.values("time_added"))\
-                 .by(__.values("uid_added"))\
-                 .by(__.values("time_disabled"))\
-                 .by(__.values("uid_disabled"))
-            for a in cls._vertex_attrs:
-                if issubclass(a.type, Vertex):
-                    d = d.by(__.both(a.edge_class.category).id_().fold())
-                else:
-                    if a.is_list:
-                        d = d.by(__.values(a.name).fold())
-                    else:
-                        d = d.by(__.values(a.name))
+            d = cls._attrs_query(d, allow_disabled)
             try:
                 d = d.next()
             except StopIteration:
@@ -365,6 +379,8 @@ class Vertex(Element):
                         raise ValueError("A %s is required for %s." %
                                          (a.type.__class__.__name__, a.name))
                 arg[a.name] = val
+            elif issubclass(a.type, Timestamp):
+                arg[a.name] = Timestamp._from_dict(attrs, "%s_" % a.name)
             else:
                 arg[a.name] = attrs[a.name]
 
@@ -410,13 +426,13 @@ class Vertex(Element):
             self.replacement = 0
             self.time_disabled = g._TIMESTAMP_NO_EDITTIME_VALUE
 
-            traversal = g.t.addV().property('category', self.category) \
-                           .property('time_added', self.time_added) \
-                           .property('uid_added', self.uid_added) \
-                           .property('time_disabled', self.time_disabled) \
-                           .property('uid_disabled', self.uid_disabled) \
-                           .property('active', self.active) \
-                           .property('replacement', self.replacement)
+            t = g.t.addV().property('category', self.category) \
+                   .property('time_added', self.time_added) \
+                   .property('uid_added', self.uid_added) \
+                   .property('time_disabled', self.time_disabled) \
+                   .property('uid_disabled', self.uid_disabled) \
+                   .property('active', self.active) \
+                   .property('replacement', self.replacement)
 
             edges = []
             for a in self._vertex_attrs:
@@ -424,7 +440,7 @@ class Vertex(Element):
                     # If the "attribute" is a connexion to another vertex, then
                     # create the edge; also create the vertex if it does not
                     # exist.
-                    if getattr(self, a.name):
+                    if getattr(self, a.name) is not None:
                         if a.is_list:
                             attr_list = getattr(self, a.name)
                         else:
@@ -436,13 +452,21 @@ class Vertex(Element):
                                 a.edge_class(inVertex=attr, outVertex=self))
                     elif not a.optional:
                         raise ValueError("%s should not be None!" % a.name)
-                elif isinstance(getattr(self, a.name), list):
+                elif issubclass(a.type, Timestamp):
+                    if a.is_list:
+                        raise NotImplementedError("Lists of Timestamps are "\
+                                                  "not yet supported.")
+                    val = getattr(self, a.name)
+                    t = t.property("%s_time" % a.name, val.time)\
+                         .property("%s_uid" % a.name, val.uid)\
+                         .property("%s_edit_time" % a.name, val.edit_time)\
+                         .property("%s_comments" % a.name, val.comments)
+                elif a.is_list:
                     for val in getattr(self, a.name):
-                        traversal = traversal.property(a.name, val)
+                        t = t.property(a.name, val)
                 else:
-                    traversal = traversal.property(a.name, 
-                                                   getattr(self, a.name))
-            v = traversal.next()
+                    t = t.property(a.name, getattr(self, a.name))
+            v = t.next()
 
             # this is NOT the id of a Vertex instance,
             # but rather the id of the GremlinPython vertex returned
@@ -456,55 +480,6 @@ class Vertex(Element):
             Vertex._cache_vertex(self)
 
             return self
-
-    def old_add(self, attributes: dict):
-        """
-        Add the vertex of category self.category
-        to the JanusGraph DB along with attributes from :param attributes:.
-
-        :param attributes: A dictionary of attributes to attach to the vertex.
-        :type attributes: dict
-        """
-
-        # If already added.
-        if self.in_db():
-            raise VertexAlreadyAddedError(
-                    f"Vertex already exists in the database."
-                )
-        else:
-
-            # set time added to now.
-            self.time_added = int(time.time())
-
-            self.active = True
-
-            self.replacement = 0
-
-            self.time_disabled = g._TIMESTAMP_NO_EDITTIME_VALUE
-
-            traversal = g.t.addV().property('category', self.category) \
-                           .property('time_added', self.time_added) \
-                           .property('time_disabled', self.time_disabled) \
-                           .property('active', self.active) \
-                           .property('replacement', self.replacement)
-
-            for key in attributes:
-
-                if isinstance(attributes[key], list):
-                    for val in attributes[key]:
-                        traversal = traversal.property(key, val)
-
-                else:
-                    traversal = traversal.property(key, attributes[key])
-
-            v = traversal.next()
-
-            # this is NOT the id of a Vertex instance,
-            # but rather the id of the GremlinPython vertex returned
-            # by the traversal.
-            self._set_id(v.id)
-
-            Vertex._cache_vertex(self)
 
     def in_db(self, strict_check=True, allow_removed=False) -> bool:
         """Return whether this Vertex has been added to the database.
@@ -553,10 +528,22 @@ class Vertex(Element):
                         if va.is_list:
                             q = q.not_( \
                                   __.has(pa,
-                                         P.without(getattr(self, va.type, pa))))
+                                         P.without(getattr(self, va.name, pa))))
                         else:
                             q = q.has(pa, getattr(getattr(self, va.name), pa))
                         q = q.select("v")
+                    elif issubclass(va.type, Timestamp):
+                        tt = getattr(self, va.name)
+                        if tt is not None:
+                            q = q.has("%s_time" % va.name, tt.time)\
+                                 .has("%s_uid" % va.name, tt.uid)\
+                                 .has("%s_edit_time" % va.name, tt.edit_time)\
+                                 .has("%s_comments" % va.name, tt.comments)
+                        else:
+                            if not va.optional:
+                                raise TypeError(
+                                    "Was expecting something for "\
+                                    "%s since it is not optional." % va.name)
                     else:
                         if va.is_list:
                             q = q.not_( \
@@ -564,7 +551,6 @@ class Vertex(Element):
                                          P.without(getattr(self, va.name))))
                         else:
                             q = q.has(va.name, getattr(self, va.name))
-
             n = q.count().next()
             assert(n == 0 or n == 1)
             if n == 0:
@@ -746,6 +732,126 @@ class Vertex(Element):
         """
 
         return self.id() in g._vertex_cache
+
+    @classmethod
+    def _list_filter_traversal(cls, filters):
+        """Helper class for get_count() and get_list() with common code needed
+        by both.
+        """
+        t = g.t.V().has("category", cls.category)
+        ands = []
+        for f_or in filters:
+            contents = []
+            for and_key, and_val in f_or.items():
+                # The following is inefficient … But hopefully not limiting.
+                va = None
+                for va in cls._vertex_attrs:
+                    if va.name == and_key:
+                        break
+                if va is None:
+                    raise TypeError("Filter key %s not in Vertex." % and_key)
+                if issubclass(va.type, Vertex):
+                    contents.append(__.both(va.edge_class.category)\
+                                      .has(va.type.primary_attr, and_val))
+                else:
+                    contents.append(__.has(and_key, and_val))
+            if len(contents) > 0:
+                ands.append(__.and_(*contents))
+        if len(ands) > 0:
+            t = t.or_(*ands)
+        return t
+
+    @classmethod
+    def get_count(cls, filters: list = [], allow_disabled: bool = False):
+        """
+        Return the number of vertices in the DB of this type, subject to
+        provided filters. See docstring for `Vertex.get_list()` for more on 
+        filters.
+        
+        :param filters: See `Vertex.get_list()` documentation.
+        :type filters: A list of dictionaries; if a single dictionary is passed
+            it is automatically treated as list of length one.
+
+        :param allow_disabled: Whether to only select vertices with active=True.
+        :type allow_disabled: bool
+        """
+        if not isinstance(filters, list):
+            filters = [filters]
+        
+        q = cls._list_filter_traversal(filters)
+        if not allow_disabled:
+            q = q.has("active", True)
+        return q.count().next()
+
+    @classmethod
+    def get_list(cls, range: tuple = (0, -1), order_by: list = [], 
+                 filters: list = [], allow_disabled: bool = False):
+        """
+        Return a list of Vertex instances based in the range :param range:,
+        optionally filtered and ordered according to specified parameters.
+
+        An example filter: [{"name": TextP.containing("a"), "type": "filter"},
+        {"name": TextP.startingWith("antenna_")}]. This will search for vertices
+        with "name" containing the letter "a" and type "filter", or with "name"
+        starting with "antenna_".
+
+        :param range: The range of ComponentTypes to query. If the second
+            coordinate is -1, then the range is (range[0], inf)
+        :type range: tuple[int, int]
+
+        :param order_by: A list of what attribute(s) to order the results by;
+            each list item can either be a string naming the attribute, or a
+            tuple with (attribute, asc/desc); if no "asc" or "desc" is included,
+            "asc" is assumed.
+        :type order_by: list of str, or of (str, str) tuples. (If just a string
+            or just a tuple is passed, then it is automatically converted to a
+            list of length one.)
+
+        :param filters: A list of dictionaries, with key-value pairs being
+            field name, field value. If the field is a connexion to another
+            vertex, then the match will be with its `primary_attr`. Note that
+            the field value can use a gremlin method such as
+            `TextP.containing()`. Within a dictionary, all matches must occur
+            (boolean AND) and between dictionaries in the list, any match may
+            occur (boolean OR).
+        :type filters: A list of dictionaries; if a single dictionary is passed
+            it is automatically treated as list of length one.
+
+        :param allow_disabled: Whether to only select vertices with active=True.
+        :type allow_disabled: bool
+        """
+        # Validation of input.
+        if not isinstance(order_by, list) or isinstance(order_by, str):
+            order_by = [order_by]
+        if not isinstance(filters, list):
+            filters = [filters]
+        if len(order_by) > 0:
+            for i in _range(len(order_by)):
+                if not isinstance(order_by[i], tuple):
+                    order_by[i] = (order_by[i], "asc")
+                assert order_by[i][1].lower() in ("asc", "desc")
+
+        # Build traversal.
+        t = cls._list_filter_traversal(filters)
+        if len(order_by) > 0:
+            t = t.order()
+            for ob in order_by:
+                # The following is inefficient … But hopefully not limiting.
+                va = None
+                for va in cls._vertex_attrs:
+                    if va.name == ob[0]:
+                        break
+                if va is None:
+                    raise TypeError("Filter key %s not in Vertex." % and_key)
+                if issubclass(va.type, Vertex):
+                    t = t.by(__.both(va.edge_class.category)\
+                               .values(va.type.primary_attr), 
+                               Order.asc if ob[1] == "asc" else Order.desc)
+                else:
+                    t = t.by(ob[0], Order.asc if ob[1] == "asc" else Order.desc)
+        t = t.range(range[0], range[1])
+        t = cls._attrs_query(t, allow_disabled)
+        return [cls._from_attrs(t_i) for t_i in t.toList()]
 
 
 class Edge(Element):

@@ -209,7 +209,7 @@ export default function PropertyTypeList() {
             allowOrdering: true,
         },
         {
-            id: 'allowed_type', 
+            id: 'allowed_types', 
             label: 'Allowed Types',
             allowOrdering: true,
         },
