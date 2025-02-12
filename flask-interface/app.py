@@ -8,6 +8,7 @@ from markupsafe import escape
 import time
 import padloper as p
 import json
+from datetime import datetime
 from urllib.parse import unquote
 
 # The flask application
@@ -1114,23 +1115,32 @@ def end_component_connection():
 @app.route("/api/component_disable_connection")
 def disable_component_connection():
     """Given the names of the two components to disable the connection between,
-    disable the connection between the two components.
+    and the time at which the connection was created, disable the connection between 
+    the two components.
 
     The URL parameters are:
 
     name1 - the name of the first component
 
     name2 - the name of the second component
+
+    created_time - the time at which the connection was created
     """
     try: 
         val_name1 = escape(request.args.get('name1'))
         val_name2 = escape(request.args.get('name2'))
+        time = escape(request.args.get('created_time'))
+
+        print("time is", time)
 
         c1, c2 = p.Component.from_db(val_name1), p.Component.from_db(val_name2)
         # Get the connection object, and then disable it.
-        raise RuntimeError("This function needs to be fixed! The time at which " \
-                        "the connection is to be disabled needs to be " \
-                        "specified.")
+        connections = c1.get_connections(comp=c2, at_time=time)
+        if len(connections) > 1:        # this shouldn't happen
+            raise Exception(f"Multiple connections exist between {val_name1} and {val_name2}" 
+                + f" at start time {datetime.fromtimestamp(int(time))}.")
+        else:
+            connections[0].disable()        # disable the connection
         return {'result': True}
     
     except Exception as e:

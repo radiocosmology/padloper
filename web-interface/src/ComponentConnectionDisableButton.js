@@ -32,7 +32,7 @@ const DisableButton = styled((props) => (
 }))
 
 
-  export default function DisableAlertDialog ({name,otherComponentName,toggleReload}){
+  export default function DisableAlertDialog ({name,otherComponentName,time,toggleReload}){
 
   // opens and closes the alert dialog box.
   const [open, setOpen] = useState(false);
@@ -71,6 +71,7 @@ const DisableButton = styled((props) => (
         let input = `/api/component_disable_connection`;
         input += `?name1=${name}`;
         input += `&name2=${otherComponentName}`;
+        input += `&created_time=${time}`;
 
         return new Promise((resolve, reject) => {
             fetch(input).then(
