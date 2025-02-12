@@ -163,10 +163,8 @@ def set_component_type():
         return {'result': True}
 
     except Exception as e:
-
         # For printing the exception in the terminal.
         print(e)
-
         return {'error': json.dumps(e, default=str)}
 
 
@@ -205,9 +203,7 @@ def replace_component_type():
         return {'result': True}
 
     except Exception as e:
-
         print(e)
-
         return {'error': json.dumps(e, default=str)}
 
 
@@ -247,9 +243,7 @@ def set_component_version():
         return {'result': True}
 
     except Exception as e:
-
         print(e)
-
         return {'error': json.dumps(e, default=str)}
 
 
@@ -1569,9 +1563,7 @@ def replace_flag():
         return {'result': True}
 
     except Exception as e:
-
         print(e)
-
         return {'error': json.dumps(e, default=str)}
 
 @app.route("/api/disable_flag")

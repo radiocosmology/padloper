@@ -900,9 +900,9 @@ function ComponentPage() {
                         <EntryAccordionDetails>
                             <Stack spacing={1}>
                                 <Stack
-                                direction = 'row'
-                                justifyContent='space-between'
-                                alignItems='center'>
+                                    direction = 'row'
+                                    justifyContent='space-between'
+                                    alignItems='center'>
                                 <ComponentEvent
                                     name="Start"
                                     time={conn.start.time}
@@ -937,13 +937,13 @@ function ComponentPage() {
                                     setActiveIndexConnectionReplace(index)
                                 }
                             }
-                            />
-                            <ComponentConnectionDisableButton
-                            name={name}
-                            otherComponentName={conn.name}
-                            time={conn.start.time}
-                            toggleReload={toggleReload}
-                            />
+                        />
+                        <ComponentConnectionDisableButton
+                        name={name}
+                        otherComponentName={conn.name}
+                        time={conn.start.time}
+                        toggleReload={toggleReload}
+                        />
                         
                             </>
                             
