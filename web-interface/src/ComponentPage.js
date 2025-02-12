@@ -926,19 +926,7 @@ function ComponentPage() {
                                         }
                                         />
                                     }
-                                    {conn.end.uid
-                        ?
-                        <ReplaceButton 
-                        onClick={
-                                () => 
-                                {
-                                    setOtherName(conn.name)
-                                    setOpenConnectionsReplacePanel(true)
-                                    setActiveIndexConnectionReplace(index)
-                                }
-                            }
-                            />
-                        :
+                                    
                         <>
                         <ReplaceButton 
                         onClick={
@@ -952,12 +940,13 @@ function ComponentPage() {
                             />
                             <ComponentConnectionDisableButton
                             name={name}
-                            otherComponentName = {conn.name}
+                            otherComponentName={conn.name}
+                            time={conn.start.time}
                             toggleReload={toggleReload}
                             />
                         
                             </>
-                            }
+                            
                             </Stack>
                             </Stack>
                                 {
