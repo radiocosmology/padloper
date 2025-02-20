@@ -551,7 +551,7 @@ class Component(Vertex):
 
     def connect(
         self, comp, start: Timestamp, end: Timestamp = None,
-        strict_add: bool = True, is_replacement: bool = False
+        strict_add: bool = True, to_replace: RelationConnection = None
     ):
         """Given another Component :param comp:,
         connect the two components.
@@ -566,9 +566,9 @@ class Component(Vertex):
         :param strict_add: If connexion already exists, raise an error if True;
           otherwise print a warning and return.
         :type strict_add: bool
-        :param is_replacement: Disable current connexion and replace it with
-           this one.
-        :type is_replacement: bool
+        :param to_replace: The connection this connection will be replacing, if any. 
+          If no connection is being replaced, this value is None. 
+        :type to_replace: RelationConnection
         """
 
         if not self.in_db():
@@ -586,35 +586,45 @@ class Component(Vertex):
             raise ComponentConnectToSelfError(
                 f"Trying to connect component {self.name} to itself."
             )
+        
+        # need to completely rethink this section. 
+        # Handle the 2 cases separately?
+        # like even the curr_conn below needs to be calculated differently
+        # if we know we are doing a replace. 
 
-        curr_conn = self.get_connections(comp=comp,
-                                         at_time=start.time)
-        # If this doesn't pass, something is very broken!
-        assert(len(curr_conn) <= 1)
+        if to_replace == None:
 
-        if len(curr_conn) == 1 and is_replacement == False:
-            # Already connected!
-            strictraise(strict_add, ComponentsAlreadyConnectedError, 
-                f"Components {self.name} and {comp.name} " +
-                "are already connected."
-            )
-            return
-        elif len(curr_conn) == 0 and is_replacement == True:
-            # Not connected, but expected them to be connected.
-            strictraise(strict_add, ComponentsAlreadyConnectedError,
-                f"Trying to replace connection between {self.name} and " +
-                "{comp.name}, but it does not exist."
-            )
-            return
-        elif len(curr_conn) == 1 and is_replacement == True:
-            # there is an existing connection between these 2 components
-            existing_connection = curr_conn[0]
-            existing_connection.disable()
+            curr_conn = self.get_connections(comp=comp,
+                                            at_time=start.time)
+            # If this doesn't pass, something is very broken!
+            assert(len(curr_conn) <= 1)
 
-        all_conn = self.get_connections(comp=comp,
-                                        from_time=start.time)
+            if len(curr_conn) == 1:
+                # Already connected!
+                strictraise(strict_add, ComponentsAlreadyConnectedError, 
+                    f"Components {self.name} and {comp.name} " +
+                    "are already connected."
+                )
+                return
+            
+            all_conn = self.get_connections(comp=comp, from_time=start.time)
+            
+        else:  # to_replace is not None:
 
-        if len(all_conn) > 0:
+            curr_conn = self.get_connections(comp=comp, at_time=to_replace.start.time)
+            
+            if len(curr_conn) == 0:
+                # Not connected, but expected them to be connected.
+                strictraise(strict_add, ComponentsAlreadyConnectedError,
+                    f"Trying to replace connection between {self.name} and " +
+                    f"{comp.name}, but it does not exist."
+                )
+                return
+
+            all_conn = self.get_connections(comp=comp,
+                                    from_time=min(start.time, to_replace.start.time))
+
+        if len(all_conn) > 0 and to_replace == None:
             if end == None:
                 raise ComponentsOverlappingConnectionError(
                     "Trying to connect components " +
@@ -627,18 +637,30 @@ class Component(Vertex):
                 raise ComponentsOverlappingConnectionError(
                     "Trying to connect components " +
                     f"{self.name} and {comp.name} " +
-                    "but existing connection between these components " +
+                    "but an existing connection between these components " +
                     "overlaps in time."
                 )
+        elif len(all_conn) > 0:
+            # if to_replace is not None
+            if all_conn[0].id() != to_replace.id():
+                raise Error(f"Trying to connect components " +
+                    f"{self.name} and {comp.name} " +
+                    "but an existing connection between these components " +
+                    "overlaps in time.")
 
-        curr_conn = RelationConnection(
+        new_conn = RelationConnection(
             inVertex=self,
             outVertex=comp,
             start=start,
             end=end
         )
 
-        curr_conn.add()
+        if to_replace != None:
+            # Need to replace the connection to_replace with new connection curr_conn.
+            to_replace.replace(new_conn, disable_time=int(time.time()))
+            
+        else:
+            new_conn.add()
 #        print(f'connected: {self} -> {comp}  ({start.uid} {start.time})')
 
 

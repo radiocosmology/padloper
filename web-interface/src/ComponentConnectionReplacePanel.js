@@ -69,7 +69,7 @@ const CloseButton = styled((props) => (
  * @param {object} theme - A MUI theme object, see 
  * https://mui.com/material-ui/customization/theming/
  * @param {function} onClose - function to call when the close button is pressed
- * @param {function(string, int, string, string)} onSet - function to call when 
+ * @param {function(string, int, string, string, int)} onSet - function to call when 
  * replacing a component connection. The parameters are of the form:
  * onSet(otherName, time, uid, comments), time is the Unix time when
  * the connection is being set, uid is the ID of the user setting the
@@ -211,7 +211,8 @@ function ComponentConnectionReplacePanel(
                                 onSet( 
                                     time, 
                                     uid, 
-                                    comments
+                                    comments,
+                                    conn.start.time
                                 ).then(
                                     successful => {
                                         if (successful === false) {

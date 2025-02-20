@@ -341,9 +341,15 @@ def set_component():
         val_type = escape(request.args.get('type'))
         val_version = escape(request.args.get('version'))
 
+        print(val_type)
+
         # Query the database and return the ComponentType instance based on the 
         # component type name.
-        component_type = p.ComponentType.from_db(val_type)
+        print("hello")
+
+        component_type = p.ComponentType.from_db(primary_attr=val_type)
+        print(component_type)
+        print("goodbye")
 
         # Query the database and return the ComponentVersion instance based on
         # component version name and
@@ -356,9 +362,13 @@ def set_component():
         for name in val_name:
             # Need to initialize an instance of a component first.
             print(name, component_type, component_version)
+
             component = p.Component(name=name, type=component_type,
                                     version=component_version)
+            print("hello2")
             component.add()
+            print("goodbye2")
+
 
         return {'result': True}
     except Exception as e:
@@ -1041,6 +1051,8 @@ def add_component_connection():
 
     comments - Comments associated with the connection
 
+    replace_time - start timestamp of connection to replace, or none by default
+
     :return: Return a dictionary with a key 'result' and value being a boolean
     that is True if and only if the components were not already connected
     beforehand, otherwise, a dictionary with a key 'error'
@@ -1053,14 +1065,21 @@ def add_component_connection():
         val_time = int(escape(request.args.get('time')))
         val_uid = escape(request.args.get('uid'))
         val_comments = escape(request.args.get('comments'))
-        val_is_replacement = escape(request.args.get('isreplacement'))
+        val_replace_time = escape(request.args.get('replace_time'))
         
-        val_is_replacement = True if val_is_replacement == 'True' else False
-
         c1, c2 = p.Component.from_db(val_name1), p.Component.from_db(val_name2)
-
         t = tmp_timestamp(val_time, val_uid, val_comments)
-        c1.connect(c2, t, is_replacement=val_is_replacement)
+
+        if val_replace_time == 'None':
+            c1.connect(c2, t, to_replace=None)
+        
+        else:
+            # get existing connection object
+            connections = c1.get_connections(comp=c2, at_time=val_replace_time)
+            print(datetime.fromtimestamp(int(val_replace_time)))
+            print(datetime.fromtimestamp(connections[0].start.time))
+            c1.connect(c2, t, to_replace=connections[0])
+            # raise Exception(f"Not implemented yet lol idk")
 
         return {'result': True}
 

@@ -305,6 +305,7 @@ class Vertex(Element):
         :rtype: Vertex subclass.
 
         """
+        print("from dbing")
         d = g.t.V()\
              .has("category", cls.category)\
              .has(cls.primary_attr, primary_attr)
@@ -314,6 +315,9 @@ class Vertex(Element):
         except StopIteration:
             raise NotInDatabase("Could not find %s in the DB." %\
                                 primary_attr)
+        print(d)
+        print("banana")
+        print(cls._from_attrs(d))
 
         return cls._from_attrs(d) 
 
@@ -948,7 +952,9 @@ class Edge(Element):
 
             e = traversal.next()
 
-            self._set_id(e.id)
+            print("adding eid", e.id)
+
+            self._set_id(e.id['@value']['relationId'])
 
     def disable(self, disable_time: int = int(time.time())):
         """Disable this connexion by setting active to false.
@@ -975,6 +981,45 @@ class Edge(Element):
             g.t.E(self.id()).count().next() > 0
         )
 
+    def replace(self, newEdge, disable_time: int = int(time.time())):
+        """Replaces the edge in the JanusGraph DB with a new edge by
+        changing its property 'active' from true to false.
+
+        :param newEdge: The new edge that is replacing this edge.
+        :type newEdge: Edge
+
+        :param disable_edge: When this edge was disabled in the database (UNIX
+            time).
+        :type disable_time: int
+
+        :return: newEdge
+        :rtype: Edge
+        """
+
+        if not newEdge.added_to_db():     # make sure new edge in db
+            newEdge.add()
+        
+        properties = g.t.E(self.id()).valueMap().toList()[0]
+        print("properties", properties)
+
+        # traversal = g.t.V(self.id()).outE()[i].properties().toList()
+
+        print("new id", newEdge.id())
+        print("old id", self.id())
+
+        # copy over the properties
+        for prop in properties:
+            print(prop, properties[prop])
+            g.t.E(newEdge.id()).property(prop, properties[prop])
+        
+        print("new props", g.t.E(newEdge.id()).valueMap().toList())
+
+        # Drop the old edge
+        g.t.E(self.id()).drop().iterate()
+
+        return newEdge
+
+        
     def other_vertex(self, v):
         """Given one vertex of this edge, return the other.
 

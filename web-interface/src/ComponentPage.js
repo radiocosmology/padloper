@@ -536,7 +536,6 @@ function ComponentPage() {
         input += `&time=${time}`;
         input += `&uid=${uid}`;
         input += `&comments=${comments}`;
-        input += `&isreplacement=False`;
 
         axios.post(input).then(
                 (response) => {
@@ -589,17 +588,18 @@ function ComponentPage() {
      * @param {int} time - the time to make the connection at 
      * @param {string} uid - the ID of the user that is making the connection 
      * @param {string} comments - the comments associated with making the connection 
+     * @param {int} oldTime - the start time of the old connection that will be replaced
      */
-    async function replaceConnection(time, uid, comments) {
+    async function replaceConnection(newTime, uid, comments, oldTime) {
         
         // build up the string to query the API
         let input = `/api/component_add_connection`;
         input += `?name1=${name}`;
         input += `&name2=${otherName}`;
-        input += `&time=${time}`;
+        input += `&time=${newTime}`;
         input += `&uid=${uid}`;
         input += `&comments=${comments}`;
-        input += `&isreplacement=True`;
+        input += `&replace_time=${oldTime}`;
 
         return new Promise((resolve, reject) => {
             fetch(input, {method: 'POST'}).then(
@@ -770,7 +770,6 @@ function ComponentPage() {
                             onClick={
                                 () => 
                                 {
-                                  
                                     setOpenPropertiesReplacePanel(true)
                                     setactiveindexpropertyReplace(index)
                                 }
@@ -935,6 +934,7 @@ function ComponentPage() {
                                     setOtherName(conn.name)
                                     setOpenConnectionsReplacePanel(true)
                                     setActiveIndexConnectionReplace(index)
+                                    setErrorReplaceConnectionMessage(null)
                                 }
                             }
                         />
