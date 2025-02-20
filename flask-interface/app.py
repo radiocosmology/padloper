@@ -141,7 +141,7 @@ def get_component_list():
             filters=filt,
         )
     
-    return {"result": [c.as_dict(bare=True) for c in components]}
+        return {'result': [c.as_dict(bare=True) for c in components]}
 
     except Exception as e:
         print(e)
@@ -579,11 +579,15 @@ def get_component_count():
     """
     try:
 
-    filters = request.args.get('filters')
-    filt = parse_filters(filters, ["name", "type", "version"],
-                         [TextP.containing, lambda x: x, lambda x: x])
+        filters = request.args.get('filters')
+        filt = parse_filters(filters, ["name", "type", "version"],
+                            [TextP.containing, lambda x: x, lambda x: x])
 
-    return {'result': p.Component.get_count(filters=filt)}
+        return {'result': p.Component.get_count(filters=filt)}
+
+    except Exception as e:
+        print(e)
+        return {'error': json.dumps(e, default=str)}
 
 
 @app.route("/api/component_types_and_versions")
@@ -852,7 +856,6 @@ def set_component_property():
     """
     try:
 
-        raise Exception(f"Test error for add properyty")
         val_name = escape(request.args.get('name'))
         val_property_type = escape(request.args.get('propertyType'))
         val_time = int(escape(request.args.get('time')))
@@ -1127,23 +1130,30 @@ def disable_component_connection():
 
     name2 - the name of the second component
 
-    created_time - the time at which the connection was created
+    start_time - the time at which the connection was started
     """
     try: 
         val_name1 = escape(request.args.get('name1'))
         val_name2 = escape(request.args.get('name2'))
-        time = escape(request.args.get('created_time'))
-
-        print("time is", time)
+        time = escape(request.args.get('start_time'))
 
         c1, c2 = p.Component.from_db(val_name1), p.Component.from_db(val_name2)
         # Get the connection object, and then disable it.
         connections = c1.get_connections(comp=c2, at_time=time)
         if len(connections) > 1:        # this shouldn't happen
+            # add to error message this is really broken
             raise Exception(f"Multiple connections exist between {val_name1} and {val_name2}" 
-                + f" at start time {datetime.fromtimestamp(int(time))}.")
+                + f" at start time {datetime.fromtimestamp(int(time))}."
+                + "Something went very wrong, please contact a maintainer!")
+
+        # if it returns nothing
+        if len(connections) == 0:
+            raise Exception(f"No connections were found between {val_name1} and {val_name2}"
+                + f" with start time {datetime.fromtimestamp(int(time))}."
+                + "Something went very wrong, please contact a maintainer!")
         else:
             connections[0].disable()        # disable the connection
+            
         return {'result': True}
     
     except Exception as e:

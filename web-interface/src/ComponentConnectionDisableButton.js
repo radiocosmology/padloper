@@ -71,7 +71,7 @@ const DisableButton = styled((props) => (
         let input = `/api/component_disable_connection`;
         input += `?name1=${name}`;
         input += `&name2=${otherComponentName}`;
-        input += `&created_time=${time}`;
+        input += `&start_time=${time}`;
 
         return new Promise((resolve, reject) => {
             fetch(input).then(

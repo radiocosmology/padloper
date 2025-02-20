@@ -131,6 +131,7 @@ function ComponentPropertyReplacePanel(
     const [displayTime, setDisplayTime] = useState(defaultTime);
     useEffect(() => {
       setDisplayTime(moment(displayTime).format("YYYY-MM-DD[T]HH:mm:ss"));
+      setSelectedOption(selected);
     }, []);
 
     // the comments associated with setting the property
@@ -293,6 +294,7 @@ function ComponentPropertyReplacePanel(
                 <Grid container spacing={2} justifyContent="center">
                     <Grid item>
                         <TextField
+                        disabled
                         variant="filled"
                         label="Property Type"
                         defaultValue={selected.name}
