@@ -1,19 +1,18 @@
 import React, { useState, useEffect, useRef, useCallback,
     useMemo } from 'react';
 import ReactFlow, { 
-Controls, Background, Handle, ControlButton, isNode, MarkerType,
-applyNodeChanges, applyEdgeChanges, ReactFlowProvider, useReactFlow, Panel,
+Controls, Background, Handle, ControlButton,
+applyNodeChanges, applyEdgeChanges, ReactFlowProvider, useReactFlow,
 } from 'reactflow';
 import 'reactflow/dist/style.css';
 import styled from '@mui/material/styles/styled';
 import createTheme from '@mui/material/styles/createTheme';
-import { Link, useSearchParams } from "react-router-dom";
+import { Link } from "react-router-dom";
 import './custom.css'
 
 import Dagre from 'dagre';
 
 import Paper from '@mui/material/Paper';
-import Typography from '@mui/material/Typography';
 import Button from '@mui/material/Button';
 import Grid from '@mui/material/Grid';
 import TextField from '@mui/material/TextField';
@@ -263,9 +262,6 @@ return nodes.find((node) => node.id === id);
 */
 function ComponentConnectionsPanel() {
 
-// https://reactrouter.com/docs/en/v6/api#usesearchparams
-const [searchParams, setSearchParams] = useSearchParams();
-
 // the React Flow nodes to be used in the visualization
 const [nodes, setNodes] = useState([]);
 
@@ -427,11 +423,10 @@ const fetchData = async () => {
 };
 
 useEffect(() => {
-    // TODO: this does not get run for when you re-visualise the same component if the 
-    // expanded and depth do not change. So it fails to fetch the properties again. 
-    // how to fix this?
+    // Fetches data when we have to reload the component
+    // (when reloadComponent is toggled)
     fetchData();
-}, [window.location.hash, reloadComponent]);
+}, [reloadComponent]);
 
 /**
  * To visualize component
@@ -455,9 +450,10 @@ useEffect(() => {
     
 }, [component]);
 
-
+/**
+ * To modify node to have/display property information
+ */
 function revealProperties(node) {
-    console.log("reveal the", node.data.properties);
     // TODO: change component select from list to have properties
     if (node.data.properties && node.data.properties.length > 0) {
         console.log(node.data.properties)
@@ -733,20 +729,6 @@ childrenNodes.current = {};
 rowsOccupied.current = {};
 }
 
-// /**
-//  * Get node by ID
-//  */
-// const getNode = (nodes, id) => {
-//     console.log(nodes, id);
-//     return nodes.find((node) => node.id === id);
-// }
-
-const createSubcomponent = useCallback((parent, children) => {
-const x = getNode(nodes, parent);
-}, 
-[nodes]
-);
-
 /**
 * Visualize the component, and branch out and visualize nearby components
 * using breadth first search.
@@ -941,13 +923,13 @@ return (
                             console.log("NODES", flowInstance.getNodes());
                             expandConnections(data.name, time.current).then(
                                 (addedNodes) => {
-                                    // Updating the sizes and locations of nodes is done after the 
+                                    // Resizing and re-positioning nodes is done after the 
                                     // promise is resolved, because it needs to wait for React Flow to finish
                                     // its calculations first. 
                                     console.log("component", componentRef.current);
                                     console.log(isParentNode.current[data.name]);
                                     for (var i = 0; i < addedNodes.length; i++) {
-                                        // for all added components, if one of them is 
+                                        // if one of the added components is a parent node
                                         if (isParentNode.current[addedNodes[i].name]) {
                                             setAddedParent(addedNodes[i].name);
                                         }
@@ -963,7 +945,6 @@ return (
                                         // update the state
                                         else {
                                             setExpandedSupercomponent(data.name)
-
                                         }
                                         
                                     }
@@ -984,7 +965,7 @@ return (
 
 useEffect(() => {
     // Resize the parent, if necessary
-    console.log("added parent reached", addedParent);
+    console.log("added parent", addedParent);
     if (addedParent && childrenNodes.current[addedParent]) {
         console.log("PARENTE", flowInstance.getNode(addedParent));
         console.log(childrenNodes.current);
@@ -1129,8 +1110,6 @@ resolve => {
         // expand to add child nodes to parent
         if (expandedNodes.current[name] === true) {
             let subLastAdded = {x: -nodeWidth, y: 120 - nodeHeight}
-            // TODO: remove these?
-            // let maxSubHeight = nodeHeight;
             for (const sub of subcomponents) {
                 // console.log(sub.name + ':')
                 // debugger;
@@ -1415,13 +1394,15 @@ async function formatRowsVertical(startingRow, height, ignoreNodes = null) {
 * Moves nodes in a row (and all their children) to the right 
 * @param {number} row - row containing the nodes we want to move
 * @param {number} x - the amount by which to move the nodes
-* @param {number} startingX - 
+* @param {number} startingX - elements to the right of this x-value will be pushed right
 */
 async function formatRowsHorizontal(row, x, startingX) {
     console.log("formatting horizontal")
+    console.log(row, x, startingX)
+    console.log(nodeCoords)
     let toPush = [];        // array that will store nodes to push
     for (const node in nodeCoords.current) {
-        if ((nodeCoords.current[node].row == row) && (nodeCoords.current[node].coords.x >= startingX) 
+        if ((nodeCoords.current[node].row == row) && (nodeCoords.current[node].coords.x > startingX) 
             && (!nodeCoords.current[node].parentCoords)) {
             toPush = toPush.concat(pushRight(node));
         }
@@ -1621,7 +1602,7 @@ async function addOccupiedSpace(rowNumber, start, end, replace) {
         while (i < currentRowOccupied.length - 1) {
             if ((currentRowOccupied[i].end >= start) && (currentRowOccupied[i].start <= end)) {
                 let dist = Math.abs(end - currentRowOccupied[i].end);
-                let startingX = Math.min(currentRowOccupied[i].end, end);
+                let startingX = Math.min(currentRowOccupied[i].start, end);
 
                 rowsOccupied.current[rowNumber][i].end = Math.max(currentRowOccupied[i].end, end);
                 rowsOccupied.current[rowNumber][i].start = Math.min(currentRowOccupied[i].start, start);
