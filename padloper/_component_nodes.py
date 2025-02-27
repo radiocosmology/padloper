@@ -30,13 +30,14 @@ class ComponentType(Vertex):
         VertexAttr("comments", str, optional=True, default="")
     ]
     primary_attr: str = "name"
+    name: str = "default"
+    # comments: str 
 
     @classmethod
     def get_names_of_types_and_versions(cls):
         """
         Return a list of dictionaries, of the format
         {'type': <ctypename>, 'versions': [<revname>, ..., <revname>]}
-
         where <ctypename> is the name of the component type, and
         the corresponding value of the 'versions' key is a list of the names
         of all of the versions.
@@ -60,10 +61,9 @@ class ComponentType(Vertex):
 
         return ts
 
-    @classmethod
+    # @classmethod
     def __repr__(self):
         return f"{self.category}: {self.name} ({self._id})"
-
 
 class ComponentVersion(Vertex):
     """

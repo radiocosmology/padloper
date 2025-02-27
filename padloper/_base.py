@@ -305,7 +305,6 @@ class Vertex(Element):
         :rtype: Vertex subclass.
 
         """
-        print("from dbing")
         d = g.t.V()\
              .has("category", cls.category)\
              .has(cls.primary_attr, primary_attr)
@@ -315,9 +314,6 @@ class Vertex(Element):
         except StopIteration:
             raise NotInDatabase("Could not find %s in the DB." %\
                                 primary_attr)
-        print(d)
-        print("banana")
-        print(cls._from_attrs(d))
 
         return cls._from_attrs(d) 
 
@@ -360,6 +356,7 @@ class Vertex(Element):
         arg = {"_id": attrs["id"],
                "_time_added": attrs["time_added"],
                "_uid_added": attrs["uid_added"]}
+
         for a in cls._vertex_attrs:
             if issubclass(a.type, Vertex):
                 len_a = len(attrs[a.name])
@@ -387,7 +384,7 @@ class Vertex(Element):
                 arg[a.name] = Timestamp._from_dict(attrs, "%s_" % a.name)
             else:
                 arg[a.name] = attrs[a.name]
-
+            
         return Vertex._cache_vertex(cls(**arg))
 
     @classmethod

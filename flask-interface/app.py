@@ -345,11 +345,8 @@ def set_component():
 
         # Query the database and return the ComponentType instance based on the 
         # component type name.
-        print("hello")
 
         component_type = p.ComponentType.from_db(primary_attr=val_type)
-        print(component_type)
-        print("goodbye")
 
         # Query the database and return the ComponentVersion instance based on
         # component version name and
@@ -365,9 +362,7 @@ def set_component():
 
             component = p.Component(name=name, type=component_type,
                                     version=component_version)
-            print("hello2")
             component.add()
-            print("goodbye2")
 
 
         return {'result': True}
