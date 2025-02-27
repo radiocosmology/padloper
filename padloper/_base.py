@@ -1007,8 +1007,10 @@ class Edge(Element):
         # copy over the properties
         for prop in properties:
             print(prop, properties[prop])
-            g.t.E(newEdge.id()).property(prop, properties[prop])
+            g.t.E(newEdge.id()).property(prop, properties[prop]).iterate()
         
+        # newEdge = newEdge.next()
+
         print("new props", g.t.E(newEdge.id()).valueMap().toList())
 
         # Drop the old edge
