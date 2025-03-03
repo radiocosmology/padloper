@@ -980,7 +980,8 @@ class Edge(Element):
 
     def replace(self, newEdge, disable_time: int = int(time.time())):
         """Replaces the edge in the JanusGraph DB with a new edge by
-        changing its property 'active' from true to false.
+        changing its property 'active' from true to false, and storing the id
+        of the new edge as an attribute.
 
         :param newEdge: The new edge that is replacing this edge.
         :type newEdge: Edge
@@ -992,29 +993,19 @@ class Edge(Element):
         :return: newEdge
         :rtype: Edge
         """
+        if newEdge.category != self.category:
+            raise TypeError("The new edge must be of the same category as "\
+                            "the edge it is replacing.")
 
         if not newEdge.added_to_db():     # make sure new edge in db
             newEdge.add()
-        
-        properties = g.t.E(self.id()).valueMap().toList()[0]
-        print("properties", properties)
 
-        # traversal = g.t.V(self.id()).outE()[i].properties().toList()
-
-        print("new id", newEdge.id())
-        print("old id", self.id())
-
-        # copy over the properties
-        for prop in properties:
-            print(prop, properties[prop])
-            g.t.E(newEdge.id()).property(prop, properties[prop]).iterate()
-        
-        # newEdge = newEdge.next()
-
-        print("new props", g.t.E(newEdge.id()).valueMap().toList())
-
-        # Drop the old edge
-        g.t.E(self.id()).drop().iterate()
+        # The 'replacement' property now points to the new edge that replaced
+        # the self edge, and the self edge needs to be disabled.
+        g.t.E(self.id()).property('replacement', newEdge.id()) \
+                        .property('active', False) \
+                        .property('time_disabled', disable_time) \
+                        .property('uid_disabled', _get_user()).iterate()
 
         return newEdge
 

@@ -654,13 +654,24 @@ class Component(Vertex):
             start=start,
             end=end
         )
+            
+        new_conn.add()
 
         if to_replace != None:
             # Need to replace the connection to_replace with new connection curr_conn.
+
+            # copy over properties from to_replace
+            properties = g.t.E(to_replace.id()).valueMap().toList()[0]
+            for prop in properties:
+                g.t.E(new_conn.id()).property(prop, properties[prop]).iterate()
+            
+            # set start time and end time because these were just overwritten
+            g.t.E(new_conn.id()).property('start_time', start.time).iterate()
+            if end is not None:
+                g.t.E(new_conn.id()).property('end_time', end.time).iterate()
+
             to_replace.replace(new_conn, disable_time=int(time.time()))
             
-        else:
-            new_conn.add()
 #        print(f'connected: {self} -> {comp}  ({start.uid} {start.time})')
 
 
