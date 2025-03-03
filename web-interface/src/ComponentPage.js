@@ -585,21 +585,31 @@ function ComponentPage() {
 
     /**
      * Replace the connection to another component.
-     * @param {int} time - the time to make the connection at 
+     * @param {int} startTime - the time to make the connection at 
+     * @param {int} endTime - the time to end the connection at
      * @param {string} uid - the ID of the user that is making the connection 
      * @param {string} comments - the comments associated with making the connection 
-     * @param {int} oldTime - the start time of the old connection that will be replaced
+     * @param {int} oldStartTime - the start time of the old connection that will be replaced
+     * @param {bool} hasEnd - whether the connection has already ended, i.e., whether the 
+     *                      "endTime" value is actually valid
      */
-    async function replaceConnection(newTime, uid, comments, oldTime) {
+    async function replaceConnection(startTime, endTime, uid, comments, oldStartTime, hasEnd) {
         
         // build up the string to query the API
         let input = `/api/component_add_connection`;
         input += `?name1=${name}`;
         input += `&name2=${otherName}`;
-        input += `&time=${newTime}`;
+        input += `&time=${startTime}`;
         input += `&uid=${uid}`;
         input += `&comments=${comments}`;
-        input += `&replace_time=${oldTime}`;
+        input += `&replace_time=${oldStartTime}`;
+
+        if (hasEnd) {       // need to include ending time of new connection
+            input += `&end_time=${endTime}`;
+        }
+
+        console.log("hasend", hasEnd);
+        console.log("endTime", endTime);
 
         return new Promise((resolve, reject) => {
             fetch(input, {method: 'POST'}).then(

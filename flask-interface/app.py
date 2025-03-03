@@ -1048,6 +1048,8 @@ def add_component_connection():
 
     replace_time - start timestamp of connection to replace, or none by default
 
+    end_time - end timestamp of the new connection, or none by default
+
     :return: Return a dictionary with a key 'result' and value being a boolean
     that is True if and only if the components were not already connected
     beforehand, otherwise, a dictionary with a key 'error'
@@ -1061,6 +1063,9 @@ def add_component_connection():
         val_uid = escape(request.args.get('uid'))
         val_comments = escape(request.args.get('comments'))
         val_replace_time = escape(request.args.get('replace_time'))
+        val_end_time = escape(request.args.get('end_time'))
+
+        print("is none?", val_end_time == 'None')
         
         c1, c2 = p.Component.from_db(val_name1), p.Component.from_db(val_name2)
         t = tmp_timestamp(val_time, val_uid, val_comments)
@@ -1071,10 +1076,11 @@ def add_component_connection():
         else:
             # get existing connection object
             connections = c1.get_connections(comp=c2, at_time=val_replace_time)
-            print(datetime.fromtimestamp(int(val_replace_time)))
-            print(datetime.fromtimestamp(connections[0].start.time))
-            c1.connect(c2, t, to_replace=connections[0])
-            # raise Exception(f"Not implemented yet lol idk")
+            if val_end_time == 'None':
+                c1.connect(c2, t, to_replace=connections[0])
+            else:
+                end_t = tmp_timestamp(val_end_time, val_uid, val_comments)
+                c1.connect(c2, t, end_t, to_replace=connections[0])
 
         return {'result': True}
 
