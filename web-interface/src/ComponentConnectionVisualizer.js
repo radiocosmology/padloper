@@ -288,8 +288,8 @@ const rowsOccupied = useRef({});
 // a dictionary that will store the React Flow IDs of the nodes used
 const nodeIds = useRef({});
 
-// a dictionary that maps the node IDs to their coordinates
-const nodeCoords = useRef({});
+// a dictionary that maps the node IDs to their "levels" (from the top node)
+const nodeLevels = useRef({});
 
 // a dictionary to store which nodes were expanded already
 const expandedNodes = useRef({});
@@ -398,10 +398,6 @@ const fetchData = async () => {
         depth: initialDepth,
         expanded: initialExpanded,
     } = getHashParams();
-
-    // TODO: remove
-    console.log("INITIALCMP?");
-    console.log("INITIALCMP:", initialCmp);
     
     // enteredTime.current = +initialTime;
     if (initialDepth) {
@@ -554,17 +550,6 @@ nodeIds.current[id] = true;
 function addEdgeId(id) {
 edgeIds.current[id] = true;
 }
-function addNodeCoords(id, coords, row, parent=null) {
-    nodeCoords.current[id] = {
-        coords: coords,
-        row: row,
-        parentCoords: null
-    };
-    if (parent !== null) {
-        nodeCoords.current[id].parentCoords = nodeCoords.current[parent].coords;
-        nodeCoords.current[id].row = nodeCoords.current[parent].row;
-    }
-}
 
 /**
 * Add a component to the React Flow graph.
@@ -602,7 +587,7 @@ if (subcomponent) {
       parentNode: parent,
       extent: 'parent',
   }
-  addNodeCoords(comp.name, {x: x, y: y}, row, parent)
+  nodeLevels.current[comp.name] = row;
 } else {
   console.log("Adding non-subcomponent ", comp)
 //   console.log("Coords: ", x, y)
@@ -621,7 +606,7 @@ if (subcomponent) {
       },
   //            position: { x: 10, y: 10 },
   }
-  addNodeCoords(comp.name, {x: x, y: y}, row)
+  nodeLevels.current[comp.name] = row;
 }
 addNodeId(comp.name);
 // set parent node status to false
@@ -965,14 +950,9 @@ return (
 
 useEffect(() => {
     // Resize the parent, if necessary
-    console.log("added parent", addedParent);
     if (addedParent && childrenNodes.current[addedParent]) {
-        console.log("PARENTE", flowInstance.getNode(addedParent));
-        console.log(childrenNodes.current);
-        console.log("chidlren", childrenNodes.current[addedParent]);
         const children = childrenNodes.current[addedParent];
         const parentHeight = flowInstance.getNode(addedParent).height;
-        console.log(parentHeight);
         var newHeight = 0;
 
         // get the height of the tallest child
@@ -982,7 +962,6 @@ useEffect(() => {
             newHeight = Math.max(newHeight, parentHeight + child.height);
             console.log(child.height);
         }
-        console.log("newheight", newHeight);
 
         flowInstance.setNodes((nodes) => nodes.map((node) => {
             if (node.id === addedParent) {
@@ -1115,7 +1094,7 @@ resolve => {
                 // debugger;
                 console.log("addComponent1");
                 let subAdded = addComponent(sub, subLastAdded.x + nodeWidth + 10, subLastAdded.y, 
-                                            nodeCoords.current[curr.name].row + 1, true, curr.name);
+                                            nodeLevels.current[curr.name] + 1, true, curr.name);
 
                 // console.log(subAdded)
                 if (subAdded) {
@@ -1185,20 +1164,20 @@ resolve => {
 
                 // create parent node
                 console.log("addComponent2")
-                let current_node = nodeCoords.current[curr.name];
-                let added = addComponent(parent, current_node.coords.x, current_node.coords.y, 
-                                        current_node.row, false, null, newWidth * 1.5 + 'px');
+                let current_node = flowInstance.getNode(curr.name);
+                let added = addComponent(parent, current_node.position.x, current_node.position.y, 
+                    nodeLevels.current[curr.name], false, null, newWidth * 1.5 + 'px');
 
                 if (added) {
                     // add occupied space
-                    addOccupiedSpace(current_node.row, current_node.coords.x, 
-                        current_node.coords.x + newWidth * 1.5, true);
+                    addOccupiedSpace(nodeLevels.current[curr.name], current_node.position.x, 
+                        current_node.position.x + newWidth * 1.5, true);
                     componentsAdded.push(parent);
                     lastAdded.current.y += nodeHeight + 20;
 
                     console.log("current node", curr.name)
 
-                    formatRowsVertical(nodeCoords.current[parent.name].row, nodeHeight, 
+                    formatRowsVertical(nodeLevels.current[parent.name], nodeHeight, 
                         [parent.name, curr.name]);
 
                     // point curr to parent
@@ -1227,9 +1206,9 @@ resolve => {
             // set curr as a child of parent
             childrenNodes.current[parent.name] = [...childrenNodes.current[parent.name], curr.name];
 
-            if (!nodeCoords.current[curr.name]) {
-                // add to node coords
-                addNodeCoords(curr.name, {x: 10, y: nodeHeight}, nodeCoords.current[parent.name].row, parent.name);
+            if (!nodeLevels.current[curr.name]) {
+                // add to node levels to keep track of level
+                nodeLevels.current[curr.name] = nodeLevels.current[parent.name];
             }
         }
 
@@ -1242,7 +1221,7 @@ resolve => {
                 // debugger;
                 console.log("addComponent3")
                 let subAdded = addComponent(sub, subLastAdded.x + nodeWidth + 10, subLastAdded.y, 
-                                            nodeCoords.current[curr.name].row, true, curr.name);
+                                            nodeLevels.current[curr.name], true, curr.name);
                 if (subAdded) {
                     isParentNode.current[curr.name] = true;
                     componentsAdded.push(sub)
@@ -1250,8 +1229,8 @@ resolve => {
 
                     // set sub as a child of curr
                     childrenNodes.current[curr.name] = [...childrenNodes.current[curr.name], sub.name];
-                    // update nodeCoords. curr is parent node of node to be added
-                    addNodeCoords(sub.name, {x: subLastAdded.x, y: subLastAdded.y}, nodeCoords.current[curr.name].row, curr.name);
+                    // Set node level
+                    nodeLevels.current[sub.name] = nodeLevels.current[curr.name];
 
                 } else {
                     subLastAdded.x += nodeWidth + 10;
@@ -1276,8 +1255,7 @@ resolve => {
                             return node;
                         }
                     }));
-                    // update nodeCoords. curr is parent node of node to be added
-                    addNodeCoords(sub.name, {x: subLastAdded.x, y: subLastAdded.y}, nodeCoords.current[curr.name].row, curr.name);
+                    nodeLevels.current[sub.name] = nodeLevels.current[curr.name];
                 }
             }
             
@@ -1298,9 +1276,9 @@ resolve => {
                     return node;
                 }
             }));
-            let node_x = nodeCoords.current[curr.name].coords.x;
+            let node_x = flowInstance.getNode(curr.name).position.x;
             if (newWidth > flowInstance.getNode(curr.name).width) {
-                addOccupiedSpace(nodeCoords.current[curr.name].row, node_x, node_x + newWidth, true);
+                addOccupiedSpace(nodeLevels.current[curr.name], node_x, node_x + newWidth, true);
             }
             resolve(componentsAdded);
         }
@@ -1308,7 +1286,7 @@ resolve => {
         // absolute node coordinates, even if it's inside another component
         let node_coords = flowInstance.getNode(curr.name).positionAbsolute;
         let curr_x = node_coords.x;
-        let rowNumber = nodeCoords.current[curr.name].row + 1;
+        let rowNumber = nodeLevels.current[curr.name] + 1;
         
         let curr_y = node_coords.y;
         
@@ -1359,7 +1337,7 @@ resolve => {
         sortNodes();
         // formatSubcomponents();
         resolve(componentsAdded);
-        console.log("current node coords", nodeCoords.current);
+        console.log("current node coords", nodeLevels.current);
         console.log("current row occupied", rowsOccupied.current);
     });
 }
@@ -1375,7 +1353,7 @@ resolve => {
 */
 async function formatRowsVertical(startingRow, height, ignoreNodes = null) {
     setNodes((nodes) => nodes.map((node) => {
-        if ((nodeCoords.current[node.id]) && (nodeCoords.current[node.id].row >= startingRow) 
+        if ((nodeLevels.current[node.id]) && (nodeLevels.current[node.id] >= startingRow) 
             && (ignoreNodes.indexOf(node.id) === -1)) {
             return {
                 ...node,
@@ -1391,28 +1369,27 @@ async function formatRowsVertical(startingRow, height, ignoreNodes = null) {
 
 
 /**
-* Moves nodes in a row (and all their children) to the right 
+* Moves nodes in a row (and all their children) to the right
 * @param {number} row - row containing the nodes we want to move
 * @param {number} x - the amount by which to move the nodes
 * @param {number} startingX - elements to the right of this x-value will be pushed right
 */
 async function formatRowsHorizontal(row, x, startingX) {
-    console.log("formatting horizontal")
-    console.log(row, x, startingX)
-    console.log(nodeCoords)
-    let toPush = [];        // array that will store nodes to push
-    for (const node in nodeCoords.current) {
-        if ((nodeCoords.current[node].row == row) && (nodeCoords.current[node].coords.x > startingX) 
-            && (!nodeCoords.current[node].parentCoords)) {
-            toPush = toPush.concat(pushRight(node));
+    const nodesList = flowInstance.getNodes();
+    let pushed = [];        // array that will store nodes to push
+    for (var i = 0; i < nodesList.length; i ++) {
+        var node = nodesList[i];
+        if ((nodeLevels.current[node.id] == row) && (node.position.x > startingX) 
+            && (!node.parentNode)) {
+            pushed = pushed.concat(pushRight(node.id));
         }
     }
 
     setNodes((nodes) => nodes.map((node) => {
-        if (toPush.includes(node.id)) {
+        if (pushed.includes(node.id)) {
             return {
                 ...node,
-                position: {x: node.position.x + x + 30, y: node.position.y}
+                position: {x: node.position.x + x, y: node.position.y}
             };
         }
         else {
@@ -1422,18 +1399,25 @@ async function formatRowsHorizontal(row, x, startingX) {
 }
 
 
+/**
+* TODO: rename this function, it's so misleading
+* Given a node x, returns an array containing the ids of node x
+* and all the nodes connected to x that appear *below* x in the visualisation graph.
+* @param {string} node - id of starting node
+* @returns an array of node ids as described above
+*/
 function pushRight(node) {
     let nodesArray = [];
     nodesArray.push(node);      // add node to array
     for (var i = 0; i < flowInstance.getEdges().length; i ++) {
         const edge = flowInstance.getEdges()[i];
         if (edge.source == node) {
-            if (nodeCoords.current[edge.target].row >= nodeCoords.current[node].row) {
+            if (nodeLevels.current[edge.target] >= nodeLevels.current[node]) {
                 nodesArray = nodesArray.concat(pushRight(edge.target));
             }
         }
         if (edge.target == node) {
-            if (nodeCoords.current[edge.source].row >= nodeCoords.current[node].row) {
+            if (nodeLevels.current[edge.source] >= nodeLevels.current[node]) {
                 nodesArray = nodesArray.concat(pushRight(edge.source));
             }
         }
