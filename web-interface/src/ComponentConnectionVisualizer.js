@@ -719,8 +719,6 @@ const visualizeComponent = async () => {
         return;
     }
     removeAllElements();
-    // TODO: remove this
-    console.log("THE COMPONENT:", component);
 
     // the time should be in seconds instead of milliseconds
     time.current = Math.floor(enteredTime.current / 1000);
@@ -896,14 +894,11 @@ return (
             <Grid item>
                     <ExpandConnectionsButton 
                         onClick={() => {
-                            console.log("NODES", flowInstance.getNodes());
                             expandConnections(data.name, time.current).then(
                                 (addedNodes) => {
                                     // Resizing and re-positioning nodes is done after the 
                                     // promise is resolved, because it needs to wait for React Flow to finish
                                     // its calculations first. 
-                                    console.log("component", componentRef.current);
-                                    console.log(isParentNode.current[data.name]);
                                     for (var i = 0; i < addedNodes.length; i++) {
                                         // if one of the added components is a parent node
                                         if (isParentNode.current[addedNodes[i].name]) {
@@ -911,14 +906,10 @@ return (
                                         }
                                     }
                                     if (isParentNode.current[data.name]) {      
-                                        console.log(componentRef.current.name);
                                         if (componentRef.current.name === data.name) {
                                             setAddedParent(data.name);
-                                            console.log(flowInstance.getNode(data.name))
                                         }
-
-                                        // if expanded node is a supercomponent
-                                        // update the state
+                                        // update state if expanded node is a supercomponent
                                         else {
                                             setExpandedSupercomponent(data.name)
                                         }
@@ -946,12 +937,10 @@ useEffect(() => {
         const parentHeight = flowInstance.getNode(addedParent).height;
         var newHeight = 0;
 
-        // get the height of the tallest child
+        // get the height of the tallest subcomponent
         for (var i = 0; i < children.length; i ++) {
             let child = flowInstance.getNode(children[i]);
-            console.log(child);
             newHeight = Math.max(newHeight, parentHeight + child.height);
-            console.log(child.height);
         }
 
         flowInstance.setNodes((nodes) => nodes.map((node) => {
@@ -977,23 +966,16 @@ useEffect(() => {
 
 
 useEffect(() => {
-    // format subcomponents, if we added some
-    // remember higher y values are lower
-    // this almost works but pass in the parent and then just loop through all its subcomponents
-    // instead. fuck you
-    console.log("expanded supercomponent reached", expandedSupercomponent)
+    // format subcomponents, if necessary
     if (expandedSupercomponent) {   // so this doesn't run when addedSubcomponents is null
         // get parent height
         const superHeight = flowInstance.getNode(expandedSupercomponent).height;
 
         const subNames = childrenNodes.current[expandedSupercomponent];
-        console.log("SUBCOMPOENNTS", subNames);
         
         flowInstance.setNodes((nodes) => nodes.map((node) => {
             if (subNames.includes(node.id)) {
-                console.log("booh yah x2", node.id);
                 // const newHeight = parentHeight - node.height;
-                console.log(node);
                 return ({
                     ...node,
                     position: {x: node.position.x, y: superHeight - node.height}
@@ -1035,7 +1017,6 @@ input += `&time=${time}`;
 let componentsAdded = [];
 
 let nodeHeight = flowInstance.getNode(name).height;
-console.log("NEW NODE HEIGHT", nodeHeight);
 
 return new Promise(
 resolve => {
@@ -1163,8 +1144,6 @@ resolve => {
                     componentsAdded.push(parent);
                     lastAdded.current.y += nodeHeight + 20;
 
-                    console.log("current node", curr.name)
-
                     formatRowsVertical(nodeLevels.current[parent.name], nodeHeight, 
                         [parent.name, curr.name]);
 
@@ -1279,18 +1258,13 @@ resolve => {
         if (edges.length % 2 == 0) {
             curr_x -= (nodeWidth + 30) / 2;
         }
-        console.log("width", edges.length * (nodeWidth + 30) - 30);
-        console.log("the current x", curr_x);
         curr_x = getAvailableSpace(rowNumber, curr_x, edges.length * (nodeWidth + 30) - 30, 30);
-        console.log("the availbale", curr_x);
         let num_added = 0;
         for (let i=0; i < edges.length; i++) {
             let edge = edges[i]
             // find other node from curr
             let other = (name === edge.inVertex.name) ? 
                     edge.outVertex : edge.inVertex;
-            console.log("addComponent4");
-            console.log(other.name);
             let added = addComponent(other, curr_x, curr_y + nodeHeight + vertPadding, 
                                     rowNumber);
             curr_x += nodeWidth + 30;
@@ -1308,9 +1282,6 @@ resolve => {
                 num_added += 1;
             }
         }
-        // console.log(childrenNodes.current)
-
-        // setSubLastAdded({...subLastAdded})
         if (componentsAdded.length > 0 && !urlSet) {
             setExpanded((prev) => [...prev, name]);
         }
@@ -1497,17 +1468,12 @@ function getAvailableSpace(rowNumber, x, width, padding) {
 // return x-coordinate if it fits and null if it doesn't
 // x in parameter is starting x
 function fitObjectInGap(start, end, width, x, padding) {
-    console.log("fitting in gap")
-    console.log(width);
-    console.log(padding);
-    if (end - start >= width + padding * 2) {
-        // it fits 
-        console.log("fitting object it fits");
+    if (end - start >= width + padding * 2) { // it fits
         if ((x - padding >= start) && (x + width + padding <= end)) {
             // it doesn't need to be moved
             return x;
         }
-        // if above not true, need to figure out which direction to move the block in and how far
+        // otherwise, need to figure out which direction to move the block in and how far
         else if (x < start) {
             return start + padding;
         }
@@ -1549,7 +1515,6 @@ spacing={2}
         >
             <ComponentAutocomplete 
                 onSelect={(val) => {
-                    console.log("hi", val);
                     selectedComponent.current = val;
                 }} 
             />
@@ -1637,7 +1602,6 @@ spacing={2}
                     setExpanded([]);
                     removeAllElements();
                     setComponent(selectedComponent.current);
-                    console.log("selected", selectedComponent.current, component);
                     setReloadComponent(!reloadComponent);
                     visualizeComponent();
                     setAddedParent(null);
