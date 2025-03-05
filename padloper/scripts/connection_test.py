@@ -2,6 +2,7 @@ import gremlin_python.structure.graph as gremlin_graph
 from gremlin_python.driver.driver_remote_connection \
         import DriverRemoteConnection
 import time
+import os
 
 if __name__ == "__main__":
     
@@ -9,7 +10,7 @@ if __name__ == "__main__":
 
     start = time.time()
     g = graph.traversal().withRemote(
-        DriverRemoteConnection('ws://localhost:8182/gremlin', 'g')
+        DriverRemoteConnection(f"{os.environ.get('DB_HOST', 'ws://localhost')}:8182/gremlin", 'g')
     )
     end = time.time()
     print(end - start)

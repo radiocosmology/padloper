@@ -8,7 +8,7 @@ p.set_user("ahincks")
 t_computer         = p.ComponentType(name="computer",
                                      comments="a personal computer").add()
 t_router           = p.ComponentType(name="router").add()
-t_switch           = p.ComponentType(name="switch",
+t_switch           = p.ComponentType(name="switch", 
                                      comments="a network switch").add()
 t_ethernet_port    = p.ComponentType(name="ethernet-port",
                                      comments="USB port on a device").add()
