@@ -1363,7 +1363,6 @@ async function formatRowsVertical(startingRow, height, ignoreNodes = null) {
         else {
             return node;
         }
-        
     }));
 }
 
@@ -1437,100 +1436,84 @@ function pushRight(node) {
 * returns the x-coordinate of the new center of the block. 
 */
 function getAvailableSpace(rowNumber, x, width, padding) {
-    if (!rowsOccupied.current[rowNumber]) {      // row is empty
+    // Get all (non-subcomponent) nodes inside this row
+    const nodeList = flowInstance.getNodes();
+    let rowNodes = [];
+    for (var j = 0; j < nodeList.length; j ++) {
+        const currNode = nodeList[j];
+        if ((nodeLevels.current[currNode.id] == rowNumber) && (!currNode.parentNode)) {
+            rowNodes.push(currNode);
+        }
+    }
+    if (rowNodes.length == 0) {      // row is empty
         return x;
     }
-    let currentRowOccupied = rowsOccupied.current[rowNumber];
-    let numBlocks = currentRowOccupied.length;
-    width += padding * 2;
-    if (x + width/2 <= (currentRowOccupied[0].start + currentRowOccupied[0].end) / 2) {
+
+    // sort the nodes by their x position, increasing (left to right):
+    rowNodes.sort((a, b) => a.position.x - b.position.x)
+    const numNodes = rowNodes.length;
+
+    if (x <= (rowNodes[0].position.x)) {
         // case where we want to put the new nodes to the left of everything
         // first check if it fits
-        console.log("left of everything");
-        // TODO: use math.min instead?
-        if (x + width + padding <= currentRowOccupied[0].start) {
+        if (x + width + padding <= rowNodes[0].position.x) {
             // if it fits, just return x
             return x;
         }
         // otherwise return the new x
-        console.log("returning current");
-        console.log(currentRowOccupied[0].start, width);
-        return currentRowOccupied[0].start - width + padding;
+        return rowNodes[0].position.x - width - padding;
     }
 
-    else if (x + width/2 >= (currentRowOccupied[numBlocks - 1].start + currentRowOccupied[numBlocks - 1].end) / 2) {
-        // similar case for the very last one
-        // TODO: use math.max instead?
-        if (x >= currentRowOccupied[numBlocks - 1].end + padding) {
-            return x;
-        }
-        // else 
-        return currentRowOccupied[numBlocks - 1].end + padding;
-        // return currentRowOccupied[numBlocks - 1].end;
+    else if (x >= rowNodes[numNodes - 1].position.x) {
+        const minX = rowNodes[numNodes-1].position.x + rowNodes[numNodes-1].width + padding;
+        return x >= minX ? x : minX;
     }
 
-    // final else case
-    // loop until the closest space is found
-    console.log("final else case reached");
-    let i = 0;
-    let fit;
-    while (currentRowOccupied[i + 1]) {
-        if ((x + width/2 >= (currentRowOccupied[i].start + currentRowOccupied[i].end) / 2) && 
-        (x + width/2 <= (currentRowOccupied[i+1].start + currentRowOccupied[i+1].end) / 2)) {
-            // then the closest "gap" for the block will be between blocks i and i+1
-            console.log("gap found", i);
-            // first check if it fits:
-            fit = fitObjectInGap(currentRowOccupied[i], currentRowOccupied[i+1], width, x, padding);
-            if (fit) {    // if it fits we can return the value
-                return fit;
-            }
-            // if it doesn't fit, then we need to find the closest gap that DOES fit
-            // loop over offsets
-            let offset = 1;
-            while ((i - offset >= 0) && (i + offset < numBlocks - 1)) {
-                if (x - currentRowOccupied[i-offset].start > currentRowOccupied[i-offset+1].end - x) {
-                    // if x is closer to right block than left block, switch the order
-                    offset = -offset;
-                }
-                fit = fitObjectInGap(currentRowOccupied[i-offset], currentRowOccupied[i-offset+1], width, x, padding);
+    // otherwise, loop until the closest space is found
+    for (var i = 0; i < numNodes - 1; i ++) {
+        console.log(rowNodes);
+        console.log("target x", x, rowNodes[i].position.x, rowNodes[i].width, rowNodes[i+1].position.x)
+        // loop to find closest gap to the "target" x coordinate
+        if ((x >= rowNodes[i].position.x) && 
+            (x <= rowNodes[i+1].position.x)) {
+                var fit = fitObjectInGap(rowNodes[i].position.x + rowNodes[i].width, 
+                    rowNodes[i+1].position.x, width, x, padding);
                 if (fit) {
                     return fit;
                 }
-                fit = fitObjectInGap(currentRowOccupied[i+offset], currentRowOccupied[i+offset+1], width, x, padding);
-                if (fit) {
-                    return fit;
-                }
-                // if no fit was found, update the offset
-                offset = Math.abs(offset) + 1;
-            }
-            if (i - offset < 0) {
-                while (i + offset < numBlocks - 1) {
-                    if (x - currentRowOccupied[0].start <= currentRowOccupied[i+offset].end - x) {
-                        return currentRowOccupied[0].start - width/2;
+                else {      // it doesn't fit
+                    console.log("it dont fit")
+                    // need to find next *closest* gap where it fits
+                    var j = i + 1;      // to iterate through "gaps" to the right
+                    var k = i - 1;      // to iterate through "gaps" to the left
+                    while ((j < numNodes - 1) || (k >= 0)) {
+                        if (j < numNodes - 1) {
+                            console.log("j time", x, rowNodes[j].position.x, rowNodes[j].width, rowNodes[j+1].position.x)
+                            fit = fitObjectInGap(rowNodes[j].position.x + rowNodes[j].width, 
+                                rowNodes[j+1].position.x, width, x, padding);
+                            if (fit) {
+                                return fit;
+                            }
+                        }
+                        if (k >= 0) {
+                            console.log("k time", x, rowNodes[k].position.x, rowNodes[k].width, rowNodes[k+1].position.x)
+                            fit = fitObjectInGap(rowNodes[k].position.x + rowNodes[k].width, 
+                                rowNodes[k+1].position.x, width, x, padding);
+                            if (fit) {
+                                return fit;
+                            }
+                        }
+                        // increment variables
+                        j += 1;
+                        k -= 1;
                     }
-                    fit = fitObjectInGap(currentRowOccupied[i+offset], currentRowOccupied[i+offset+1], width, padding);
-                    if (fit) {
-                        return fit;
-                    }
-                    offset += 1;
                 }
             }
-            // otherwise i + offset >= numblocks - 1
-            while (i - offset >= 0) {
-                if (x - currentRowOccupied[i-offset].start >= currentRowOccupied[numBlocks-1].end - x) {
-                    return currentRowOccupied[numBlocks-1].end + width/2;
-                }
-                fit = fitObjectInGap(currentRowOccupied[i-offset], currentRowOccupied[i-offset+1], width, padding);
-                if (fit) {
-                    return fit;
-                }
-                offset += 1;
-            }
-            // both sides are out of bounds, so we just stick it on whatever end is closer
-            return currentRowOccupied[numBlocks-1].end + width/2;
-        }
-        i += 1;
+        
     }
+
+    // shouldn't reach here, but if it happens then just put the new object on the far right
+    return rowNodes[numNodes-1].position.x + rowNodes[numNodes-1].width + padding;
 }
 
 
@@ -1538,22 +1521,22 @@ function getAvailableSpace(rowNumber, x, width, padding) {
 // fit object in between block1 and block2
 // return x-coordinate if it fits and null if it doesn't
 // x in parameter is starting x
-function fitObjectInGap(block1, block2, width, x, padding) {
-    console.log(block2.start - block1.end);
+function fitObjectInGap(start, end, width, x, padding) {
+    console.log("fitting in gap")
     console.log(width);
     console.log(padding);
-    if (block2.start - block1.end >= width) {
+    if (end - start >= width + padding * 2) {
         // it fits 
         console.log("fitting object it fits");
-        if ((x - padding >= block1.end) && (x + width - padding <= block2.start)) {
+        if ((x - padding >= start) && (x + width + padding <= end)) {
             // it doesn't need to be moved
             return x;
         }
         // if above not true, need to figure out which direction to move the block in and how far
-        else if (x < block1.end) {
-            return block1.end + padding;
+        else if (x < start) {
+            return start + padding;
         }
-        return block2.start - width + padding;
+        return end - width - padding;
     }
     // it doesn't fit
     return null;
