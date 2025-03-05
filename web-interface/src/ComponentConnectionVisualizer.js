@@ -278,10 +278,6 @@ const { fitView } = useReactFlow();
 // TODO: remove this?
 const lastAdded = useRef({x: 350, y: 100}); 
 
-// a dictionary that maps "rows"/levels in the graph to occupied blocks. this is for layouting
-// TODO: come up with more name  
-const rowsOccupied = useRef({});
-
 // store sub component position
 // const [subLastAdded, setSubLastAdded] = useState({x: -nodeWidth, y: 120 - nodeHeight})
 
@@ -711,7 +707,6 @@ edgeIds.current = {};
 expandedNodes.current = {};
 isParentNode.current = {}
 childrenNodes.current = {};
-rowsOccupied.current = {};
 }
 
 /**
@@ -742,10 +737,6 @@ const visualizeComponent = async () => {
         100,
         0
     );
-
-    // this is the first component, so row/level = 0
-    // 30 is horizontal padding between rows
-    addOccupiedSpace(0, 350, 350 + nodeWidth, false);
 
     // depth will be decremented by 1 each time, like BFS.
 
@@ -1169,9 +1160,6 @@ resolve => {
                     nodeLevels.current[curr.name], false, null, newWidth * 1.5 + 'px');
 
                 if (added) {
-                    // add occupied space
-                    addOccupiedSpace(nodeLevels.current[curr.name], current_node.position.x, 
-                        current_node.position.x + newWidth * 1.5, true);
                     componentsAdded.push(parent);
                     lastAdded.current.y += nodeHeight + 20;
 
@@ -1276,10 +1264,6 @@ resolve => {
                     return node;
                 }
             }));
-            let node_x = flowInstance.getNode(curr.name).position.x;
-            if (newWidth > flowInstance.getNode(curr.name).width) {
-                addOccupiedSpace(nodeLevels.current[curr.name], node_x, node_x + newWidth, true);
-            }
             resolve(componentsAdded);
         }
 
@@ -1309,7 +1293,6 @@ resolve => {
             console.log(other.name);
             let added = addComponent(other, curr_x, curr_y + nodeHeight + vertPadding, 
                                     rowNumber);
-            addOccupiedSpace(rowNumber, curr_x, curr_x + nodeWidth, false);
             curr_x += nodeWidth + 30;
             addEdge(
                 edge.id, 
@@ -1331,14 +1314,11 @@ resolve => {
         if (componentsAdded.length > 0 && !urlSet) {
             setExpanded((prev) => [...prev, name]);
         }
-        console.log(lastAdded.current);
         expandedNodes.current[name] = true;
         lastAdded.current = ({...lastAdded.current});
         sortNodes();
         // formatSubcomponents();
         resolve(componentsAdded);
-        console.log("current node coords", nodeLevels.current);
-        console.log("current row occupied", rowsOccupied.current);
     });
 }
 )
@@ -1471,8 +1451,6 @@ function getAvailableSpace(rowNumber, x, width, padding) {
 
     // otherwise, loop until the closest space is found
     for (var i = 0; i < numNodes - 1; i ++) {
-        console.log(rowNodes);
-        console.log("target x", x, rowNodes[i].position.x, rowNodes[i].width, rowNodes[i+1].position.x)
         // loop to find closest gap to the "target" x coordinate
         if ((x >= rowNodes[i].position.x) && 
             (x <= rowNodes[i+1].position.x)) {
@@ -1482,13 +1460,11 @@ function getAvailableSpace(rowNumber, x, width, padding) {
                     return fit;
                 }
                 else {      // it doesn't fit
-                    console.log("it dont fit")
                     // need to find next *closest* gap where it fits
                     var j = i + 1;      // to iterate through "gaps" to the right
                     var k = i - 1;      // to iterate through "gaps" to the left
                     while ((j < numNodes - 1) || (k >= 0)) {
                         if (j < numNodes - 1) {
-                            console.log("j time", x, rowNodes[j].position.x, rowNodes[j].width, rowNodes[j+1].position.x)
                             fit = fitObjectInGap(rowNodes[j].position.x + rowNodes[j].width, 
                                 rowNodes[j+1].position.x, width, x, padding);
                             if (fit) {
@@ -1496,7 +1472,6 @@ function getAvailableSpace(rowNumber, x, width, padding) {
                             }
                         }
                         if (k >= 0) {
-                            console.log("k time", x, rowNodes[k].position.x, rowNodes[k].width, rowNodes[k+1].position.x)
                             fit = fitObjectInGap(rowNodes[k].position.x + rowNodes[k].width, 
                                 rowNodes[k+1].position.x, width, x, padding);
                             if (fit) {
@@ -1540,47 +1515,6 @@ function fitObjectInGap(start, end, width, x, padding) {
     }
     // it doesn't fit
     return null;
-}
-
-
-// want to make sure these are in order
-// assume that start, end don't overlap with an already occupied space, unless replace is true
-// todo: slim this and the function above down?
-async function addOccupiedSpace(rowNumber, start, end, replace) {
-    let i = 0;
-    let currentRowOccupied = rowsOccupied.current[rowNumber];
-    if (!rowsOccupied.current[rowNumber]) {
-        rowsOccupied.current[rowNumber] = [{start: start, end: end}];
-    }
-    else if (!replace) {
-        while (i < currentRowOccupied.length - 1 && currentRowOccupied[i].start < end) {
-            i += 1;
-        }
-        if (currentRowOccupied[i].start > start) {
-            // i is the index we want to insert into
-            currentRowOccupied.splice(i, 0, {start: start, end: end});
-        }
-        else {
-            currentRowOccupied.splice(i + 1, 0, {start: start, end: end});
-        }
-    }
-    else {      // replace is true, we're replacing an existing block
-        i = 0;
-        while (i < currentRowOccupied.length - 1) {
-            if ((currentRowOccupied[i].end >= start) && (currentRowOccupied[i].start <= end)) {
-                let dist = Math.abs(end - currentRowOccupied[i].end);
-                let startingX = Math.min(currentRowOccupied[i].start, end);
-
-                rowsOccupied.current[rowNumber][i].end = Math.max(currentRowOccupied[i].end, end);
-                rowsOccupied.current[rowNumber][i].start = Math.min(currentRowOccupied[i].start, start);
-                formatRowsHorizontal(rowNumber, dist, startingX);
-                return;
-            }
-            else {
-                i += 1;         // incremement i
-            }
-        }
-    }
 }
 
 const nodeTypes = useMemo(
