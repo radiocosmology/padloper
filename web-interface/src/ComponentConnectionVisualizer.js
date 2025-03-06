@@ -247,13 +247,6 @@ edges,
 };
 
 /**
-* Get node by ID
-*/
-const getNode = (nodes, id) => {
-return nodes.find((node) => node.id === id);
-}
-
-/**
 * The MUI component that represents the visualizer for components along with
 * an option panel for changing the date when the component's connections
 * are considered, the component that is considered, and the depth of the
@@ -273,13 +266,6 @@ const childrenNodes = useRef({});
 
 // from https://reactflow.dev/docs/guides/layouting/
 const { fitView } = useReactFlow();
-
-// store position
-// TODO: remove this?
-const lastAdded = useRef({x: 350, y: 100}); 
-
-// store sub component position
-// const [subLastAdded, setSubLastAdded] = useState({x: -nodeWidth, y: 120 - nodeHeight})
 
 // a dictionary that will store the React Flow IDs of the nodes used
 const nodeIds = useRef({});
@@ -356,8 +342,8 @@ const [reloadComponent, setReloadComponent] = useState(false);
 // React flow instance to access internal state (e.g., internal node properties like height)
 const flowInstance = useReactFlow();
 
+// States to be used for layouting the graph
 const [addedParent, setAddedParent] = useState(null);
-
 const [expandedSupercomponent, setExpandedSupercomponent] = useState(null);
 
 /**
@@ -1142,7 +1128,9 @@ resolve => {
 
                 if (added) {
                     componentsAdded.push(parent);
-                    lastAdded.current.y += nodeHeight + 20;
+
+                    formatRowsHorizontal(nodeLevels.current[curr.name], 
+                        newWidth * 1.5 - current_node.width, current_node.position.x);
 
                     formatRowsVertical(nodeLevels.current[parent.name], nodeHeight, 
                         [parent.name, curr.name]);
@@ -1197,7 +1185,7 @@ resolve => {
                     // set sub as a child of curr
                     childrenNodes.current[curr.name] = [...childrenNodes.current[curr.name], sub.name];
                     // Set node level
-                    nodeLevels.current[sub.name] = nodeLevels.current[curr.name];
+                    nodeLevels.current[sub.name] = nodeLevels.current[curr.name];                    
 
                 } else {
                     subLastAdded.x += nodeWidth + 10;
@@ -1243,6 +1231,11 @@ resolve => {
                     return node;
                 }
             }));
+            let current_node = flowInstance.getNode(curr.name)
+            if (newWidth > current_node.width) {
+                formatRowsHorizontal(nodeLevels.current[curr.name], 
+                    newWidth - current_node.width, current_node.position.x);
+            }
             resolve(componentsAdded);
         }
 
@@ -1276,9 +1269,6 @@ resolve => {
             );
             if (added) {
                 componentsAdded.push(other);
-                if (i == edges.length - 1) {
-                    lastAdded.current.y += nodeHeight + vertPadding;
-                }
                 num_added += 1;
             }
         }
@@ -1286,7 +1276,6 @@ resolve => {
             setExpanded((prev) => [...prev, name]);
         }
         expandedNodes.current[name] = true;
-        lastAdded.current = ({...lastAdded.current});
         sortNodes();
         // formatSubcomponents();
         resolve(componentsAdded);
@@ -1319,7 +1308,7 @@ async function formatRowsVertical(startingRow, height, ignoreNodes = null) {
 
 
 /**
-* Moves nodes in a row (and all their children) to the right
+* Moves nodes in a row and all their descendants to the right
 * @param {number} row - row containing the nodes we want to move
 * @param {number} x - the amount by which to move the nodes
 * @param {number} startingX - elements to the right of this x-value will be pushed right
@@ -1331,7 +1320,7 @@ async function formatRowsHorizontal(row, x, startingX) {
         var node = nodesList[i];
         if ((nodeLevels.current[node.id] == row) && (node.position.x > startingX) 
             && (!node.parentNode)) {
-            pushed = pushed.concat(pushRight(node.id));
+            pushed = pushed.concat(getDescendants(node.id));
         }
     }
 
@@ -1350,25 +1339,24 @@ async function formatRowsHorizontal(row, x, startingX) {
 
 
 /**
-* TODO: rename this function, it's so misleading
 * Given a node x, returns an array containing the ids of node x
 * and all the nodes connected to x that appear *below* x in the visualisation graph.
 * @param {string} node - id of starting node
 * @returns an array of node ids as described above
 */
-function pushRight(node) {
+function getDescendants(node) {
     let nodesArray = [];
     nodesArray.push(node);      // add node to array
     for (var i = 0; i < flowInstance.getEdges().length; i ++) {
         const edge = flowInstance.getEdges()[i];
         if (edge.source == node) {
             if (nodeLevels.current[edge.target] >= nodeLevels.current[node]) {
-                nodesArray = nodesArray.concat(pushRight(edge.target));
+                nodesArray = nodesArray.concat(getDescendants(edge.target));
             }
         }
         if (edge.target == node) {
             if (nodeLevels.current[edge.source] >= nodeLevels.current[node]) {
-                nodesArray = nodesArray.concat(pushRight(edge.source));
+                nodesArray = nodesArray.concat(getDescendants(edge.source));
             }
         }
     }
@@ -1378,13 +1366,12 @@ function pushRight(node) {
 
 
 /**
-* TODO: update this description for clarity
-* Gets space in row number [rowNumber] closest to x-value [x] that will fit the object with width [width] 
-* @param {number} rowNumber - rownumber
-* @param {number} x - x-coordinate of leftmost edge of "block" to be added
+* Finds the "best" space to fit elements, given a width and an initial x-value
+* @param {number} rowNumber - rownumber of the element to be added
+* @param {number} x - x-coordinate of "block" to be added
 * @param {number} width - the width of the block to be added
 * @param {number} padding - the padding between blocks
-* returns the x-coordinate of the new center of the block. 
+* returns an x-coordinate for the block. 
 */
 function getAvailableSpace(rowNumber, x, width, padding) {
     // Get all (non-subcomponent) nodes inside this row
@@ -1455,7 +1442,6 @@ function getAvailableSpace(rowNumber, x, width, padding) {
                     }
                 }
             }
-        
     }
 
     // shouldn't reach here, but if it happens then just put the new object on the far right
@@ -1463,17 +1449,17 @@ function getAvailableSpace(rowNumber, x, width, padding) {
 }
 
 
-// todo: add description
-// fit object in between block1 and block2
+// fit object in between start x-coordinate and end x-coordinate
 // return x-coordinate if it fits and null if it doesn't
 // x in parameter is starting x
 function fitObjectInGap(start, end, width, x, padding) {
-    if (end - start >= width + padding * 2) { // it fits
+    if (end - start >= width + padding * 2) { 
+        // it fits
         if ((x - padding >= start) && (x + width + padding <= end)) {
             // it doesn't need to be moved
             return x;
         }
-        // otherwise, need to figure out which direction to move the block in and how far
+        // move the object so it fits
         else if (x < start) {
             return start + padding;
         }
@@ -1598,7 +1584,6 @@ spacing={2}
                     // clear URL
                     // clear components + states
                     // set new component
-                    lastAdded.current = {x: 350, y: 100};
                     setExpanded([]);
                     removeAllElements();
                     setComponent(selectedComponent.current);
