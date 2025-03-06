@@ -663,12 +663,18 @@ class Component(Vertex):
             # copy over properties from to_replace
             properties = g.t.E(to_replace.id()).valueMap().toList()[0]
             for prop in properties:
+                print(prop, properties[prop])
                 g.t.E(new_conn.id()).property(prop, properties[prop]).iterate()
             
-            # set start time and end time because these were just overwritten
+            # set start time, end time, and edit time because these were just overwritten
             g.t.E(new_conn.id()).property('start_time', start.time).iterate()
+            if int(properties['start_time']) != int(start.time):
+                g.t.E(new_conn.id()).property('start_edit_time', start.edit_time).iterate()
+            
             if end is not None:
                 g.t.E(new_conn.id()).property('end_time', end.time).iterate()
+                if int(properties['end_time']) != int(end.time):
+                    g.t.E(new_conn.id()).property('end_edit_time', end.edit_time).iterate()
 
             to_replace.replace(new_conn, disable_time=int(time.time()))
             

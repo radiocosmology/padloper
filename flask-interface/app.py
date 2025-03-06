@@ -1075,7 +1075,8 @@ def add_component_connection():
         
         else:
             # get existing connection object
-            connections = c1.get_connections(comp=c2, at_time=val_replace_time)
+            connections = c1.get_connections(comp=c2, at_time=val_replace_time)             
+
             if val_end_time == 'None':
                 c1.connect(c2, t, to_replace=connections[0])
             else:
