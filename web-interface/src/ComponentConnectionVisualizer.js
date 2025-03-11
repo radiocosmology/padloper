@@ -354,7 +354,7 @@ useEffect(() => {
     if (component != undefined) {
         window.location.hash = `#cmp=${cmp}&time=${enteredTime.current}&depth=${depth}&expanded=${expanded}`;
     }
-}, [component]);
+}, [component, expanded]);
 
 /**
  * Run series of functions from the URL.
@@ -880,30 +880,7 @@ return (
             <Grid item>
                     <ExpandConnectionsButton 
                         onClick={() => {
-                            expandConnections(data.name, time.current).then(
-                                (addedNodes) => {
-                                    // Resizing and re-positioning nodes is done after the 
-                                    // promise is resolved, because it needs to wait for React Flow to finish
-                                    // its calculations first. 
-                                    for (var i = 0; i < addedNodes.length; i++) {
-                                        // if one of the added components is a parent node
-                                        if (isParentNode.current[addedNodes[i].name]) {
-                                            setAddedParent(addedNodes[i].name);
-                                        }
-                                    }
-                                    if (isParentNode.current[data.name]) {      
-                                        if (componentRef.current.name === data.name) {
-                                            setAddedParent(data.name);
-                                        }
-                                        // update state if expanded node is a supercomponent
-                                        else {
-                                            setExpandedSupercomponent(data.name)
-                                        }
-                                        
-                                    }
-                                    
-                                }
-                            );
+                            expandConnections(data.name, time.current);
                         }
                       }
                     />
@@ -985,8 +962,8 @@ useEffect(() => {
 * @returns A Promise, which, when resolved, returns the array of the names
 * of the components added.
 */
-async function expandConnections(name, time) {
-// setExpanded((prev) => [...prev, name]);
+async function expandNodes(name, time) {
+
 if (expandedNodes.current[name]) {
     // If expanded, return immediately
     return([]);
@@ -1001,8 +978,16 @@ input += `&time=${time}`;
 * consider components that were already in the visualization)
 */
 let componentsAdded = [];
+// let nodeHeight = flowInstance.getNode(name).height;
 
-let nodeHeight = flowInstance.getNode(name).height;
+let nodeHeight;
+
+if (flowInstance.getNode(name)) {
+    nodeHeight = flowInstance.getNode(name).height;
+}
+else {
+    nodeHeight = 10;
+}
 
 return new Promise(
 resolve => {
@@ -1273,7 +1258,9 @@ resolve => {
             }
         }
         if (componentsAdded.length > 0 && !urlSet) {
+            console.log("setting expanded")
             setExpanded((prev) => [...prev, name]);
+            console.log([...expanded, name]);
         }
         expandedNodes.current[name] = true;
         sortNodes();
@@ -1284,6 +1271,34 @@ resolve => {
 )
 }
 
+async function expandConnections(name, time) {
+    expandNodes(name, time).then(
+        (addedNodes) => {
+            // Resizing and re-positioning nodes is done after the 
+            // promise is resolved, because we need to wait for React Flow to finish
+            // its calculations first. 
+            for (var i = 0; i < addedNodes.length; i++) {
+                // if one of the added components is a parent node
+                if (isParentNode.current[addedNodes[i].name]) {
+                    console.log("added parent node")
+                    setAddedParent(addedNodes[i].name);
+                }
+            }
+            if (isParentNode.current[name]) {
+                console.log("current is parent")      
+                if (componentRef.current.name === name) {
+                    setAddedParent(name);
+                }
+                // update state if expanded node is a supercomponent
+                else {
+                    setExpandedSupercomponent(name)
+                }
+                
+            }
+            
+        }
+    );
+}
 
 /**
 * "Pushes" down rows in the graph. 
