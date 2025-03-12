@@ -345,6 +345,9 @@ const flowInstance = useReactFlow();
 // States to be used for layouting the graph
 const [addedParent, setAddedParent] = useState(null);
 const [expandedSupercomponent, setExpandedSupercomponent] = useState(null);
+// to keep track of last expanded nodes, and their children. 
+const [lastExpanded, setLastExpanded] = useState(null);
+const [addedComponents, setAddedComponents] = useState([]);
 
 /**
  * Set the URL based on actions performed.
@@ -354,7 +357,7 @@ useEffect(() => {
     if (component != undefined) {
         window.location.hash = `#cmp=${cmp}&time=${enteredTime.current}&depth=${depth}&expanded=${expanded}`;
     }
-}, [component, expanded]);
+}, [component, expanded, depth]);
 
 /**
  * Run series of functions from the URL.
@@ -595,7 +598,6 @@ addNodeId(comp.name);
 isParentNode.current[comp.name] = false;
 childrenNodes.current[comp.name] = [];
 // reveal properties if showProperties is visible
-console.log("PROPS VIS?", propertiesVisibleRef.current);
 if (propertiesVisibleRef.current) {
     newNode = revealProperties(newNode);
 }
@@ -745,6 +747,8 @@ const visualizeComponent = async () => {
 
     // funny breadth first search
     while (queueFrontIndex < queue.length) {
+
+        console.log("QUEUE FRONT INDEX", queueFrontIndex, queue.length)
 
         // so you don't add nodes that you've already visited
         visited[queue[queueFrontIndex].name] = true;
@@ -952,6 +956,11 @@ useEffect(() => {
 }, [expandedSupercomponent])
 
 
+useEffect(() => {
+    console.log("idk");
+}, [lastExpanded, addedComponents])
+
+
 /**
 * Expand and visualize the components that the component with name "name"
 * is connected to at time "time"
@@ -985,8 +994,8 @@ let nodeHeight;
 if (flowInstance.getNode(name)) {
     nodeHeight = flowInstance.getNode(name).height;
 }
-else {
-    nodeHeight = 10;
+else {      // use a default height if the height can't be found in the flow instance
+    nodeHeight = 50;
 }
 
 return new Promise(
@@ -1258,9 +1267,7 @@ resolve => {
             }
         }
         if (componentsAdded.length > 0 && !urlSet) {
-            console.log("setting expanded")
             setExpanded((prev) => [...prev, name]);
-            console.log([...expanded, name]);
         }
         expandedNodes.current[name] = true;
         sortNodes();
@@ -1280,22 +1287,19 @@ async function expandConnections(name, time) {
             for (var i = 0; i < addedNodes.length; i++) {
                 // if one of the added components is a parent node
                 if (isParentNode.current[addedNodes[i].name]) {
-                    console.log("added parent node")
                     setAddedParent(addedNodes[i].name);
                 }
             }
             if (isParentNode.current[name]) {
-                console.log("current is parent")      
                 if (componentRef.current.name === name) {
                     setAddedParent(name);
                 }
                 // update state if expanded node is a supercomponent
                 else {
-                    setExpandedSupercomponent(name)
+                    setExpandedSupercomponent(name);
                 }
-                
             }
-            
+        
         }
     );
 }
