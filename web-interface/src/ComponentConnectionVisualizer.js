@@ -913,11 +913,11 @@ function formatParent(parent, justAdded) {
             let child = flowInstance.getNode(children[i]);
             console.log("child", child);
             newHeight = justAdded ? Math.max(newHeight, parentHeight + child.height) : 
-                Math.max(newHeight, parentHeight + child.height);
+                Math.max(newHeight, parentHeight + child.height - 50);
         }
 
         flowInstance.setNodes((nodes) => nodes.map((node) => {
-            if (node.id === parent) {
+            if (newHeight && node.id === parent) {
                 return ({
                     ...node,
                     style: {...node.style, height: newHeight}, 
@@ -926,6 +926,7 @@ function formatParent(parent, justAdded) {
             else if (children.includes(node.id) && newHeight && node.height) {
                 // adjust position of the subcomponent if necessary
                 console.log(node.id, newHeight, node.height)
+                console.log("changing the height")
                 return ({
                     ...node,
                     position: {x: node.position.x, y: newHeight - node.height}
@@ -938,6 +939,8 @@ function formatParent(parent, justAdded) {
         }
 }
 
+
+// waits for the parent to be updated properly before being called
 useEffect(() => {
     formatParent(addedParent, true)
 }, [addedParent])
@@ -1256,9 +1259,6 @@ resolve => {
         }
         expandedNodes.current[name] = true;
         sortNodes();
-        // formatSubcomponents();
-        console.log("the y?", curr_y)
-        console.log("the height?", nodeHeight)
         resolve(componentsAdded);
     });
 }
