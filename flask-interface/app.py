@@ -1320,8 +1320,8 @@ def set_flag_severity():
     """
     val_name = escape(request.args.get('name'))
 
-    # Need to initialize an instance of a component version first.
-    flag_severity = p.FlagSeverity(val_name)
+    # initialize flag severity instance
+    flag_severity = p.FlagSeverity(name=val_name)
 
     flag_severity.add()
 
@@ -1404,15 +1404,17 @@ def set_flag():
         # Need to initialize an instance of Flag first.
         start = tmp_timestamp(val_start_time, val_uid, val_start_comments)
         print(start)
-        if val_end_time != str(0):
+        if val_end_time is not None and val_end_time != str(0):
             end = tmp_timestamp(val_end_time, val_uid, val_start_comments)
         else:
             end = None
-        flag = p.Flag(val_name, start, severity, type, 
+        # what to do with comments? how to represent them?
+        flag = p.Flag(name=val_name, start=start, severity=severity, type=type, 
                       comments=val_comments, end=end,
                       components=allowed_list)
         flag.add()
 
+        raise Exception("this is an exception")
         return {'result': True}
 
     except Exception as e:

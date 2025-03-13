@@ -1,4 +1,4 @@
-import React, { useState } from 'react';
+import React, { useState, useEffect } from 'react';
 
 
 import Button from '@mui/material/Button'
@@ -8,6 +8,7 @@ import Dialog from '@mui/material/Dialog';
 import DialogActions from '@mui/material/DialogActions';
 import DialogContent from '@mui/material/DialogContent';
 import DialogTitle from '@mui/material/DialogTitle';
+import { FormControlLabel } from '@mui/material';
 import InputLabel from '@mui/material/InputLabel';
 import MenuItem from '@mui/material/MenuItem';
 import FormControl from '@mui/material/FormControl';
@@ -40,12 +41,16 @@ export default function FlagAddButton ({type,severities,components,toggleReload}
     // Stores user inputted values for name of the flag, flag severity selected, flag type selected and comments assocaited with the new flag.
     const [property,setProperty] = useState({
     name: '',
-    uid: '',
     severity:'',
     type:'',
     start_comment:'',
     comments: ''
   })
+
+  // for user information of who is adding the property type
+  const [userData, setUserData] = useState({});
+
+  const [uid, setUid] = useState('');
 
   // Stores the start time of the flag.
   const [startTime,setStartTime] = useState(0)
@@ -59,11 +64,43 @@ export default function FlagAddButton ({type,severities,components,toggleReload}
   // Whether the submit button has been clicked or not and set loading to true.
   const [loading, setLoading] = useState(false);
 
+  // Whether the flag to be added will have an associated end time
+  const [hasEndTime, setHasEndTime] = useState(false);
+
   /*
    To display an error message when a user fails to add a new flag.
    */
   const [errorData,setErrorData] = useState(null)
 
+  // load user data when the page loads
+  useEffect(() => {
+      getUserData();
+  }, [])
+
+
+  // set user id
+  useEffect(() => {
+      if (userData) {
+          setUid(userData.login);
+      }
+  }, [userData])
+
+  
+  /**
+   * Get the user data via GitHub
+   */
+  async function getUserData() {
+  await fetch(`${process.env.OAUTH_URL || "http://localhost"}:4000/getUserData`, {
+      method: "GET",
+      headers: {
+          "Authorization": "Bearer " + localStorage.getItem('accessToken')
+      }
+      }).then((response) => {
+          return response.json();
+      }).then((data) => {
+          setUserData(data);
+      });
+  }
 
   // Function that updates the list of component selected by the user in the pop up form.
   const handleChange2 = (event) => {
@@ -119,19 +156,24 @@ export default function FlagAddButton ({type,severities,components,toggleReload}
       let input = `/api/set_flag`;
       input += `?name=${property.name}`;
       input += `&start_time=${startTime}`;
-      input += `&end_time=${endTime}`;
-      input += `&uid=${property.uid}`;
+      input += `&uid=${uid}`;
       input += `&severity=${property.severity}`;
       input += `&type=${property.type}`;
       input += `&comments=${property.comments}`;
       input += `&start_comments=${property.start_comment}`;
       input += `&components=${componentName.join(';')}`;
+      if (hasEndTime) { // only add endTime if it's specified by user
+        input += `&end_time=${endTime}`;
+      }
+      console.log("input", input);
+
       axios.post(input).then((response)=>{
         if(response.data.result){
           toggleReload() //To reload the page once the form has been submitted.
           handleClose()
         } else {
           setErrorData(response.data.error)
+          setLoading(false);
         }
       })
     } 
@@ -170,17 +212,40 @@ export default function FlagAddButton ({type,severities,components,toggleReload}
       <div style={{
         width:'50%'
       }}>
-          <TextField
-            margin="dense"
-            id="uid"
-            label="UID"
-            type='text'
-            fullWidth
-            variant="outlined"
-            name = 'uid'
-            value={property.uid}
-            onChange={handleChange}
-            />
+        <FormControl sx={{width: 272, marginTop: 1}} >
+          <InputLabel id="Flag Type" >Components</InputLabel>
+          <Select
+            labelId="multiple-checkbox-label"
+            id="multiple-checkbox"
+            multiple
+            value={componentName}
+            onChange={handleChange2}
+            input={<OutlinedInput label="Component" />}
+            renderValue={(selected) => selected.join(', ')}
+            MenuProps={MenuProps}
+          >
+            {
+            componentName.includes('Global') 
+            ?
+            flag_components_global_list.map((item,index) => (
+              <MenuItem 
+              key={index} 
+              value={item.name}>
+                <Checkbox checked={componentName.indexOf(item.name) > -1} />
+                <ListItemText primary={item.name} />
+              </MenuItem>
+            )
+            )
+            :
+            components.map((item,index) => (
+              <MenuItem key={index} value={item.name}>
+                <Checkbox checked={componentName.indexOf(item.name) > -1} />
+                <ListItemText primary={item.name} />
+              </MenuItem>
+            ))
+            }
+          </Select>
+        </FormControl>
         </div>
       </div>
     <div style={{
@@ -217,7 +282,7 @@ export default function FlagAddButton ({type,severities,components,toggleReload}
       </FormControl>
     </div>
     <div style={{
-        width:'50%'
+        width:'50%',
       }}>
         <FormControl sx={{width: 272}}>
         <InputLabel id="Flag Severity">Flag Severity</InputLabel>
@@ -244,51 +309,63 @@ export default function FlagAddButton ({type,severities,components,toggleReload}
       </FormControl>
 </div>
     </div>
-    <div style={{
-        display:'flex',
-        justifyContent:'center',
-        marginTop:'15px'
-    }}>
-      <FormControl sx={{width: 300}}>
-        <InputLabel id="multiple-checkbox-label">Components</InputLabel> 
-        <Select
-          labelId="multiple-checkbox-label"
-          id="multiple-checkbox"
-          multiple
-          value={componentName}
-          onChange={handleChange2}
-          input={<OutlinedInput label="Component" />}
-          renderValue={(selected) => selected.join(', ')}
-          MenuProps={MenuProps}
-        >
-          {
-          componentName.includes('Global') 
-          ?
-          flag_components_global_list.map((item,index) => (
-            <MenuItem 
-            key={index} 
-            value={item.name}>
-              <Checkbox checked={componentName.indexOf(item.name) > -1} />
-              <ListItemText primary={item.name} />
-            </MenuItem>
-          )
-          )
-          :
-          components.map((item,index) => (
-            <MenuItem key={index} value={item.name}>
-              <Checkbox checked={componentName.indexOf(item.name) > -1} />
-              <ListItemText primary={item.name} />
-            </MenuItem>
-          ))
-          }
-        </Select>
-      </FormControl>
-    </div>
+    {
+      hasEndTime ? 
 
-    <div style={{
+      <div style={{
         marginTop:'10px',
         display:'flex',
         justifyContent:'space-between'
+      }}>
+        <div style={{
+          marginRight:'10px',
+          width:'50%'
+        }}>
+              <TextField
+              required
+              margin = 'dense'
+              id="start_time"
+              label="start_time"
+              fullWidth
+              variant="outlined"
+              type="datetime-local"
+              InputLabelProps={{
+                  shrink: true,
+              }}
+              size="large"
+              onChange={(event) => {
+                  let date = new Date(event.target.value);
+                  setStartTime(Math.round(date.getTime() / 1000));
+              }}
+                          />
+        </div>
+        <div style={{
+          width:'50%'
+        }}>
+              <TextField
+              fullWidth
+              variant="outlined"
+              margin = 'dense'
+              id="end_time"
+              label="end_time"
+              type="datetime-local"
+              InputLabelProps={{
+                  shrink: true,
+              }}
+              size="large"
+              onChange={(event) => {
+                  let date = new Date(event.target.value);
+                  setEndTime(Math.round(date.getTime() / 1000));
+              }}
+                          />
+        </div>
+      </div>
+
+    :
+    <div style={{
+      marginTop:'10px',
+      display:'flex',
+      justifyContent:'center'
     }}>
       <div style={{
         marginRight:'10px',
@@ -312,44 +389,12 @@ export default function FlagAddButton ({type,severities,components,toggleReload}
             }}
                         />
       </div>
-      <div style={{
-        width:'50%'
-      }}>
-            <TextField
-            fullWidth
-            variant="outlined"
-            margin = 'dense'
-            id="end_time"
-            label="end_time"
-            type="datetime-local"
-            InputLabelProps={{
-                shrink: true,
-            }}
-            size="large"
-            onChange={(event) => {
-                let date = new Date(event.target.value);
-                setEndTime(Math.round(date.getTime() / 1000));
-            }}
-                        />
       </div>
-    </div>
-    <div style={{
-      marginTop:'10px',
-      marginBottom:'10px'
-    }}>
-          <TextField
-            margin="dense"
-            id="start_comment"
-            label="Start Comment"
-            multiline
-            maxRows={4}
-            type="text"
-            fullWidth
-            variant="outlined"
-            name = 'start_comment'
-            value={property.start_comment}
-            onChange={handleChange}
-            />
+
+    }
+    
+    <div style={{display: 'flex', justifyContent: 'center'}}>
+      <FormControlLabel control={<Checkbox onChange={(e) => setHasEndTime(e.target.checked)}/>} label="Include end time" />    
     </div>
       <div style={{
           marginTop:'10px',
@@ -393,19 +438,20 @@ export default function FlagAddButton ({type,severities,components,toggleReload}
         </DialogContent>
         <DialogActions>
           <Button onClick={handleClose}>Cancel</Button>
-          {
-             componentName.length !== 0 && property.name && property.type && property.severity && startTime && property.uid
-            ?
-            <Button onClick={handleSubmit}>
-              {loading ? <CircularProgress
-                            size={24}
-                            sx={{
-                                color: 'blue',
-                            }}
-                        /> : "Submit"}
-              </Button>
+          { loading ? 
+              <CircularProgress
+              size={24}
+              sx={{
+                  color: 'blue',
+              }}
+              /> 
               :
-              <Button disabled>
+              <Button onClick={handleSubmit}
+                disabled={
+                (property.name == '') || (componentName == []) || (startTime == 0)
+                || (property.type == '') || (property.severity == '') || 
+                (endTime == 0 && hasEndTime)
+                }>
               Submit
               </Button>
               }

@@ -91,6 +91,7 @@ class Flag(Vertex):
 
     category: str = "flag"
     _vertex_attrs: list = [
+        VertexAttr("name", str), 
         VertexAttr("type", FlagType, edge_class=RelationFlagType),
         VertexAttr("severity", FlagSeverity, edge_class=RelationFlagSeverity),
         VertexAttr("notes", str, optional=True),
@@ -100,7 +101,7 @@ class Flag(Vertex):
         VertexAttr("components", Component, edge_class=RelationFlagComponent,
                    is_list=True, list_len=(0, int(1e10)))
     ]
-    _primary_attr = None
+    _primary_attr: str = "name"
 
     def end_flag(self, dummy):
         raise RuntimeError("Method deprecated. Use set_end().")
