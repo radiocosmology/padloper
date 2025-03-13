@@ -351,8 +351,8 @@ const [expandedSupercomponent, setExpandedSupercomponent] = useState(null);
  * Set the URL based on actions performed.
  */
 useEffect(() => {
-    const cmp = selectedComponent.current != undefined ? selectedComponent.current.name : '';
-    if (selectedComponent.current != undefined) {
+    const cmp = component != undefined ? component.name : '';
+    if (component != undefined) {
         window.location.hash = `#cmp=${cmp}&time=${enteredTime.current}&depth=${depth}&expanded=${expanded}`;
     }
 }, [reloadComponent, expanded, depth]);
@@ -1511,7 +1511,7 @@ spacing={2}
         >
             <ComponentAutocomplete 
                 onSelect={(val) => {
-                    selectedComponent.current = val;
+                    setComponent(val);
                 }} 
             />
             <TextField
@@ -1601,7 +1601,7 @@ spacing={2}
                     setAddedParent(null);
                     setExpandedSupercomponent(null);
                 }}
-                disabled={selectedComponent === undefined}
+                disabled={component === undefined}
             >
                 Visualize
             </Button>
