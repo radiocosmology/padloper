@@ -168,60 +168,8 @@ const g = new Dagre.graphlib.Graph().setDefaultEdgeLabel(() => ({}));
 
 
 // TODO: Probably don't hardcode this.
-// let nodeWidth = 250, nodeHeight = 50;
 let nodeWidth = 250;
 
-/**
-* Lays out the nodes of the graph visualization in a top-to-bottom fashion.
-* 
-* @param {Array} elements - The list of nodes and edges for the React Flow
-* visualization
-* @returns A list of the nodes and edges with proper positioning.
-//  */
-// const getLayoutedElements = (elements) => {
-//     // https://reactflow.dev/examples/layouting/
-
-//     /**
-//      * The direction of the layout is top to bottom. This can be changed
-//      * by hardcoding it and changing it or by adding a parameter.
-//      */
-//     const direction = 'TB';
-
-//     dagreGraph.setGraph({ rankdir: direction });
-
-//     // set up the dagre graph
-//     elements.forEach((el) => {
-//         if (isNode(el)) {
-//             dagreGraph.setNode(el.id, { width: nodeWidth, height: nodeHeight });
-//         } else {
-//             dagreGraph.setEdge(el.source, el.target);
-//         }
-//     });
-
-//     // do layout
-//     dagre.layout(dagreGraph);
-
-//     // return the layouted elements
-//     return elements.map((el) => {
-//       if (isNode(el)) {
-//         const nodeWithPosition = dagreGraph.node(el.id);
-//         el.targetPosition = 'top';
-//         el.sourcePosition = 'bottom';
-
-//         // unfortunately we need this little hack to pass a slightly different 
-//         // position to notify react flow about the change. 
-//         // Moreover we are shifting the dagre node position 
-//         // (anchor=center center) to the top left so it matches the 
-//         // react flow node anchor point (top left).
-//         el.position = {
-//           x: nodeWithPosition.x - nodeWidth / 2 + Math.random() / 1000,
-//           y: nodeWithPosition.y - nodeHeight / 2,
-//         };
-//       }
-
-//       return el;
-//     });
-// };
 const getLayoutedElements = (layoutNodes, nodes, edges, options) => {
 g.setGraph({ rankdir: options.direction });
 
@@ -286,10 +234,6 @@ const edgeIds = useRef({});
 const [component, setComponent] = useState(undefined);
 const componentRef = useRef();
 componentRef.current = component;
-
-// "next" component selected by the user, if any
-// not sure if this is the best way to do this
-const selectedComponent = useRef(undefined);
 
 // actual depth of the BFS search
 const [depth, setDepth] = useState(0);
@@ -901,7 +845,7 @@ return (
 } 
 
 // Resize the parent and adjust subcomponents based on the heights of each node
-function formatParent(parent, justAdded) {
+async function formatParent(parent, justAdded) {
     console.log("hello, you added a parent?")
     if (parent && childrenNodes.current[parent]) {
         const children = childrenNodes.current[parent];
@@ -911,11 +855,9 @@ function formatParent(parent, justAdded) {
         // get the height of the tallest subcomponent
         for (var i = 0; i < children.length; i ++) {
             let child = flowInstance.getNode(children[i]);
-            console.log("child", child);
             newHeight = justAdded ? Math.max(newHeight, parentHeight + child.height) : 
                 Math.max(newHeight, parentHeight + child.height - 50);
         }
-
         flowInstance.setNodes((nodes) => nodes.map((node) => {
             if (newHeight && node.id === parent) {
                 return ({
@@ -924,15 +866,24 @@ function formatParent(parent, justAdded) {
                 });
             } 
             else if (children.includes(node.id) && newHeight && node.height) {
-                // adjust position of the subcomponent if necessary
-                console.log(node.id, newHeight, node.height)
-                console.log("changing the height")
                 return ({
                     ...node,
                     position: {x: node.position.x, y: newHeight - node.height}
                 });
             }
+            // handle the case where they need to be MOVED !!
+            // the node is neither the parent nor the children
+            // but may need to be reformatted
+            else if ((nodeLevels.current[node.id] >= nodeLevels.current[parent]) && parentHeight && newHeight && !justAdded) {
+                console.log("re-level", node.id, nodeLevels.current, parent, node.position.y + newHeight - parentHeight)
+                // console.log(node.position.x + newHeight - parentHeight);
+                return ({
+                    ...node,
+                    position: {x: node.position.x, y: node.position.y + newHeight - parentHeight}
+                })
+            }
             else {
+                // console.log("else", nodeLevels.current, node.id, parent)
                 return node;
             }
         }));
