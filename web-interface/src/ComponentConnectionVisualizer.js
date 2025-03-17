@@ -355,7 +355,6 @@ useEffect(() => {
  * To visualize component
  */
 useEffect(() => {
-    console.log("component changed idk")
     const asyncExpand = async () => {
         if (urlSet && component) {
             visualizeComponent();
@@ -414,9 +413,7 @@ function revealProperties(node) {
 }
 
 useEffect(() => {
-    // console.log(nodes)
     if (propertiesVisible) {
-        // nodeHeight = 200;
         console.log('propertiesVisible')
         console.log(enteredTime.current)
         setNodes((nds) =>
@@ -425,7 +422,6 @@ useEffect(() => {
         })
       );
     } else {
-        // nodeHeight = 50;
         setNodes((nds) => 
         nds.map((node) => {
             return {
@@ -519,7 +515,6 @@ if (subcomponent) {
   nodeLevels.current[comp.name] = row;
 } else {
   console.log("Adding non-subcomponent ", comp)
-//   console.log("Coords: ", x, y)
   newNode = {
       id: comp.name,
       connectable: false,
@@ -692,19 +687,13 @@ async function visualizeComponent() {
     // funny breadth first search
     while (queueFrontIndex < queue.length) {
 
-        console.log("QUEUE FRONT INDEX", queueFrontIndex, queue.length)
-
         // so you don't add nodes that you've already visited
         visited[queue[queueFrontIndex].name] = true;
-
-        console.log("expanding inside visualise comp", queue[queueFrontIndex].name)
 
         let newComponents = await expandConnections(
             queue[queueFrontIndex].name, 
             time.current,
         );
-
-        console.log("new compos", newComponents)
 
         if (queue[queueFrontIndex].currDepth + 1 < depth) {
             for (let thisComp of newComponents) {
@@ -758,7 +747,6 @@ fitView();
 //        onLayout();
 //    }, [toggleLayoutBool]);
 
-// TODO: put properties information here
 
 /**
 * A MUI component representing a component node.
@@ -876,14 +864,12 @@ async function formatParent(parent, justAdded) {
             // but may need to be reformatted
             else if ((nodeLevels.current[node.id] >= nodeLevels.current[parent]) && parentHeight && newHeight && !justAdded) {
                 console.log("re-level", node.id, nodeLevels.current, parent, node.position.y + newHeight - parentHeight)
-                // console.log(node.position.x + newHeight - parentHeight);
                 return ({
                     ...node,
                     position: {x: node.position.x, y: node.position.y + newHeight - parentHeight}
                 })
             }
             else {
-                // console.log("else", nodeLevels.current, node.id, parent)
                 return node;
             }
         }));
@@ -906,8 +892,6 @@ useEffect(() => {
 * is connected to at time "time"
 * @param {string} name - name of the component to check connections with 
 * @param {int} time - time to check components at
-* @param {node} expandedNode - the actual node object in the Flow representing the 
-* component to check connections with
 * @returns A Promise, which, when resolved, returns the array of the names
 * of the components added.
 */
@@ -1000,7 +984,6 @@ resolve => {
                     setNodes((nodes) => nodes.map((node) => {
                         if (node.id === sub.name) {
 
-                            // maxSubHeight = Math.max(maxSubHeight, node.style.height)
                             return ({
                                 ...node,
                                 data: { ...node.data, label: node.id,},
