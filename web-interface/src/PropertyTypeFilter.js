@@ -4,8 +4,9 @@ import FormControl from '@mui/material/FormControl';
 import Button from '@mui/material/Button';
 import Paper from '@mui/material/Paper';
 import Stack from '@mui/material/Stack';
-
+import { useState, useEffect } from 'react';
 import Close from '@mui/icons-material/Close';
+import ItemAutocomplete from './ItemAutocomplete.js'
 
 /**
  * 
@@ -31,6 +32,13 @@ export default function PropertyTypeFilter(
         }
     ) {
 
+    // String representing selected component type
+    const [selectedComponentType, setSelectedComponentType] = useState('');
+
+    // query string to be used in component type autocomplete
+    const componentTypeQuery = '/api/component_type_list?range=0;-1&' + 
+    'orderBy=name&orderDirection=asc&nameSubstring=';
+
     /**
      * Update the filter with a new key/value pair.
      * @param {string} key - the key of the key/value pair 
@@ -41,7 +49,6 @@ export default function PropertyTypeFilter(
         filterCopy[key] = val;
         changeFilter(index, filterCopy);
     }
-
     
     /**
      * Update the name key of the filter with the value from the input field.
@@ -53,24 +60,16 @@ export default function PropertyTypeFilter(
     }
 
     /**
-     * Update the type key of the filter with the value from the select field.
-     * @param {object} event - the event associated with the 
-     * change of the TextField.
+     * Update the filter when the selected component type is updated
      */
-    const filterUpdateType = (event) => {
-        if (event.target.value != -1) {
-            filterUpdateKey(
-                'type', 
-                types[event.target.value]['name']
-            );
+    useEffect (() => {
+        if (selectedComponentType) {
+            filterUpdateKey('type', selectedComponentType.name);
         }
-        else {
-            filterUpdateKey(
-                'type', 
-                ''
-            );
+        else {      // selectedType is empty
+            filterUpdateKey('type', '');
         }
-    }
+    }, [selectedComponentType])
 
     // set the width of the filter's panel, set to 600px by default.
     let paperWidth = (width) ? width : '600px';
@@ -105,35 +104,11 @@ export default function PropertyTypeFilter(
                     }}
                     onChange={filterUpdateName}
                 />
-                <FormControl 
-                    style={{
-                        gridColumnStart: 2,
-                    }}
-                    variant="outlined"
-                >
-                    <Select
-                        native
-                        labelId={`component-type-select-${index}-label`}
-                        id={`component-type-select-${index}`}
-                        onChange={filterUpdateType}
-                        displayEmpty
-                    >
-                        <option aria-label="None" value={-1} selected>
-                            All types
-                        </option>
-                        {
-                            types.map((t, index) =>
-                                <option 
-                                key={index}
-                                    value={index}
-                                >
-                                    {t['name']}
-                                </option>
-                            )
-                        }
-                    </Select>
-
-                </FormControl>
+                <ItemAutocomplete
+                    onSelect={(type) => {setSelectedComponentType(type)}}
+                    queryString={componentTypeQuery}
+                    label={"Allowed Type"}
+                />
 
                 <Button 
                     color="primary" 

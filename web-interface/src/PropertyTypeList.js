@@ -8,9 +8,6 @@ import PropertyTypeAddButton from './PropertyTypeAddButton.js';
 import PropertyTypeReplaceButton from './PropertyTypeReplaceButton.js';
 import Authenticator from './components/Authenticator.js';
 
-
-
-
 /**
  * A MUI component that renders a list of property types.
  */
