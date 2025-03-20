@@ -33,8 +33,6 @@ import EastIcon from '@mui/icons-material/East';
 import KeyboardBackspaceIcon from '@mui/icons-material/KeyboardBackspace';
 import axios from 'axios'
 
-
-
 import { Link } from "react-router-dom";
 
 import {
@@ -365,8 +363,20 @@ function ComponentPage() {
     /*Contains the message when there is an error while adding a new property */
     const [errorPropertyMessage,setErrorPropertyMessage] = useState(null)
 
+    /*Contains the message when there is an error while ending a property */
+    const [errorEndPropertyMessage, seterrorEndPropertyMessage] = useState(null)
+
+    /*Contains the message when there is an error while replacing a property */
+    const [errorReplacePropertyMessage, setErrorReplacePropertyMessage] = useState(null)
+
     /*Contains the message when there is an error while adding a new connection */
     const [errorConnectionMessage,setErrorConnectionMessage] = useState(null)
+
+    /*Contains the message when there is an error while ending a connection */
+    const [errorEndConnectionMessage, setErrorEndConnectionMessage] = useState(null)
+
+    /*Contains the message when there is an error while replacing a connection */
+    const [errorReplaceConnectionMessage, setErrorReplaceConnectionMessage] = useState(null);
 
     const [userData, setUserData] = useState({});
 
@@ -429,12 +439,12 @@ function ComponentPage() {
 
         axios.post(input).then(
             (response) => {
-                if(response.data.result){
+                if (response.data.result){
                     setOpenPropertiesAddPanel(false);
-                    setErrorPropertyMessage(null)
+                    setErrorPropertyMessage(null);
                     toggleReload();
                 } else {
-                    setErrorPropertyMessage(response.data.error)
+                    setErrorPropertyMessage(JSON.parse(response.data.error));
                 }
             }
         )
@@ -457,10 +467,17 @@ function ComponentPage() {
         input += `&comments=${comments}`;
 
         fetch(input).then(
-            res => res.json()
-        ).then(data => {
-            setOpenPropertiesEndPanel(false);
-            toggleReload();
+            (res) => res.json()
+        ).then((data) => {
+            if (data.result) {
+                setOpenPropertiesEndPanel(false);
+                seterrorEndPropertyMessage(null);
+                toggleReload();
+            }
+            else {
+                console.log(data.error);
+                seterrorEndPropertyMessage(JSON.parse(data.error));
+            }
         });
     }
 
@@ -491,8 +508,13 @@ function ComponentPage() {
         fetch(input).then(
             res => res.json()
         ).then(data => {
-            setOpenPropertiesReplacePanel(false);
-            toggleReload();
+            if (data.result) {
+                setOpenPropertiesReplacePanel(false);
+                toggleReload();
+            }
+            else {
+                setErrorReplacePropertyMessage(JSON.parse(data.error));
+            }
         });
     }
 
@@ -514,7 +536,6 @@ function ComponentPage() {
         input += `&time=${time}`;
         input += `&uid=${uid}`;
         input += `&comments=${comments}`;
-        input += `&isreplacement=False`;
 
         axios.post(input).then(
                 (response) => {
@@ -523,7 +544,7 @@ function ComponentPage() {
                     setErrorConnectionMessage(null)
                     toggleReload();
                 } else {
-                    setErrorConnectionMessage(response.data.error)
+                    setErrorConnectionMessage(JSON.parse(response.data.error))
                 }
             });
     }
@@ -552,6 +573,10 @@ function ComponentPage() {
                     setOpenConnectionsEndPanel(false);
                     toggleReload();
                 }
+                else {
+                    console.log(data.error);
+                    setErrorEndConnectionMessage(JSON.parse(data.error));
+                }
                 resolve(data.result);
             });
         });
@@ -560,20 +585,31 @@ function ComponentPage() {
 
     /**
      * Replace the connection to another component.
-     * @param {int} time - the time to make the connection at 
+     * @param {int} startTime - the time to make the connection at 
+     * @param {int} endTime - the time to end the connection at
      * @param {string} uid - the ID of the user that is making the connection 
      * @param {string} comments - the comments associated with making the connection 
+     * @param {int} oldStartTime - the start time of the old connection that will be replaced
+     * @param {bool} hasEnd - whether the connection has already ended, i.e., whether the 
+     *                      "endTime" value is actually valid
      */
-    async function replaceConnection(time, uid, comments) {
+    async function replaceConnection(startTime, endTime, uid, comments, oldStartTime, hasEnd) {
         
         // build up the string to query the API
         let input = `/api/component_add_connection`;
         input += `?name1=${name}`;
         input += `&name2=${otherName}`;
-        input += `&time=${time}`;
+        input += `&time=${startTime}`;
         input += `&uid=${uid}`;
         input += `&comments=${comments}`;
-        input += `&isreplacement=True`;
+        input += `&replace_time=${oldStartTime}`;
+
+        if (hasEnd) {       // need to include ending time of new connection
+            input += `&end_time=${endTime}`;
+        }
+
+        console.log("hasend", hasEnd);
+        console.log("endTime", endTime);
 
         return new Promise((resolve, reject) => {
             fetch(input, {method: 'POST'}).then(
@@ -582,6 +618,9 @@ function ComponentPage() {
                 if (data.result) {
                     setOpenConnectionsReplacePanel(false);
                     toggleReload();
+                }
+                else {
+                    setErrorReplaceConnectionMessage(JSON.parse(data.error));
                 }
                 resolve(data.result);
             });
@@ -606,7 +645,7 @@ function ComponentPage() {
                     setErrorSubcomponentMessage(null)
                     toggleReload();
                 } else {
-                    setErrorSubcomponentMessage(response.data.error)
+                    setErrorSubcomponentMessage(JSON.parse(response.data.error));
                 }
             })
     }
@@ -662,6 +701,7 @@ function ComponentPage() {
                 theme={theme} 
                 onClose={() => setOpenPropertiesEndPanel(false)}
                 onSet={endProperty}
+                errorMessage={errorEndPropertyMessage}
             />
         ) : <></>;
 
@@ -740,7 +780,6 @@ function ComponentPage() {
                             onClick={
                                 () => 
                                 {
-                                  
                                     setOpenPropertiesReplacePanel(true)
                                     setactiveindexpropertyReplace(index)
                                 }
@@ -782,11 +821,15 @@ function ComponentPage() {
                         (open_properties_replace_panel) ? (
                             <ComponentPropertyReplacePanel 
                                 theme={theme} 
-                                onClose={() => setOpenPropertiesReplacePanel(false)}
+                                onClose={() => {
+                                    setErrorReplacePropertyMessage(null); 
+                                    setOpenPropertiesReplacePanel(false)
+                                }}
                                 onSet={replaceProperty}
                                 selected={prop.type}
                                 oldTextFieldValues={prop.values}
                                 oldComments={prop.start. comments}
+                                errorReplacePropertyMessage={errorReplacePropertyMessage}
                             />
                         ) : <></>
                         :
@@ -809,10 +852,14 @@ function ComponentPage() {
         let connections_end_panel_content = (open_connections_end_panel) ? (
             <ComponentConnectionEndPanel 
                 theme={theme} 
-                onClose={() => setOpenConnectionsEndPanel(false)}
+                onClose={() => {
+                    setOpenConnectionsEndPanel(false);
+                    setErrorEndConnectionMessage(null);
+                }}
                 onSet={endConnection}
                 name={name}
                 uid={uid}
+                errorMessage={errorEndConnectionMessage}
             />
         ) : <></>;
 
@@ -862,9 +909,9 @@ function ComponentPage() {
                         <EntryAccordionDetails>
                             <Stack spacing={1}>
                                 <Stack
-                                direction = 'row'
-                                justifyContent='space-between'
-                                alignItems='center'>
+                                    direction = 'row'
+                                    justifyContent='space-between'
+                                    alignItems='center'>
                                 <ComponentEvent
                                     name="Start"
                                     time={conn.start.time}
@@ -888,19 +935,7 @@ function ComponentPage() {
                                         }
                                         />
                                     }
-                                    {conn.end.uid
-                        ?
-                        <ReplaceButton 
-                        onClick={
-                                () => 
-                                {
-                                    setOtherName(conn.name)
-                                    setOpenConnectionsReplacePanel(true)
-                                    setActiveIndexConnectionReplace(index)
-                                }
-                            }
-                            />
-                        :
+                                    
                         <>
                         <ReplaceButton 
                         onClick={
@@ -909,17 +944,19 @@ function ComponentPage() {
                                     setOtherName(conn.name)
                                     setOpenConnectionsReplacePanel(true)
                                     setActiveIndexConnectionReplace(index)
+                                    setErrorReplaceConnectionMessage(null)
                                 }
                             }
-                            />
-                            <ComponentConnectionDisableButton
-                            name={name}
-                            otherComponentName = {conn.name}
-                            toggleReload={toggleReload}
-                            />
+                        />
+                        <ComponentConnectionDisableButton
+                        name={name}
+                        otherComponentName={conn.name}
+                        time={conn.start.time}
+                        toggleReload={toggleReload}
+                        />
                         
                             </>
-                            }
+                            
                             </Stack>
                             </Stack>
                                 {
@@ -951,6 +988,7 @@ function ComponentPage() {
                                 onSet={replaceConnection}
                                 uid={uid}
                                 conn={conn}
+                                errorMessage={errorReplaceConnectionMessage}
                             />
                         ) : <></>
                         :

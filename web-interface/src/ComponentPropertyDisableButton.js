@@ -9,7 +9,7 @@ import styled from '@mui/material/styles/styled';
 import DeleteIcon from '@mui/icons-material/Delete';
 import DialogContentText from '@mui/material/DialogContentText';
 import CircularProgress from '@mui/material/CircularProgress';
-
+import ErrorMessage from './ErrorMessage';
 
 /*
 A MUI component representing a button for disabling.
@@ -36,6 +36,8 @@ const DisableButton = styled((props) => (
   // opens and closes the alert dialog box.
   const [open, setOpen] = useState(false);
 
+  const [errorMessage, setErrorMessage] = useState(null);
+
   // whether the submit button has been clicked or not
   const [loading, setLoading] = useState(false);
 
@@ -52,7 +54,8 @@ const DisableButton = styled((props) => (
   */
   const handleClose = () => {
     setOpen(false);
-    setLoading(false)
+    setLoading(false);
+    setErrorMessage(null);
   };
 
      /**
@@ -73,7 +76,11 @@ const DisableButton = styled((props) => (
             ).then(data => {
                 if (data.result) {
                     toggleReload();
-                    handleClose()
+                    handleClose();
+                }
+                else {
+                  setErrorMessage(JSON.parse(data.error));
+                  setLoading(false);
                 }
                 resolve(data.result);
             });
@@ -103,6 +110,10 @@ const DisableButton = styled((props) => (
                                     }. Do you agree ?
           </DialogContentText>
         </DialogContent>
+        <ErrorMessage 
+            style={{marginTop:'5px', marginBottom:'5px'}}
+            errorMessage={errorMessage}
+          />
         <DialogActions>
           <Button onClick={handleClose}>Cancel</Button>           
             <Button onClick={()=>{handleSubmit(propertyType)}}>

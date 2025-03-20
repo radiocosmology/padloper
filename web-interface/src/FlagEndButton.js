@@ -8,6 +8,7 @@ import DialogContent from '@mui/material/DialogContent';
 import DialogTitle from '@mui/material/DialogTitle';
 import axios from 'axios'
 import styled from '@mui/material/styles/styled';
+import ErrorMessage from './ErrorMessage';
 
 /**
  * A MUI component representing a button for ending a component's property or connection.
@@ -47,7 +48,12 @@ export default function FlagEndButton ({toggleReload,name}){
 
   // Whether the submit button has been clicked or not and set loading to true.
   const [loading, setLoading] = useState(false);
+
+  // The error message, if any, returned from the request to the server
+  const [errorData, setErrorData] = useState(null);
+
   /*
+  
   Keeps a record of multiple state values.
    */
   const handleChange = (e) =>{
@@ -82,7 +88,13 @@ export default function FlagEndButton ({toggleReload,name}){
       input += `&uid=${property.uid}`;
       input += `&comments=${property.comment}`;
       axios.post(input).then((response)=>{
-              toggleReload() //To reload the page once the form has been submitted.
+        if(response.data.result){
+          toggleReload() //To reload the page once the form has been submitted.
+          handleClose()
+        } else {
+          setErrorData(JSON.parse(response.data.error));
+          setLoading(false);
+        }      
       })
     } 
   return (
@@ -146,6 +158,10 @@ export default function FlagEndButton ({toggleReload,name}){
             />
     </div>
         </DialogContent>
+        <ErrorMessage
+          style={{marginTop:'5px', marginBottom:'5px'}}
+          errorMessage={errorData}
+        />
         <DialogActions>
           <Button onClick={handleClose}>Cancel</Button>
           {

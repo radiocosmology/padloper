@@ -9,6 +9,7 @@ import ComponentAddButton from './ComponentAddButton.js';
 import ComponentReplaceButton from './ComponentReplaceButton.js';
 import AlertDialog from './ComponentDisableButton'
 import Authenticator from './components/Authenticator.js';
+import ErrorMessage from './ErrorMessage.js';
 
 /**
  * A MUI component that represents a list of components.
@@ -33,6 +34,9 @@ function ComponentList() {
     // property to order the components by.
     // must be in the set {'name', 'type', 'version'}
     const [orderBy, setOrderBy] = useState('name');
+
+    // error data to display, if any
+    const [errorData, setErrorData] = useState(null);
 
     /*
     stores component types as
@@ -152,11 +156,16 @@ function ComponentList() {
     
             // query the URL with flask, and set the input.
             fetch(input).then(
-                res => res.json()
-            ).then(data => {
-                setComponents(data.result);
-                setLoaded(true);
-             
+                (res) => res.json()
+            ).then((data) => {
+                if (data.result) {
+                    setErrorData(null);
+                    setComponents(data.result);
+                    setLoaded(true);
+                }
+                else {
+                    setErrorData(JSON.parse(data.error));
+                }
             });
         }
         fetchData();
@@ -176,11 +185,16 @@ function ComponentList() {
     useEffect(() => {
 
         fetch(`/api/component_count?filters=${createFilterString()}`).then(
-            res => res.json()
-        ).then(data => {
-            setCount(data.result);
-
-            setMin(0);
+            (res) => res.json()
+        ).then((data) => {
+            if (data.result) {
+                setErrorData(null);
+                setCount(data.result);
+                setMin(0);
+            }
+            else {
+                setErrorData(data.error);
+            }
         });
     }, [filters,reloadBool]);
 
@@ -189,9 +203,14 @@ function ComponentList() {
     */
     useEffect(() => {
         fetch("/api/component_types_and_versions").then(
-            res => res.json()
-        ).then(data => {
-            setTypesAndVersions(data.result);
+            (res) => res.json()
+        ).then((data) => {
+            if (data.result) {
+                setTypesAndVersions(data.result);
+            }
+            else {
+                setErrorData(data.error);
+            }
         });
     }, []);
 
@@ -284,6 +303,10 @@ function ComponentList() {
                     )
                 )
             }
+            <ErrorMessage
+                style={{marginTop: '10px', marginBottom:'10px'}}
+                errorMessage={errorData}
+            />
 
             <ElementList
                 tableRowContent={tableRowContent}

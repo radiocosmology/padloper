@@ -12,6 +12,7 @@ import styled from '@mui/material/styles/styled';
 import { Typography } from '@mui/material';
 
 import moment from 'moment';
+import ErrorMessage from './ErrorMessage';
 
 /**
  * A styled "panel" component, used as the background for the panel.
@@ -61,6 +62,44 @@ const CloseButton = styled((props) => (
 ))(({ theme }) => ({
 }));
 
+function TimeSetPanel ({ setTime, setComments, displayTime, start }) {
+    return (
+        <Grid container spacing={2} justifyContent="center" sx={{marginTop: 2}}>
+            <Grid item>
+                <TextField
+                    required
+                    id="datetime-local"
+                    label={start ? "Start time" : "End time"}
+                    type="datetime-local"
+                    sx={{ width: 240 }}
+                    InputLabelProps={{
+                        shrink: true,
+                    }}
+                    size="large"
+                    onChange={(event) => {
+                        let date = new Date(event.target.value);
+                        setTime(Math.round(date.getTime() / 1000));
+                    }}
+                    value={displayTime}
+                />
+            </Grid>
+
+            <Grid item>
+                <TextField
+                    id="outlined-multiline-static"
+                    label="Comments"
+                    multiline
+                    sx={{ width: 260 }}
+                    onChange={(event) => {
+                        setComments(event.target.value)
+                    }}
+                />
+            </Grid>
+
+        </Grid>
+    )
+}
+
 /**
  * The MUI component which represents a panel through which connections are
  * replaced between components.
@@ -68,7 +107,7 @@ const CloseButton = styled((props) => (
  * @param {object} theme - A MUI theme object, see 
  * https://mui.com/material-ui/customization/theming/
  * @param {function} onClose - function to call when the close button is pressed
- * @param {function(string, int, string, string)} onSet - function to call when 
+ * @param {function(string, int, string, string, int)} onSet - function to call when 
  * replacing a component connection. The parameters are of the form:
  * onSet(otherName, time, uid, comments), time is the Unix time when
  * the connection is being set, uid is the ID of the user setting the
@@ -81,6 +120,7 @@ function ComponentConnectionReplacePanel(
         onSet,
         uid,
         conn,
+        errorMessage
     }
 ) {
 
@@ -91,12 +131,19 @@ function ComponentConnectionReplacePanel(
     const defaultTime = new Date();
 
     // time to make the connection
-    const [time, setTime] = useState(defaultTime);
+    const [startTime, setStartTime] = useState(defaultTime);
 
-    const [displayTime, setDisplayTime] = useState(defaultTime);
+    const [endTime, setEndTime] = useState(defaultTime);
+
+    const [displayStartTime, setDisplayStartTime] = useState(defaultTime);
     useEffect(() => {
-      setDisplayTime(moment(time * 1000).format("YYYY-MM-DD[T]HH:mm:ss"));
-    }, [time]);
+      setDisplayStartTime(moment(startTime * 1000).format("YYYY-MM-DD[T]HH:mm:ss"));
+    }, [startTime]);
+
+    const [displayEndTime, setDisplayEndTime] = useState(defaultTime);
+    useEffect(() => {
+      setDisplayEndTime(moment(endTime * 1000).format("YYYY-MM-DD[T]HH:mm:ss"));
+    }, [endTime]);
 
     // comments associated with setting the connection
     const [comments, setComments] = useState("");
@@ -107,8 +154,9 @@ function ComponentConnectionReplacePanel(
 
     // set the time passed via props
     useEffect(() => {
-        setTime(conn.start.time);
-       console.log(conn)
+        setStartTime(conn.start.time);
+        setEndTime(conn.end.time);
+        console.log(conn)
     }, [])
 
     // return the MUI component.
@@ -137,50 +185,31 @@ function ComponentConnectionReplacePanel(
                     </Grid>
                 </Grid>
 
-                <Grid container spacing={2} justifyContent="center">
+                <TimeSetPanel 
+                    setComments={setComments} 
+                    setTime={setStartTime} 
+                    displayTime={displayStartTime}
+                    start={true}
+                />
 
-                    {/* <Grid item>
-                        <TextField 
-                            required
-                            label="User" 
-                            sx={{ width: 150 }}
-                            // onChange={(event) => setUid(event.target.value)}
-                        />
-                    </Grid> */}
+                {
+                    conn.end.uid ?
+                    <TimeSetPanel 
+                        setComments={setComments}
+                        setTime={setEndTime}
+                        displayTime={displayEndTime}
+                        start={false}
+                    />
+                    :
+                    ""
+                }
 
-                    {/* // TODO: set time to prev */}
-                    <Grid item>
-                        <TextField
-                            required
-                            id="datetime-local"
-                            label="Time"
-                            type="datetime-local"
-                            sx={{ width: 240 }}
-                            InputLabelProps={{
-                                shrink: true,
-                            }}
-                            size="large"
-                            onChange={(event) => {
-                                let date = new Date(event.target.value);
-                                setTime(Math.round(date.getTime() / 1000));
-                            }}
-                            value={displayTime}
-                        />
-                    </Grid>
-
-                    <Grid item>
-                        <TextField
-                            id="outlined-multiline-static"
-                            label="Comments"
-                            multiline
-                            sx={{ width: 260 }}
-                            onChange={(event) => {
-                                setComments(event.target.value)
-                            }}
-                        />
-                    </Grid>
-
-                </Grid>
+                <ErrorMessage
+                    style={{
+                        marginTop: theme.spacing(1),
+                    }}
+                    errorMessage={errorMessage}
+                />
 
                 <Box 
                     style={{
@@ -194,15 +223,19 @@ function ComponentConnectionReplacePanel(
                         disableElevation
                         disabled={
                             uid === "" ||
-                            time === defaultTime    
+                            startTime === defaultTime    
                         }
                         onClick={
                             async () => {
                                 setLoading(true);
+                                let hasEnd = conn.end.uid ? true : false;
                                 onSet( 
-                                    time, 
+                                    startTime, 
+                                    endTime,
                                     uid, 
-                                    comments
+                                    comments,
+                                    conn.start.time,
+                                    hasEnd
                                 ).then(
                                     successful => {
                                         if (successful === false) {
@@ -218,7 +251,7 @@ function ComponentConnectionReplacePanel(
                          * so when the panel is loading, the button
                          * is spinning.
                          */}
-                        {loading ? 
+                        {(loading && !errorMessage) ? 
                         <CircularProgress
                             size={24}
                             sx={{

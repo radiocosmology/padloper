@@ -11,6 +11,7 @@ import ThemeProvider from '@mui/material/styles/ThemeProvider';
 import styled from '@mui/material/styles/styled';
 import { Typography } from '@mui/material';
 import moment from "moment";
+import ErrorMessage from './ErrorMessage';
 
 /**
  * A styled "panel" component, used as the background for the panel.
@@ -78,7 +79,8 @@ function ComponentPropertyEndPanel(
         theme,
         onClose,
         onSet,
-        uid
+        uid,
+        errorMessage
     }
 ) {
 
@@ -173,6 +175,12 @@ function ComponentPropertyEndPanel(
 
                 </Grid>
 
+                <ErrorMessage 
+                    style={{
+                        marginTop: theme.spacing(1),
+                    }}
+                    errorMessage={errorMessage}
+                />
 
                 <Box 
                     style={{
@@ -199,7 +207,7 @@ function ComponentPropertyEndPanel(
                             }
                         }
                     >
-                        {loading ? 
+                        {(loading && !errorMessage) ? 
                         <CircularProgress
                             size={24}
                             sx={{

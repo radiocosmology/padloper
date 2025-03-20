@@ -10,8 +10,8 @@ import DialogActions from '@mui/material/DialogActions';
 import DialogContent from '@mui/material/DialogContent';
 import DialogTitle from '@mui/material/DialogTitle';
 import CircularProgress from '@mui/material/CircularProgress';
-import ErrorIcon from '@mui/icons-material/Error';
 import axios from 'axios'
+import ErrorMessage from './ErrorMessage';
 
 export default function FlagTypeAddButton ({toggleReload}) {
 
@@ -54,7 +54,8 @@ export default function FlagTypeAddButton ({toggleReload}) {
         toggleReload() //To reload the page once the form has been submitted.
         handleClose()
       } else {
-        setErrorData(response.data.error)
+        setErrorData(JSON.parse(response.data.error))
+        setLoading(false);
       }
     })
   }
@@ -84,28 +85,11 @@ export default function FlagTypeAddButton ({toggleReload}) {
             variant="standard"
             onChange={(e)=>setComment(e.target.value)}
           />
-    <div 
-    style={{
-    marginTop:'15px',
-    marginBottom:'5px',
-    color:'red',
-    display:'flex',
-    alignItems:'center'
-    }}>
-      {
-        errorData
-        ?
-      <>
-      <ErrorIcon
-      fontSize='small'
-      /> 
-      {errorData}
-      </>
-      :
-      null}
-    </div>
-
         </DialogContent>
+        <ErrorMessage
+          style={{marginTop:'5px', marginBottom:'5px'}}
+          errorMessage={errorData}
+        />
         <DialogActions>
           <Button onClick={handleClose}>Cancel</Button>
           { name 

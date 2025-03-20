@@ -7,12 +7,12 @@ import Grid from '@mui/material/Grid';
 import CircularProgress from '@mui/material/CircularProgress';
 import MuiTextField from '@mui/material/TextField';
 import CloseIcon from '@mui/icons-material/Close';
-import ErrorIcon from '@mui/icons-material/Error';
 import ThemeProvider from '@mui/material/styles/ThemeProvider';
 import styled from '@mui/material/styles/styled';
 import { Typography } from '@mui/material';
 
 import moment from "moment";
+import ErrorMessage from './ErrorMessage';
 
 /**
  * A styled "panel" component, used as the background for the panel.
@@ -81,6 +81,7 @@ function ComponentConnectionEndPanel(
         onClose,
         onSet,
         uid,
+        errorMessage
     }
 ) {
 
@@ -106,9 +107,6 @@ function ComponentConnectionEndPanel(
     // whether the panel is loading: usually happens after the "End" button
     // is made, waiting for a response from the DB.
     const [loading, setLoading] = useState(false);
-
-    // the body of an error message to display, if any.
-    const [errorMessage, setErrorMessage] = useState("");
 
     // return the MUI component.
     return (
@@ -178,29 +176,12 @@ function ComponentConnectionEndPanel(
 
                 </Grid>
 
-                {errorMessage !== "" ? 
-                    <Grid 
-                        container 
-                        style={{
-                            marginTop: theme.spacing(1),
-                        }}
-                        spacing={1}
-                        justifyContent="center"
-                    >
-                        <Grid item>
-                            <ErrorIcon sx={{color: 'red'}} />
-                        </Grid>
-                        <Grid item>
-                            <Typography
-                                style={{
-                                    color: 'rgb(255,0,0)',
-                                }}
-                            >
-                                {errorMessage}
-                            </Typography>
-                        </Grid>
-                    </Grid> : <></>
-                }
+                <ErrorMessage
+                    style={{
+                        marginTop: theme.spacing(1),
+                    }}
+                    errorMessage={errorMessage}
+                />
 
                 <Box 
                     style={{
@@ -218,7 +199,6 @@ function ComponentConnectionEndPanel(
                         }
                         onClick={
                             async () => {
-                                setErrorMessage("");
                                 setLoading(true);
                                 onSet( 
                                     time, 
@@ -239,7 +219,7 @@ function ComponentConnectionEndPanel(
                          * so when the panel is loading, the button
                          * is spinning.
                          */}
-                        {loading ? 
+                        {(loading && !errorMessage) ? 
                         <CircularProgress
                             size={24}
                             sx={{
