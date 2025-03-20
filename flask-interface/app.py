@@ -1393,10 +1393,10 @@ def set_flag_severity():
     try:
         val_name = escape(request.args.get('name'))
 
-    # initialize flag severity instance
-    flag_severity = p.FlagSeverity(name=val_name)
+        # initialize flag severity instance
+        flag_severity = p.FlagSeverity(name=val_name)
 
-    flag_severity.add()
+        flag_severity.add()
 
         return {'result': True}
     
