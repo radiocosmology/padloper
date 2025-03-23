@@ -5,9 +5,9 @@ import { Typography } from '@mui/material';
 import Stack from '@mui/material/Stack';
 
 /**
- * Represents any error messages that may be displayed.
+ * Stylized component that represents any error messages that may be displayed.
  * 
- * @param {object} style - Specifies specific styles for error messages that may 
+ * @param {object} style - Specifies specific styles for error messages that may be
  *                          displayed in different contexts.
  * @param {string} errorMessage - The error message, if any, to be displayed.
  *                          If there is no error message to display, errorMessage is null. 
