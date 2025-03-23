@@ -160,7 +160,7 @@ export default function FlagAddButton ({type,severities,components,toggleReload}
       input += `&uid=${uid}`;
       input += `&severity=${property.severity}`;
       input += `&type=${property.type}`;
-      input += `&comments=${property.comments}`;
+      input += `&notes=${property.comments}`;
       input += `&start_comments=${property.start_comment}`;
       input += `&components=${componentName.join(';')}`;
       if (hasEndTime) { // only add endTime if it's specified by user
@@ -404,7 +404,7 @@ export default function FlagAddButton ({type,severities,components,toggleReload}
             <TextField
               margin="dense"
               id="comments"
-              label="Comments"
+              label="Notes"
               multiline
               rows={4}
               type="text"

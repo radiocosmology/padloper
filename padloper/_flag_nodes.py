@@ -101,7 +101,7 @@ class Flag(Vertex):
         VertexAttr("components", Component, edge_class=RelationFlagComponent,
                    is_list=True, list_len=(0, int(1e10)))
     ]
-    _primary_attr: str = "name"
+    primary_attr: str = "name"
 
     def end_flag(self, dummy):
         raise RuntimeError("Method deprecated. Use set_end().")
@@ -130,3 +130,18 @@ class Flag(Vertex):
            .property('end_uid', end.uid)\
            .property('end_edit_time', end.edit_time)\
            .property('end_comments', end.comments).iterate()
+
+    def as_dict(self):
+            """Return a dictionary representation of this Flag."""
+            flag_dict = self.__dict__
+
+            for key in flag_dict.keys():
+                if hasattr(flag_dict[key], "__dict__"):
+                    flag_dict[key] = flag_dict[key].__dict__
+            
+            component_list = [c.as_dict(bare=True) for c in self.components]
+            flag_dict["components"] = component_list
+    
+            print("flag_dict", flag_dict)
+            print("-")
+            return flag_dict

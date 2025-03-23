@@ -495,6 +495,8 @@ def set_property_type():
                                        n_values=int(val_values), 
                                        allowed_types=allowed_list,
                                        comments=val_comments)
+        print("the property type", property_type.__dict__)
+
         property_type.add()
 
         return {'result': True}
@@ -1461,17 +1463,19 @@ def set_flag():
     :rtype: dict
     """
     try:
+        print("setting flag!")
+
         val_name = escape(request.args.get('name'))
         val_uid = escape(request.args.get('uid'))
         val_start_time = escape(request.args.get('start_time'))
         val_end_time = escape(request.args.get('end_time'))
         val_start_comments = escape(request.args.get('start_comments'))
-        val_comments = escape(request.args.get('comments'))
+        val_notes = escape(request.args.get('notes'))
         val_severity = escape(request.args.get('severity'))
         val_type = escape(request.args.get('type'))
         val_components = escape(
             request.args.get('components')).split(';')
-
+        
         severity = p.FlagSeverity.from_db(val_severity)
         type = p.FlagType.from_db(val_type)
 
@@ -1484,18 +1488,23 @@ def set_flag():
 
         # Need to initialize an instance of Flag first.
         start = tmp_timestamp(val_start_time, val_uid, val_start_comments)
-        print(start)
-        if val_end_time is not None and val_end_time != str(0):
+        if val_end_time != 'None' and val_end_time != str(0):
             end = tmp_timestamp(val_end_time, val_uid, val_start_comments)
-        else:
-            end = None
-        # what to do with comments? how to represent them?
-        flag = p.Flag(name=val_name, start=start, severity=severity, type=type, 
-                      comments=val_comments, end=end,
+            flag = p.Flag(name=val_name, start=start, severity=severity, type=type, 
+                      notes=val_notes, end=end,
                       components=allowed_list)
+        else:   # initialize flag without end attribute
+            flag = p.Flag(name=val_name, start=start, severity=severity, type=type, 
+                      notes=val_notes, 
+                      components=allowed_list)
+        
+        print("the flag", flag.__dict__)
+
         flag.add()
 
-        raise Exception("this is an exception")
+        print("flag list" , p.Flag.get_list())
+
+        # raise Exception("this is an exception")
         return {'result': True}
 
     except Exception as e:
@@ -1653,6 +1662,9 @@ def get_flag_count():
 
     filter_triples = read_filters(filters)
 
+    if filters is None:
+        filter_triples = []
+
     return {
         'result': p.Flag.get_count(filters=filter_triples)
     }
@@ -1687,9 +1699,9 @@ def get_flag_list():
     :rtype: dict
 
     """
-    raise RuntimeError("Flags have not been properly implemented in the "\
-                       "web interface.")
-    return
+    # raise RuntimeError("Flags have not been properly implemented in the "\
+    #                    "web interface.")
+    # return
     list_range = escape(request.args.get('range'))
     order_by = escape(request.args.get('orderBy'))
     order_direction = escape(request.args.get('orderDirection'))
@@ -1711,7 +1723,19 @@ def get_flag_list():
         filters=filt
     )
 
-    return {"result": [f.as_dict() for f in flags]}
+    # TODO: need to define a special as_dict() function for the flags. probably similar
+    # to the one that already exists for components
+    flag_list = [f.__dict__ for f in flags]
+
+    # kiki = [f.from_db(str(escape(f.name))).as_dict() for f in flags]
+    # print("kiki", kiki)
+
+    # print("flags", flag_list[0], flags[0].severity.__dict__)
+    # print("flags as dict", flags[0].as_dict())
+    print("hihi")
+    flag_dict = [f.as_dict() for f in flags]
+
+    return {"result": flag_dict}
 
 
 @app.route("/api/flag_type_list")

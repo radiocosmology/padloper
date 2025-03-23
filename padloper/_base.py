@@ -479,7 +479,6 @@ class Vertex(Element):
                 e.add()
 
             Vertex._cache_vertex(self)
-
             return self
 
     def in_db(self, strict_check=True, allow_removed=False) -> bool:
@@ -948,8 +947,6 @@ class Edge(Element):
                 traversal = traversal.property(key, attributes[key])
 
             e = traversal.next()
-
-            print("adding eid", e.id)
 
             self._set_id(e.id['@value']['relationId'])
 
