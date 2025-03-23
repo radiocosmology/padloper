@@ -949,8 +949,6 @@ class Edge(Element):
 
             e = traversal.next()
 
-            print("adding eid", e.id)
-
             self._set_id(e.id['@value']['relationId'])
 
     def disable(self, disable_time: int = int(time.time())):

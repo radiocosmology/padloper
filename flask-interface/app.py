@@ -341,8 +341,6 @@ def set_component():
         val_type = escape(request.args.get('type'))
         val_version = escape(request.args.get('version'))
 
-        print(val_type)
-
         # Query the database and return the ComponentType instance based on the 
         # component type name.
 
@@ -358,8 +356,6 @@ def set_component():
 
         for name in val_name:
             # Need to initialize an instance of a component first.
-            print(name, component_type, component_version)
-
             component = p.Component(name=name, type=component_type,
                                     version=component_version)
             component.add()
@@ -1064,8 +1060,6 @@ def add_component_connection():
         val_comments = escape(request.args.get('comments'))
         val_replace_time = escape(request.args.get('replace_time'))
         val_end_time = escape(request.args.get('end_time'))
-
-        print("is none?", val_end_time == 'None')
         
         c1, c2 = p.Component.from_db(val_name1), p.Component.from_db(val_name2)
         t = tmp_timestamp(val_time, val_uid, val_comments)
@@ -1483,7 +1477,6 @@ def set_flag():
 
         # Need to initialize an instance of Flag first.
         start = tmp_timestamp(val_start_time, val_uid, val_start_comments)
-        print(start)
         if val_end_time != str(0):
             end = tmp_timestamp(val_end_time, val_uid, val_start_comments)
         else:
