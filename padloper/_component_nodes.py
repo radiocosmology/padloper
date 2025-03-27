@@ -279,7 +279,7 @@ class Component(Vertex):
         # Build up the result of format (flag vertex)
         result = []
 
-        # This is a kind of hacky way of avoiding circular dependencies
+        # Avoids circular dependencies?
         from _flag_nodes import Flag
         for q in query:
             flag = Flag.from_id(q)

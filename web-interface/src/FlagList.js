@@ -4,10 +4,11 @@ import ElementList from './ElementList.js';
 import ElementRangePanel from './ElementRangePanel.js';
 import FlagFilter from './FlagFilter.js';
 import Button from '@mui/material/Button'
+import Box from '@mui/material/Box';
 import FlagAddButton from './FlagAddButton.js';
 import FlagEndButton from './FlagEndButton.js';
 import FlagReplaceButton from './FlagReplaceButton.js';
-import { ThemeProvider, Typography } from '@mui/material';
+import { TableHead, ThemeProvider, Typography } from '@mui/material';
 import ExpandMoreIcon from '@mui/icons-material/ExpandMore';
 import styled from '@mui/material/styles/styled';
 import MuiAccordion from '@mui/material/Accordion';
@@ -19,44 +20,49 @@ import ComponentEvent from './ComponentEvent.js';
 import FlagEvent from './FlagEvent.js';
 import DeleteIcon from '@mui/icons-material/Delete';
 import Authenticator from './components/Authenticator.js';
+import Table from '@mui/material/Table';
+import TableBody from '@mui/material/TableBody';
+import TableCell from '@mui/material/TableCell';
+import TableContainer from '@mui/material/TableContainer';
+import TableRow from '@mui/material/TableRow';
+import { spacing } from '@mui/system';
+
 
 /**
  * A styling for an MUI Accordion component.
  */
 const Accordion = styled((props) => (
-    <MuiAccordion 
-        disableGutters 
-        elevation={0} 
-        defaultExpanded
-        {...props} 
+    <MuiAccordion
+        disableGutters
+        elevation={0}
+        {...props}
     />
 ))(({ theme }) => ({
     borderBottom: `1px solid ${theme.palette.divider}`,
-    
 }));
 
 /**
  * An even more styled Accordion component.
  */
 const EntryAccordion = styled((props) => (
-    <Accordion 
+    <Accordion
         defaultExpanded={false}
         {...props}
     />
 ))(({ theme }) => ({
     borderBottom: `0`,
-    
+
 }));
 
 const AccordionDetails = styled(MuiAccordionDetails)(({ theme }) => ({
     padding: theme.spacing(2),
     borderTop: '1px solid rgba(0, 0, 0, .125)',
-    
+
 }));
 
 const EntryAccordionDetails = styled(AccordionDetails)(({ theme }) => ({
     backgroundColor: 'rgba(0, 0, 0, .015)',
-    
+
 }));
 
 /**
@@ -78,7 +84,7 @@ const theme = createTheme({
 const AccordionSummary = styled((props) => (
     <MuiAccordionSummary
         expandIcon={
-            <ExpandMoreIcon 
+            <ExpandMoreIcon
                 sx={{
                     color: "rgba(0,0,0, 0.4)",
                     padding: "4px",
@@ -86,13 +92,13 @@ const AccordionSummary = styled((props) => (
                 onClick={props.expandOnClick}
             />
         }
-      {...props}
+        {...props}
     />
 ))(({ theme }) => ({
     backgroundColor: 'rgba(0, 0, 0, .06)',
     flexDirection: 'row-reverse',
     '& .MuiAccordionSummary-content': {
-      marginLeft: theme.spacing(1),
+        marginLeft: theme.spacing(1),
     },
     lineHeight: '100%',
 }));
@@ -101,19 +107,20 @@ const AccordionSummary = styled((props) => (
 A MUI component representing a button for disabling.
  */
 const DisableButton = styled((props) => (
-    <Button 
-    style={{
-        maxWidth: '40px', 
-        maxHeight: '30px', 
-        minWidth: '30px', 
-        minHeight: '30px',
-    }}
-    {...props}
+    <Button
+        style={{
+            maxWidth: '40px',
+            maxHeight: '30px',
+            minWidth: '30px',
+            minHeight: '30px',
+            marginLeft:'10px'
+        }}
+        {...props}
         variant="outlined">
-        <DeleteIcon/>
+        <DeleteIcon />
     </Button>
 ))(({ theme }) => ({
-    
+
 }))
 
 
@@ -149,7 +156,7 @@ export default function FlagList() {
     const [type, setFlagTypes] = useState([]);
     const [severities, setFlagSeverities] = useState([]);
     const [components, setComponents] = useState([{
-        name : 'Global'
+        name: 'Global'
     }]);
 
     /* filters stored as 
@@ -166,7 +173,7 @@ export default function FlagList() {
 
     /**
      * add an empty filter to filters
-     */ 
+     */
     const addFilter = () => {
         setFilters([...filters, {
             name: "",
@@ -175,11 +182,11 @@ export default function FlagList() {
         }])
     }
 
-   /**
-     * Remove a filter at some index.
-     * @param {int} index - index of the new filter to be removed.
-     * 0 <= index < filters.length
-     */
+    /**
+      * Remove a filter at some index.
+      * @param {int} index - index of the new filter to be removed.
+      * 0 <= index < filters.length
+      */
     const removeFilter = (index) => {
         if (index >= 0 && index < filters.length) {
             let newFilters = filters.filter((element, i) => index !== i);
@@ -205,14 +212,14 @@ export default function FlagList() {
         }
     }
 
-   /**
-    * To send the filters to the URL, create a string that contains all the
-    * filter information.
-    * 
-    * The string is of the format
-    * "<name>,<ftype_name>,<fseverity_name>;...;<name>,<ftype_name>,<fseverity_name>"
-    * @returns Return a string containing all of the filter information
-    */
+    /**
+     * To send the filters to the URL, create a string that contains all the
+     * filter information.
+     * 
+     * The string is of the format
+     * "<name>,<ftype_name>,<fseverity_name>;...;<name>,<ftype_name>,<fseverity_name>"
+     * @returns Return a string containing all of the filter information
+     */
     const createFilterString = () => {
 
         let strSoFar = "";
@@ -242,7 +249,7 @@ export default function FlagList() {
      * @returns 
      */
     async function disableFlag(name) {
-        
+
         // build up the string to query the API
         let input = `/api/disable_flag`;
         input += `?name=${name}`;
@@ -259,11 +266,11 @@ export default function FlagList() {
         });
 
     }
-   /**
-    * The function that updates the list of flags when the site is 
-    * loaded or a change of the flags is requested 
-    * (upon state change).
-    */
+    /**
+     * The function that updates the list of flags when the site is 
+     * loaded or a change of the flags is requested 
+     * (upon state change).
+     */
     useEffect(() => {
         async function fetchData() {
             setLoaded(false);
@@ -281,6 +288,7 @@ export default function FlagList() {
             fetch(input).then(
                 res => res.json()
             ).then(data => {
+                console.log("THE DATA", data)
                 setElements(data.result);
                 setLoaded(true);
             });
@@ -375,26 +383,44 @@ export default function FlagList() {
     }, []);
 
 
-// the header cells of the table with their ids, labels, and whether you
-// can order by them.
+    /**
+     * Function to call when clicking on a table header to change sort.
+     * @param {string} property - the name of the property that 
+     * you are changing the order of.
+     */
+    // const updateSort = (property) => {
+    //     if (orderBy === property) {
+    //         // if this property is already selected, flip the direction which
+    //         // its contents are sorted in.
+    //         setOrderDirection(direction === 'asc' ? 'desc' : 'asc')
+    //     }
+    //     else {
+    //         setOrderBy(property)
+    //         setOrderDirection('asc')
+    //     }
+    // }
+
+
+    // the header cells of the table with their ids, labels, and whether you
+    // can order by them.
     const tableHeadCells = [
         {
-            id: 'name', 
+            id: 'name',
             label: 'Flag',
             allowOrdering: true,
         },
         {
-            id: 'Type', 
+            id: 'Type',
             label: 'Flag Type',
             allowOrdering: false,
         },
         {
-            id: 'Severity', 
+            id: 'Severity',
             label: 'Flag Severity',
             allowOrdering: false,
         },
         {
-            id: 'More Information', 
+            id: 'More Information',
             label: '',
             allowOrdering: false,
         },
@@ -406,6 +432,103 @@ export default function FlagList() {
         },
     ];
 
+    let tableRowContent2 = elements.map((flag) => [
+        <Accordion>
+            <AccordionSummary
+                expandIcon={<ExpandMoreIcon />}
+                aria-controls="panel1-content"
+                id="panel1-header"
+            >
+                <Stack direction="row" spacing={2} sx={{ width: '100%', justifyContent: 'space-evenly' }}>
+                    <Box sx={{ width: "20%" }}>
+                        <Typography>
+                            {flag.name}
+                        </Typography>
+                    </Box>
+                    <Box sx={{ width: "20%" }}>
+                        <Typography>
+                            {flag.type.name}
+                        </Typography>
+                    </Box>
+                    <Box sx={{ width: "20%" }}>
+                        <Typography>
+                            {flag.severity.name}
+                        </Typography>
+                    </Box>
+                    <Stack direction="row" spacing={2}>
+                        <FlagEndButton
+                            name={flag.name}
+                            toggleReload={toggleReload}
+                        />
+                        <FlagReplaceButton
+                            nameFlag={flag.name}
+                            type={type}
+                            severities={severities}
+                            components={components}
+                            toggleReload={toggleReload}
+                        />
+                        <DisableButton
+                            onClick={
+                                () => {
+                                    disableFlag(flag.name)
+                                }
+                            }
+                        />
+                    </Stack>
+                </Stack>
+            </AccordionSummary>
+            <AccordionDetails>
+                <Stack spacing={1}>
+                    <Stack
+                        direction='row'
+                        justifyContent='space-between'
+                        alignItems='center'
+                    >
+                        <ComponentEvent
+                            name="Start"
+                            time={flag.start.time}
+                            uid={flag.start.uid}
+                            edit_time={flag.start.edit_time}
+                            comments={flag.start.comments}
+                            theme={theme} />
+                    </Stack>
+                    {
+                        flag.end.time <=
+                            Number.MAX_SAFE_INTEGER ?
+                            <ComponentEvent
+                                name="End"
+                                time={flag.end.time}
+                                uid={flag.end.uid}
+                                edit_time={flag.end.edit_time}
+                                comments={flag.end.comments}
+                                theme={theme} />
+                            : ""
+                    }
+                    {
+                        <FlagEvent
+                            name="Notes"
+                            parameter={flag.notes}
+                            theme={theme}
+                        />
+                    }
+                    {
+                        <FlagEvent
+                            name="Components"
+                            parameter={
+                                flag.components.length != 0
+                                    ?
+                                    flag.components.map((item) => item.name + ' | ')
+                                    :
+                                    'Global'
+                            }
+                            theme={theme}
+                        />
+                    }
+                </Stack>
+            </AccordionDetails>
+        </Accordion>
+    ])
+
     /**
      * the rows of the table. We are only putting:
      * - the name,
@@ -414,107 +537,107 @@ export default function FlagList() {
      * - more information accordion
      */
     let tableRowContent = elements.map((flag) => [
-        flag.end.uid 
-        ?
-        flag.name
-        :
-        <Typography
-        style={{
-            display:'flex'
-        }}>
-        {flag.name}
-        {
-        <FlagEndButton
-        name = {flag.name}
-        toggleReload={toggleReload}
-        />}
-        <FlagReplaceButton 
-        nameFlag = {flag.name}
-        type={type} 
-        severities={severities} 
-        components={components}
-        toggleReload={toggleReload}
-    />
-        </Typography>
+        flag.end.uid
+            ?
+            flag.name
+            :
+            <Typography
+                style={{
+                    display: 'flex'
+                }}>
+                {flag.name}
+                {
+                    <FlagEndButton
+                        name={flag.name}
+                        toggleReload={toggleReload}
+                    />}
+                <FlagReplaceButton
+                    nameFlag={flag.name}
+                    type={type}
+                    severities={severities}
+                    components={components}
+                    toggleReload={toggleReload}
+                />
+            </Typography>
         ,
         flag.type.name,
         flag.severity.name,
         ,
         <ThemeProvider theme={theme}>
-        <Accordion>
-        <AccordionSummary
-          expandIcon={<ExpandMoreIcon />}
-          aria-controls="panel1a-content"
-          id="panel1a-header"
-          >
-            <Typography>
-                More Information
-            </Typography>
-        </AccordionSummary>
-        <AccordionDetails>
-            <Stack spacing={1}>
-          <EntryAccordion>
-
-        <EntryAccordionDetails>
-            <Stack spacing={1}>
-                <Stack 
-                direction='row'
-                justifyContent='space-between'
-                alignItems='center'
+            <Accordion>
+                <AccordionSummary
+                    expandIcon={<ExpandMoreIcon />}
+                    aria-controls="panel1a-content"
+                    id="panel1a-header"
                 >
-                <ComponentEvent
-                    name="Start"
-                    time={flag.start.time}
-                    uid={flag.start.uid}
-                    edit_time={flag.start.edit_time}
-                    comments={flag.start.comments}
-                    theme={theme} />
-            </Stack>
-                {
-                    flag.end.time <= 
-                    Number.MAX_SAFE_INTEGER ?
-                    <ComponentEvent
-                    name="End"
-                    time={flag.end.time}
-                    uid={flag.end.uid}
-                    edit_time={flag.end.edit_time}
-                    comments={flag.end.comments}
-                    theme={theme} />
-                    : ""
+                    <Typography>
+                        More Information
+                    </Typography>
+                </AccordionSummary>
+                <AccordionDetails>
+                    <Stack spacing={1}>
+                        <EntryAccordion>
+
+                            <EntryAccordionDetails>
+                                <Stack spacing={1}>
+                                    <Stack
+                                        direction='row'
+                                        justifyContent='space-between'
+                                        alignItems='center'
+                                    >
+                                        <ComponentEvent
+                                            name="Start"
+                                            time={flag.start.time}
+                                            uid={flag.start.uid}
+                                            edit_time={flag.start.edit_time}
+                                            comments={flag.start.comments}
+                                            theme={theme} />
+                                    </Stack>
+                                    {
+                                        flag.end.time <=
+                                            Number.MAX_SAFE_INTEGER ?
+                                            <ComponentEvent
+                                                name="End"
+                                                time={flag.end.time}
+                                                uid={flag.end.uid}
+                                                edit_time={flag.end.edit_time}
+                                                comments={flag.end.comments}
+                                                theme={theme} />
+                                            : ""
+                                    }
+                                    {
+                                        <FlagEvent
+                                            name="Comments"
+                                            parameter={flag.comments}
+                                            theme={theme}
+                                        />
+                                    }
+                                    {
+                                        <FlagEvent
+                                            name="Components"
+                                            parameter={
+                                                flag.components.length != 0
+                                                    ?
+                                                    flag.components.map((item) => item.name + ' | ')
+                                                    :
+                                                    'Global'
+                                            }
+                                            theme={theme}
+                                        />
+                                    }
+                                </Stack>
+                            </EntryAccordionDetails>
+                        </EntryAccordion>
+                    </Stack>
+                </AccordionDetails>
+            </Accordion>
+        </ThemeProvider>,
+        <DisableButton
+            onClick={
+                () => {
+                    disableFlag(flag.name)
                 }
-                {
-                    <FlagEvent
-                        name="Comments"
-                        parameter = {flag.comments}
-                        theme={theme}
-                        />
-                    }
-                {
-                    <FlagEvent
-                        name="Components"
-                        parameter={
-                            flag.components.length != 0
-                            ? 
-                            flag.components.map((item)=>item.name + ' | ')
-                            :
-                            'Global'
-                        }
-                        theme={theme}
-                        />
-                    }
-                            </Stack>
-                        </EntryAccordionDetails>
-                    </EntryAccordion>
-        </Stack>
-        </AccordionDetails>
-      </Accordion>
-    </ThemeProvider>,
-     <DisableButton
-        onClick={
-            ()=>{
-                disableFlag(flag.name)
             }
-        }
         />
     ]);
 
@@ -539,12 +662,12 @@ export default function FlagList() {
                         </Button>
                     )
                 }
-                rightColumn2 = {
-                    <FlagAddButton 
-                    type={type} 
-                    severities={severities} 
-                    components={components}
-                    toggleReload={toggleReload}
+                rightColumn2={
+                    <FlagAddButton
+                        type={type}
+                        severities={severities}
+                        components={components}
+                        toggleReload={toggleReload}
                     />
                 }
             />
@@ -560,22 +683,66 @@ export default function FlagList() {
                             filter={filter}
                             index={index}
                             type={type}
-                            severities = {severities}
+                            severities={severities}
                         />
                     )
                 )
             }
+            <Box sx={{
+                display: 'flex',
+                flexDirection: 'row',
+                justifyContent: 'center'
+            }}>
+                <Table sx={{ width: "800px" }}>
+                    <TableHead>
+                        <TableRow>
+                            <Stack direction="row" sx={{
+                                justifyContent: 'space-evenly',
+                                marginBottom: 1,
+                                marginTop: 2,
+                                paddingRight: "180px",
+                                paddingLeft: "1%"
+                            }}>
+                                <Box sx={{
+                                    width: "20%"
+                                }}>
+                                    <Typography>
+                                        Flag
+                                    </Typography>
+                                </Box>
+                                <Box sx={{
+                                    width: "20%"
+                                }}>
+                                    <Typography>
+                                        Flag Type
+                                    </Typography>
+                                </Box>
+                                <Box sx={{
+                                    width: "20%"
+                                }}>
+                                    <Typography>
+                                        Flag Severity
+                                    </Typography>
+                                </Box>
+                            </Stack>
+                        </TableRow>
+                    </TableHead>
+                    <TableBody>
+                        {tableRowContent2}
+                    </TableBody>
+                </Table>
+            </Box>
 
-            <ElementList
+            {/* <ElementList
                 width='1300px'
-                tableRowContent={tableRowContent}
+                tableRowContent={tableRowContent2}
                 loaded={loaded}
                 orderBy={orderBy}
                 direction={orderDirection}
                 setOrderBy={setOrderBy}
                 setOrderDirection={setOrderDirection}
                 tableHeadCells={tableHeadCells}
-            />
+            /> */}
         </>
 
     )
