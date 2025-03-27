@@ -17,8 +17,8 @@ import axios from 'axios'
 import OutlinedInput from '@mui/material/OutlinedInput';
 import Checkbox from '@mui/material/Checkbox';
 import ListItemText from '@mui/material/ListItemText';
-import ErrorIcon from '@mui/icons-material/Error';
 import ErrorMessage from './ErrorMessage';
+import moment from "moment";
 
 
 const ITEM_HEIGHT = 48;
@@ -53,11 +53,14 @@ export default function FlagAddButton ({type,severities,components,toggleReload}
 
   const [uid, setUid] = useState('');
 
+
+  const defaultTime = new Date();
+
   // Stores the start time of the flag.
-  const [startTime,setStartTime] = useState(0)
+  const [startTime,setStartTime] = useState(defaultTime)
 
   // Stores the end time of the flag.
-  const [endTime,setEndTime] = useState(0)
+  const [endTime,setEndTime] = useState(defaultTime)
 
   // Stores the list of component names that are flagged.
   const [componentName,setComponentName] = useState([])
@@ -156,7 +159,7 @@ export default function FlagAddButton ({type,severities,components,toggleReload}
       setLoading(true)
       let input = `/api/set_flag`;
       input += `?name=${property.name}`;
-      input += `&start_time=${startTime}`;
+      input += `&start_time=${startTime / 1000}`;
       input += `&uid=${uid}`;
       input += `&severity=${property.severity}`;
       input += `&type=${property.type}`;
@@ -164,7 +167,7 @@ export default function FlagAddButton ({type,severities,components,toggleReload}
       input += `&start_comments=${property.start_comment}`;
       input += `&components=${componentName.join(';')}`;
       if (hasEndTime) { // only add endTime if it's specified by user
-        input += `&end_time=${endTime}`;
+        input += `&end_time=${endTime / 1000}`;
       }
       console.log("input", input);
 
@@ -326,7 +329,7 @@ export default function FlagAddButton ({type,severities,components,toggleReload}
               required
               margin = 'dense'
               id="start_time"
-              label="start_time"
+              label="Start time"
               fullWidth
               variant="outlined"
               type="datetime-local"
@@ -334,9 +337,10 @@ export default function FlagAddButton ({type,severities,components,toggleReload}
                   shrink: true,
               }}
               size="large"
+              value={moment(startTime).format("YYYY-MM-DD[T]HH:mm:ss")}
               onChange={(event) => {
                   let date = new Date(event.target.value);
-                  setStartTime(Math.round(date.getTime() / 1000));
+                  setStartTime(Math.round(date.getTime()));
               }}
                           />
         </div>
@@ -348,15 +352,16 @@ export default function FlagAddButton ({type,severities,components,toggleReload}
               variant="outlined"
               margin = 'dense'
               id="end_time"
-              label="end_time"
+              label="End time"
               type="datetime-local"
               InputLabelProps={{
                   shrink: true,
               }}
               size="large"
+              value={moment(endTime).format("YYYY-MM-DD[T]HH:mm:ss")}
               onChange={(event) => {
                   let date = new Date(event.target.value);
-                  setEndTime(Math.round(date.getTime() / 1000));
+                  setEndTime(Math.round(date.getTime()));
               }}
                           />
         </div>
@@ -376,7 +381,7 @@ export default function FlagAddButton ({type,severities,components,toggleReload}
             required
             margin = 'dense'
             id="start_time"
-            label="start_time"
+            label="Start time"
             fullWidth
             variant="outlined"
             type="datetime-local"
@@ -384,9 +389,10 @@ export default function FlagAddButton ({type,severities,components,toggleReload}
                 shrink: true,
             }}
             size="large"
+            value={moment(startTime).format("YYYY-MM-DD[T]HH:mm:ss")}
             onChange={(event) => {
                 let date = new Date(event.target.value);
-                setStartTime(Math.round(date.getTime() / 1000));
+                setStartTime(Math.round(date.getTime()));
             }}
                         />
       </div>

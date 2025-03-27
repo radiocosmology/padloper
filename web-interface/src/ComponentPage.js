@@ -339,7 +339,7 @@ function ComponentPage() {
         setOpenConnectionsAccordion(!open_connections_accordion);
     }
 
-    // toggle the flags accordion.
+    // toggle the components_names accordion.
     const toggleOpenFlagsAccordion = () => {
         setOpenFlagsAccordion(!open_flags_accordion);
     }
@@ -668,6 +668,7 @@ function ComponentPage() {
                 (a, b) => parseFloat(a.start_time) - parseFloat(b.start_time)
             );
             setComponent(data.result);
+            console.log("RESULT", data.result)
         });
     }, [name, reloadBool]);
 
@@ -1016,11 +1017,11 @@ function ComponentPage() {
                             <Stack spacing={1} direction="row"
                             >
                                 <EventIcon fontSize="small" />
-                                <Timestamp unixTime={flag.start_time} />
-                                {flag.end_time <= Number.MAX_SAFE_INTEGER ? (
+                                <Timestamp unixTime={flag.start.time} />
+                                {flag.end.time <= Number.MAX_SAFE_INTEGER ? (
                                     <>
                                         <div>-</div> 
-                                        <Timestamp unixTime={flag.end_time} />
+                                        <Timestamp unixTime={flag.end.time} />
                                     </>
                                 ) : ''}
                                 <Typography
@@ -1064,10 +1065,10 @@ function ComponentPage() {
                                 >
                                 <ComponentEvent
                                     name="Start"
-                                    time={flag.start_time}
-                                    uid={flag.start_uid}
-                                    edit_time={flag.start_edit_time}
-                                    comments={flag.start_comments}
+                                    time={flag.start.time}
+                                    uid={flag.start.uid}
+                                    edit_time={flag.start.edit_time}
+                                    comments={flag.notes}
                                     theme={theme} />
                                     <Stack direction='row'>
                             </Stack>

@@ -139,7 +139,7 @@ class Flag(Vertex):
                 if hasattr(flag_dict[key], "__dict__"):
                     flag_dict[key] = flag_dict[key].__dict__
             
-            component_list = [c.as_dict(bare=True) for c in self.components]
+            component_list = [c.as_dict(bare=True) if type(c) is not dict else c for c in self.components]
             flag_dict["components"] = component_list
     
             print("flag_dict", flag_dict)
