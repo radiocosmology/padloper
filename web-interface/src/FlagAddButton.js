@@ -17,6 +17,7 @@ import OutlinedInput from '@mui/material/OutlinedInput';
 import Checkbox from '@mui/material/Checkbox';
 import ListItemText from '@mui/material/ListItemText';
 import ErrorIcon from '@mui/icons-material/Error';
+import ErrorMessage from './ErrorMessage';
 
 
 const ITEM_HEIGHT = 48;
@@ -131,7 +132,8 @@ export default function FlagAddButton ({type,severities,components,toggleReload}
           toggleReload() //To reload the page once the form has been submitted.
           handleClose()
         } else {
-          setErrorData(response.data.error)
+          setErrorData(JSON.parse(response.data.error));
+          setLoading(false);
         }
       })
     } 
@@ -369,28 +371,11 @@ export default function FlagAddButton ({type,severities,components,toggleReload}
               onChange={handleChange}
               />
       </div>
-    <div 
-    style={{
-    marginTop:'15px',
-    marginBottom:'5px',
-    color:'red',
-    display:'flex',
-    alignItems:'center'
-    }}>
-      {
-        errorData
-        ?
-      <>
-      <ErrorIcon
-      fontSize='small'
-      /> 
-      {errorData}
-      </>
-      :
-      null}
-    </div>
-
         </DialogContent>
+        <ErrorMessage
+          style={{marginTop:'5px', marginBottom:'5px'}}
+          errorMessage={errorData}
+        />
         <DialogActions>
           <Button onClick={handleClose}>Cancel</Button>
           {

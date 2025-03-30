@@ -16,8 +16,8 @@ import { styled } from '@mui/material/styles';
 import Chip from '@mui/material/Chip';
 import Paper from '@mui/material/Paper';
 import AlertDialog from './ComponentAlertDialog.js';
-import ErrorIcon from '@mui/icons-material/Error';
 import Grid from '@mui/material/Grid';
+import ErrorMessage from './ErrorMessage.js';
 
 const help_val = 'enter one or more name(s)';
 const no_version_val = "– None –";
@@ -161,7 +161,7 @@ export default function ComponentAddButton ({types_and_versions,
         handleClose()
       }
       else{
-       setErrorData(response.data.error)
+       setErrorData(JSON.parse(response.data.error))
        handleAlertClose()
       }
         
@@ -247,10 +247,10 @@ export default function ComponentAddButton ({types_and_versions,
           </Select>
         </FormControl>
       </Box>
-
-      <div style={{marginTop:'10px', color:'red', display:'flex'}}>
-        {errorData ? <><ErrorIcon fontSize='small'/>&nbsp;{errorData}</> : null}
-      </div>
+      <ErrorMessage
+        style={{marginTop: '10px', marginBottom:'10px'}}
+        errorMessage={errorData}
+      />
     </DialogContent>
     <DialogActions>
       <Button onClick={handleClose}>Cancel</Button>

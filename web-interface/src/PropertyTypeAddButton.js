@@ -13,7 +13,7 @@ import FormControl from '@mui/material/FormControl';
 import Select from '@mui/material/Select';
 import OutlinedInput from '@mui/material/OutlinedInput';
 import axios from 'axios'
-import ErrorIcon from '@mui/icons-material/Error'
+import ErrorMessage from './ErrorMessage';
 import { Checkbox, ListItemText } from '@mui/material';
 
 
@@ -112,7 +112,8 @@ export default function PropertyTypeAddButton ({componentTypes,toggleReload}) {
         toggleReload() //To reload the page once the form has been submitted.
         handleClose()
       } else {
-        setErrorData(response.data.error)
+        setErrorData(JSON.parse(response.data.error))
+        setLoading(false);
       }
     })
   }
@@ -233,28 +234,11 @@ export default function PropertyTypeAddButton ({componentTypes,toggleReload}) {
             onChange={handleChange2}
             />
     </div>
-    <div 
-    style={{
-    marginTop:'15px',
-    marginBottom:'5px',
-    color:'red',
-    display:'flex',
-    alignItems:'center'
-    }}>
-      {
-        errorData
-        ?
-      <>
-      <ErrorIcon
-      fontSize='small'
-      /> 
-      {errorData}
-      </>
-      :
-      null}
-    </div>
-
         </DialogContent>
+        <ErrorMessage
+          style={{marginTop:'5px', marginBottom:'5px'}}
+          errorMessage={errorData}
+        />
         <DialogActions>
           <Button onClick={handleClose}>Cancel</Button>
           { property.name && componentTypeName.length !== 0 && property.allowed_regex && property.values !== 0

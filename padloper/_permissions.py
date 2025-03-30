@@ -80,7 +80,7 @@ class Permission(Vertex):
 
         # if already added, raise an error!
         if self.added_to_db():
-            strictraise(strict_add,VertexAlreadyAddedError,
+            strictraise(strict_add,AlreadyInDatabase,
                 f"Permission with name {self.name}" +
                 "already exists in the database."
             )
@@ -202,7 +202,7 @@ class UserGroup(Vertex):
         """
 
         if self.added_to_db():
-            strictraise(strict_add, VertexAlreadyAddedError,
+            strictraise(strict_add, AlreadyInDatabase,
                 f"UserGroup with name {self.name}" +
                 "already exists in the database."
             )
@@ -364,7 +364,7 @@ class User(Vertex):
 
         # If already added, raise an error!
         if self.added_to_db():
-            strictraise(strict_add,VertexAlreadyAddedError,
+            strictraise(strict_add,AlreadyInDatabase,
                 f"User with username {self.uname}" +
                 "already exists in the database."
             )

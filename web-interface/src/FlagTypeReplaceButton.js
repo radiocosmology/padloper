@@ -10,10 +10,10 @@ import DialogActions from '@mui/material/DialogActions';
 import DialogContent from '@mui/material/DialogContent';
 import DialogTitle from '@mui/material/DialogTitle';
 import CircularProgress from '@mui/material/CircularProgress';
-import ErrorIcon from '@mui/icons-material/Error';
 import axios from 'axios'
 import EditIcon from '@mui/icons-material/Edit';
 import styled from '@mui/material/styles/styled';
+import ErrorMessage from './ErrorMessage';
 
 /**
  * A MUI component representing a button for replacing a flag type.
@@ -77,7 +77,8 @@ export default function FlagTypeReplaceButton ({nameFlagType,toggleReload}) {
         toggleReload() //To reload the page once the form has been submitted.
         handleClose()
       } else {
-        setErrorData(response.data.error)
+        setErrorData(JSON.parse(response.data.error));
+        setLoading(false);
       }
     })
   }
@@ -107,28 +108,11 @@ export default function FlagTypeReplaceButton ({nameFlagType,toggleReload}) {
             variant="standard"
             onChange={(e)=>setComment(e.target.value)}
           />
-    <div 
-    style={{
-    marginTop:'15px',
-    marginBottom:'5px',
-    color:'red',
-    display:'flex',
-    alignItems:'center'
-    }}>
-      {
-        errorData
-        ?
-      <>
-      <ErrorIcon
-      fontSize='small'
-      /> 
-      {errorData}
-      </>
-      :
-      null}
-    </div>
-
         </DialogContent>
+        <ErrorMessage
+          style={{marginTop:'5px', marginBottom:'5px'}}
+          errorMessage={errorData}
+        />
         <DialogActions>
           <Button onClick={handleClose}>Cancel</Button>
           { name 

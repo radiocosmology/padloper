@@ -30,13 +30,14 @@ class ComponentType(Vertex):
         VertexAttr("comments", str, optional=True, default="")
     ]
     primary_attr: str = "name"
+    name: str = "default"
+    # comments: str 
 
     @classmethod
     def get_names_of_types_and_versions(cls):
         """
         Return a list of dictionaries, of the format
         {'type': <ctypename>, 'versions': [<revname>, ..., <revname>]}
-
         where <ctypename> is the name of the component type, and
         the corresponding value of the 'versions' key is a list of the names
         of all of the versions.
@@ -60,10 +61,9 @@ class ComponentType(Vertex):
 
         return ts
 
-    @classmethod
+    # @classmethod
     def __repr__(self):
         return f"{self.category}: {self.name} ({self._id})"
-
 
 class ComponentVersion(Vertex):
     """
@@ -474,7 +474,6 @@ class Component(Vertex):
                 f"component {self.name} because it is set at this time and "\
                 f"already has an end time."
             )
-#        print("slkdjflskdjfslkdjfslkdfjslkdjf")
 
         g.t.V(property.id()).bothE(RelationProperty.category).as_('e')\
            .otherV() \
@@ -552,7 +551,7 @@ class Component(Vertex):
 
     def connect(
         self, comp, start: Timestamp, end: Timestamp = None,
-        strict_add: bool = True, is_replacement: bool = False
+        strict_add: bool = True, to_replace: RelationConnection = None
     ):
         """Given another Component :param comp:,
         connect the two components.
@@ -567,13 +566,10 @@ class Component(Vertex):
         :param strict_add: If connexion already exists, raise an error if True;
           otherwise print a warning and return.
         :type strict_add: bool
-        :param is_replacement: Disable current connexion and replace it with
-           this one.
-        :type is_replacement: bool
+        :param to_replace: The connection this connection will be replacing, if any. 
+          If no connection is being replaced, this value is None. 
+        :type to_replace: RelationConnection
         """
-
-        if is_replacement:
-            raise RuntimeError(f"Is_replacement feature not implemented yet. {is_replacement}")
 
         if not self.in_db():
             raise ComponentNotAddedError(
@@ -591,30 +587,39 @@ class Component(Vertex):
                 f"Trying to connect component {self.name} to itself."
             )
 
-        curr_conn = self.get_connections(comp=comp,
-                                         at_time=start.time)
-        # If this doesn't pass, something is very broken!
-        assert(len(curr_conn) <= 1)
+        if to_replace == None:
 
-        if len(curr_conn) == 1 and is_replacement == False:
-            # Already connected!
-            strictraise(strict_add, ComponentsAlreadyConnectedError, 
-                f"Components {self.name} and {comp.name} " +
-                "are already connected."
-            )
-            return
-        elif len(curr_conn) == 0 and is_replacement == True:
-            # Not connected, but expected them to be connected.
-            strictraise(strict_add, ComponentsAlreadyConnectedError,
-                f"Trying to replace connection between {self.name} and " +
-                "{comp.name}, but it does not exist."
-            )
-            return
+            curr_conn = self.get_connections(comp=comp,
+                                            at_time=start.time)
+            # If this doesn't pass, something is very broken!
+            assert(len(curr_conn) <= 1)
 
-        all_conn = self.get_connections(comp=comp,
-                                        from_time=start.time)
+            if len(curr_conn) == 1:
+                # Already connected!
+                strictraise(strict_add, ComponentsAlreadyConnectedError, 
+                    f"Components {self.name} and {comp.name} " +
+                    "are already connected."
+                )
+                return
+            
+            all_conn = self.get_connections(comp=comp, from_time=start.time)
+            
+        else:  # to_replace is not None:
 
-        if len(all_conn) > 0:
+            curr_conn = self.get_connections(comp=comp, at_time=to_replace.start.time)
+            
+            if len(curr_conn) == 0:
+                # Not connected, but expected them to be connected.
+                strictraise(strict_add, ComponentsAlreadyConnectedError,
+                    f"Trying to replace connection between {self.name} and " +
+                    f"{comp.name}, but it does not exist."
+                )
+                return
+
+            all_conn = self.get_connections(comp=comp,
+                                    from_time=min(start.time, to_replace.start.time))
+
+        if len(all_conn) > 0 and to_replace == None:
             if end == None:
                 raise ComponentsOverlappingConnectionError(
                     "Trying to connect components " +
@@ -627,21 +632,50 @@ class Component(Vertex):
                 raise ComponentsOverlappingConnectionError(
                     "Trying to connect components " +
                     f"{self.name} and {comp.name} " +
-                    "but existing connection between these components " +
+                    "but an existing connection between these components " +
                     "overlaps in time."
                 )
+        elif len(all_conn) > 0:
+            # if to_replace is not None
+            if all_conn[0].id() != to_replace.id():
+                raise Error(f"Trying to connect components " +
+                    f"{self.name} and {comp.name} " +
+                    "but an existing connection between these components " +
+                    "overlaps in time.")
 
-        if is_replacement:
-            raise RuntimeError(f"Is_replacement feature not implemented yet. {is_replacement}")
-
-        curr_conn = RelationConnection(
+        new_conn = RelationConnection(
             inVertex=self,
             outVertex=comp,
             start=start,
             end=end
         )
+            
+        new_conn.add()
 
-        curr_conn.add()
+        if to_replace != None:
+            # Need to replace the connection to_replace with new connection curr_conn.
+
+            # copy over properties from to_replace
+            properties = g.t.E(to_replace.id()).valueMap().toList()[0]
+            for prop in properties:
+                g.t.E(new_conn.id()).property(prop, properties[prop]).iterate()
+            
+            # set start time, end time, and edit time because these were just overwritten
+            g.t.E(new_conn.id()).property('start_time', start.time).iterate()
+            if int(properties['start_time']) != int(start.time):
+                g.t.E(new_conn.id()).property('start_edit_time', start.edit_time).iterate()
+                g.t.E(new_conn.id()).property('start_uid', start.uid).iterate()
+
+            
+            if end is not None:
+                g.t.E(new_conn.id()).property('end_time', end.time).iterate()
+                if int(properties['end_time']) != int(end.time):
+                    g.t.E(new_conn.id()).property('end_edit_time', end.edit_time).iterate()
+                    g.t.E(new_conn.id()).property('end_uid', end.uid).iterate()
+
+
+            to_replace.replace(new_conn, disable_time=int(time.time()))
+            
 #        print(f'connected: {self} -> {comp}  ({start.uid} {start.time})')
 
 
@@ -654,7 +688,6 @@ class Component(Vertex):
         :param end: The starting timestamp for the connection.
         :type end: Timestamp
         """
-
         # Done for troubleshooting (so you know which component is not added?)
         if not self.in_db(strict_check=False):
             raise ComponentNotAddedError(
@@ -669,11 +702,10 @@ class Component(Vertex):
 
         curr_conn = self.get_connections(comp=comp,
                                          at_time = end.time)
-        assert(len(curr_conn) <= 1)
 
         if len(curr_conn) == 0:
             # Not connected yet!
-            raise ComponentsAlreadyDisconnectedError(
+            raise NotInDatabase (
                 f"Components {self.name} and {comp.name} " +
                 "are already disconnected at this time."
             )

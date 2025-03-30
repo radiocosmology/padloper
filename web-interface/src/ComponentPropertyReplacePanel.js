@@ -17,6 +17,7 @@ import { Typography } from '@mui/material';
 import { verifyRegex } from './utility/utility.js';
 
 import moment from "moment";
+import ErrorMessage from './ErrorMessage.js';
 
 /**
  * A styled "panel" component, used as the background for the panel.
@@ -92,7 +93,8 @@ function ComponentPropertyReplacePanel(
         // old_uid, 
         // old_comments, 
         oldTextFieldValues,
-        oldComments
+        oldComments,
+        errorReplacePropertyMessage
     }
 ) {
 
@@ -129,6 +131,7 @@ function ComponentPropertyReplacePanel(
     const [displayTime, setDisplayTime] = useState(defaultTime);
     useEffect(() => {
       setDisplayTime(moment(displayTime).format("YYYY-MM-DD[T]HH:mm:ss"));
+      setSelectedOption(selected);
     }, []);
 
     // the comments associated with setting the property
@@ -290,9 +293,12 @@ function ComponentPropertyReplacePanel(
 
                 <Grid container spacing={2} justifyContent="center">
                     <Grid item>
-                        <ComponentPropertyAutocomplete 
-                            onSelect={selectOption} 
-                            selected={selected}
+                        <TextField
+                        disabled
+                        variant="filled"
+                        label="Property Type"
+                        defaultValue={selected.name}
+                        InputProps={{readOnly: true, disableUnderline: true}}
                         />
                     </Grid>
 
@@ -392,6 +398,12 @@ function ComponentPropertyReplacePanel(
                     }
                 </Grid>
 
+                <ErrorMessage
+                    style={{
+                        marginTop: theme.spacing(1),
+                    }}
+                    errorMessage={errorReplacePropertyMessage}
+                />
 
                 <Box 
                     style={{
@@ -422,7 +434,7 @@ function ComponentPropertyReplacePanel(
                             }
                         }
                     >
-                        {loading ? 
+                        {(loading && !errorReplacePropertyMessage) ? 
                         <CircularProgress
                             size={24}
                             sx={{

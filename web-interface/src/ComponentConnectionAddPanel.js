@@ -8,7 +8,6 @@ import CircularProgress from '@mui/material/CircularProgress';
 import MuiTextField from '@mui/material/TextField';
 
 import CloseIcon from '@mui/icons-material/Close';
-import ErrorIcon from '@mui/icons-material/Error';
 
 import ThemeProvider from '@mui/material/styles/ThemeProvider';
 import styled from '@mui/material/styles/styled';
@@ -16,6 +15,7 @@ import { Typography } from '@mui/material';
 import ComponentAutocomplete from './ComponentAutocomplete.js';
 
 import moment from "moment";
+import ErrorMessage from './ErrorMessage.js';
 
 /**
  * A styled "panel" component, used as the background for the panel.
@@ -232,35 +232,12 @@ function ComponentConnectionAddPanel(
 
                 </Grid>
 
-                {
-                errorConnectionMessage
-                ? 
-                <Grid 
-                container 
-                        style={{
-                            marginTop: theme.spacing(1),
-                        }}
-                        spacing={1}
-                        justifyContent="center"
-                        >
-                        <Grid item>
-                            <ErrorIcon sx={{color: 'red'}} />
-                        </Grid>
-                        <Grid item>
-                            <Typography
-                                style={{
-                                    color: 'rgb(255,0,0)',
-                                }}
-                                >
-                                {errorConnectionMessage}
-                            </Typography>
-                        </Grid>
-                    </Grid> 
-                    : 
-                    <></>
-                }
-
-                
+                <ErrorMessage
+                    style={{
+                        marginTop: theme.spacing(1),
+                    }}
+                    errorMessage={errorConnectionMessage}
+                />
 
                 <Box 
                     style={{
@@ -293,10 +270,7 @@ function ComponentConnectionAddPanel(
                          * so when the panel is loading, the button
                          * is spinning.
                          */}
-                        {loading ? 
-                        errorConnectionMessage ?
-                        "Set"
-                        :
+                        {(loading && !errorConnectionMessage) ? 
                         <CircularProgress
                             size={24}
                             sx={{

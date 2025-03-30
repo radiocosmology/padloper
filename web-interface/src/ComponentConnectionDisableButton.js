@@ -9,6 +9,7 @@ import styled from '@mui/material/styles/styled';
 import DeleteIcon from '@mui/icons-material/Delete';
 import DialogContentText from '@mui/material/DialogContentText';
 import CircularProgress from '@mui/material/CircularProgress';
+import ErrorMessage from './ErrorMessage';
 
 
 /*
@@ -31,13 +32,16 @@ const DisableButton = styled((props) => (
 }))
 
 
-  export default function DisableAlertDialog ({name,otherComponentName,toggleReload}){
+  export default function DisableAlertDialog ({name,otherComponentName,time,toggleReload}){
 
   // opens and closes the alert dialog box.
   const [open, setOpen] = useState(false);
 
   // whether the submit button has been clicked or not
   const [loading, setLoading] = useState(false);
+
+  // any error data to be displayed
+  const [errorData, setErrorData] = useState(null);
 
   /*
   Function that is used to open the alert dialog box when the user clicks
@@ -52,7 +56,8 @@ const DisableButton = styled((props) => (
   */
   const handleClose = () => {
     setOpen(false);
-    setLoading(false)
+    setLoading(false);
+    setErrorData(null);
   };
 
     /**
@@ -66,20 +71,25 @@ const DisableButton = styled((props) => (
         let input = `/api/component_disable_connection`;
         input += `?name1=${name}`;
         input += `&name2=${otherComponentName}`;
+        input += `&start_time=${time}`;
 
         return new Promise((resolve, reject) => {
             fetch(input).then(
-                res => res.json()
-            ).then(data => {
+              (res) => res.json())
+              .then((data) => {
                 console.log(data);
                 if (data.result) {
-                    toggleReload();
-                    handleClose()
+                  toggleReload();
+                  handleClose();
+                }
+                else {
+                  setErrorData(JSON.parse(data.error));
+                  setLoading(false);
                 }
                 resolve(data.result);
+              });
             });
-        });
-    }
+          }
   
   return (
     <>
@@ -107,6 +117,11 @@ const DisableButton = styled((props) => (
                         /> : "Submit"}
               </Button>
         </DialogActions>
+
+        <ErrorMessage
+          style={{marginTop: '10px', marginBottom:'10px'}}
+          errorMessage={errorData}
+        />
       </Dialog>
     </>
   );

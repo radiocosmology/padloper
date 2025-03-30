@@ -16,6 +16,7 @@ import ErrorIcon from '@mui/icons-material/Error';
 import EditIcon from '@mui/icons-material/Edit';
 import styled from '@mui/material/styles/styled';
 import CircularProgress from '@mui/material/CircularProgress';
+import ErrorMessage from './ErrorMessage';
 
 /**
  * A MUI component representing a button for replacing a component type.
@@ -99,10 +100,11 @@ const ReplaceButton = styled((props) => (
     input += `&component=${nameComponent}`;
     axios.post(input).then((response)=>{
       if(response.data.result){
-        toggleReload() //To reload the list of components once the form has been submitted.
-        handleClose()
+        toggleReload(); //To reload the list of components once the form has been submitted.
+        handleClose();
       } else {
-        setErrorData(response.data.error)
+        setErrorData(JSON.parse(response.data.error));
+        setLoading(false);
       }
     })
   }
@@ -174,27 +176,11 @@ const ReplaceButton = styled((props) => (
       </FormControl>
     </Box>
     </div>
-
-    <div 
-    style={{
-    marginTop:'15px',
-    marginBottom:'5px',
-    color:'red',
-    display:'flex'
-    }}>
-      {
-        errorData
-        ?
-      <>
-      <ErrorIcon
-      fontSize='small'
-      /> 
-      {errorData}
-      </>
-      :
-      null}
-    </div>
         </DialogContent>
+        <ErrorMessage
+          style={{marginTop:'5px', marginBottom:'5px'}}
+          errorMessage={errorData}
+        />
         <DialogActions>
           <Button onClick={handleClose}>Cancel</Button>
           {
