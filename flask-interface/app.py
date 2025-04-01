@@ -1463,6 +1463,7 @@ def set_flag():
     :rtype: dict
     """
     try:
+        raise Exception("Flags have not been implemented properly! Dependence on the 'name' primary attribute needs to be removed.")
         print("setting flag!")
 
         val_name = escape(request.args.get('name'))

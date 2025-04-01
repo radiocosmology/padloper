@@ -8,7 +8,7 @@ import Box from '@mui/material/Box';
 import FlagAddButton from './FlagAddButton.js';
 import FlagEndButton from './FlagEndButton.js';
 import FlagReplaceButton from './FlagReplaceButton.js';
-import { TableHead, ThemeProvider, Typography } from '@mui/material';
+import { TableHead, ThemeProvider, Typography, TableSortLabel } from '@mui/material';
 import ExpandMoreIcon from '@mui/icons-material/ExpandMore';
 import styled from '@mui/material/styles/styled';
 import MuiAccordion from '@mui/material/Accordion';
@@ -26,6 +26,8 @@ import TableCell from '@mui/material/TableCell';
 import TableContainer from '@mui/material/TableContainer';
 import TableRow from '@mui/material/TableRow';
 import { spacing } from '@mui/system';
+import moment from "moment";
+import Timestamp from './Timestamp.js';
 
 
 /**
@@ -388,51 +390,19 @@ export default function FlagList() {
      * @param {string} property - the name of the property that 
      * you are changing the order of.
      */
-    // const updateSort = (property) => {
-    //     if (orderBy === property) {
-    //         // if this property is already selected, flip the direction which
-    //         // its contents are sorted in.
-    //         setOrderDirection(direction === 'asc' ? 'desc' : 'asc')
-    //     }
-    //     else {
-    //         setOrderBy(property)
-    //         setOrderDirection('asc')
-    //     }
-    // }
+    const updateSort = (property) => {
+        if (orderBy === property) {
+            // if this property is already selected, flip the direction which
+            // its contents are sorted in.
+            setOrderDirection(orderDirection === 'asc' ? 'desc' : 'asc')
+        }
+        else {
+            setOrderBy(property)
+            setOrderDirection('asc')
+        }
+    }
 
-
-    // the header cells of the table with their ids, labels, and whether you
-    // can order by them.
-    const tableHeadCells = [
-        {
-            id: 'name',
-            label: 'Flag',
-            allowOrdering: true,
-        },
-        {
-            id: 'Type',
-            label: 'Flag Type',
-            allowOrdering: false,
-        },
-        {
-            id: 'Severity',
-            label: 'Flag Severity',
-            allowOrdering: false,
-        },
-        {
-            id: 'More Information',
-            label: '',
-            allowOrdering: false,
-        },
-        {
-
-        },
-        {
-
-        },
-    ];
-
-    let tableRowContent2 = elements.map((flag) => [
+    let tableRowContent = elements.map((flag) => [
         <Accordion>
             <AccordionSummary
                 expandIcon={<ExpandMoreIcon />}
@@ -441,8 +411,10 @@ export default function FlagList() {
             >
                 <Stack direction="row" spacing={2} sx={{ width: '100%', justifyContent: 'space-evenly' }}>
                     <Box sx={{ width: "20%" }}>
+                        <Typography>{moment.unix(flag.start.time).format("YYYY-MM-DD")}</Typography>
+                        <Typography>-</Typography>
                         <Typography>
-                            {flag.name}
+                            {flag.end.edit_time === -1 ? '' : moment.unix(flag.end.time).format("YYYY-MM-DD")}
                         </Typography>
                     </Box>
                     <Box sx={{ width: "20%" }}>
@@ -529,118 +501,6 @@ export default function FlagList() {
         </Accordion>
     ])
 
-    /**
-     * the rows of the table. We are only putting:
-     * - the name,
-     * - flag's allowed types,
-     * - flag's allowed severity,
-     * - more information accordion
-     */
-    let tableRowContent = elements.map((flag) => [
-        flag.end.uid
-            ?
-            flag.name
-            :
-            <Typography
-                style={{
-                    display: 'flex'
-                }}>
-                {flag.name}
-                {
-                    <FlagEndButton
-                        name={flag.name}
-                        toggleReload={toggleReload}
-                    />}
-                <FlagReplaceButton
-                    nameFlag={flag.name}
-                    type={type}
-                    severities={severities}
-                    components={components}
-                    toggleReload={toggleReload}
-                />
-            </Typography>
-        ,
-        flag.type.name,
-        flag.severity.name,
-        ,
-        <ThemeProvider theme={theme}>
-            <Accordion>
-                <AccordionSummary
-                    expandIcon={<ExpandMoreIcon />}
-                    aria-controls="panel1a-content"
-                    id="panel1a-header"
-                >
-                    <Typography>
-                        More Information
-                    </Typography>
-                </AccordionSummary>
-                <AccordionDetails>
-                    <Stack spacing={1}>
-                        <EntryAccordion>
-
-                            <EntryAccordionDetails>
-                                <Stack spacing={1}>
-                                    <Stack
-                                        direction='row'
-                                        justifyContent='space-between'
-                                        alignItems='center'
-                                    >
-                                        <ComponentEvent
-                                            name="Start"
-                                            time={flag.start.time}
-                                            uid={flag.start.uid}
-                                            edit_time={flag.start.edit_time}
-                                            comments={flag.start.comments}
-                                            theme={theme} />
-                                    </Stack>
-                                    {
-                                        flag.end.time <=
-                                            Number.MAX_SAFE_INTEGER ?
-                                            <ComponentEvent
-                                                name="End"
-                                                time={flag.end.time}
-                                                uid={flag.end.uid}
-                                                edit_time={flag.end.edit_time}
-                                                comments={flag.end.comments}
-                                                theme={theme} />
-                                            : ""
-                                    }
-                                    {
-                                        <FlagEvent
-                                            name="Comments"
-                                            parameter={flag.comments}
-                                            theme={theme}
-                                        />
-                                    }
-                                    {
-                                        <FlagEvent
-                                            name="Components"
-                                            parameter={
-                                                flag.components.length != 0
-                                                    ?
-                                                    flag.components.map((item) => item.name + ' | ')
-                                                    :
-                                                    'Global'
-                                            }
-                                            theme={theme}
-                                        />
-                                    }
-                                </Stack>
-                            </EntryAccordionDetails>
-                        </EntryAccordion>
-                    </Stack>
-                </AccordionDetails>
-            </Accordion>
-        </ThemeProvider>,
-        <DisableButton
-            onClick={
-                () => {
-                    disableFlag(flag.name)
-                }
-            }
-        />
-    ]);
-
     return (
         <>
             <Authenticator />
@@ -706,43 +566,65 @@ export default function FlagList() {
                                 <Box sx={{
                                     width: "20%"
                                 }}>
-                                    <Typography>
-                                        Flag
-                                    </Typography>
+                                    <TableSortLabel
+                                                active={orderBy === 'start.time'}
+                                                direction={
+                                                    orderBy === 'start.time' 
+                                                    ? orderDirection : 'asc'
+                                                }
+                                                onClick={
+                                                    () => {
+                                                        updateSort('start.time')
+                                                    }
+                                                }
+                                            >   
+                                                {'Date'}
+                                    </TableSortLabel>
                                 </Box>
                                 <Box sx={{
                                     width: "20%"
                                 }}>
-                                    <Typography>
-                                        Flag Type
-                                    </Typography>
+                                    <TableSortLabel
+                                                active={orderBy === 'type'}
+                                                direction={
+                                                    orderBy === 'type' 
+                                                    ? orderDirection : 'asc'
+                                                }
+                                                onClick={
+                                                    () => {
+                                                        updateSort('type')
+                                                    }
+                                                }
+                                            >   
+                                                {'Flag Type'}
+                                    </TableSortLabel>
                                 </Box>
                                 <Box sx={{
                                     width: "20%"
                                 }}>
-                                    <Typography>
-                                        Flag Severity
-                                    </Typography>
+                                    <TableSortLabel
+                                                active={orderBy === 'severity'}
+                                                direction={
+                                                    orderBy === 'severity' 
+                                                    ? orderDirection : 'asc'
+                                                }
+                                                onClick={
+                                                    () => {
+                                                        updateSort('severity')
+                                                    }
+                                                }
+                                            >   
+                                                {'Flag Severity'}
+                                    </TableSortLabel>
                                 </Box>
                             </Stack>
                         </TableRow>
                     </TableHead>
                     <TableBody>
-                        {tableRowContent2}
+                        {tableRowContent}
                     </TableBody>
                 </Table>
             </Box>
-
-            {/* <ElementList
-                width='1300px'
-                tableRowContent={tableRowContent2}
-                loaded={loaded}
-                orderBy={orderBy}
-                direction={orderDirection}
-                setOrderBy={setOrderBy}
-                setOrderDirection={setOrderDirection}
-                tableHeadCells={tableHeadCells}
-            /> */}
         </>
 
     )

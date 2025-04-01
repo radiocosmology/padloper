@@ -196,27 +196,8 @@ export default function FlagAddButton ({type,severities,components,toggleReload}
         display:'flex',
         justifyContent:'space-between'
     }}>
-      <div style={{
-        marginRight:'10px',
-        width:'50%'
-      }}>
-          <TextField
-            autoFocus
-            margin="dense"
-            id="name"
-            label="Flag"
-            type='text'
-            fullWidth
-            variant="outlined"
-            name = 'name'
-            value={property.name}
-            onChange={handleChange}
-            />
-      </div>
-      <div style={{
-        width:'50%'
-      }}>
-        <FormControl sx={{width: 272, marginTop: 1}} >
+      <div>
+        <FormControl sx={{width: 554, marginTop: 1}} >
           <InputLabel id="Flag Type" >Components</InputLabel>
           <Select
             labelId="multiple-checkbox-label"
@@ -438,7 +419,7 @@ export default function FlagAddButton ({type,severities,components,toggleReload}
               :
               <Button onClick={handleSubmit}
                 disabled={
-                (property.name == '') || (componentName == []) || (startTime == 0)
+                (componentName == []) || (startTime == 0)
                 || (property.type == '') || (property.severity == '') || 
                 (endTime == 0 && hasEndTime)
                 }>

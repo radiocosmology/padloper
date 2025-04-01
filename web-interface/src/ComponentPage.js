@@ -1031,9 +1031,6 @@ function ComponentPage() {
                                         display:'flex'
                                     }}
                                 >
-                                    <FlagIcon
-                                    fontSize='small'/>
-                                    {flag.name}
                                 </Typography>
                                 <Typography
                                     variant="body2"
