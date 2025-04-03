@@ -588,11 +588,6 @@ class Component(Vertex):
             raise ComponentConnectToSelfError(
                 f"Trying to connect component {self.name} to itself."
             )
-        
-        # need to completely rethink this section. 
-        # Handle the 2 cases separately?
-        # like even the curr_conn below needs to be calculated differently
-        # if we know we are doing a replace. 
 
         if to_replace == None:
 
@@ -665,7 +660,6 @@ class Component(Vertex):
             # copy over properties from to_replace
             properties = g.t.E(to_replace.id()).valueMap().toList()[0]
             for prop in properties:
-                print(prop, properties[prop])
                 g.t.E(new_conn.id()).property(prop, properties[prop]).iterate()
             
             # set start time, end time, and edit time because these were just overwritten
