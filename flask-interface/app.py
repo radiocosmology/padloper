@@ -491,7 +491,6 @@ def set_property_type():
                                        n_values=int(val_values), 
                                        allowed_types=allowed_list,
                                        comments=val_comments)
-        print("the property type", property_type.__dict__)
 
         property_type.add()
 
@@ -1458,7 +1457,6 @@ def set_flag():
     """
     try:
         raise Exception("Flags have not been implemented properly! Dependence on the 'name' primary attribute needs to be removed.")
-        print("setting flag!")
 
         val_name = escape(request.args.get('name'))
         val_uid = escape(request.args.get('uid'))
@@ -1493,11 +1491,7 @@ def set_flag():
                       notes=val_notes, 
                       components=allowed_list)
         
-        print("the flag", flag.__dict__)
-
         flag.add()
-
-        print("flag list" , p.Flag.get_list())
 
         # raise Exception("this is an exception")
         return {'result': True}
@@ -1722,12 +1716,6 @@ def get_flag_list():
     # to the one that already exists for components
     flag_list = [f.__dict__ for f in flags]
 
-    # kiki = [f.from_db(str(escape(f.name))).as_dict() for f in flags]
-    # print("kiki", kiki)
-
-    # print("flags", flag_list[0], flags[0].severity.__dict__)
-    # print("flags as dict", flags[0].as_dict())
-    print("hihi")
     flag_dict = [f.as_dict() for f in flags]
 
     return {"result": flag_dict}
