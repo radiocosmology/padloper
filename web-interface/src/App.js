@@ -6,6 +6,7 @@ import ComponentPage from './ComponentPage.js';
 import ComponentConnectionVisualizer from './ComponentConnectionVisualizer.js';
 import FlagTypeList from './FlagTypeList.js'
 import FlagList from './FlagList.js';
+import FlagSeverityList from './FlagSeverityList.js';
 import Header from './Header.js';
 
 import { ReactFlowProvider } from 'reactflow';
@@ -89,6 +90,14 @@ function App() {
             element={<FlagList />} 
           />
 
+          <Route
+            exact={true} 
+            path="/list/flag-severities"
+            element={
+              <FlagSeverityList />
+            } 
+          />
+
           <Route 
             exact={true} 
             path="/list/component-versions" 
@@ -102,6 +111,7 @@ function App() {
               <PropertyTypeList />
             } 
           />
+
           
           {
             /**

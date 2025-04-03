@@ -180,28 +180,7 @@ function ComponentVersionList() {
     }, [
         filters,
         reloadBool
-    ]);
-
-    /**
-     * Load all of the component types (so they can be used for the filter)
-     * 
-     * TODO: THIS IS GARBAGE, WILL BE REALLY REALLY SLOW WHEN YOU HAVE A LOT
-     * OF COMPONENT TYPES. INSTEAD, MAKE A COMPONENT TYPE AUTOCOMPLETE AND
-     * THEN USE THEM IN THE FILTERS INSTEAD OF THIS PILE OF TRASH.
-     */
-    useEffect(() => {
-
-        let input = '/api/component_type_list'
-        input += `?range=0;-1`
-        input += `&orderBy=name`
-        input += `&orderDirection=asc`
-        input += `&nameSubstring=`
-        fetch(input).then(
-            res => res.json()
-        ).then(data => {
-            setComponentTypes(data.result);
-        });
-    }, []);
+    ]);    
 
     // the header cells of the table with their ids, labels, and whether you
     // can order by them.

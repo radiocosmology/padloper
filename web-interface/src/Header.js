@@ -11,6 +11,7 @@ import { OAuthContext } from './contexts/OAuthContext';
 
 import HeaderMenuButton from './HeaderMenuButton.js';
 import { useNavigate } from 'react-router-dom';
+import { LinkOutlined } from '@mui/icons-material';
 
 /**
  * MUI Component that returns the header that is seen at the top of the web
@@ -119,6 +120,10 @@ function Header() {
                             name: 'Flags', 
                             link: `/list/flag`
                         },
+                        {
+                            name: 'Flag Severities',
+                            link: `/list/flag-severities`
+                        }
                     ]}
                 />
 

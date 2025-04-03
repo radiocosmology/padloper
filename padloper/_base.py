@@ -479,7 +479,6 @@ class Vertex(Element):
                 e.add()
 
             Vertex._cache_vertex(self)
-
             return self
 
     def in_db(self, strict_check=True, allow_removed=False) -> bool:

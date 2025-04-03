@@ -12,6 +12,7 @@ import ThemeProvider from '@mui/material/styles/ThemeProvider';
 import styled from '@mui/material/styles/styled';
 import { Typography } from '@mui/material';
 import ComponentAutocomplete from './ComponentAutocomplete.js';
+import ItemAutocomplete from './ItemAutocomplete.js';
 
 /**
  * A styled "panel" component, used as the background for the panel.
@@ -84,6 +85,11 @@ function ComponentSubcomponentAddPanel(
         setSelectedOption(option);
     }
 
+    const autocompleteQuery = '/api/component_list?range=0;100&orderBy=name&orderDirection=asc';
+    // autocompleteQuery += `?range=0;100`; // get the first 100, don't want too much
+    // autocompleteQuery += `&orderBy=name`
+    // autocompleteQuery += `&orderDirection=asc`;
+
     // return the MUI component.
     return (
         <ThemeProvider theme={theme}>
@@ -112,9 +118,11 @@ function ComponentSubcomponentAddPanel(
 
                 <Grid container spacing={2} justifyContent="space-around">
                     <Grid item>
-                        <ComponentAutocomplete 
+                        <ItemAutocomplete 
                             onSelect={selectOption} 
                             excludeName={name}
+                            queryString={autocompleteQuery}
+                            label={"Component"}
                         />
                     </Grid>
 

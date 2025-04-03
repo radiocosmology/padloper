@@ -4,8 +4,9 @@ import FormControl from '@mui/material/FormControl';
 import Button from '@mui/material/Button';
 import Paper from '@mui/material/Paper';
 import Stack from '@mui/material/Stack';
-
+import ItemAutocomplete from './ItemAutocomplete.js'
 import Close from '@mui/icons-material/Close';
+import { useEffect, useState } from 'react';
 
 /**
  * A MUI component that represents a filter object which allows to choose a
@@ -30,6 +31,12 @@ function ComponentVersionFilter(
             types
         }
     ) {
+
+    const [selectedType, setSelectedType] = useState('');
+
+    // query string to be used in component type autocomplete
+    const typeQuery = '/api/component_type_list?range=0;-1&' + 
+    'orderBy=name&orderDirection=asc&nameSubstring=';
 
     /**
      * Update the filter with a new key/value pair.
@@ -56,27 +63,18 @@ function ComponentVersionFilter(
     const filterUpdateName = (event) => {
         filterUpdateKey('name', event.target.value);
     }
- 
-    /**
-     * Update the type key of the filter with the value from the select field.
-     * @param {object} event - the event associated with the 
-     * change of the TextField.
-     */
-    const filterUpdateType = (event) => {
-        if (event.target.value != -1) {
 
-            filterUpdateKey(
-                'type', 
-                types[event.target.value]['name']
-            );
+    /**
+     * Update the filters when the selected type is updated
+     */
+    useEffect (() => {
+        if (selectedType) {
+            filterUpdateKey('type', selectedType.name);
         }
-        else {
-            filterUpdateKey(
-                'type', 
-                ''
-            );
+        else {      // selectedType is empty
+            filterUpdateKey('type', '');
         }
-    }
+    }, [selectedType])
 
     // render the filter
     return (
@@ -108,36 +106,11 @@ function ComponentVersionFilter(
                     }}
                     onChange={filterUpdateName}
                 />
-                <FormControl 
-                    style={{
-                        gridColumnStart: 2,
-                    }}
-                    variant="outlined"
-                >
-                    <Select
-                        native
-                        labelId={`component-type-select-${index}-label`}
-                        id={`component-type-select-${index}`}
-                        onChange={filterUpdateType}
-                        displayEmpty
-                    >
-                        <option aria-label="None" value={-1} selected>
-                            All types
-                        </option>
-                        {
-                            types.map((t, index) =>
-                                <option 
-                                    value={index}
-                                    key={index}
-                                >
-                                    {t['name']}
-                                </option>
-                            )
-                        }
-                    </Select>
-
-                </FormControl>
-
+                <ItemAutocomplete
+                    onSelect={(type) => {setSelectedType(type)}}
+                    queryString={typeQuery}
+                    label={"Component Type"}
+                />
                 <Button 
                     color="primary" 
                     style={{
