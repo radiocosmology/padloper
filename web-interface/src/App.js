@@ -17,6 +17,9 @@ import {
 } from "react-router-dom";
 import Login from './Login.js';
 import { OAuthContext, useOAuthContext } from './contexts/OAuthContext.js';
+import UserManagementPage from './UserManagement.js';
+import UserGroupManagementPage from './UserGroupManagement.js';
+import UserCreatePage from './UserCreate.js';
 
 /**
  * The main page where the header and site contents are rendered,
@@ -31,7 +34,9 @@ function App() {
    */
 
   window.addEventListener("error", (e) => {
-    if (e.message === 'ResizeObserver loop completed with undelivered notifications.' || e.message === 'ResizeObserver loop limit exceeded') {
+    if (e.message === "ResizeObserver loop completed with undelivered " +
+        "notifications." || 
+        e.message === 'ResizeObserver loop limit exceeded') {
       console.log("Oh, yeah!!!!");
 //      e.stopImmediatePropagation();
     }
@@ -102,13 +107,37 @@ function App() {
               <PropertyTypeList />
             } 
           />
-          
+
+          <Route 
+            exact={true}
+            path="/manage/users"
+            element={
+              <UserManagementPage />
+            }
+          />
+
+
+          <Route 
+            exact={true}
+            path="/manage/users/groups"
+            element={
+              <UserGroupManagementPage />
+            }
+          />
+
+          <Route 
+            exact={true}
+            path="/users"
+            element={
+              <UserCreatePage />
+            }
+          />
+
+         
           {
-            /**
-             * A ReactFlowProvider is wrapped around the visualizer to
-             * give it access to the React Flow hooks:
-             * https://reactflow.dev/docs/api/react-flow-provider/
-             */
+            // A ReactFlowProvider is wrapped around the visualizer to give it
+            // access to the React Flow hooks:
+            // https://reactflow.dev/docs/api/react-flow-provider/
           }
           <Route 
             exact={true} 

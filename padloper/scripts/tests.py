@@ -1,7 +1,9 @@
 import padloper as p
+from gremlin_python.process.graph_traversal import __
 from gremlin_python.process.traversal import TextP
 
 test_prefix = "padloper-scripts-tests_"
+user_prefix = "test-user"
 
 def tnm(name):
     # A wrapper to give all the elements added in the test the same prefix which
@@ -12,12 +14,40 @@ def nmt(name):
     # Remove the unique prefix.
     return name[len(test_prefix):]
 
-p.set_user("test")
+p.set_user("master")
 
 # Start fresh by deleting any elements from the last test that may still be in
 # the database.
+
 print("Dropping old test vertices.")
 p.g.t.V().has("name", TextP.startingWith(tnm(""))).drop().iterate()
+p.g.t.V().has("name", TextP.startingWith(user_prefix)).drop().iterate()
+
+# Test adding a user and a user group.
+print("Creating a test user.")
+group_test_a = p.UserGroup(name="%s_group-a" % user_prefix,
+                           comments="A group with some random permissions for "\
+                                    "testing.",
+                           permissions=["Component;add",
+                                        "Component;connect"]).add()
+group_test_b = p.UserGroup(name="%s_group-b" % user_prefix,
+                           comments="A group with some random permissions for "\
+                                    "testing.",
+                           permissions=["ComponentVersion;add"]).add()
+user_test = p.User(name=user_prefix,
+                   groups=[group_test_a, group_test_b]).add()
+#user_test.add_group(group_test_a)
+#user_test.add_group(group_test_b)
+
+## Test removing, re-adding, removing.
+#user_test.remove_group(group_test_b)
+#if len(user_test.get_groups()) != 1:
+#    raise RuntimeError("User group removal failed!")
+#user_test.add_group(group_test_b)
+#if len(user_test.get_groups()) != 2:
+#    raise RuntimeError("User group re-adding failed!")
+#user_test.remove_group(group_test_b)
+
 
 # Test creating and retreiving.
 print("Creating component types, versions and components.")
@@ -56,7 +86,7 @@ try:
     p.Component(name=tnm("comp_a1"), type=type_a, 
                          version=ver_a_a).add(strict_add=True)
     raise RuntimeError("Should not be able to add the same component again!")
-except p.AlreadyInDatabase:
+except p.VertexAlreadyAddedError:
     pass
 
 # Check retrieval.
@@ -284,3 +314,17 @@ print("    Components sorted by type ascending and then by name descending.")
 for c in p.Component.get_list(order_by=["type", ("name", "desc")]):
     print("        %s -- %s" % (c.name.replace(test_prefix, ""),
                                 c.type.name.replace(test_prefix, "")))
+
+print("Switching to test-user.")
+p.set_user("test-user")
+
+print("Creating and connecting a component: allowed operation for test-user.")
+comp_a7 = p.Component(name=tnm("comp_A7"), type=type_a, version=ver_a_a).add()
+comp_b.connect(comp_a7, t1)
+print("Creating a component type: disallowed operation for test-user.")
+try:
+    type_d  = p.ComponentType(name=tnm("type_D"), comments="Comment D").add()
+    raise RuntimeError("Should not be abe to create a new component type "\
+                       "as test-user.")
+except p.NoPermissionsError:
+    print("   Caught NoPermissionsError: correct behaviour.")

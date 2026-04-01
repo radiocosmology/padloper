@@ -266,3 +266,9 @@ class UserGroupZeroPermissionError(Error):
     """
     Exception raised when creating a UserGroup instance with zero allowed permission. 
     """
+
+class NoPermissionsError(Error):
+    """
+    Exception raised when calling method without the required permissions.
+    """
+    pass

@@ -16,7 +16,7 @@ from sympy import true
 from gremlin_python.process.graph_traversal import __, constant
 
 import _global as g
-from _base import Vertex, VertexAttr, Timestamp, strictraise
+from _base import Vertex, VertexAttr, Timestamp, strictraise, authenticated
 from _component_nodes import Component
 from _exceptions import *
 from _edges import RelationFlagType, RelationFlagComponent, RelationFlagSeverity
@@ -105,7 +105,8 @@ class Flag(Vertex):
     def end_flag(self, dummy):
         raise RuntimeError("Method deprecated. Use set_end().")
 
-    def set_end(self, end : Timestamp):
+    @authenticated
+    def set_end(self, end : Timestamp, permissions=None):
         """
         Given a flag, set the "end" attributes of the flag to indicate that this
         flag has been ended.
@@ -114,7 +115,7 @@ class Flag(Vertex):
         :type end: Timestamp
         """
 
-        if not self.in_db(strict_check=False):
+        if not self.in_db(strict_check=False, permissions=permissions):
             raise FlagNotAddedError(
                 f"Flag {self.name} has not yet been added to the database."
             )

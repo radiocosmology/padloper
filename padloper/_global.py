@@ -9,6 +9,7 @@ from gremlin_python.process.graph_traversal import GraphTraversalSource
 import gremlin_python.structure.graph as gremlin_graph
 from gremlin_python.driver.driver_remote_connection \
         import DriverRemoteConnection
+from gremlin_python.driver.serializer import GraphSONSerializersV3d0
 
 _conn: DriverRemoteConnection
 
@@ -51,7 +52,8 @@ def start_connection(host: str = "ws://localhost", port: int=8182, traversal_sou
 
     _conn = DriverRemoteConnection(
         f'{host}:{port}/gremlin', 
-        traversal_source
+        traversal_source,
+        message_serializer=GraphSONSerializersV3d0()
     )
 
     t = _graph.traversal().withRemote(_conn)

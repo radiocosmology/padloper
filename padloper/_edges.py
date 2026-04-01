@@ -30,11 +30,11 @@ class RelationVersion(Edge):
         Edge.__init__(self=self, id=id,
                       inVertex=inVertex, outVertex=outVertex)
 
-    def add(self):
+    def add(self, permissions=None):
         """Add this relation to the serverside.
         """
 
-        Edge.add(self, attributes={})
+        Edge.add(self, attributes={}, permissions=permissions)
 
 
 class RelationVersionAllowedType(Edge):
@@ -52,11 +52,11 @@ class RelationVersionAllowedType(Edge):
                       inVertex=inVertex, outVertex=outVertex,
                       )
 
-    def add(self):
+    def add(self, permissions=None):
         """Add this relation to the serverside.
         """
 
-        Edge.add(self, attributes={})
+        Edge.add(self, attributes={}, permissions=permissions)
 
 
 class RelationComponentType(Edge):
@@ -73,11 +73,11 @@ class RelationComponentType(Edge):
         Edge.__init__(self=self, id=id,
                       inVertex=inVertex, outVertex=outVertex)
 
-    def add(self):
+    def add(self, permissions=None):
         """Add this relation to the serverside.
         """
 
-        Edge.add(self, attributes={})
+        Edge.add(self, attributes={}, permissions=permissions)
 
 
 class RelationSubcomponent(Edge):
@@ -94,11 +94,11 @@ class RelationSubcomponent(Edge):
         Edge.__init__(self=self, id=id,
                       inVertex=inVertex, outVertex=outVertex)
 
-    def add(self):
+    def add(self, permissions=None):
         """Add this relation to the serverside.
         """
 
-        Edge.add(self, attributes={})
+        Edge.add(self, attributes={}, permissions=permissions)
 
 
 class RelationPropertyType(Edge):
@@ -117,11 +117,11 @@ class RelationPropertyType(Edge):
             inVertex=inVertex, outVertex=outVertex
         )
 
-    def add(self):
+    def add(self, permissions=None):
         """Add this relation to the serverside.
         """
 
-        Edge.add(self, attributes={})
+        Edge.add(self, attributes={}, permissions=permissions)
 
 
 class RelationPropertyAllowedType(Edge):
@@ -140,11 +140,11 @@ class RelationPropertyAllowedType(Edge):
             inVertex=inVertex, outVertex=outVertex
         )
 
-    def add(self):
+    def add(self, permissions):
         """Add this relation to the serverside.
         """
 
-        Edge.add(self, attributes={})
+        Edge.add(self, attributes={}, permissions=permissions)
 
 
 class RelationFlagComponent(Edge):
@@ -163,10 +163,10 @@ class RelationFlagComponent(Edge):
             inVertex=inVertex, outVertex=outVertex
         )
 
-    def add(self):
+    def add(self, permissions=None):
         """Add this relation to the serverside."""
 
-        Edge.add(self, attributes={})
+        Edge.add(self, attributes={}, permissions=permissions)
 
 
 class RelationFlagType(Edge):
@@ -185,10 +185,10 @@ class RelationFlagType(Edge):
             inVertex=inVertex, outVertex=outVertex
         )
 
-    def add(self):
+    def add(self, permissions=None):
         """Add this relation to the serverside."""
 
-        Edge.add(self, attributes={})
+        Edge.add(self, attributes={}, permissions=permissions)
 
 
 class RelationFlagSeverity(Edge):
@@ -207,10 +207,29 @@ class RelationFlagSeverity(Edge):
             inVertex=inVertex, outVertex=outVertex
         )
 
-    def add(self):
+    def add(self, permissions=None):
         """Add this relation to the serverside."""
 
-        Edge.add(self, attributes={})
+        Edge.add(self, attributes={}, permissions=permissions)
+
+class RelationUserGroup(Edge):
+    """
+    Representation of a "rel_user_group" edge
+    """
+
+    category: str = "rel_user_group"
+
+    def __init__(
+        self, inVertex: Vertex, outVertex: Vertex,
+        id: int = g._VIRTUAL_ID_PLACEHOLDER
+    ):
+        Edge.__init__(self=self, id=id,
+                      inVertex=inVertex, outVertex=outVertex)
+    
+    def add(self, permissions=None):
+        """Add this relation to the serverside."""
+
+        Edge.add(self, attributes={}, permissions=permissions)
 
 
 class RelationUserAllowedGroup(Edge):
@@ -229,11 +248,10 @@ class RelationUserAllowedGroup(Edge):
             inVertex=inVertex, outVertex=outVertex
         )
 
-    def add(self):
-        """Add this relation to the serverside.
-        """
+    def add(self, permissions=None):
+        """Add this relation to the serverside."""
 
-        Edge.add(self, attributes={})
+        Edge.add(self, attributes={}, permissions=permissions)
 
 
 class RelationGroupAllowedPermission(Edge):
@@ -252,8 +270,7 @@ class RelationGroupAllowedPermission(Edge):
             inVertex=inVertex, outVertex=outVertex
         )
 
-    def add(self):
-        """Add this relation to the serverside.
-        """
+    def add(self, permissions=None):
+        """Add this relation to the serverside."""
 
-        Edge.add(self, attributes={})
+        Edge.add(self, attributes={}, permissions=permissions)

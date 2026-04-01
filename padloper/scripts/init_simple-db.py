@@ -2,7 +2,7 @@ from datetime import datetime
 import padloper as p
 
 # In this example, make a graph for a few computers connected on a network.
-p.set_user("ahincks")
+p.set_user("master")
 
 # Add/initialise component types.
 t_computer         = p.ComponentType(name="computer",
