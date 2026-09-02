@@ -3,8 +3,9 @@ FROM node:20-alpine
 # Apply available OS security updates
 RUN apk upgrade --no-cache
 
-# Keep npm itself current
-RUN npm install -g npm@latest && npm cache clean --force
+# Keep npm current within the major that supports this image's Node 20
+# (npm@latest now requires Node >= 22 and fails the build).
+RUN npm install -g npm@10 && npm cache clean --force
 
 WORKDIR /web-interface
 
@@ -23,6 +24,11 @@ ARG REACT_APP_GITHUB_CLIENT_ID
 ARG REACT_APP_BASE_PATH
 ENV REACT_APP_GITHUB_CLIENT_ID=${REACT_APP_GITHUB_CLIENT_ID}
 ENV REACT_APP_BASE_PATH=${REACT_APP_BASE_PATH:-/padloper}
+# There is no lockfile, so every build floats to the newest transitive
+# versions; the CRA ESLint plugin currently fails with "Environment key
+# jest/globals is unknown" on a fresh install. Lint is run separately
+# (`npx eslint src`), so build the bundle without it.
+ENV DISABLE_ESLINT_PLUGIN=true
 
 RUN npm install
 
