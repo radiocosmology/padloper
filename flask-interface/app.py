@@ -113,6 +113,12 @@ def _ensure_padloper_user():
 
     try:
         p.set_user(uname)
+        # Refresh the cached permissions from the DB so that edits to a
+        # user's groups, or to a group's permissions, take effect without
+        # requiring the user to log in again.
+        perms = p.User.from_db(uname).get_permissions()
+        if sorted(perms) != sorted(session.get('perms') or []):
+            session['perms'] = perms
     except Exception:
         pass
 
@@ -2279,10 +2285,29 @@ def new_user():
 
 @app.route("/api/new_usergroup", methods=['POST'])
 def new_user_group():
-    val_name = request.form.get('name')
-    val_permissions = escape(request.form.get('permissions'))
-    permissions = val_permissions.split(';') if val_permissions is not None else []
-    group = p.UserGroup(name=val_name, permissions=permissions)
+    """Create a user group.
+
+    Form fields:
+
+    name - the name of the new group
+
+    permissions - the group's permissions separated by ','. (Permission names
+    themselves contain ';', e.g. "Component;add", so ';' cannot be the
+    separator.)
+
+    :return: {'result': True}, or {'error': message} with a 4xx status.
+    """
+    val_name = (request.form.get('name') or '').strip()
+    raw = request.form.get('permissions') or ''
+    permissions = [x.strip() for x in raw.split(',') if x.strip()]
+    if not val_name:
+        return ({'error': 'Group name is required'}), 400
+    try:
+        group = p.UserGroup(name=val_name, permissions=permissions)
+    except ValueError as e:
+        return ({'error': str(e)}), 400
+    if group.in_db():
+        return ({'error': f'A group named "{val_name}" already exists'}), 409
     group.add(permissions=session.get('perms'),
               uid=session.get('user'))
     return {'result': True}
@@ -2332,9 +2357,168 @@ def new_set_user_group():
 
         return {'result': True}
 
+    except p.NotInDatabase as e:
+        return ({'error': str(e)}), 404
     except Exception as e:
         print(e)
-        return {'error': json.dumps(e, default=str)}
+        return ({'error': str(e)}), 400
+
+
+def _require_admin():
+    """Return None if the session user is an active member of the 'admin'
+    group; otherwise return the (response, status) tuple the route should
+    send back."""
+    acting = session.get('user')
+    if not acting:
+        return ({'error': 'Unauthorized'}, 401)
+    try:
+        acting_user = p.User.from_db(acting)
+        is_admin = any(getattr(gr, 'name', '') == 'admin'
+                       for gr in acting_user.get_groups())
+    except Exception:
+        is_admin = False
+    if not is_admin:
+        return ({'error': 'Forbidden: admin required to manage users '
+                          'and groups'}, 403)
+    return None
+
+
+def _active_member_count(group):
+    """Number of active users with an active membership edge to `group`."""
+    return p_global.t.V(group.id()) \
+        .bothE(p.RelationUserGroup.category).has('active', True) \
+        .otherV().has('active', True).count().next()
+
+
+@app.route("/api/remove_user_group", methods=['POST'])
+def remove_user_group():
+    """Remove a user from a user group (admin only).
+
+    Form fields:
+
+    user - the name of the user
+
+    group - the name of the group
+
+    The last remaining member of the 'admin' group cannot be removed, so that
+    the system can never be left without an administrator.
+
+    :return: {'result': True}, or {'error': message} with a 4xx/5xx status.
+    """
+    denied = _require_admin()
+    if denied:
+        return denied
+
+    val_user = (request.form.get('user') or '').strip()
+    val_group = (request.form.get('group') or '').strip()
+    if not val_user or not val_group:
+        return ({'error': 'Both user and group are required'}), 400
+
+    try:
+        user = p.User.from_db(val_user)
+        group = p.UserGroup.from_db(val_group)
+    except p.NotInDatabase as e:
+        return ({'error': str(e)}), 404
+
+    if not any(gr.id() == group.id() for gr in user.get_groups()):
+        return ({'error': f'User {val_user} is not in group '
+                          f'{val_group}'}), 404
+
+    if group.name == 'admin' and _active_member_count(group) <= 1:
+        return ({'error': 'Cannot remove the last member of the admin '
+                          'group'}), 400
+
+    try:
+        user.remove_group(group, permissions=session.get('perms'),
+                          uid=session.get('user'))
+    except p.NotInDatabase as e:
+        return ({'error': str(e)}), 404
+    except Exception as e:
+        print(e)
+        return ({'error': str(e)}), 500
+
+    return {'result': True}
+
+
+@app.route("/api/set_usergroup_permissions", methods=['POST'])
+def set_usergroup_permissions():
+    """Replace the permissions of a user group (admin only).
+
+    Form fields:
+
+    name - the name of the group
+
+    permissions - the complete new list of permissions, separated by ','
+    (permission names themselves contain ';'). An empty string removes all
+    permissions from the group.
+
+    :return: {'result': True, 'permissions': [...]}, or {'error': message}
+    with a 4xx/5xx status.
+    """
+    denied = _require_admin()
+    if denied:
+        return denied
+
+    val_name = (request.form.get('name') or '').strip()
+    raw = request.form.get('permissions') or ''
+    new_perms = [x.strip() for x in raw.split(',') if x.strip()]
+    if not val_name:
+        return ({'error': 'Group name is required'}), 400
+
+    try:
+        group = p.UserGroup.from_db(val_name)
+    except p.NotInDatabase as e:
+        return ({'error': str(e)}), 404
+
+    try:
+        group.replace_permissions(new_perms, permissions=session.get('perms'))
+    except ValueError as e:
+        return ({'error': str(e)}), 400
+    except Exception as e:
+        print(e)
+        return ({'error': str(e)}), 500
+
+    return {'result': True, 'permissions': group.permissions}
+
+
+@app.route("/api/disable_usergroup", methods=['POST'])
+def disable_usergroup():
+    """Delete a user group (admin only). The group vertex and all of its
+    membership edges are disabled, not dropped, so the history is kept.
+
+    Form fields:
+
+    name - the name of the group. The 'admin' group cannot be deleted.
+
+    :return: {'result': True}, or {'error': message} with a 4xx/5xx status.
+    """
+    denied = _require_admin()
+    if denied:
+        return denied
+
+    val_name = (request.form.get('name') or '').strip()
+    if not val_name:
+        return ({'error': 'Group name is required'}), 400
+    if val_name == 'admin':
+        return ({'error': 'The admin group cannot be deleted'}), 400
+
+    try:
+        group = p.UserGroup.from_db(val_name)
+    except p.NotInDatabase as e:
+        return ({'error': str(e)}), 404
+
+    try:
+        group.disable(permissions=session.get('perms'),
+                      uid=session.get('user'))
+    except Exception as e:
+        print(e)
+        return ({'error': str(e)}), 500
+
+    # Drop the disabled group from padloper's in-process vertex cache so that
+    # later lookups by ID do not resurrect it.
+    p_global._vertex_cache.pop(group.id(), None)
+
+    return {'result': True}
 
 
 @app.route("/api/get_permissions", methods=['GET'])
@@ -2358,7 +2542,10 @@ def get_user_list():
 @app.route("/api/get_user_groups", methods=["GET"])
 def get_user_groups():
     val_username = request.args.get('username')
-    user = p.User.from_db(val_username)
+    try:
+        user = p.User.from_db(val_username)
+    except p.NotInDatabase as e:
+        return ({'error': str(e)}), 404
     groups = user.get_groups()
     return {'result': [gr.as_dict(permissions=session.get('perms')) for gr in groups]}
 

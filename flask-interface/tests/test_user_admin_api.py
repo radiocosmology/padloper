@@ -1,0 +1,247 @@
+"""API tests for user / group administration.
+
+These run against a *scratch* JanusGraph (never the production graph): they
+create users and groups and exercise membership, permission and delete routes.
+`master` must exist as the only member of 'admin', which is what
+index_setup.groovy seeds on a fresh instance.
+
+Example, using the compose images and an isolated network::
+
+    docker network create padloper-scratch
+    docker run -d --name jg-scratch --network padloper-scratch \
+        --tmpfs /var/lib/janusgraph:size=8g \
+        -e JANUS_PROPS_TEMPLATE=berkeleyje-lucene padloper_chord-janusgraph
+    # wait for "Channel started" and for the init script to finish, then:
+    docker run --rm --network padloper-scratch -e DB_HOST=ws://jg-scratch \
+        -e PYTHONPATH=/ -e PYTHONDONTWRITEBYTECODE=1 -e SECRET_KEY=test \
+        -v $PWD/flask-interface:/flask-interface:ro -v $PWD/padloper:/padloper:ro \
+        -w /tmp padloper_chord-flask-interface \
+        python3 -m pytest -q -p no:cacheprovider /flask-interface/tests
+    docker rm -f jg-scratch && docker network rm padloper-scratch
+
+The flask app is imported the same way gunicorn does ('flask-interface.app'),
+so the repository root must be importable.
+"""
+import importlib
+import os
+import sys
+import uuid
+
+import pytest
+
+# Repository root (parent of flask-interface/), so 'flask-interface.app' and
+# 'padloper' import the same way they do under gunicorn.
+sys.path.insert(0, os.path.dirname(os.path.dirname(os.path.dirname(
+    os.path.abspath(__file__)))))
+app_module = importlib.import_module('flask-interface.app')
+app = app_module.app
+import padloper as p  # noqa: E402
+import _global as g_top  # noqa: E402
+
+SUF = uuid.uuid4().hex[:6]
+U1, U2 = f"zz_u1_{SUF}", f"zz_u2_{SUF}"
+G1 = f"zz_group_{SUF}"
+PERMS_A = ['Component;add', 'Component;connect']
+PERMS_B = ['Component;replace']
+
+
+def client_as(user, perms):
+    app.config['TESTING'] = True
+    c = app.test_client()
+    with c.session_transaction() as s:
+        s['user'] = user
+        s['perms'] = perms
+    return c
+
+
+@pytest.fixture(scope='module')
+def admin():
+    return client_as('master', sorted(p.permissions_set))
+
+
+def ok(res):
+    assert res.status_code == 200, (res.status_code, res.get_data(as_text=True))
+    data = res.get_json()
+    assert 'error' not in data, data
+    return data
+
+
+def groups_of(c, user):
+    return sorted(gr['name'] for gr in ok(c.get(f'/api/get_user_groups?username={user}'))['result'])
+
+
+def group_row(c, name):
+    rows = [gr for gr in ok(c.get('/api/get_user_group_list'))['result'] if gr['name'] == name]
+    assert len(rows) <= 1, rows
+    return rows[0] if rows else None
+
+
+def user_row(c, name):
+    rows = [u for u in ok(c.get('/api/get_user_list'))['result'] if u['name'] == name]
+    assert len(rows) <= 1, rows
+    return rows[0] if rows else None
+
+
+# --- sanity ------------------------------------------------------------------
+
+def test_module_identity():
+    # app.py's p_global must be the same module object _base uses, otherwise
+    # cache/user globals would be split across two module instances.
+    assert app_module.p_global is g_top
+
+
+def test_requires_login():
+    c = app.test_client()
+    assert c.get('/api/get_user_list').status_code == 401
+    assert c.post('/api/remove_user_group', data={'user': 'x', 'group': 'y'}).status_code == 401
+
+
+# --- setup via existing routes -------------------------------------------------
+
+def test_create_users_and_group(admin):
+    for u in (U1, U2):
+        ok(admin.post('/api/new_user', data={'username': u, 'institution': ''}))
+        assert groups_of(admin, u) == ['readonly']
+    ok(admin.post('/api/new_usergroup', data={'name': G1, 'permissions': ','.join(PERMS_A)}))
+    row = group_row(admin, G1)
+    assert row is not None and sorted(row['permissions']) == sorted(PERMS_A)
+    # Duplicate names are refused, unknown permissions are refused.
+    assert admin.post('/api/new_usergroup', data={'name': G1, 'permissions': ''}).status_code == 409
+    assert admin.post('/api/new_usergroup', data={'name': G1 + 'x', 'permissions': 'Nope;nope'}).status_code == 400
+    assert group_row(admin, G1 + 'x') is None
+
+
+def test_add_members(admin):
+    ok(admin.post('/api/new_set_usergroup', data={'user': U1, 'group': G1}))
+    ok(admin.post('/api/new_set_usergroup', data={'user': U2, 'group': G1}))
+    assert groups_of(admin, U1) == sorted([G1, 'readonly'])
+    assert groups_of(admin, U2) == sorted([G1, 'readonly'])
+
+
+def test_add_member_unknown_group_is_404(admin):
+    res = admin.post('/api/new_set_usergroup', data={'user': U1, 'group': 'zz_nope_' + SUF})
+    assert res.status_code == 404
+
+
+# --- remove from group -----------------------------------------------------------
+
+def test_remove_member(admin):
+    ok(admin.post('/api/remove_user_group', data={'user': U1, 'group': G1}))
+    assert groups_of(admin, U1) == ['readonly']
+    assert groups_of(admin, U2) == sorted([G1, 'readonly']), "other member must be unaffected"
+    # The list endpoint (get_list path) must agree with from_db.
+    assert sorted(gr['name'] for gr in user_row(admin, U1)['groups']) == ['readonly']
+    # The edge is kept but disabled, with who/when recorded.
+    uid_disabled = g_top.t.V().has('category', 'user').has('name', U1) \
+        .bothE('rel_user_group').has('active', False).values('uid_disabled').toList()
+    assert uid_disabled == ['master']
+
+
+def test_remove_member_twice_is_404(admin):
+    res = admin.post('/api/remove_user_group', data={'user': U1, 'group': G1})
+    assert res.status_code == 404
+
+
+def test_readd_member_has_no_duplicates(admin):
+    ok(admin.post('/api/new_set_usergroup', data={'user': U1, 'group': G1}))
+    assert groups_of(admin, U1) == sorted([G1, 'readonly'])
+    active_edges = g_top.t.V().has('category', 'user').has('name', U1) \
+        .bothE('rel_user_group').has('active', True).otherV().has('name', G1).count().next()
+    assert active_edges == 1
+
+
+def test_remove_missing_fields_is_400(admin):
+    assert admin.post('/api/remove_user_group', data={'user': U1}).status_code == 400
+    assert admin.post('/api/remove_user_group', data={'user': 'zz_nobody_' + SUF, 'group': G1}).status_code == 404
+
+
+# --- permissions -------------------------------------------------------------------
+
+def test_replace_permissions(admin):
+    data = ok(admin.post('/api/set_usergroup_permissions',
+                         data={'name': G1, 'permissions': ','.join(PERMS_B)}))
+    assert data['permissions'] == PERMS_B
+    assert sorted(group_row(admin, G1)['permissions']) == PERMS_B
+    # Effective permissions of a member follow the group.
+    assert sorted(ok(admin.get(f'/api/get_permissions?username={U1}'))['result']) == PERMS_B
+
+
+def test_replace_permissions_dedupes_and_validates(admin):
+    data = ok(admin.post('/api/set_usergroup_permissions',
+                         data={'name': G1, 'permissions': 'Component;add, Component;add,Flag;add'}))
+    assert data['permissions'] == ['Component;add', 'Flag;add']
+    res = admin.post('/api/set_usergroup_permissions', data={'name': G1, 'permissions': 'Nope;nope'})
+    assert res.status_code == 400
+    # A failed update must leave the previous permissions intact.
+    assert sorted(group_row(admin, G1)['permissions']) == ['Component;add', 'Flag;add']
+    assert admin.post('/api/set_usergroup_permissions',
+                      data={'name': 'zz_nope_' + SUF, 'permissions': ''}).status_code == 404
+
+
+def test_session_permissions_refresh_without_relogin(admin):
+    # U1 is a member of G1; log in as U1 with stale (empty) session perms.
+    c = client_as(U1, [])
+    ok(c.get('/api/get_user_list'))
+    with c.session_transaction() as s:
+        assert sorted(s['perms']) == ['Component;add', 'Flag;add']
+
+
+def test_clear_permissions(admin):
+    data = ok(admin.post('/api/set_usergroup_permissions', data={'name': G1, 'permissions': ''}))
+    assert data['permissions'] == []
+    assert group_row(admin, G1)['permissions'] == []
+
+
+# --- authorisation -----------------------------------------------------------------
+
+def test_non_admin_is_forbidden(admin):
+    c = client_as(U2, [])
+    assert c.post('/api/remove_user_group', data={'user': U1, 'group': G1}).status_code == 403
+    assert c.post('/api/set_usergroup_permissions', data={'name': G1, 'permissions': ''}).status_code == 403
+    assert c.post('/api/disable_usergroup', data={'name': G1}).status_code == 403
+    assert c.post('/api/new_set_usergroup', data={'user': U2, 'group': 'admin'}).status_code == 403
+    # Nothing changed.
+    assert groups_of(admin, U1) == sorted([G1, 'readonly'])
+
+
+def test_admin_group_is_protected(admin):
+    res = admin.post('/api/disable_usergroup', data={'name': 'admin'})
+    assert res.status_code == 400
+    # master is the only admin member: removing them must be refused.
+    res = admin.post('/api/remove_user_group', data={'user': 'master', 'group': 'admin'})
+    assert res.status_code == 400
+    assert 'admin' in groups_of(admin, 'master')
+
+
+def test_second_admin_can_be_removed(admin):
+    ok(admin.post('/api/new_set_usergroup', data={'user': U2, 'group': 'admin'}))
+    assert 'admin' in groups_of(admin, U2)
+    ok(admin.post('/api/remove_user_group', data={'user': U2, 'group': 'admin'}))
+    assert 'admin' not in groups_of(admin, U2)
+    assert 'admin' in groups_of(admin, 'master')
+
+
+# --- delete group ------------------------------------------------------------------
+
+def test_disable_group(admin):
+    ok(admin.post('/api/disable_usergroup', data={'name': G1}))
+    assert group_row(admin, G1) is None
+    assert groups_of(admin, U1) == ['readonly']
+    assert groups_of(admin, U2) == ['readonly']
+    # Every membership edge of the disabled group was disabled too.
+    live = g_top.t.V().has('category', 'user_group').has('name', G1).has('active', False) \
+        .bothE().has('active', True).count().next()
+    assert live == 0
+    disabled_by = g_top.t.V().has('category', 'user_group').has('name', G1).has('active', False) \
+        .values('uid_disabled').toList()
+    assert disabled_by == ['master']
+    assert admin.post('/api/disable_usergroup', data={'name': G1}).status_code == 404
+
+
+def test_group_name_can_be_reused_after_delete(admin):
+    ok(admin.post('/api/new_usergroup', data={'name': G1, 'permissions': 'Flag;add'}))
+    row = group_row(admin, G1)
+    assert row is not None and row['permissions'] == ['Flag;add']
+    assert groups_of(admin, U1) == ['readonly'], "old memberships must not carry over"
+    ok(admin.post('/api/disable_usergroup', data={'name': G1}))
+    assert group_row(admin, G1) is None

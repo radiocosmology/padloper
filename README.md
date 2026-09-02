@@ -280,9 +280,10 @@ Notes:
 - Initial admin: Running `index_setup.txt` seeds a `master` user and an `admin` user group with broad permissions. Use this account to bootstrap additional users/groups.
 - Managing users/groups:
   - Create a user via the UI (Add Users) or POST `/api/new_user` with form data `username=...`. The current model identifies users by name.
-  - Create a group via the UI (User Group Management) or POST `/api/new_usergroup` with form data `name=...` and `permissions=perm1;perm2;...`.
-  - Assign users to groups via the UI (User Management), which posts to `/api/new_set_usergroup`.
-  - Optional defaults: `padloper/scripts/init_user-groups.py` can seed Default/Protected/General groups, but is not required.
+  - Create a group via the UI (User Group Management) or POST `/api/new_usergroup` with form data `name=...` and `permissions=perm1,perm2,...` (comma-separated, since permission names themselves contain `;`).
+  - Assign users to groups via the UI (User Management), which posts to `/api/new_set_usergroup`; remove them with `/api/remove_user_group`.
+  - Edit a group's permissions with `/api/set_usergroup_permissions` (`name=...`, `permissions=perm1,perm2,...`) and delete a group with `/api/disable_usergroup`. These, like group assignment, require membership of the `admin` group.
+  - Optional defaults: `padloper/scripts/init_user-groups.py` can seed the `readonly` (no permissions; new users are added to it automatically), `Protected` (structural changes: types, versions, property types, component add/replace/disable) and `General` (day-to-day: connect, set properties, add/end flags) groups, but is not required.
 
 ## Setting up React
 
