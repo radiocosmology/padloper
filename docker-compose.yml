@@ -1,3 +1,10 @@
+# Rotate container logs; without this json-file logs grow without bound.
+x-logging: &default-logging
+  driver: json-file
+  options:
+    max-size: "20m"
+    max-file: "5"
+
 services:
   flask-interface:
     build:
@@ -15,6 +22,7 @@ services:
       padloper-network:
         ipv4_address: 172.20.0.20
     restart: unless-stopped
+    logging: *default-logging
   nginx:
     image: nginx:1.27-alpine
     container_name: nginx
@@ -29,6 +37,7 @@ services:
       padloper-network:
         ipv4_address: 172.20.0.10
     restart: unless-stopped
+    logging: *default-logging
   web-interface:
     build:
       context: .
@@ -44,6 +53,7 @@ services:
       padloper-network:
         ipv4_address: 172.20.0.21
     restart: unless-stopped
+    logging: *default-logging
   oauth-proxy-server:
     build:
       context: .
@@ -61,6 +71,7 @@ services:
       padloper-network:
         ipv4_address: 172.20.0.22
     restart: unless-stopped
+    logging: *default-logging
   cassandra:
     image: cassandra:3.11
     container_name: cassandra
@@ -72,10 +83,17 @@ services:
       - HEAP_NEWSIZE=100M
     volumes:
       - cassandra_data:/var/lib/cassandra
+    healthcheck:
+      test: ["CMD-SHELL", "cqlsh -e 'describe keyspaces' >/dev/null 2>&1 || exit 1"]
+      interval: 15s
+      timeout: 10s
+      retries: 20
+      start_period: 90s
     networks:
       padloper-network:
         ipv4_address: 172.20.0.23
     restart: unless-stopped
+    logging: *default-logging
   elasticsearch:
     image: docker.elastic.co/elasticsearch/elasticsearch:7.17.26
     container_name: elasticsearch
@@ -88,10 +106,19 @@ services:
       - "9200:9200"
     volumes:
       - es_data:/usr/share/elasticsearch/data
+    tmpfs:
+      - /tmp
+    healthcheck:
+      test: ["CMD-SHELL", "curl -fs http://localhost:9200/_cluster/health >/dev/null || exit 1"]
+      interval: 15s
+      timeout: 10s
+      retries: 20
+      start_period: 60s
     networks:
       padloper-network:
         ipv4_address: 172.20.0.24
     restart: unless-stopped
+    logging: *default-logging
   janusgraph:
     build:
       context: .
@@ -121,15 +148,24 @@ services:
       - index.search.hostname=elasticsearch
     depends_on:
       cassandra:
-        condition: service_started
+        condition: service_healthy
       elasticsearch:
-        condition: service_started
+        condition: service_healthy
+    healthcheck:
+      # Nothing listening on 8182 is exactly the failure mode seen in Aug 2026
+      # (JVM alive, server never started).
+      test: ["CMD-SHELL", "bash -c 'exec 3<>/dev/tcp/127.0.0.1/8182' || exit 1"]
+      interval: 30s
+      timeout: 10s
+      retries: 5
+      start_period: 120s
     volumes:
       - janusgraph_data:/var/lib/janusgraph
     networks:
       padloper-network:
         ipv4_address: 172.20.0.25
     restart: unless-stopped
+    logging: *default-logging
 
 volumes:
   cassandra_data:
