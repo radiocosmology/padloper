@@ -106,6 +106,12 @@ services:
       # Without this, the image falls back to JANUS_PROPS_TEMPLATE=berkeleyje-lucene
       # and the Cassandra/ES services below are not actually used.
       - JANUS_PROPS_TEMPLATE=cql-es
+      # This host reboots nightly; Cassandra can die before JanusGraph has
+      # deregistered its instance id. The id is deterministic here (fixed IP,
+      # PID 1, fixed hostname), so a stale record would otherwise block every
+      # later start with "same instance id is already open" (Aug 2026 outage).
+      # The entrypoint writes janusgraph.-prefixed vars into janusgraph.properties.
+      - janusgraph.graph.replace-instance-if-exists=true
       # The values below are already in the properties file but kept here for
       # discoverability. They are *not* applied as env overrides because the
       # JanusGraph entrypoint only honors env vars prefixed with `janusgraph.`.
