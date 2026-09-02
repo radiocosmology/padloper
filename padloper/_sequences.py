@@ -13,7 +13,6 @@ import _global as g
 from _exceptions import *
 from _base import (strictraise, Edge, Timestamp, Vertex, VertexAttr,
                    _parse_time, authenticated)
-from _permissions import Permission, check_permission
 from _component_nodes import ComponentType
 from _edges import RelationComponentSequence
 

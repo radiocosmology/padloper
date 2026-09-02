@@ -16,7 +16,6 @@ from _edges import RelationVersionAllowedType, RelationVersion,\
                    RelationComponentType, RelationSubcomponent,\
                    RelationProperty, RelationPropertyType,\
                    RelationFlagComponent, RelationConnection
-from _permissions import Permission, check_permission
 
 
 class ComponentType(Vertex):

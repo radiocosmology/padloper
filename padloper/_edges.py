@@ -91,10 +91,10 @@ class RelationComponentSequence(Edge):
                  id: int = g._VIRTUAL_ID_PLACEHOLDER):
         super().__init__(id=id, inVertex=inVertex, outVertex=outVertex)
 
-    def add(self):
+    def add(self, permissions=None):
         """Add this relation to the serverside.
         """
-        Edge.add(self, attributes={})
+        Edge.add(self, attributes={}, permissions=permissions)
 
 
 class RelationSubcomponent(Edge):

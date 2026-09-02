@@ -25,6 +25,10 @@ PROTECTED_PERMISSIONS = [
     'FlagSeverity;add',
     'FlagSeverity;replace',
     'Flag;replace',
+    # Component sequences (naming schemes for new components)
+    'ComponentSequence;add',
+    'ComponentSequence;update',
+    'ComponentSequence;delete',
 ]
 
 GENERAL_PERMISSIONS = [

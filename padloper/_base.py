@@ -116,6 +116,11 @@ permissions_set = {
     'User;add',
     'User;add_group',
     'UserGroup;add',
+
+    # Component sequences:
+    'ComponentSequence;add',
+    'ComponentSequence;update',
+    'ComponentSequence;delete',
 }
 
 def check_permission(permission, class_name, method_name):

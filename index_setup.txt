@@ -130,6 +130,9 @@ g.addV().property("category", "user_group").property("time_added", 1)\
         .property("permissions", "User;add")\
         .property("permissions", "User;add_group")\
         .property("permissions", "UserGroup;add")\
+        .property("permissions", "ComponentSequence;add")\
+        .property("permissions", "ComponentSequence;update")\
+        .property("permissions", "ComponentSequence;delete")\
         .next()
 group = g.V().has("category", "user_group").has("name", "admin").next()
 g.V(group).addE("rel_user_group").to(user)\

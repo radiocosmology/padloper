@@ -21,7 +21,7 @@ import padloper as p
 import _global as p_global
 import json
 import os
-from datetime import datetime
+from datetime import datetime, timedelta
 from urllib.parse import unquote
 from dotenv import load_dotenv
 
@@ -39,6 +39,19 @@ PROXY_SERVER_URL = os.getenv('PROXY_SERVER_URL', 'http://oauth-proxy-server:4000
 app.config["SESSION_TYPE"] = "filesystem"
 # Prefer SECRET_KEY, fallback to FLASK_SECRET_KEY, finally a dev default
 app.config["SECRET_KEY"] = os.getenv("SECRET_KEY", os.getenv("FLASK_SECRET_KEY", "change-me"))
+
+# Session cookie hardening. The app is served over HTTPS at the reverse proxy,
+# so the cookie is marked Secure; set SESSION_COOKIE_SECURE=false for a
+# plain-HTTP development setup (browsers exempt http://localhost anyway).
+# SameSite=Lax stops cross-site POSTs from carrying the session (CSRF) while
+# still allowing the OAuth redirect back into the app.
+app.config["SESSION_COOKIE_SAMESITE"] = "Lax"
+app.config["SESSION_COOKIE_SECURE"] = os.getenv(
+    "SESSION_COOKIE_SECURE", "true").lower() in ("1", "true", "yes")
+app.config["SESSION_COOKIE_HTTPONLY"] = True
+# A signed session cookie is rejected this long after it was last written.
+# (The UI re-establishes the session from the stored GitHub token on load.)
+app.config["PERMANENT_SESSION_LIFETIME"] = timedelta(hours=24)
 
 #CONTINUE HERE: test user authentication.
 def tmp_timestamp(t, uid, comments):
@@ -2167,121 +2180,6 @@ def get_flag_severity_list():
 
     return {"result": [fs.as_dict(permissions=session.get('perms')) \
                        for fs in flag_severities]}
-
-
-@app.route("/api/set_permission", methods=['POST'])
-def set_permission():
-    """Given the permission name and comments associated with the permission,
-    set a permission to the serverside.
-
-    The URL parameters are:
-
-    name - the name of the component.
-
-    comment - comments associated with the permission.
-
-    :return: A dictionary with a key 'result' of corresponding value True
-    :rtype: dict
-    """
-    # val_name = escape(request.args.get('name'))
-    # val_comment = escape(request.args.get('comment'))
-
-    val_name = request.form.get('name')
-    val_comment = request.form.get('comment')
-
-    # Need to initialize an instance of a component first.
-    permission = p.Permission(val_name, val_comment)
-
-    permission.add(permissions=session.get('perms'), uid=session.get('user'))
-
-    return {'result': True}
-
-
-@app.route("/api/set_user_group", methods=['POST'])
-def set_user_group():
-    """Given the name of the group, comments associated with the group and the list of permissions attached to the group, set a user group to the serverside.
-
-    The URL parameters are:
-
-    name - The name of the user group.
-
-    comment - Comments associated with the user group.
-
-    permission - List of allowed permissions
-
-    :return: A dictionary with a key 'result' of corresponding value True
-    :rtype: dict
-    """
-
-    # val_name = escape(request.args.get('name'))
-    # val_comment = escape(request.args.get('comment'))
-    val_name = request.form.get('name')
-    val_comment = request.form.get('comment')
-    # A list of allowed permissions.
-    # val_permission = escape(request.args.get('permission')).split(';')
-    val_permission = request.form.get('permission').split(';')
-
-    allowed_list = []
-    # Query the database and return a list of Permission instances based on
-    # permission name.
-    for name in val_permission:
-        allowed_list.append(p.Permission.from_db(name))
-
-    user_group = p.UserGroup(val_name, val_comment, allowed_list)
-
-    # print(f"user_group: {user_group}")
-
-    user_group.add(permissions=session.get('perms'), uid=session.get('user'))
-
-    return {'result': True}
-
-
-@app.route("/api/set_user", methods=['POST'])
-def set_user():
-    """Given username, password, institution and the list of allowed user
-    group,set a user to the serverside.
-
-    The URL parameters are:
-
-    uname - The username associated with the user.
-
-    pwd_hash - The hashed and salted password.
-
-    institution - Name of the institution.
-
-    :return: A dictionary with a key 'result' of corresponding value True
-    :rtype: dict
-    """
-
-    # val_uname = escape(request.args.get('uname'))
-    # val_pwd_hash = escape(request.args.get('pwd'))
-    # val_institution = escape(request.args.get('institution'))
-    # val_user_group = ['']
-    # print(escape(request.args.get('user_group')))
-    # if escape(request.args.get('user_group')) != None:
-    #     val_user_group = escape(request.args.get('user_group')).split(';')
-    val_uname = request.form.get('uname')
-    val_pwd_hash = request.form.get('pwd')
-    val_institution = request.form.get('institution')
-    if request.form.get('user_group'):
-        val_user_group = request.form.get('user_group').split(';')
-    else:
-        val_user_group = ['']
-
-    print(val_user_group)
-
-    allowed_list = []
-
-    if val_user_group != ['']:
-        for name in val_user_group:
-            allowed_list.append(p.UserGroup.from_db(name))
-        user = p.User(val_uname, val_pwd_hash, val_institution, allowed_list)
-    else:
-        user = p.User(val_uname, val_pwd_hash, val_institution)
-
-    user.add(permissions=session.get('perms'), uid=session.get('user'))
-
-    return {'result': True}
 
 
 @app.route("/api/new_user", methods=['POST'])

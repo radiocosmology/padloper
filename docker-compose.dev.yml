@@ -2,6 +2,9 @@ services:
   flask-interface:
     build:
       dockerfile: flask-interface/Dockerfile.flask_interface.dev
+    environment:
+      # The dev stack is plain HTTP, so the session cookie cannot be Secure.
+      SESSION_COOKIE_SECURE: "false"
     volumes:
       - ./flask-interface:/flask-interface
       - ./padloper:/padloper

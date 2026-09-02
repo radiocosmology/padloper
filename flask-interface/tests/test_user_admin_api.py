@@ -314,3 +314,23 @@ def test_reactivate_user():
     # Their session works again.
     ok(client_as(U2, []).get('/api/get_user_list'))
     ok(admin.post('/api/disable_usergroup', data={'name': G1}))
+
+
+# --- component sequences are permission-gated ----------------------------------
+
+def test_sequences_require_permission():
+    admin = client_as('master', [])
+    ct = {'name': 'zz_type_' + SUF, 'comments': ''}
+    ok(admin.post('/api/set_component_type', query_string=ct, data=ct))
+    seq = {'name': 'zz_seq_' + SUF, 'component_type': 'zz_type_' + SUF, 'format': 'ZZ-{}', 'increment': 'true', 'next_seq': '1'}
+    # A read-only user is refused (the route reports errors in the body).
+    c1 = client_as(U1, [])
+    res = c1.post('/api/set_sequence', query_string=seq)
+    assert 'error' in res.get_json() and 'permissions' in res.get_json()['error']
+    # The seeded admin group predates these permissions; grant them, then it works.
+    perms = group_row(admin, 'admin')['permissions'] + ['ComponentSequence;add', 'ComponentSequence;update', 'ComponentSequence;delete']
+    ok(admin.post('/api/set_usergroup_permissions', data={'name': 'admin', 'permissions': ','.join(perms)}))
+    ok(admin.post('/api/set_sequence', query_string=seq))
+    res = c1.post(f"/api/delete_sequence/{seq['name']}")
+    assert 'error' in res.get_json()
+    ok(admin.post(f"/api/delete_sequence/{seq['name']}"))

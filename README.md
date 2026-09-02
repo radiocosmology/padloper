@@ -266,6 +266,7 @@ Copy `.env.template` to `.env` and set values as needed:
 
 Notes:
 - `.env` is ignored by git; do not commit secrets.
+- The session cookie is `Secure` and `SameSite=Lax` by default. Set `SESSION_COOKIE_SECURE=false` for a plain-HTTP deployment (the dev compose file does this); browsers exempt `http://localhost`.
 - When running via Docker Compose, the `.env` file at the repository root is injected into the `flask-interface` and `oauth-proxy-server` services automatically, and is also used for build-time args for the web interface. Compose maps `GITHUB_OAUTH_CLIENT_ID` → the proxy's `CLIENT_ID` and the web build's `REACT_APP_GITHUB_CLIENT_ID` for you.
 - When running locally, the backend loads `.env` via `python-dotenv`, **but the `oauth-proxy-server` and the React dev server do not**. For a by-hand run you must pass their env vars directly (note the different names):
   - OAuth proxy: `CLIENT_ID` and `CLIENT_SECRET` (the values of `GITHUB_OAUTH_CLIENT_ID` / `_SECRET`).
