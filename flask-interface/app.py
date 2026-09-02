@@ -10,6 +10,7 @@ from flask_session import Session
 import requests
 #from flask.scaffold import F
 from gremlin_python.process.traversal import TextP
+from gremlin_python.process.graph_traversal import __
 from markupsafe import escape
 import time
 import padloper as p
@@ -86,6 +87,15 @@ def parse_filters(filtstr, attrs, funcs):
 # def get_component_by_id(id):
 #     return str(Component.from_id(escape(id)))
 
+def _user_is_deactivated(name):
+    """Whether a user vertex with this name exists but has been disabled."""
+    try:
+        return p_global.t.V().has('category', p.User.category) \
+            .has('name', name).has('active', False).count().next() > 0
+    except Exception:
+        return False
+
+
 def set_perms(username):
     """ Get user permissions from the database, and set as a sessions variable.
     """
@@ -102,10 +112,15 @@ def set_perms(username):
 
 @app.before_request
 def _ensure_padloper_user():
-    """Require a logged-in session for all routes except login."""
+    """Require a logged-in session for an active user on all routes except
+    login."""
     # Allow the login endpoint without a session
     if request.path == '/api/login':
         return
+
+    # padloper keeps the acting user in a module global; never let the
+    # previous request's identity carry over into this one.
+    p_global._user = None
 
     uname = session.get('user')
     if not uname:
@@ -113,14 +128,18 @@ def _ensure_padloper_user():
 
     try:
         p.set_user(uname)
-        # Refresh the cached permissions from the DB so that edits to a
-        # user's groups, or to a group's permissions, take effect without
-        # requiring the user to log in again.
-        perms = p.User.from_db(uname).get_permissions()
-        if sorted(perms) != sorted(session.get('perms') or []):
-            session['perms'] = perms
     except Exception:
-        pass
+        # The account has been deactivated or removed since login: end the
+        # session rather than proceeding with a stale identity.
+        session.clear()
+        return ({'error': 'Your account has been deactivated or removed. '
+                          'Please contact an administrator.'}), 401
+
+    # Refresh the cached permissions from the DB so that edits to a user's
+    # groups, or to a group's permissions, take effect without a re-login.
+    perms = p_global._user.get_permissions()
+    if sorted(perms) != sorted(session.get('perms') or []):
+        session['perms'] = perms
 
 
 @app.route("/api/login", methods=['POST'])
@@ -155,6 +174,9 @@ def login():
                 try:
                     user_obj = p.User.from_db(username)
                 except Exception:
+                    if _user_is_deactivated(username):
+                        return ({'error': 'This account has been deactivated. '
+                                          'Please contact an administrator.'}), 403
                     # Only allow auto-creation when no users exist yet.
                     existing_users = p.User.get_list()
                     if len(existing_users) > 0:
@@ -2521,6 +2543,87 @@ def disable_usergroup():
     return {'result': True}
 
 
+@app.route("/api/disable_user", methods=['POST'])
+def disable_user():
+    """Deactivate a user (admin only). Form field: username.
+
+    The user vertex and all of its membership edges are disabled (kept for
+    history). Their next request ends their session, and they can no longer
+    log in until reactivated. You cannot deactivate yourself, nor the last
+    member of the admin group.
+    """
+    denied = _require_admin()
+    if denied:
+        return denied
+
+    val_name = (request.form.get('username') or '').strip()
+    if not val_name:
+        return ({'error': 'Username is required'}), 400
+    if val_name == session.get('user'):
+        return ({'error': 'You cannot deactivate your own account'}), 400
+
+    try:
+        user = p.User.from_db(val_name)
+    except p.NotInDatabase as e:
+        return ({'error': str(e)}), 404
+
+    admin_groups = [gr for gr in user.get_groups() if gr.name == 'admin']
+    if admin_groups and _active_member_count(admin_groups[0]) <= 1:
+        return ({'error': 'Cannot deactivate the last member of the admin '
+                          'group'}), 400
+
+    try:
+        user.disable(permissions=session.get('perms'),
+                     uid=session.get('user'))
+    except Exception as e:
+        print(e)
+        return ({'error': str(e)}), 500
+
+    p_global._vertex_cache.pop(user.id(), None)
+    return {'result': True}
+
+
+@app.route("/api/enable_user", methods=['POST'])
+def enable_user():
+    """Reactivate a deactivated user (admin only). Form field: username.
+
+    Memberships ended by the deactivation stay ended; the user comes back in
+    the default `readonly` group, like a newly created user.
+    """
+    denied = _require_admin()
+    if denied:
+        return denied
+
+    val_name = (request.form.get('username') or '').strip()
+    if not val_name:
+        return ({'error': 'Username is required'}), 400
+
+    try:
+        user = p.User.reactivate(val_name)
+    except p.AlreadyInDatabase as e:
+        return ({'error': str(e)}), 409
+    except p.NotInDatabase as e:
+        return ({'error': str(e)}), 404
+    except Exception as e:
+        print(e)
+        return ({'error': str(e)}), 500
+
+    try:
+        default_group = p.UserGroup.from_db('readonly')
+    except p.NotInDatabase:
+        default_group = p.UserGroup(name='readonly', permissions=[])
+        default_group.add(permissions=session.get('perms'),
+                          uid=session.get('user'))
+    try:
+        user.add_group(default_group, permissions=session.get('perms'))
+    except Exception as e:
+        print(e)
+        return ({'error': f'User reactivated but could not be added to '
+                          f'the readonly group: {e}'}), 500
+
+    return {'result': True}
+
+
 @app.route("/api/get_permissions", methods=['GET'])
 def get_permissions():
     val_username = request.args.get('username')
@@ -2533,11 +2636,27 @@ def get_permissions():
 
 @app.route("/api/get_user_list", methods=["GET"])
 def get_user_list():
-    # pass
+    """List active users; with `include_disabled=1`, deactivated users are
+    appended with `active: false` and their former groups omitted."""
     users = p.User.get_list()
-    # return {"result": [c.as_dict(bare=True) for c in components]}
-    # return {'result': [p.User.as_dict(u) for u in users]}
-    return {'result': [p.User.as_dict(u, permissions=session.get('perms')) for u in users]}
+    result = [p.User.as_dict(u, permissions=session.get('perms'))
+              for u in users]
+    if request.args.get('include_disabled') in ('1', 'true'):
+        seen = {u['name'] for u in result}
+        rows = p_global.t.V().has('category', p.User.category) \
+            .has('active', False) \
+            .project('name', 'time_added', 'uid_added', 'time_disabled',
+                     'uid_disabled') \
+            .by('name').by('time_added').by('uid_added').by('time_disabled') \
+            .by(__.coalesce(__.values('uid_disabled'), __.constant(''))) \
+            .toList()
+        for r in rows:
+            if r['name'] in seen:
+                continue
+            seen.add(r['name'])
+            r.update({'active': False, 'groups': [], 'replacement': 0})
+            result.append(r)
+    return {'result': result}
 
 @app.route("/api/get_user_groups", methods=["GET"])
 def get_user_groups():

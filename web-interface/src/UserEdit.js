@@ -1,5 +1,5 @@
 import React, { useCallback, useEffect, useState } from 'react';
-import { Link as RouterLink, useParams } from 'react-router-dom';
+import { Link as RouterLink, useNavigate, useParams } from 'react-router-dom';
 import {
     Alert, Autocomplete, Box, Button, Chip, CircularProgress, Paper, Stack,
     Table, TableBody, TableCell, TableContainer, TableHead, TableRow,
@@ -16,6 +16,7 @@ import { ADMIN_GROUP, groupEditPath, sortByName } from './userAdminUtils.js';
  */
 function UserEditPage() {
     const { name } = useParams();
+    const navigate = useNavigate();
     const [groups, setGroups] = useState([]);        // groups the user is in
     const [allGroups, setAllGroups] = useState([]);  // every group
     const [loaded, setLoaded] = useState(false);
@@ -23,6 +24,7 @@ function UserEditPage() {
     const [notice, setNotice] = useState(null);
     const [toAdd, setToAdd] = useState([]);
     const [removing, setRemoving] = useState(null);  // group awaiting confirm
+    const [confirmingDeactivate, setConfirmingDeactivate] = useState(false);
     const [busy, setBusy] = useState(false);
 
     const load = useCallback(async () => {
@@ -82,6 +84,19 @@ function UserEditPage() {
         setToAdd([]);
         await load();
         setBusy(false);
+    };
+
+    const confirmDeactivate = async () => {
+        setBusy(true);
+        setError(null);
+        try {
+            await postForm('/api/disable_user', { username: name });
+            navigate('/manage/users');
+        } catch (err) {
+            setError(err.message);
+            setConfirmingDeactivate(false);
+            setBusy(false);
+        }
     };
 
     return (
@@ -195,8 +210,38 @@ function UserEditPage() {
                                 ))}
                             </Box>
                         )}
-                    </Box>                </Stack>
+                    </Box>
+
+                    <Box>
+                        <Typography variant="h6" component="h2" sx={{ mb: 1 }}>
+                            Deactivate user
+                        </Typography>
+                        <Typography color="text.secondary" sx={{ mb: 1 }}>
+                            A deactivated user is signed out, cannot log in, and
+                            loses all group memberships. They can be reactivated
+                            later from the user list.
+                        </Typography>
+                        <Button
+                            variant="outlined"
+                            color="error"
+                            disabled={busy}
+                            onClick={() => setConfirmingDeactivate(true)}
+                        >
+                            Deactivate this user
+                        </Button>
+                    </Box>
+                </Stack>
             )}
+
+            <ConfirmDialog
+                open={confirmingDeactivate}
+                title="Deactivate user?"
+                message={`Deactivate ${name}? They will be signed out, unable to log in, and removed from all groups until an admin reactivates them.`}
+                confirmLabel="Deactivate"
+                busy={busy}
+                onConfirm={confirmDeactivate}
+                onClose={() => setConfirmingDeactivate(false)}
+            />
 
             <ConfirmDialog
                 open={removing !== null}

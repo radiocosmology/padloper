@@ -83,6 +83,32 @@ describe('UserManagementPage', () => {
         expect(screen.getByRole('link', { name: 'carol' })).toBeInTheDocument();
     });
 
+    test('shows deactivated users on demand and reactivates after confirmation', async () => {
+        const posts = mockApi();
+        const disabled = { name: 'dave', active: false, uid_disabled: 'alice', groups: [] };
+        const base = global.fetch;
+        global.fetch = jest.fn((url, init) => {
+            if (String(url).includes('include_disabled=1') && !(init && init.method === 'POST')) {
+                return jsonResponse({ result: [...USERS, disabled] });
+            }
+            return base(url, init);
+        });
+        renderAt('/manage/users', <Route path="/manage/users" element={<UserManagementPage />} />);
+        await screen.findByRole('link', { name: 'alice' });
+        expect(screen.queryByText('dave')).not.toBeInTheDocument();
+
+        userEvent.click(screen.getByLabelText('Show deactivated users'));
+        expect(await screen.findByText('dave')).toBeInTheDocument();
+        expect(screen.getByText('Deactivated by alice')).toBeInTheDocument();
+        expect(screen.queryByRole('link', { name: 'dave' })).not.toBeInTheDocument();
+
+        userEvent.click(screen.getByRole('button', { name: 'Reactivate' }));
+        userEvent.click(dialogButton('Reactivate'));
+        await waitFor(() => expect(posts).toHaveLength(1));
+        expect(posts[0]).toEqual({ url: '/padloper/api/enable_user', body: { username: 'dave' } });
+        expect(await screen.findByText(/Reactivated dave/)).toBeInTheDocument();
+    });
+
     test('shows the API error when the list cannot be loaded', async () => {
         global.fetch = jest.fn(() => jsonResponse({ error: 'Authentication required' }, 401));
         renderAt('/manage/users', <Route path="/manage/users" element={<UserManagementPage />} />);
@@ -126,6 +152,25 @@ describe('UserEditPage', () => {
         userEvent.click(await screen.findByRole('button', { name: 'Remove' }));
         userEvent.click(dialogButton('Remove'));
         expect(await screen.findByText('Cannot remove the last member of the admin group')).toBeInTheDocument();
+    });
+
+    test('deactivates a user after confirmation and returns to the list', async () => {
+        const posts = mockApi({ userGroups: { alice: [OPS] } });
+        render(
+            <MemoryRouter initialEntries={['/manage/user/alice']}>
+                <Routes>
+                    {route}
+                    <Route path="/manage/users" element={<div>USER LIST</div>} />
+                </Routes>
+            </MemoryRouter>
+        );
+        await screen.findByRole('link', { name: 'ops' });
+        userEvent.click(screen.getByRole('button', { name: 'Deactivate this user' }));
+        expect(screen.getByText('Deactivate user?')).toBeInTheDocument();
+        userEvent.click(dialogButton('Deactivate'));
+        await waitFor(() => expect(posts).toHaveLength(1));
+        expect(posts[0]).toEqual({ url: '/padloper/api/disable_user', body: { username: 'alice' } });
+        expect(await screen.findByText('USER LIST')).toBeInTheDocument();
     });
 
     test('reports an unknown user', async () => {

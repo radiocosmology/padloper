@@ -282,6 +282,7 @@ Notes:
   - Create a user via the UI (Add Users) or POST `/api/new_user` with form data `username=...`. The current model identifies users by name.
   - Create a group via the UI (User Group Management) or POST `/api/new_usergroup` with form data `name=...` and `permissions=perm1,perm2,...` (comma-separated, since permission names themselves contain `;`).
   - Assign users to groups via the UI (User Management), which posts to `/api/new_set_usergroup`; remove them with `/api/remove_user_group`.
+  - Deactivate a user via the UI (Edit user, "Deactivate this user") or POST `/api/disable_user` (`username=...`): they are signed out on their next request, cannot log in, and lose all group memberships. Reactivate from the user list ("Show deactivated users") or POST `/api/enable_user`; they come back in `readonly` only. Admin only; you cannot deactivate yourself or the last admin.
   - Edit a group's permissions with `/api/set_usergroup_permissions` (`name=...`, `permissions=perm1,perm2,...`) and delete a group with `/api/disable_usergroup`. These, like group assignment, require membership of the `admin` group.
   - Optional defaults: `padloper/scripts/init_user-groups.py` can seed the `readonly` (no permissions; new users are added to it automatically), `Protected` (structural changes: types, versions, property types, component add/replace/disable) and `General` (day-to-day: connect, set properties, add/end flags) groups, but is not required.
 

@@ -245,3 +245,72 @@ def test_group_name_can_be_reused_after_delete(admin):
     assert groups_of(admin, U1) == ['readonly'], "old memberships must not carry over"
     ok(admin.post('/api/disable_usergroup', data={'name': G1}))
     assert group_row(admin, G1) is None
+
+
+# --- deactivate / reactivate -----------------------------------------------------
+
+def test_deactivate_user(admin):
+    # U2 is active and in readonly; put them in a group first so we can check
+    # that reactivation does not restore it.
+    ok(admin.post('/api/new_usergroup', data={'name': G1, 'permissions': ''}))
+    ok(admin.post('/api/new_set_usergroup', data={'user': U2, 'group': G1}))
+    assert groups_of(admin, U2) == sorted([G1, 'readonly'])
+
+    # A logged-in session for U2 works before, and is ended after.
+    c2 = client_as(U2, [])
+    ok(c2.get('/api/get_user_list'))
+
+    ok(admin.post('/api/disable_user', data={'username': U2}))
+    assert user_row(admin, U2) is None, "deactivated users leave the default list"
+    res = c2.get('/api/get_user_list')
+    assert res.status_code == 401 and 'deactivated' in res.get_json()['error']
+    with c2.session_transaction() as sess:
+        assert 'user' not in sess, "the stale session must be cleared"
+    assert app_module._user_is_deactivated(U2) is True
+    assert app_module._user_is_deactivated(U1) is False
+
+    rows = [u for u in ok(admin.get('/api/get_user_list?include_disabled=1'))['result'] if u['name'] == U2]
+    assert len(rows) == 1 and rows[0]['active'] is False and rows[0]['uid_disabled'] == 'master'
+    assert rows[0]['groups'] == []
+    # Membership edges were ended too.
+    live = g_top.t.V().has('category', 'user').has('name', U2).has('active', False) \
+        .bothE('rel_user_group').has('active', True).count().next()
+    assert live == 0
+    assert admin.post('/api/disable_user', data={'username': U2}).status_code == 404
+
+
+def test_deactivate_guards(admin):
+    assert admin.post('/api/disable_user', data={'username': 'master'}).status_code == 400, "not yourself"
+    assert admin.post('/api/disable_user', data={'username': ''}).status_code == 400
+    assert admin.post('/api/disable_user', data={'username': 'zz_nobody_' + SUF}).status_code == 404
+    c1 = client_as(U1, [])
+    assert c1.post('/api/disable_user', data={'username': 'master'}).status_code == 403
+    assert c1.post('/api/enable_user', data={'username': U2}).status_code == 403
+    # Deactivating the only other admin is fine; deactivating the last one is not.
+    ok(admin.post('/api/new_set_usergroup', data={'user': U1, 'group': 'admin'}))
+    c1 = client_as(U1, [])
+    assert c1.post('/api/disable_user', data={'username': 'master'}).status_code == 200
+    # master is now deactivated and U1 is the last admin; a fresh master session is dead.
+    assert admin.get('/api/get_user_list').status_code == 401
+    assert c1.post('/api/disable_user', data={'username': U1}).status_code == 400, "not yourself"
+    # Reactivate master via U1, give admin back, and leave master as the only
+    # admin again so later tests (and reruns) see the seeded state.
+    ok(c1.post('/api/enable_user', data={'username': 'master'}))
+    ok(c1.post('/api/new_set_usergroup', data={'user': 'master', 'group': 'admin'}))
+    ok(c1.post('/api/remove_user_group', data={'user': U1, 'group': 'admin'}))
+    assert 'admin' not in groups_of(client_as('master', []), U1)
+
+
+def test_reactivate_user():
+    admin = client_as('master', [])
+    ok(admin.post('/api/enable_user', data={'username': U2}))
+    assert groups_of(admin, U2) == ['readonly'], "comes back in readonly only"
+    row = user_row(admin, U2)
+    assert row is not None and row['active'] is True and row['time_disabled'] == -1
+    assert g_top.t.V().has('category', 'user').has('name', U2).has('active', True) \
+        .properties('uid_disabled').count().next() == 0, "restored to the never-disabled state"
+    assert admin.post('/api/enable_user', data={'username': U2}).status_code == 409
+    assert admin.post('/api/enable_user', data={'username': 'zz_nobody_' + SUF}).status_code == 404
+    # Their session works again.
+    ok(client_as(U2, []).get('/api/get_user_list'))
+    ok(admin.post('/api/disable_usergroup', data={'name': G1}))

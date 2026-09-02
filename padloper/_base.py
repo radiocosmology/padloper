@@ -1622,6 +1622,38 @@ class User(Vertex):
         # Make unique
         return list(set(perms))
 
+    @classmethod
+    def reactivate(cls, name):
+        """Re-enable a user that was deactivated with disable(), by name.
+
+        The vertex is restored to the never-disabled state (active, no
+        uid_disabled, placeholder time_disabled). Membership edges ended by
+        the deactivation stay ended; the caller decides which groups to add
+        the user back to.
+
+        :param name: The username.
+        :type name: str
+        :return: The reactivated User.
+        :raises AlreadyInDatabase: if an active user of that name exists.
+        :raises NotInDatabase: if no deactivated user of that name exists.
+        """
+        base = g.t.V().has("category", cls.category).has("name", name)
+        if base.has("active", True).count().next() > 0:
+            raise AlreadyInDatabase(
+                f"An active user named {name} already exists.")
+        base = g.t.V().has("category", cls.category).has("name", name)
+        ids = base.has("active", False).order() \
+                  .by("time_disabled", Order.desc).id_().toList()
+        if len(ids) == 0:
+            raise NotInDatabase(f"No deactivated user named {name}.")
+        vid = ids[0]
+        g.t.V(vid).property("active", True) \
+           .property("time_disabled", g._TIMESTAMP_NO_EDITTIME_VALUE) \
+           .sideEffect(__.properties("uid_disabled").drop()).iterate()
+        # Any cached copy still says disabled; reload from the database.
+        g._vertex_cache.pop(vid, None)
+        return cls.from_db(name)
+
 
 class Permission(object):
     _permission_list = []
