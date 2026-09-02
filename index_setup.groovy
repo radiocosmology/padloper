@@ -124,3 +124,8 @@ g.V(group).addE("rel_user_group").to(user)\
           .property('category', "rel_user_group").property("time_added", 1)\
           .property("time_disabled", 2**63 - 1).property("active", true)\
           .property("replacement", 0).next()
+
+// The statements above run inside a Gremlin Server *session*, whose
+// transaction is rolled back when the console exits unless committed here.
+// (mgmt.commit() above only commits the schema changes.)
+graph.tx().commit()

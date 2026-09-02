@@ -79,7 +79,12 @@ def main():
 
     # Ensure an actor is available for write stamping and permissions.
     # 1) Set a temporary stub so Vertex.add can stamp uid/time.
-    g._user = type("_Stub", (), {"name": args.actor})()
+    #    (check_permission() treats an empty permission list as "look up the
+    #    acting user", so the stub must be able to answer get_permissions().)
+    g._user = type("_Stub", (), {
+        "name": args.actor,
+        "get_permissions": lambda self: list(p.permissions_set),
+    })()
     # 2) Ensure the actor user exists (will use the stub for stamping).
     ensure_user(args.actor)
     # 3) Now switch to a real User object so authenticated checks work.

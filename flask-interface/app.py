@@ -13,7 +13,11 @@ from gremlin_python.process.traversal import TextP
 from markupsafe import escape
 import time
 import padloper as p
-from padloper import _global as p_global
+# NB: must be `import _global`, not `from padloper import _global`. The latter
+# creates a second copy of the module (padloper._global) with its own
+# connection, user and vertex cache, distinct from the one padloper's
+# classes actually use.
+import _global as p_global
 import json
 import os
 from datetime import datetime
@@ -152,7 +156,13 @@ def login():
                                  'Please contact an administrator to create your account.'}), 403
                     try:
                         # Minimal stub for uid stamping during creation
-                        p_global._user = type("_LoginStub", (), {"name": username})()
+                        p_global._user = type("_LoginStub", (), {
+                            "name": username,
+                            # check_permission() treats an empty permission
+                            # list as "look up the acting user's permissions",
+                            # so the stub must be able to answer.
+                            "get_permissions": lambda self: list(p.permissions_set),
+                        })()
                         user_obj = p.User(name=username, groups=[])
                         user_obj.add(permissions=[])
 
