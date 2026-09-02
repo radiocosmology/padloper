@@ -24,6 +24,8 @@ import { OAuthContext, useOAuthContext } from './contexts/OAuthContext.js';
 import UserManagementPage from './UserManagement.js';
 import UserGroupManagementPage from './UserGroupManagement.js';
 import UserCreatePage from './UserCreate.js';
+import UserEditPage from './UserEdit.js';
+import UserGroupEditPage from './UserGroupEdit.js';
 import { BASE_PATH } from './paths.js';
 
 
@@ -136,6 +138,24 @@ function App() {
             path="/users"
             element={
               <UserCreatePage />
+            }
+          />
+
+          {/* Edit one user's group memberships. */}
+          <Route
+            exact={true}
+            path="/manage/user/:name"
+            element={
+              <UserEditPage />
+            }
+          />
+
+          {/* Edit one user group's permissions and members. */}
+          <Route
+            exact={true}
+            path="/manage/group/:name"
+            element={
+              <UserGroupEditPage />
             }
           />
 

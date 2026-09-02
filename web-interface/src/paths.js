@@ -32,3 +32,32 @@ export function authHeaders() {
   const token = (typeof localStorage !== 'undefined') ? localStorage.getItem('accessToken') : null;
   return token ? { 'Authorization': `Bearer ${token}` } : {};
 }
+
+// Parse a JSON response, turning HTTP errors and `{error: ...}` bodies (which a
+// few older routes return with status 200) into a thrown Error whose message
+// is fit to show to the user.
+async function parseJsonOrThrow(res) {
+  let data = null;
+  try { data = await res.json(); } catch (_) { data = null; }
+  if (!res.ok || (data && data.error)) {
+    const msg = (data && data.error) ? String(data.error)
+      : `${res.status} ${res.statusText || 'Request failed'}`;
+    throw new Error(msg);
+  }
+  return data || {};
+}
+
+// GET a JSON API endpoint under the base path.
+export async function getJson(path) {
+  const res = await fetch(withBase(path));
+  return parseJsonOrThrow(res);
+}
+
+// POST `fields` as form data to an API endpoint under the base path and
+// return the parsed JSON body.
+export async function postForm(path, fields) {
+  const formData = new FormData();
+  Object.entries(fields || {}).forEach(([key, value]) => formData.append(key, value));
+  const res = await fetch(withBase(path), { method: 'POST', body: formData });
+  return parseJsonOrThrow(res);
+}
