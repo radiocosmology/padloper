@@ -10,6 +10,44 @@ import gremlin_python.structure.graph as gremlin_graph
 from gremlin_python.driver.driver_remote_connection \
         import DriverRemoteConnection
 from gremlin_python.driver.serializer import GraphSONSerializersV3d0
+import functools
+from gremlin_python.driver import connection as _gremlin_connection
+
+
+def _patch_gremlin_connection_pool() -> None:
+    """Hand a pooled gremlinpython connection back when its write() fails.
+
+    gremlin_python.driver.client.Client.submit_async() takes a Connection out
+    of the client's pool and calls Connection.write(). If the socket is not
+    open yet, write() first calls connect(). When connect() raises (for
+    example because JanusGraph is down) the exception propagates before
+    either of the driver's two return-to-pool sites runs, so that Connection
+    is lost for good. After pool_size (8) such failures the next traversal
+    blocks forever on pool.get() and gunicorn kills the worker on timeout.
+
+    Upstream fixed the equivalent leak for server-side errors in
+    TINKERPOP-2105; the connect-failure case is still open in TINKERPOP-3114
+    (gremlinpython 3.7.3). This wrapper is that missing fix. Idempotent.
+    """
+    cls = _gremlin_connection.Connection
+    if getattr(cls, "_padloper_pool_patch", False):
+        return
+    original_write = cls.write
+
+    @functools.wraps(original_write)
+    def write(self, request_message):
+        try:
+            return original_write(self, request_message)
+        except Exception:
+            if self._pool is not None:
+                self._pool.put_nowait(self)
+            raise
+
+    cls.write = write
+    cls._padloper_pool_patch = True
+
+
+_patch_gremlin_connection_pool()
 
 _conn: DriverRemoteConnection
 
