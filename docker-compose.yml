@@ -14,6 +14,11 @@ services:
     platform: linux/amd64
     env_file:
       - .env
+    environment:
+      # Padloper is also used directly over plain HTTP on the ctc network
+      # (http://padloper...:3000), where browsers refuse a Secure cookie.
+      # Set to "true" once all access goes through the HTTPS proxy.
+      SESSION_COOKIE_SECURE: "false"
     depends_on:
       - janusgraph
     ports:
