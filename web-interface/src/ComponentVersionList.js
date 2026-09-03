@@ -2,20 +2,21 @@ import React, { useState, useEffect } from 'react';
 
 import ElementList from './ElementList.js';
 import ElementRangePanel from './ElementRangePanel.js';
-import { 
+import {
     Button,
-    } 
+    }
 from '@mui/material';
 import ComponentVersionFilter from './ComponentVersionFilter.js';
 import ComponentVersionAddButton from './ComponentVersionAddButton.js';
 import ComponentVersionReplaceButton from './ComponentVersionReplaceButton.js';
 import Authenticator from './components/Authenticator.js';
+import { withBase, requireOkJson } from './paths.js';
 
 /**
  * A MUI component that renders a list of component versions.
  */
 function ComponentVersionList() {
-    
+
     // the list of component types in objects representation
     const [elements, setElements] = useState([]);
 
@@ -44,7 +45,7 @@ function ComponentVersionList() {
     // TODO: DON'T DO IT LIKE THIS, MAKE A COMPONENT TYPE AUTOCOMPLETE INSTEAD!!
     const [componentTypes, setComponentTypes] = useState([]);
 
-    /* filters stored as 
+    /* filters stored as
         [
             {
             name: <str>,
@@ -58,7 +59,7 @@ function ComponentVersionList() {
 
     /**
      * add an empty filter to filters
-     */ 
+     */
     const addFilter = () => {
         setFilters([...filters, {
             name: "",
@@ -95,11 +96,11 @@ function ComponentVersionList() {
             setFilters(filters_copy);
         }
     }
-    
+
    /**
     * To send the filters to the URL, create a string that contains all the
     * filter information.
-    * 
+    *
     * The string is of the format
     * "<name>,<ctype_name>;...;<name>,<ctype_name>"
     * @returns Return a string containing all of the filter information
@@ -110,7 +111,7 @@ function ComponentVersionList() {
 
         if (filters.length > 0) {
 
-            // create the string 
+            // create the string
             for (let f of filters) {
                 strSoFar += `${f.name},${f.type};`;
             }
@@ -126,10 +127,10 @@ function ComponentVersionList() {
     function toggleReload() {
         setReloadBool(!reloadBool);
     }
-      
+
    /**
-    * The function that updates the list of component versions when the site is 
-    * loaded or a change of the component versions is requested 
+    * The function that updates the list of component versions when the site is
+    * loaded or a change of the component versions is requested
     * (upon state change).
     */
     useEffect(() => {
@@ -146,12 +147,17 @@ function ComponentVersionList() {
             }
 
             // query the URL with flask, and set the input.
-            fetch(input).then(
-                res => res.json()
-            ).then(data => {
+            fetch(withBase(input))
+              .then(requireOkJson)
+              .then(data => {
                 setElements(data.result);
                 setLoaded(true);
-            });
+              })
+              .catch(err => {
+                console.error('Failed to load component versions:', err);
+                setElements([]);
+                setLoaded(true);
+              });
         }
         fetchData();
     }, [
@@ -171,12 +177,16 @@ function ComponentVersionList() {
         if (filters.length > 0) {
             input += `?filters=${createFilterString()}`;
         }
-        fetch(input).then(
-            res => res.json()
-        ).then(data => {
+        fetch(withBase(input))
+          .then(requireOkJson)
+          .then(data => {
             setCount(data.result);
             setMin(0);
-        });
+          })
+          .catch(err => {
+            console.error('Failed to load component version count:', err);
+            setCount(0);
+          });
     }, [
         filters,
         reloadBool
@@ -184,7 +194,7 @@ function ComponentVersionList() {
 
     /**
      * Load all of the component types (so they can be used for the filter)
-     * 
+     *
      * TODO: THIS IS GARBAGE, WILL BE REALLY REALLY SLOW WHEN YOU HAVE A LOT
      * OF COMPONENT TYPES. INSTEAD, MAKE A COMPONENT TYPE AUTOCOMPLETE AND
      * THEN USE THEM IN THE FILTERS INSTEAD OF THIS PILE OF TRASH.
@@ -196,28 +206,32 @@ function ComponentVersionList() {
         input += `&orderBy=name`
         input += `&orderDirection=asc`
         input += `&nameSubstring=`
-        fetch(input).then(
-            res => res.json()
-        ).then(data => {
+        fetch(withBase(input))
+          .then(requireOkJson)
+          .then(data => {
             setComponentTypes(data.result);
-        });
+          })
+          .catch(err => {
+            console.error('Failed to load component types for versions:', err);
+            setComponentTypes([]);
+          });
     }, []);
 
     // the header cells of the table with their ids, labels, and whether you
     // can order by them.
     const tableHeadCells = [
         {
-            id: 'name', 
+            id: 'name',
             label: 'Component Version',
             allowOrdering: true,
         },
         {
-            id: 'type', 
+            id: 'type',
             label: 'Allowed Type',
             allowOrdering: true,
         },
         {
-            id: 'comments', 
+            id: 'comments',
             label: 'Comments',
             allowOrdering: false,
         },
@@ -235,7 +249,7 @@ function ComponentVersionList() {
         e.type.name,
         e.comments,
         <ComponentVersionReplaceButton
-        type = {e.type.name}
+        allowedType = {e.type.name}
         componentTypes={componentTypes}
         name = {e.name}
         toggleReload={toggleReload}
@@ -243,7 +257,7 @@ function ComponentVersionList() {
     ]);
 
     return (
-        <> 
+        <>
             <Authenticator />
             <ElementRangePanel
                 min={min}
@@ -263,7 +277,7 @@ function ComponentVersionList() {
                     )
                 }
                 rightColumn2 = {
-                    <ComponentVersionAddButton 
+                    <ComponentVersionAddButton
                     componentTypes={componentTypes}
                     toggleReload={toggleReload}/>
                 }

@@ -1,10 +1,15 @@
 # The following commands should be pasted into Gremlin console to set up
 # indexing when a Gremlin server is FIRST CREATED.
+#
+# IMPORTANT: Keep this file in sync with index_setup.groovy.
+# The bootstrap helper (scripts/bootstrap_graph.sh) streams this file into
+# the Gremlin console inside the JanusGraph container, after stripping
+# comment lines.
 
 # These commands add:
 # composite index on "name" for vertices: g.V().has('name', ...)
 # composite index on "category" for vertices: g.V().has('category', ...)
-# composite index for "category" THEN "name" for vertices: 
+# composite index for "category" THEN "name" for vertices:
 # 	g.V().has('category', ...).has('name', ...)
 # mixed index on "start_time" THEN "end_time" for edges:
 # 	g.E().hasLabel('connection').has('start_time', ...).has('end_time', ...)
@@ -90,8 +95,7 @@ mgmt.commit()
 g.addV().property("category", "user").property("time_added", 1)\
         .property("uid_added", "master").property("time_disabled", 2**63 - 1)\
         .property("active", true).property("replacement", 0)\
-        .property("name", "master")\
-        .next()
+        .property("name", "master").next()
 user = g.V().has("category", "user").has("name", "master").next()
 g.addV().property("category", "user_group").property("time_added", 1)\
         .property("uid_added", "master").property("time_disabled", 2**63 - 1)\
@@ -123,6 +127,12 @@ g.addV().property("category", "user_group").property("time_added", 1)\
         .property("permissions", "Flag;add")\
         .property("permissions", "Flag;replace")\
         .property("permissions", "Flag;set_end")\
+        .property("permissions", "User;add")\
+        .property("permissions", "User;add_group")\
+        .property("permissions", "UserGroup;add")\
+        .property("permissions", "ComponentSequence;add")\
+        .property("permissions", "ComponentSequence;update")\
+        .property("permissions", "ComponentSequence;delete")\
         .next()
 group = g.V().has("category", "user_group").has("name", "admin").next()
 g.V(group).addE("rel_user_group").to(user)\

@@ -46,11 +46,21 @@ if False:
     ComponentVersion("10cm", t_coax, comments="10cm coax cable length").add()
     ComponentVersion("50cm", t_coax, comments="50cm coax cable length").add()
     ComponentVersion("L", t_fibre, comments="long run between RX and TX").add()
-v_ant_a = ComponentVersion.from_db("A", t_ant)
-v_ant_b = ComponentVersion.from_db("B", t_ant)
-v_coax_10cm = ComponentVersion.from_db("10cm", t_coax)
-v_coax_50cm = ComponentVersion.from_db("50cm", t_coax)
-v_fibre_l = ComponentVersion.from_db("L", t_fibre)
+
+# Helper to fetch a ComponentVersion by name and ComponentType
+def cv_by_name_type(name, ctype):
+    matches = ComponentVersion.get_list(filters={"name": name, "type": ctype.name})
+    if len(matches) != 1:
+        raise RuntimeError(
+            f"Expected 1 ComponentVersion for name '{name}' and type '{ctype.name}', got {len(matches)}"
+        )
+    return matches[0]
+
+v_ant_a = cv_by_name_type("A", t_ant)
+v_ant_b = cv_by_name_type("B", t_ant)
+v_coax_10cm = cv_by_name_type("10cm", t_coax)
+v_coax_50cm = cv_by_name_type("50cm", t_coax)
+v_fibre_l = cv_by_name_type("L", t_fibre)
 
 if True:
     PropertyType("location", "deg", "^[\-]?\d*[.]?\d*$", 2, [t_dish],

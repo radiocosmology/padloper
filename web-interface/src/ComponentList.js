@@ -10,6 +10,7 @@ import ComponentReplaceButton from './ComponentReplaceButton.js';
 import AlertDialog from './ComponentDisableButton'
 import Authenticator from './components/Authenticator.js';
 import ErrorMessage from './ErrorMessage.js';
+import { withBase, requireOkJson } from './paths.js';
 
 /**
  * A MUI component that represents a list of components.
@@ -155,9 +156,9 @@ function ComponentList() {
             }
     
             // query the URL with flask, and set the input.
-            fetch(input).then(
-                (res) => res.json()
-            ).then((data) => {
+            fetch(withBase(input))
+            .then(requireOkJson)
+            .then((data) => {
                 if (data.result) {
                     setErrorData(null);
                     setComponents(data.result);
@@ -166,6 +167,12 @@ function ComponentList() {
                 else {
                     setErrorData(JSON.parse(data.error));
                 }
+            })
+            .catch((err) => {
+                console.error('Failed to load component list:', err);
+                setComponents([]);
+                setLoaded(true);
+                setErrorData(err.message);
             });
         }
         fetchData();
@@ -184,9 +191,9 @@ function ComponentList() {
     */
     useEffect(() => {
 
-        fetch(`/api/component_count?filters=${createFilterString()}`).then(
-            (res) => res.json()
-        ).then((data) => {
+        fetch(withBase(`/api/component_count?filters=${createFilterString()}`))
+        .then(requireOkJson)
+        .then((data) => {
             if (data.result) {
                 setErrorData(null);
                 setCount(data.result);
@@ -195,6 +202,11 @@ function ComponentList() {
             else {
                 setErrorData(data.error);
             }
+        })
+        .catch((err) => {
+            console.error('Failed to load component count:', err);
+            setCount(0);
+            setErrorData(err.message);
         });
     }, [filters,reloadBool]);
 
@@ -202,15 +214,20 @@ function ComponentList() {
     When the site is loaded, load all of the component types and versions.
     */
     useEffect(() => {
-        fetch("/api/component_types_and_versions").then(
-            (res) => res.json()
-        ).then((data) => {
+        fetch(withBase("/api/component_types_and_versions"))
+        .then(requireOkJson)
+        .then((data) => {
             if (data.result) {
                 setTypesAndVersions(data.result);
             }
             else {
                 setErrorData(data.error);
             }
+        })
+        .catch((err) => {
+            console.error('Failed to load component types/versions:', err);
+            setTypesAndVersions([]);
+            setErrorData(err.message);
         });
     }, []);
 

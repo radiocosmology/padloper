@@ -18,6 +18,7 @@ import Checkbox from '@mui/material/Checkbox';
 import ListItemText from '@mui/material/ListItemText';
 import ErrorIcon from '@mui/icons-material/Error';
 import ErrorMessage from './ErrorMessage';
+import { withBase } from './paths.js';
 
 
 const ITEM_HEIGHT = 48;
@@ -127,7 +128,7 @@ export default function FlagAddButton ({type,severities,components,toggleReload}
       input += `&comments=${property.comments}`;
       input += `&start_comments=${property.start_comment}`;
       input += `&components=${componentName.join(';')}`;
-      axios.post(input).then((response)=>{
+      axios.post(withBase(input)).then((response)=>{
         if(response.data.result){
           toggleReload() //To reload the page once the form has been submitted.
           handleClose()

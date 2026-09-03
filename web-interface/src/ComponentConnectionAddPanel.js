@@ -16,15 +16,16 @@ import ComponentAutocomplete from './ComponentAutocomplete.js';
 
 import moment from "moment";
 import ErrorMessage from './ErrorMessage.js';
+import { withBase, authHeaders, requireOkJson } from './paths.js';
 
 /**
  * A styled "panel" component, used as the background for the panel.
- * 
- * See https://mui.com/system/styled/ for details on how to make 
+ *
+ * See https://mui.com/system/styled/ for details on how to make
  * styled components.
  */
 const Panel = styled((props) => (
-    <Paper 
+    <Paper
         elevation={0}
         {...props}
         sx={{margin:-1}}
@@ -40,7 +41,7 @@ const Panel = styled((props) => (
  * each time)
  */
 const TextField = styled((props) => (
-    <MuiTextField 
+    <MuiTextField
         variant="filled"
         {...props}
     />
@@ -51,7 +52,7 @@ const TextField = styled((props) => (
  * Close button used in the panel
  */
 const CloseButton = styled((props) => (
-    <Button 
+    <Button
         style={{
             maxWidth: '40px',
             minWidth: '40px',
@@ -68,11 +69,11 @@ const CloseButton = styled((props) => (
 /**
  * The MUI component which represents a panel through which connections are
  * added between components.
- * 
- * @param {object} theme - A MUI theme object, see 
+ *
+ * @param {object} theme - A MUI theme object, see
  * https://mui.com/material-ui/customization/theming/
  * @param {function} onClose - function to call when the close button is pressed
- * @param {function(string, int, string, string)} onSet - function to call when 
+ * @param {function(string, int, string, string)} onSet - function to call when
  * setting a component connection. The parameters are of the form:
  * onSet(otherName, time, uid, comments), where otherName is the name of the
  * OTHER component you are connecting this one to, time is the Unix time when
@@ -145,27 +146,28 @@ function ComponentConnectionAddPanel(
      * Get the user data via GitHub
      */
     async function getUserData() {
-        await fetch(`${process.env.OUATH_URL || "http://localhost"}:4000/getUserData`, {
+        await fetch(withBase(`/oauth/getUserData`), {
             method: "GET",
-            headers: {
-                "Authorization": "Bearer " + localStorage.getItem('accessToken')
-            }
-            }).then((response) => {
-                return response.json();
-            }).then((data) => {
-                console.log(data);
-                setUserData(data);
-            });
-        }
+            headers: { ...authHeaders() }
+        })
+        .then(requireOkJson)
+        .then((data) => {
+            setUserData(data);
+        })
+        .catch((err) => {
+            console.error('Failed to load user data:', err);
+            setUserData({});
+        });
+    }
 
     // return the MUI component.
     return (
         <ThemeProvider theme={theme}>
             <Panel>
 
-                <Grid 
-                    container 
-                    spacing={2} 
+                <Grid
+                    container
+                    spacing={2}
                     justifyContent="space-between"
                     style={{
                         marginBottom: theme.spacing(2),
@@ -186,16 +188,16 @@ function ComponentConnectionAddPanel(
 
                 <Grid container spacing={2} justifyContent="center">
                     <Grid item>
-                        <ComponentAutocomplete 
-                            onSelect={selectOption} 
+                        <ComponentAutocomplete
+                            onSelect={selectOption}
                             excludeName={name}
                         />
                     </Grid>
 
                     {/* <Grid item>
-                        <TextField 
+                        <TextField
                             required
-                            label="User" 
+                            label="User"
                             sx={{ width: 150 }}
                             onChange={(event) => setUid(event.target.value)}
                             value={uid}
@@ -239,28 +241,28 @@ function ComponentConnectionAddPanel(
                     errorMessage={errorConnectionMessage}
                 />
 
-                <Box 
+                <Box
                     style={{
                         textAlign: "right",
                         marginTop: theme.spacing(2),
                     }}
                 >
-                    <Button 
-                        variant="contained" 
+                    <Button
+                        variant="contained"
                         size="large"
                         disableElevation
                         disabled={
-                            selectedOption === null || 
+                            selectedOption === null ||
                             uid === "" ||
-                            time === defaultTime    
+                            time === defaultTime
                         }
                         onClick={
                             async () => {
                                 setLoading(true);
                                 onSet(
-                                    selectedOption.name, 
-                                    time, 
-                                    uid, 
+                                    selectedOption.name,
+                                    time,
+                                    uid,
                                     comments
                                 )
                             }
@@ -270,7 +272,7 @@ function ComponentConnectionAddPanel(
                          * so when the panel is loading, the button
                          * is spinning.
                          */}
-                        {(loading && !errorConnectionMessage) ? 
+                        {(loading && !errorConnectionMessage) ?
                         <CircularProgress
                             size={24}
                             sx={{

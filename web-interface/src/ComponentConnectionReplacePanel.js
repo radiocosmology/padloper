@@ -16,12 +16,12 @@ import ErrorMessage from './ErrorMessage';
 
 /**
  * A styled "panel" component, used as the background for the panel.
- * 
- * See https://mui.com/system/styled/ for details on how to make 
+ *
+ * See https://mui.com/system/styled/ for details on how to make
  * styled components.
  */
 const Panel = styled((props) => (
-    <Paper 
+    <Paper
         elevation={0}
         {...props}
         sx={{marginTop:2}}
@@ -37,7 +37,7 @@ const Panel = styled((props) => (
  * each time)
  */
 const TextField = styled((props) => (
-    <MuiTextField 
+    <MuiTextField
         variant="filled"
         {...props}
     />
@@ -48,7 +48,7 @@ const TextField = styled((props) => (
  * Close button used in the panel
  */
 const CloseButton = styled((props) => (
-    <Button 
+    <Button
         style={{
             maxWidth: '40px',
             minWidth: '40px',
@@ -103,11 +103,11 @@ function TimeSetPanel ({ setTime, setComments, displayTime, start }) {
 /**
  * The MUI component which represents a panel through which connections are
  * replaced between components.
- * 
- * @param {object} theme - A MUI theme object, see 
+ *
+ * @param {object} theme - A MUI theme object, see
  * https://mui.com/material-ui/customization/theming/
  * @param {function} onClose - function to call when the close button is pressed
- * @param {function(string, int, string, string, int)} onSet - function to call when 
+ * @param {function(string, int, string, string, int)} onSet - function to call when
  * replacing a component connection. The parameters are of the form:
  * onSet(otherName, time, uid, comments), time is the Unix time when
  * the connection is being set, uid is the ID of the user setting the
@@ -156,7 +156,6 @@ function ComponentConnectionReplacePanel(
     useEffect(() => {
         setStartTime(conn.start.time);
         setEndTime(conn.end.time);
-        console.log(conn)
     }, [])
 
     // return the MUI component.
@@ -164,9 +163,9 @@ function ComponentConnectionReplacePanel(
         <ThemeProvider theme={theme}>
             <Panel>
 
-                <Grid 
-                    container 
-                    spacing={2} 
+                <Grid
+                    container
+                    spacing={2}
                     justifyContent="space-between"
                     style={{
                         marginBottom: theme.spacing(2),
@@ -185,16 +184,16 @@ function ComponentConnectionReplacePanel(
                     </Grid>
                 </Grid>
 
-                <TimeSetPanel 
-                    setComments={setComments} 
-                    setTime={setStartTime} 
+                <TimeSetPanel
+                    setComments={setComments}
+                    setTime={setStartTime}
                     displayTime={displayStartTime}
                     start={true}
                 />
 
                 {
                     conn.end.uid ?
-                    <TimeSetPanel 
+                    <TimeSetPanel
                         setComments={setComments}
                         setTime={setEndTime}
                         displayTime={displayEndTime}
@@ -211,28 +210,28 @@ function ComponentConnectionReplacePanel(
                     errorMessage={errorMessage}
                 />
 
-                <Box 
+                <Box
                     style={{
                         textAlign: "right",
                         marginTop: theme.spacing(2),
                     }}
                 >
-                    <Button 
-                        variant="contained" 
+                    <Button
+                        variant="contained"
                         size="large"
                         disableElevation
                         disabled={
                             uid === "" ||
-                            startTime === defaultTime    
+                            startTime === defaultTime
                         }
                         onClick={
                             async () => {
                                 setLoading(true);
                                 let hasEnd = conn.end.uid ? true : false;
-                                onSet( 
-                                    startTime, 
+                                onSet(
+                                    startTime,
                                     endTime,
-                                    uid, 
+                                    uid,
                                     comments,
                                     conn.start.time,
                                     hasEnd
@@ -251,7 +250,7 @@ function ComponentConnectionReplacePanel(
                          * so when the panel is loading, the button
                          * is spinning.
                          */}
-                        {(loading && !errorMessage) ? 
+                        {(loading && !errorMessage) ?
                         <CircularProgress
                             size={24}
                             sx={{

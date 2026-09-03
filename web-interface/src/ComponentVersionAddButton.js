@@ -15,6 +15,7 @@ import ErrorIcon from '@mui/icons-material/Error';
 import Button from '@mui/material/Button'
 import axios from 'axios'
 import ErrorMessage from './ErrorMessage';
+import { withBase } from './paths.js';
 
 
 export default function ComponentVersionAddButton ({componentTypes,toggleReload}) {
@@ -64,7 +65,7 @@ export default function ComponentVersionAddButton ({componentTypes,toggleReload}
       input += `?name=${componentVersion}`;
       input += `&type=${inputComponentType}`;
       input += `&comments=${comment}`;
-      axios.post(input).then((response)=>{
+      axios.post(withBase(input)).then((response)=>{
         if(response.data.result){
           toggleReload() //To reload the page once the form has been submitted.
           handleClose()

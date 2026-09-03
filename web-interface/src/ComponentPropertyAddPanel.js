@@ -19,6 +19,7 @@ import { verifyRegex } from './utility/utility.js';
 
 import moment from "moment";
 import ErrorMessage from './ErrorMessage.js';
+import { withBase, authHeaders, requireOkJson } from './paths.js';
 
 /**
  * A styled "panel" component, used as the background for the panel.
@@ -158,17 +159,19 @@ function ComponentPropertyAddPanel(
      * Get the user data via GitHub
      */
     async function getUserData() {
-        await fetch(`${process.env.OAUTH_URL || "http://localhost"}:4000/getUserData`, {
+        await fetch(withBase(`/oauth/getUserData`), {
             method: "GET",
-            headers: {
-                "Authorization": "Bearer " + localStorage.getItem('accessToken')
-            }
-            }).then((response) => {
-                return response.json();
-            }).then((data) => {
-                setUserData(data);
-            });
-        }
+            headers: { ...authHeaders() }
+        })
+        .then(requireOkJson)
+        .then((data) => {
+            setUserData(data);
+        })
+        .catch((err) => {
+            console.error('Failed to load user data:', err);
+            setUserData({});
+        });
+    }
 
     /**
      * Check whether a value matches the selected property type's regex.

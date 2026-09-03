@@ -10,6 +10,7 @@ import DeleteIcon from '@mui/icons-material/Delete';
 import DialogContentText from '@mui/material/DialogContentText';
 import CircularProgress from '@mui/material/CircularProgress';
 import ErrorMessage from './ErrorMessage';
+import { withBase, requireOkJson } from './paths.js';
 
 /*
 A MUI component representing a button for disabling.
@@ -72,9 +73,9 @@ const DisableButton = styled((props) => (
         input += `&name2=${otherName}`;
 
         return new Promise((resolve, reject) => {
-            fetch(input).then(
-                res => res.json()
-            ).then(data => {
+            fetch(withBase(input), { method: 'POST' })
+            .then(requireOkJson)
+            .then(data => {
                 if (data.result) {
                     setErrorMessage(null);
                     handleClose();
@@ -85,6 +86,12 @@ const DisableButton = styled((props) => (
                   setLoading(false);
                 }
                 resolve(data.result);
+            })
+            .catch((err) => {
+                console.error('Failed to disable subcomponent:', err);
+                setErrorMessage(err.message);
+                setLoading(false);
+                resolve(false);
             });
         });
 
@@ -125,4 +132,3 @@ const DisableButton = styled((props) => (
     </>
   );
 }
-

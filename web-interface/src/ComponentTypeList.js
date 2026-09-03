@@ -10,6 +10,7 @@ from '@mui/material';
 import ComponentTypeAddButton from './ComponentTypeAddButton'
 import ComponentTypeReplaceButton from './ComponentTypeReplaceButton.js';
 import Authenticator from './components/Authenticator.js';
+import { withBase, requireOkJson } from './paths.js';
 
 /**
  * A MUI component that renders a list of component types.
@@ -67,12 +68,17 @@ function ComponentTypeList() {
             input += `&nameSubstring=${nameSubstring}`
 
             // query the URL with flask, and set the input.
-            fetch(input).then(
-                res => res.json()
-            ).then(data => {
+            fetch(withBase(input))
+              .then(requireOkJson)
+              .then(data => {
                 setElements(data.result);
                 setLoaded(true);
-            });
+              })
+              .catch(err => {
+                console.error('Failed to load component types:', err);
+                setElements([]);
+                setLoaded(true);
+              });
         }
         fetchData();
     }, [
@@ -89,13 +95,16 @@ function ComponentTypeList() {
      */
     useEffect(() => {
 
-        fetch(`/api/component_type_count?nameSubstring=${nameSubstring}`).then(
-            res => res.json()
-        ).then(data => {
+        fetch(withBase(`/api/component_type_count?nameSubstring=${nameSubstring}`))
+          .then(requireOkJson)
+          .then(data => {
             setCount(data.result);
-
             setMin(0);
-        });
+          })
+          .catch(err => {
+            console.error('Failed to load component type count:', err);
+            setCount(0);
+          });
     }, [
         nameSubstring,
         reloadBool

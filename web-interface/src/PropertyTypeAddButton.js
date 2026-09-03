@@ -15,6 +15,7 @@ import OutlinedInput from '@mui/material/OutlinedInput';
 import axios from 'axios'
 import ErrorMessage from './ErrorMessage';
 import { Checkbox, ListItemText } from '@mui/material';
+import { withBase } from './paths.js';
 
 
 const ITEM_HEIGHT = 48;
@@ -107,7 +108,7 @@ export default function PropertyTypeAddButton ({componentTypes,toggleReload}) {
     input += `&allowed_reg=${encodeURIComponent(property.allowed_regex)}`;
     input += `&values=${property.values}`;
     input += `&comments=${property.comment}`;
-    axios.post(input).then((response)=>{
+    axios.post(withBase(input)).then((response)=>{
       if(response.data.result){
         toggleReload() //To reload the page once the form has been submitted.
         handleClose()

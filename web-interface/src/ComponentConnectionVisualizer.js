@@ -32,6 +32,7 @@ import { ThemeProvider } from '@emotion/react';
 
 import { unixTimeToISOString } from './utility/utility.js';
 import Authenticator from './components/Authenticator.js';
+import { withBase, requireOkJson } from './paths.js';
 
 window.addEventListener("error", (e) => {
     if (e.message === 'ResizeObserver loop completed with undelivered notifications.' || e.message === 'ResizeObserver loop limit exceeded') {
@@ -290,8 +291,8 @@ function ComponentConnectionsPanel() {
 
         if (initialCmp) {
             try {
-                const response = await fetch(`/api/components_name/${initialCmp}`)
-                const data = await response.json();
+                const response = await fetch(withBase(`/api/components_name/${encodeURIComponent(initialCmp)}`))
+                const data = await requireOkJson(response);
                 setUrlSet(true);
                 setComponent(data.result);
             } catch (error) {
@@ -812,9 +813,9 @@ function ComponentConnectionsPanel() {
 
         return new Promise(
             resolve => {
-                fetch(input).then(
-                    res => res.json()
-                ).then(data => {
+                fetch(withBase(input))
+                  .then(requireOkJson)
+                  .then(data => {
                     console.log("Expanding Connections", name)
                     let subcomponents = [];
                     let parent;
@@ -1072,7 +1073,11 @@ function ComponentConnectionsPanel() {
                     expandedNodes.current[name] = true;
                     sortNodes();
                     resolve(componentsAdded);
-                });
+                  })
+                  .catch(err => {
+                    console.error('Failed to expand connections:', err);
+                    resolve([]);
+                  });
             }
         )
     }

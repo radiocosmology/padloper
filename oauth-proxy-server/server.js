@@ -4,8 +4,12 @@ const fetch = (...args) =>
     import('node-fetch').then(({default: fetch}) => fetch(...args));
 let bodyParser = require('body-parser');
 
-const CLIENT_ID = "c2f7c573f77adca3ec14"
-const CLIENT_SECRET = "0c3612e92c41014b1699c393e848a136f3578d04"
+// Require env vars for production usage; no hardcoded secrets
+const CLIENT_ID = process.env.CLIENT_ID;
+const CLIENT_SECRET = process.env.CLIENT_SECRET;
+if (!CLIENT_ID || !CLIENT_SECRET) {
+    console.error("Missing CLIENT_ID or CLIENT_SECRET env vars for oauth-proxy-server");
+}
 
 let app = express();
 
@@ -17,7 +21,8 @@ app.get('/getAccessToken', async function (req, res) {
 
     console.log(req.query.code);
 
-    const params = `?client_id=${CLIENT_ID}&client_secret=${CLIENT_SECRET}&code=${req.query.code}`
+    const redirectParam = req.query.redirect_uri ? `&redirect_uri=${encodeURIComponent(req.query.redirect_uri)}` : '';
+    const params = `?client_id=${CLIENT_ID}&client_secret=${CLIENT_SECRET}&code=${req.query.code}${redirectParam}`
 
     await fetch("https://github.com/login/oauth/access_token" + params, {
         method: "POST",

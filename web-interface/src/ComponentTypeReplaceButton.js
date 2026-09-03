@@ -15,6 +15,7 @@ import axios from 'axios'
 import EditIcon from '@mui/icons-material/Edit';
 import styled from '@mui/material/styles/styled';
 import ErrorMessage from './ErrorMessage';
+import { withBase } from './paths.js';
 
 /**
  * A MUI component representing a button for replacing a component type.
@@ -79,7 +80,7 @@ export default function ComponentTypeReplaceButton ({toggleReload,name}) {
       input += `?name=${componentType}`;
       input += `&comments=${comment}`;
       input += `&component_type=${name}`;
-      axios.post(input).then((response)=>{
+      axios.post(withBase(input)).then((response)=>{
         if(response.data.result){
           handleClose();
           toggleReload(); //To reload the page once the form has been submitted.

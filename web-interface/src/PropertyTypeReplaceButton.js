@@ -17,6 +17,7 @@ import ErrorIcon from '@mui/icons-material/Error'
 import { Checkbox, ListItemText } from '@mui/material';
 import EditIcon from '@mui/icons-material/Edit';
 import styled from '@mui/material/styles/styled';
+import { withBase } from './paths.js';
 
 
 const ITEM_HEIGHT = 48;
@@ -137,7 +138,7 @@ export default function PropertyTypeReplaceButton ({name, units, allowed_regex, 
     input += `&values=${property.values}`;
     input += `&comments=${property.comment}`;
     input += `&property_type=${name}`;
-    axios.post(input).then((response)=>{
+    axios.post(withBase(input)).then((response)=>{
       if(response.data.result){
         toggleReload() //To reload the page once the form has been submitted.
         handleClose()

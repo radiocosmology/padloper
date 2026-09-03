@@ -18,15 +18,16 @@ import { verifyRegex } from './utility/utility.js';
 
 import moment from "moment";
 import ErrorMessage from './ErrorMessage.js';
+import { withBase, authHeaders, requireOkJson } from './paths.js';
 
 /**
  * A styled "panel" component, used as the background for the panel.
- * 
- * See https://mui.com/system/styled/ for details on how to make 
+ *
+ * See https://mui.com/system/styled/ for details on how to make
  * styled components.
  */
 const Panel = styled((props) => (
-    <Paper 
+    <Paper
         elevation={0}
         {...props}
         sx={{marginTop:1}}
@@ -42,7 +43,7 @@ const Panel = styled((props) => (
  * each time)
  */
 const TextField = styled((props) => (
-    <MuiTextField 
+    <MuiTextField
         variant="filled"
         {...props}
     />
@@ -53,7 +54,7 @@ const TextField = styled((props) => (
  * Close button used in the panel
  */
 const CloseButton = styled((props) => (
-    <Button 
+    <Button
         style={{
             maxWidth: '40px',
             minWidth: '40px',
@@ -71,17 +72,17 @@ const CloseButton = styled((props) => (
 /**
  * The MUI component which represents a panel through which component's properties are
  * replaced.
- * 
- * @param {object} theme - A MUI theme object, see 
+ *
+ * @param {object} theme - A MUI theme object, see
  * https://mui.com/material-ui/customization/theming/
  * @param {function} onClose - function to call when the close button is pressed
- * @param {function(string, int, string, string, Array)} onSet - function to 
+ * @param {function(string, int, string, string, Array)} onSet - function to
  * call when replacing a component property.
  * {string} propertyType - the name of the property type
- * {int} time - the time at which to add the property 
+ * {int} time - the time at which to add the property
  * {string} uid - the ID of the user that is adding the property
- * {string} comments - the comments associated with the property 
- * {Array} values - an array connecting the values of the property. 
+ * {string} comments - the comments associated with the property
+ * {Array} values - an array connecting the values of the property.
  */
 function ComponentPropertyReplacePanel(
     {
@@ -90,8 +91,8 @@ function ComponentPropertyReplacePanel(
         onSet,
         selected,
         // option,
-        // old_uid, 
-        // old_comments, 
+        // old_uid,
+        // old_comments,
         oldTextFieldValues,
         oldComments,
         errorReplacePropertyMessage
@@ -166,23 +167,24 @@ function ComponentPropertyReplacePanel(
      * Get the user data via GitHub
      */
     async function getUserData() {
-        await fetch(`${process.env.OAUTH_URL || "http://localhost"}:4000/getUserData`, {
+        await fetch(withBase(`/oauth/getUserData`), {
             method: "GET",
-            headers: {
-                "Authorization": "Bearer " + localStorage.getItem('accessToken')
-            }
-            }).then((response) => {
-                return response.json();
-            }).then((data) => {
-                console.log(data);
-                setUserData(data);
-            });
-        }
+            headers: { ...authHeaders() }
+        })
+        .then(requireOkJson)
+        .then((data) => {
+            setUserData(data);
+        })
+        .catch((err) => {
+            console.error('Failed to load user data:', err);
+            setUserData({});
+        });
+    }
 
     /**
      * Check whether a value matches the selected property type's regex.
      * Return false if there is no property type that has been selected.
-     * @param {string} value - the value that will be checked 
+     * @param {string} value - the value that will be checked
      * @returns true if value matches the regex, false otherwise.
      */
     function regexCheck(value) {
@@ -196,14 +198,14 @@ function ComponentPropertyReplacePanel(
     /**
      * Select a property type.
      * @param {object} option - the object representing the property type,
-     * pulled from the DB. 
+     * pulled from the DB.
      */
     function selectOption(option) {
-        
+
         setSelectedOption(option);
 
         if (option !== null && option.n_values) {
-            // make an empty array of size n_values and fill it 
+            // make an empty array of size n_values and fill it
             // with empty strings
             setTextFieldValues(Array(option.n_values).fill(""));
 
@@ -222,9 +224,9 @@ function ComponentPropertyReplacePanel(
      * done like this because the array is stored in a React state (whoever is
      * reading this, maybe change it to use useRef instead? This doesn't really
      * need to be in a state...)
-     * 
+     *
      * See https://stackoverflow.com/a/49502115
-     * 
+     *
      * @param {*} value - The new value
      * @param {int} index - the index of where to change the value
      */
@@ -244,7 +246,7 @@ function ComponentPropertyReplacePanel(
     }
 
     /**
-     * Return true if all the text field values match the regex, 
+     * Return true if all the text field values match the regex,
      * false otherwise.
      */
     function checkAllValuesAccepted() {
@@ -270,9 +272,9 @@ function ComponentPropertyReplacePanel(
         <ThemeProvider theme={theme}>
             <Panel>
 
-                <Grid 
-                    container 
-                    spacing={2} 
+                <Grid
+                    container
+                    spacing={2}
                     justifyContent="space-between"
                     style={{
                         marginBottom: theme.spacing(2),
@@ -303,9 +305,9 @@ function ComponentPropertyReplacePanel(
                     </Grid>
 
                     {/* <Grid item>
-                        <TextField 
+                        <TextField
                             required
-                            label="User" 
+                            label="User"
                             sx={{ width: 150 }}
                             onChange={(event) => setUid(event.target.value)}
                         />
@@ -344,8 +346,8 @@ function ComponentPropertyReplacePanel(
                     </Grid>
 
                 </Grid>
-                {/* 
-                    If a property type has been selected and not all 
+                {/*
+                    If a property type has been selected and not all
                     text field values match the regex, spit out an error.
                 */}
                 {
@@ -354,35 +356,35 @@ function ComponentPropertyReplacePanel(
                         marginTop: theme.spacing(2),
                         color: 'rgba(255,0,0,1)',
                     }}>
-                        {`Entered values must match 
-                        regular expression 
+                        {`Entered values must match
+                        regular expression
                         ${selectedOption.allowed_regex}`}
                     </Typography>) : ""
                 }
 
-                <Grid 
-                    container 
-                    spacing={2} 
+                <Grid
+                    container
+                    spacing={2}
                     justifyContent="center"
                     style={{
                         marginTop: theme.spacing(0.4),
                     }}>
                     {(selectedOption !== null) ?
                     (
-                        [...Array(+selectedOption.n_values)].map((el, index) => ( 
+                        [...Array(+selectedOption.n_values)].map((el, index) => (
                             <Grid item key={index}>
-                                <TextField 
+                                <TextField
                                     required
                                     error={!textFieldAccepted[index]}
                                     helperText={
                                         textFieldAccepted[index] ? ""
-                                        : `Value does not match 
+                                        : `Value does not match
                                         ${selectedOption.allowed_regex}`
                                     }
                                     onChange={
                                         (ev) => {
                                             setTextFieldValue(
-                                                ev.target.value, 
+                                                ev.target.value,
                                                 index
                                             )
                                         }
@@ -390,7 +392,7 @@ function ComponentPropertyReplacePanel(
                                     value={textFieldValues[index]}
                                     label={`Value ${index + 1}`}
                                 />
-                            </Grid>) 
+                            </Grid>)
                         )
                     )
                     : ""
@@ -405,36 +407,36 @@ function ComponentPropertyReplacePanel(
                     errorMessage={errorReplacePropertyMessage}
                 />
 
-                <Box 
+                <Box
                     style={{
                         textAlign: "right",
                         marginTop: theme.spacing(2),
                     }}
                 >
-                    <Button 
-                        variant="contained" 
+                    <Button
+                        variant="contained"
                         size="large"
                         disableElevation
                         disabled={
-                            selectedOption === null || 
+                            selectedOption === null ||
                             !allValuesAccepted ||
                             uid === "" ||
-                            time === defaultTime    
+                            time === defaultTime
                         }
                         onClick={
                             () => {
                                 setLoading(true);
                                 onSet(
-                                    selectedOption.name, 
-                                    time, 
-                                    uid, 
-                                    comments, 
+                                    selectedOption.name,
+                                    time,
+                                    uid,
+                                    comments,
                                     textFieldValues
                                 );
                             }
                         }
                     >
-                        {(loading && !errorReplacePropertyMessage) ? 
+                        {(loading && !errorReplacePropertyMessage) ?
                         <CircularProgress
                             size={24}
                             sx={{

@@ -10,17 +10,18 @@ import DeleteIcon from '@mui/icons-material/Delete';
 import DialogContentText from '@mui/material/DialogContentText';
 import CircularProgress from '@mui/material/CircularProgress';
 import ErrorMessage from './ErrorMessage';
+import { withBase, requireOkJson } from './paths.js';
 
 
 /*
 A MUI component representing a button for disabling.
  */
 const DisableButton = styled((props) => (
-    <Button 
+    <Button
     style={{
-        maxWidth: '40px', 
-        maxHeight: '30px', 
-        minWidth: '30px', 
+        maxWidth: '40px',
+        maxHeight: '30px',
+        minWidth: '30px',
         minHeight: '30px',
     }}
     {...props}
@@ -28,7 +29,7 @@ const DisableButton = styled((props) => (
         <DeleteIcon/>
     </Button>
 ))(({ theme }) => ({
-    
+
 }))
 
 
@@ -63,8 +64,8 @@ const DisableButton = styled((props) => (
     /**
      * Disable a connection.
      * @param {string} otherComponentName - the name of the other component.
-     * @returns 
-     */    
+     * @returns
+     */
     async function handleSubmit(otherComponentName) {
         setLoading(true)
         // build up the string to query the API
@@ -74,10 +75,9 @@ const DisableButton = styled((props) => (
         input += `&start_time=${time}`;
 
         return new Promise((resolve, reject) => {
-            fetch(input).then(
-              (res) => res.json())
+            fetch(withBase(input), { method: 'POST' })
+              .then(requireOkJson)
               .then((data) => {
-                console.log(data);
                 if (data.result) {
                   toggleReload();
                   handleClose();
@@ -87,15 +87,21 @@ const DisableButton = styled((props) => (
                   setLoading(false);
                 }
                 resolve(data.result);
+              })
+              .catch((err) => {
+                console.error('Failed to disable connection:', err);
+                setErrorData(err.message);
+                setLoading(false);
+                resolve(false);
               });
             });
           }
-  
+
   return (
     <>
         <DisableButton onClick={handleClickOpen}/>
-      <Dialog 
-      open={open} 
+      <Dialog
+      open={open}
       onClose={handleClose}
       aria-labelledby="alert-dialog-title"
       aria-describedby="alert-dialog-description"
@@ -107,7 +113,7 @@ const DisableButton = styled((props) => (
           </DialogContentText>
         </DialogContent>
         <DialogActions>
-          <Button onClick={handleClose}>Cancel</Button>           
+          <Button onClick={handleClose}>Cancel</Button>
             <Button onClick={()=>{handleSubmit(otherComponentName)}}>
               {loading ? <CircularProgress
                             size={24}
@@ -126,4 +132,3 @@ const DisableButton = styled((props) => (
     </>
   );
 }
-

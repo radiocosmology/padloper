@@ -16,16 +16,17 @@ import axios from 'axios'
 import EditIcon from '@mui/icons-material/Edit';
 import styled from '@mui/material/styles/styled';
 import ErrorMessage from './ErrorMessage';
+import { withBase } from './paths.js';
 
 /**
  * A MUI component representing a button for replacing a component version.
  */
 const ReplaceButton = styled((props) => (
-    <Button 
+    <Button
     style={{
-        maxWidth: '40px', 
-        maxHeight: '25px', 
-        minWidth: '30px', 
+        maxWidth: '40px',
+        maxHeight: '25px',
+        minWidth: '30px',
         minHeight: '30px',
         marginLeft:'10px'
     }}
@@ -34,12 +35,12 @@ const ReplaceButton = styled((props) => (
         <EditIcon/>
     </Button>
 ))(({ theme }) => ({
-    
+
 }))
 
 
-export default function ComponentVersionReplaceButton ({name,allowed_type,componentTypes,toggleReload}) {
-    
+export default function ComponentVersionReplaceButton ({name,allowedType,componentTypes,toggleReload}) {
+
   // opens and closes the pop up form to replace a component version.
   const [open, setOpen] = useState(false);
 
@@ -86,8 +87,8 @@ export default function ComponentVersionReplaceButton ({name,allowed_type,compon
       input += `&type=${inputComponentType}`;
       input += `&comments=${comment}`;
       input += `&component_version=${name}`;
-      input += `&component_version_allowed_type=${allowed_type}`;
-      axios.post(input).then((response)=>{
+      input += `&component_version_allowed_type=${allowedType}`;
+      axios.post(withBase(input)).then((response)=>{
         if(response.data.result){
           toggleReload() //To reload the page once the form has been submitted.
           handleClose()
@@ -121,7 +122,7 @@ export default function ComponentVersionReplaceButton ({name,allowed_type,compon
     <div style={{
         marginTop:'15px',
         marginBottom:'15px',
-    }}>   
+    }}>
             <Box sx={{ minWidth: 120 }}>
       <FormControl fullWidth>
         <InputLabel id="Component Type">

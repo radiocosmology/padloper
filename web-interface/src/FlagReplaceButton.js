@@ -19,6 +19,7 @@ import ListItemText from '@mui/material/ListItemText';
 import EditIcon from '@mui/icons-material/Edit';
 import styled from '@mui/material/styles/styled';
 import ErrorMessage from './ErrorMessage';
+import { withBase } from './paths.js';
 
 
 const ITEM_HEIGHT = 48;
@@ -148,7 +149,7 @@ export default function FlagReplaceButton ({type,severities,components,toggleRel
       input += `&start_comments=${property.start_comment}`;
       input += `&flag_components=${componentName.join(';')}`;
       input += `&flag=${nameFlag}`;
-      axios.post(input).then((response)=>{
+      axios.post(withBase(input)).then((response)=>{
         if(response.data.result){
           toggleReload() //To reload the page once the form has been submitted.
           handleClose()

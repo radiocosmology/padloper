@@ -4,8 +4,9 @@ _component_nodes.py
 Classes for manipulating components, component types and component versions.
 """
 import time
+from typing import List, Tuple
 import _global as g
-from gremlin_python.process.traversal import Order, P, TextP
+from gremlin_python.process.traversal import Order, P, T, Direction, Operator
 from gremlin_python.process.graph_traversal import __, constant
 
 from _exceptions import *
@@ -15,7 +16,7 @@ from _edges import RelationVersionAllowedType, RelationVersion,\
                    RelationComponentType, RelationSubcomponent,\
                    RelationProperty, RelationPropertyType,\
                    RelationFlagComponent, RelationConnection
-from _permissions import Permission, check_permission
+
 
 class ComponentType(Vertex):
     """
@@ -27,12 +28,12 @@ class ComponentType(Vertex):
 
     category: str = "component_type"
     _vertex_attrs: list = [
-        VertexAttr("name", str), 
+        VertexAttr("name", str),
         VertexAttr("comments", str, optional=True, default="")
     ]
     primary_attr: str = "name"
     name: str = "default"
-    # comments: str 
+    comments: str | None
 
     @classmethod
     def get_names_of_types_and_versions(cls, permissions = None):
@@ -65,6 +66,7 @@ class ComponentType(Vertex):
     def __repr__(self):
         return f"{self.category}: {self.name} ({self._id})"
 
+
 class ComponentVersion(Vertex):
     """
     The representation of a component version.
@@ -78,11 +80,16 @@ class ComponentVersion(Vertex):
     category: str = "component_version"
 
     _vertex_attrs: list = [
-        VertexAttr("name", str), 
+        VertexAttr("name", str),
         VertexAttr("comments", str, optional=True, default=""),
         VertexAttr("type", ComponentType, edge_class=RelationVersionAllowedType)
     ]
     primary_attr: str = "name"
+
+    # define node attribute types for type-checking
+    name: str
+    comments: str | None
+    type: ComponentType  # @TODO: change this from a reserved word
 
     def __repr__(self):
         return f"{self.category}: {self.name}"
@@ -90,12 +97,12 @@ class ComponentVersion(Vertex):
 
 class Component(Vertex):
     """
-    The representation of a component. 
+    The representation of a component.
     Contains a name attribute, ComponentType instance, can contain a
     ComponentVersion and can contain a Flag
 
     :ivar name: The name of the component
-    :ivar type: The ComponentType instance representing the 
+    :ivar type: The ComponentType instance representing the
     type of the component.
     :ivar version: Optional ComponentVersion instance representing the
     version of the component.
@@ -104,12 +111,17 @@ class Component(Vertex):
 
     category: str = "component"
     _vertex_attrs: list = [
-        VertexAttr("name", str), 
+        VertexAttr("name", str),
         VertexAttr("type", ComponentType, edge_class=RelationComponentType),
         VertexAttr("version", ComponentVersion, edge_class=RelationVersion,
                    optional=True)
     ]
     primary_attr: str = "name"
+
+    # define node attribute types for type-checking
+    name: str
+    type: ComponentType  # @TODO: change this from a reserved word
+    version: ComponentVersion | None
 
     def __str__(self):
 
@@ -123,10 +135,79 @@ class Component(Vertex):
             type "{self.type.name}", \
             {version_text}, id {self.id()}'
 
+    @classmethod
+    def fetch_or_create(cls, name: str, attrs: List[Tuple[str, str]]):
+        """Fetch the Component from the database or create a new Component
+        if it does not yet exist in the database.
+
+        If the Component does not exist in the database yet, the component
+        type may be inferred if the name matches a given sequence. Otherwise,
+        the component type must be provided in the attrs list. The new
+        Component will only exist on the python side until .add() is
+        explicitly run. This is useful for queuing component operations before
+        adding the components to the database (for validation purposes).
+
+        Returns a python representation of the existing component or the
+        component that will later be created with .add(), along with a boolean
+        of whether the component exists in the database yet.
+
+        :param name: Component name
+        :type name: str
+
+        :param attrs: Attributes associated with the component
+        :type attrs: List[Tuple[str, str]]
+
+        :returns: Python representation of the component and a boolean of
+        whether the component exists in the database yet.
+        :rtype: Tuple[Component, bool]
+        """
+        # import here to avoid circular import issues
+        from _sequences import ComponentSequence
+
+        try:
+            component = cls.from_db(name)
+            return component, True
+        except NotInDatabase as _:
+            # ignore the error, and we'll try creating the component
+            in_db = False
+
+        # we'll first see if there's a component type listed in the attrs
+        if [(ctype := a[1]) for a in attrs if a[0] == 'type']:
+            try:
+                ctype = ComponentType.from_db(ctype)
+            except NotInDatabase as _:
+                ctype = None
+        else:
+            ctype = None
+
+        # if the component type isn't in attrs or wasn't in the database,
+        # we'll attempt to get it from sequence matching
+        if not ctype:
+            sequence = ComponentSequence.match(name)
+            if sequence:
+                ctype = sequence.component_type
+
+        # if we still can't find the component type, return None and False
+        if not ctype:
+            return None, in_db
+
+        # if creating a new component, check if a version is available
+        if [(cver := a[1]) for a in attrs if a[0] == 'version']:
+            try:
+                cver = ComponentVersion.from_db(cver)
+            except NotInDatabase as _:
+                # ignore the error since the version isn't required
+                cver = None
+        else:
+            cver = None
+
+        component = cls(name=name, type=ctype, version=cver)
+        return component, in_db
+
     def get_property(self, type, at_time: int, permissions = None):
         """
         Given a property type, get a property of this component active at time
-        :param time:. 
+        :param time:.
 
         :param type: The type of the property to extract
         :type type: PropertyType
@@ -219,10 +300,10 @@ class Component(Vertex):
 
         :param type: The property type of the desired properties to consider.
         :type component: PropertyType
-        :param from_time: Lower bound for time range to consider properties, 
+        :param from_time: Lower bound for time range to consider properties,
         defaults to -1
         :type from_time: int, optional
-        :param to_time: Upper bound for time range to consider properties, 
+        :param to_time: Upper bound for time range to consider properties,
         defaults to _TIMESTAMP_NO_ENDTIME_VALUE
         :type to_time: int, optional
 
@@ -283,11 +364,105 @@ class Component(Vertex):
         # Build up the result of format (flag vertex)
         result = []
 
+        # Local import to avoid circular dependency with _flag_nodes importing Component
+        from _flag_nodes import Flag
         for q in query:
             flag = Flag.from_id(q)
             result.append((flag))
 
         return result
+
+    @authenticated
+    def get_network(self, depth, time, permissions=None):
+        """Return all nodes and edges for a given trace depth at a given time
+
+        :param depth: The depth of the network trace
+        :type depth: int
+        :param time: The unix timestamp in seconds of the network state
+        :type time: int
+
+        :returns: Return a dictionary of nodes and edges in the graph
+        :rtype: {'nodes': [], 'edges': []}
+        """
+        # get nodes and edges
+        query = g.t.withSack(0).V(self.id()).repeat(
+            __.union(
+                __.bothE("rel_connection")
+                    .has("time_added", P.lt(time))
+                    .or_(__.has("time_disabled", P.lt(0)),
+                         __.has("time_disabled", P.gt(time)))
+                    .sack(Operator.assign).by(__.constant(0)).otherV(),
+                __.outE("rel_subcomponent")
+                    .filter_(__.sack().is_(P.within(0, 1)))
+                    .has("time_added", P.lt(time))
+                    .or_(__.has("time_disabled", P.lt(0)),
+                         __.has("time_disabled", P.gt(time)))
+                    .sack(Operator.assign).by(__.constant(1)).inV(),
+                __.inE("rel_subcomponent")
+                    .filter_(__.sack().is_(P.within(0, -1)))
+                    .has("time_added", P.lt(time))
+                    .or_(__.has("time_disabled", P.lt(0)),
+                         __.has("time_disabled", P.gt(time)))
+                    .sack(Operator.assign).by(__.constant(-1)).outV()
+            ).simplePath()
+        ).times(depth).emit().path().by(__.elementMap())
+
+        paths = query.toList()
+
+        if depth < 1 or not paths:
+            # this node isn't connected to anything
+            query = g.t.V(self.id()).path().by(__.elementMap())
+            paths = query.toList()
+
+        nodes, nodeIds = [], []
+        edges, edgeIds = [], []
+        for path in paths:
+            level = len(path)
+            for element in path:
+                element : dict
+                element['id'] = element.pop(T.id)
+                element['label'] = element.pop(T.label)
+                element['level'] = level
+                if element['label'] == 'vertex':
+                    if element['id'] not in nodeIds:
+                        nodes.append(element)
+                        nodeIds.append(element['id'])
+                else:
+                    if Direction.IN in element:
+                        element['IN'] = element.pop(Direction.IN)
+                        element['IN']['id'] = element['IN'].pop(T.id)
+                        element['IN']['label'] = element['IN'].pop(T.label)
+                    if Direction.OUT in element:
+                        element['OUT'] = element.pop(Direction.OUT)
+                        element['OUT']['id'] = element['OUT'].pop(T.id)
+                        element['OUT']['label'] = element['OUT'].pop(T.label)
+                    if element['id'] not in edgeIds:
+                        edges.append(element)
+                        edgeIds.append(element['id'])
+
+        # get component types
+        ctypes = []
+        for nodeId in nodeIds:
+            query = g.t.V(nodeId).outE("rel_component_type").inV().elementMap()
+            element = (els := query.toList()) and els[0] or {}
+            ctypes.append(element.get('name'))
+
+        # get component versions
+        cvers = []
+        for nodeId in nodeIds:
+            query = g.t.V(nodeId).outE("rel_version").inV().elementMap()
+            element = (els := query.toList()) and els[0] or {}
+            cvers.append(element.get('name'))
+
+        # add additional info to nodes
+        for node, ctype, version in zip(nodes, ctypes, cvers):
+            node['ctype'] = ctype
+            node['version'] = version
+
+        return {
+            'nodes': nodes,
+            'edges': edges,
+        }
 
     @authenticated
     def get_subcomponents(self, permissions = None):
@@ -328,7 +503,7 @@ class Component(Vertex):
 
     @authenticated
     def set_property(
-        self, property, start: Timestamp, end: Timestamp = None, 
+        self, property, start: Timestamp, end: Timestamp = None,
         force_property: bool = False,
         strict_add: bool = False,
         permissions = None,
@@ -370,22 +545,22 @@ class Component(Vertex):
         )
 
         if current_property is not None:
-#    TODO: see if behaviour is correct (when this trips in
-#            init_simple-db.py).
+            # TODO: see if behaviour is correct (when this trips in
+            # init_simple-db.py).
             if current_property.values == property.values:
-                strictraise(strict_add, PropertyIsSameError, 
+                strictraise(strict_add, PropertyIsSameError,
                     "An identical property of type " +
                     f"{property.type.name} for component {self.name} " +
                     f"is already set with values {property.values}."
                 )
                 return
 
-#            elif current_property.end.time != g._TIMESTAMP_NO_ENDTIME_VALUE:
-#                raise PropertyIsSameError(
-#                    "Property of type {property.type.name} for component "\
-#                    "{self.name} is already set at this time with an end "\
-#                    "time after this time."
-#                )
+            # elif current_property.end.time != g._TIMESTAMP_NO_ENDTIME_VALUE:
+            #     raise PropertyIsSameError(
+            #         "Property of type {property.type.name} for component "\
+            #         "{self.name} is already set at this time with an end "\
+            #         "time after this time."
+            #     )
             else:
                 # end that property.
                 self.unset_property(current_property, start,
@@ -437,7 +612,7 @@ class Component(Vertex):
         the property to indicate that this property has been removed from the
         component.
 
-        :param property: The property vertex connected by an edge to the 
+        :param property: The property vertex connected by an edge to the
         component vertex.
         :type property: Property
 
@@ -447,7 +622,7 @@ class Component(Vertex):
         :param uid: The user that removed the property
         :type uid: str
 
-        :param edit_time: The time at which the 
+        :param edit_time: The time at which the
         user made the change, defaults to int(time.time())
         :type edit_time: int, optional
 
@@ -547,7 +722,7 @@ class Component(Vertex):
 
     @authenticated
     def disable_property(self, propertyTypeName,
-                         disable_time: int = int(time.time()),                         
+                         disable_time: int = int(time.time()),
                          permissions = None):
         """Disables the property in the serverside
 
@@ -587,8 +762,8 @@ class Component(Vertex):
         :param strict_add: If connexion already exists, raise an error if True;
           otherwise print a warning and return.
         :type strict_add: bool
-        :param to_replace: The connection this connection will be replacing, if any. 
-          If no connection is being replaced, this value is None. 
+        :param to_replace: The connection this connection will be replacing, if any.
+          If no connection is being replaced, this value is None.
         :type to_replace: RelationConnection
         """
 
@@ -617,20 +792,20 @@ class Component(Vertex):
 
             if len(curr_conn) == 1:
                 # Already connected!
-                strictraise(strict_add, ComponentsAlreadyConnectedError, 
+                strictraise(strict_add, ComponentsAlreadyConnectedError,
                     f"Components {self.name} and {comp.name} " +
                     "are already connected."
                 )
                 return
-            
+
             all_conn = self.get_connections(comp=comp, from_time=start.time,
                                             permissions=permissions)
-            
+
         else:  # to_replace is not None:
-            curr_conn = self.get_connections(comp=comp, 
+            curr_conn = self.get_connections(comp=comp,
                                              at_time=to_replace.start.time,
                                              permissions=permissions)
-            
+
             if len(curr_conn) == 0:
                 # Not connected, but expected them to be connected.
                 strictraise(strict_add, ComponentsAlreadyConnectedError,
@@ -672,7 +847,7 @@ class Component(Vertex):
             start=start,
             end=end
         )
-            
+
         new_conn.add()
 
         if to_replace != None:
@@ -682,14 +857,14 @@ class Component(Vertex):
             properties = g.t.E(to_replace.id()).valueMap().toList()[0]
             for prop in properties:
                 g.t.E(new_conn.id()).property(prop, properties[prop]).iterate()
-            
+
             # set start time, end time, and edit time because these were just overwritten
             g.t.E(new_conn.id()).property('start_time', start.time).iterate()
             if int(properties['start_time']) != int(start.time):
                 g.t.E(new_conn.id()).property('start_edit_time', start.edit_time).iterate()
                 g.t.E(new_conn.id()).property('start_uid', start.uid).iterate()
 
-            
+
             if end is not None:
                 g.t.E(new_conn.id()).property('end_time', end.time).iterate()
                 if int(properties['end_time']) != int(end.time):
@@ -698,7 +873,7 @@ class Component(Vertex):
 
 
             to_replace.replace(new_conn, disable_time=int(time.time()))
-            
+
 #        print(f'connected: {self} -> {comp}  ({start.uid} {start.time})')
 
     @authenticated
@@ -744,7 +919,7 @@ class Component(Vertex):
         :param comp: Component that this component has connection with.
         :type comp: Component
         :param disable_time: When this edge was disabled in the database.
-        :type disable_time: int    
+        :type disable_time: int
         """
         raise RuntimeError("Deprecated!")
 
@@ -757,16 +932,16 @@ class Component(Vertex):
         Get connections to another component, or all other components, at a
         time, at all times or in a time range, depending on the parameters.
 
-        :param comp: The other component(s) to check the connections with; 
+        :param comp: The other component(s) to check the connections with;
             if None then find connections with all other components.
         :type comp: Component or list of Components, optional
         :param at_time: Time to check connections at. If this parameter is set,
             then :from_time: and :to_time: are ignored.
         :type at_time: int, optional
-        :param from_time: Lower bound for time range to consider connections, 
+        :param from_time: Lower bound for time range to consider connections,
             defaults to -1
         :type from_time: int, optional
-        :param to_time: Upper bound for time range to consider connections, 
+        :param to_time: Upper bound for time range to consider connections,
             defaults to _TIMESTAMP_NO_ENDTIME_VALUE
         :type to_time: int, optional
         :param exclude_subcomps: If True, then do not return connections
@@ -789,8 +964,8 @@ class Component(Vertex):
                         f"Component {c.name} has not yet " +
                         "been added to the database."
                     )
- 
-        at_time = _parse_time(at_time) 
+
+        at_time = _parse_time(at_time)
         from_time = _parse_time(from_time)
         to_time = _parse_time(to_time)
 
@@ -863,10 +1038,10 @@ class Component(Vertex):
         permissions = None
     ):
         """
-        Given a component, return all connections between this Component and 
+        Given a component, return all connections between this Component and
         all other components.
 
-        :param at_time: Time to check connections at. 
+        :param at_time: Time to check connections at.
         :param exclude_subcomps: If True, then do not return connections
             to subcomponents or supercomponents.
 
@@ -948,10 +1123,10 @@ class Component(Vertex):
 
         :param component: The other component to check the connections with.
         :type component: Component
-        :param from_time: Lower bound for time range to consider connections, 
+        :param from_time: Lower bound for time range to consider connections,
         defaults to -1
         :type from_time: int, optional
-        :param to_time: Upper bound for time range to consider connections, 
+        :param to_time: Upper bound for time range to consider connections,
         defaults to _TIMESTAMP_NO_ENDTIME_VALUE
         :type to_time: int, optional
 
@@ -1144,7 +1319,7 @@ class Component(Vertex):
 
         if not comp.in_db(strict_check=False, permissions=permissions):
             raise ComponentNotAddedError(
-                f"Component {comp.name} has not yet" +
+                f"Component {comp.name} has not yet " +
                 "been added to the database."
             )
 
@@ -1170,7 +1345,7 @@ class Component(Vertex):
                              permissions = None):
         """Disabling an edge for a subcomponent
 
-        :param otherComponent: Another Component that this component has 
+        :param otherComponent: Another Component that this component has
           connection 'rel_subcomponent' with.
         :type othercomponent: Component
 
@@ -1200,7 +1375,7 @@ class Component(Vertex):
         """
         # TODO: at_time has not yet been implemented!
         assert(at_time == None)
-        
+
         base = super().as_dict(permissions=permissions)
 
         if not bare:
@@ -1222,7 +1397,7 @@ class Component(Vertex):
             subcomp_dicts = [{"name": subcomps.name} \
                 for subcomps in self.get_subcomponents(permissions=permissions)
             ]
-        
+
             supercomp_dicts = [{"name": supercomps.name} \
                 for supercomps in \
                     self.get_supercomponents(permissions=permissions)

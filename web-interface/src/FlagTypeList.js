@@ -9,6 +9,7 @@ from '@mui/material';
 import FlagTypeAddButton from './FlagTypeAddButton.js';
 import FlagTypeReplaceButton from './FlagTypeReplaceButton.js'
 import Authenticator from './components/Authenticator.js';
+import { withBase, requireOkJson } from './paths.js';
 
 /**
  * A MUI component that renders a list of flag types.
@@ -65,12 +66,17 @@ function FlagTypeList() {
             input += `&nameSubstring=${nameSubstring}`
 
             // query the URL with flask, and set the input.
-            fetch(input).then(
-                res => res.json()
-            ).then(data => {
+            fetch(withBase(input))
+              .then(requireOkJson)
+              .then(data => {
                 setElements(data.result);
                 setLoaded(true);
-            });
+              })
+              .catch(err => {
+                console.error('Failed to load flag types:', err);
+                setElements([]);
+                setLoaded(true);
+              });
         }
         fetchData();
     }, [
@@ -87,13 +93,16 @@ function FlagTypeList() {
      */
     useEffect(() => {
 
-        fetch(`/api/flag_type_count?nameSubstring=${nameSubstring}`).then(
-            res => res.json()
-        ).then(data => {
+        fetch(withBase(`/api/flag_type_count?nameSubstring=${nameSubstring}`))
+          .then(requireOkJson)
+          .then(data => {
             setCount(data.result);
-
             setMin(0);
-        });
+          })
+          .catch(err => {
+            console.error('Failed to load flag type count:', err);
+            setCount(0);
+          });
     }, [
         nameSubstring,
         reloadBool

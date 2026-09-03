@@ -2,6 +2,7 @@
   "name": "web-interface",
   "version": "0.1.0",
   "private": true,
+  "homepage": "/padloper",
   "dependencies": {
     "@emotion/react": "^11.6.0",
     "@emotion/styled": "^11.6.0",
@@ -11,17 +12,19 @@
     "@testing-library/jest-dom": "^5.14.1",
     "@testing-library/react": "^11.2.7",
     "@testing-library/user-event": "^12.8.3",
-    "axios": "^0.27.2",
+    "axios": "^1.7.7",
     "dagre": "^0.8.5",
+    "elkjs": "^0.11.0",
     "http-proxy-middleware": "^2.0.6",
     "mdi-react": "^9.3.0",
-    "moment": "^1.1.3",
-    "react": "^17.0.2",
-    "react-dom": "^17.0.2",
+    "moment": "^2.30.1",
+    "react": "^18.3.1",
+    "react-dom": "^18.3.1",
     "react-router-dom": "^6.2.2",
-    "react-scripts": "5.0.0",
+    "react-scripts": "5.0.1",
     "reactflow": "^11.5.5",
-    "web-vitals": "^1.1.2"
+    "web-vitals": "^1.1.2",
+    "web-worker": "^1.5.0"
   },
   "scripts": {
     "start": "PORT=4301 react-scripts start",

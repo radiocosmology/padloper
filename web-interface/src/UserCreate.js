@@ -1,5 +1,6 @@
 import React, { useState } from 'react';
 import TextField from '@mui/material/TextField';
+import { withBase } from './paths.js';
 import Button from '@mui/material/Button';
 
 // TODO:
@@ -32,16 +33,23 @@ function UserCreatePage() {
             method: 'POST', 
             body: formData
         };
-        fetch(input, requestOptions)
-          .then(res => res.json())
-          .then(data => {
+        fetch(withBase(input), requestOptions)
+          .then(async (res) => {
+            if (!res.ok) {
+              const text = await res.text();
+              throw new Error(`Request failed (${res.status}): ${text || 'Unknown error'}`);
+            }
+            // If backend returns JSON, parse it; otherwise allow empty
+            try { return await res.json(); } catch (_) { return {}; }
+          })
+          .then((_data) => {
             setUserName('');
             setInstitution('');
             setSuccessMessage('User created successfully.');
           })
-          .catch(error => {
-            // Show error message if request fails
-            setErrorMessage(`Error: ${error.response.data.message}`);
+          .catch((error) => {
+            // Show error message if request fails (fetch-style error)
+            setErrorMessage(`Error: ${error.message || 'Request failed'}`);
           })
 
         // axios.post('/api/create_user', { userName, institution })
