@@ -26,6 +26,7 @@ import UserGroupManagementPage from './UserGroupManagement.js';
 import UserCreatePage from './UserCreate.js';
 import UserEditPage from './UserEdit.js';
 import UserGroupEditPage from './UserGroupEdit.js';
+import SystemDiagram from './SystemDiagram.js';
 import { BASE_PATH } from './paths.js';
 
 
@@ -190,6 +191,13 @@ function App() {
                 <NewVisualizer />
               </ReactFlowProvider>
             }
+          />
+
+          {/* Whole-system Graphviz diagram, rendered server-side, pannable. */}
+          <Route
+            exact={true}
+            path="/system-diagram"
+            element={<SystemDiagram />}
           />
 
           {/*

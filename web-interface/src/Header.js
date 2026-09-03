@@ -189,6 +189,10 @@ function Header() {
                             link: `/component-connections`
                         },
                         {
+                            name: 'System Diagram',
+                            link: `/system-diagram`
+                        },
+                        {
                             name: 'Legacy Visualizer',
                             link: `/legacy-visualizer`
                         },
@@ -329,6 +333,9 @@ function Header() {
                     />
                     <ListItemButton component={Link} to={'/component-connections'} onClick={() => setMobileOpen(false)}>
                         <ListItemText primary="Component Connections" />
+                    </ListItemButton>
+                    <ListItemButton component={Link} to={'/system-diagram'} onClick={() => setMobileOpen(false)}>
+                        <ListItemText primary="System Diagram" />
                     </ListItemButton>
 
                     <ListItemText
