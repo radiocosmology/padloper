@@ -334,3 +334,33 @@ def test_sequences_require_permission():
     res = c1.post(f"/api/delete_sequence/{seq['name']}")
     assert 'error' in res.get_json()
     ok(admin.post(f"/api/delete_sequence/{seq['name']}"))
+
+
+# --- system diagram ---------------------------------------------------------------
+
+def test_system_dot_is_pure_and_nests_containers():
+    inv = {'components': [{'name': 'S', 'type': 'Site'}, {'name': 'D', 'type': 'Dish'},
+                          {'name': 'L', 'type': 'LNA'}, {'name': 'Q"x', 'type': 'Odd'}],
+           'containment': [('D', 'S'), ('ghost', 'S')],       # unknown names are ignored
+           'connections': [('D', 'L'), ('L', 'ghost')],
+           'at_time': 0}
+    dot = p.system_dot(inv)
+    assert dot.startswith('graph padloper {') and dot.rstrip().endswith('}')
+    assert 'as of 1970-01-01 00:00 UTC' in dot
+    assert dot.count('subgraph cluster_') == 1
+    assert dot.index('label="S  (Site)"') < dot.index('"D" [') < dot.index('"D" -- "L";')
+    assert '"L" [' in dot and 'ghost' not in dot
+    assert '"Q\\"x" [' in dot, "quotes in names are escaped"
+
+
+def test_system_diagram_routes():
+    admin = client_as('master', [])   # earlier tests signed the shared client out
+    res = admin.get('/api/system_diagram.dot')
+    assert res.status_code == 200 and res.mimetype == 'text/vnd.graphviz'
+    assert res.get_data(as_text=True).startswith('graph padloper {')
+    res = admin.get('/api/system_diagram.svg')
+    assert res.status_code == 200, res.get_data(as_text=True)
+    assert res.mimetype == 'image/svg+xml' and b'<svg' in res.data
+    assert admin.get('/api/system_diagram.png').status_code == 404
+    assert admin.get('/api/system_diagram.dot?time=0').status_code == 200
+    assert app.test_client().get('/api/system_diagram.svg').status_code == 401

@@ -5,7 +5,7 @@ from copy import deepcopy
 from functools import partial
 import re
 from typing import Any, Callable, Dict, List, Tuple
-from flask import Flask, request, session
+from flask import Flask, request, session, Response
 from flask_session import Session
 import requests
 #from flask.scaffold import F
@@ -2577,6 +2577,28 @@ def get_user_group_list():
 @app.route("/api/get_all_permissions", methods=["GET"])
 def get_all_permissions():
     return {'result': list(p.permissions_set)}
+
+
+@app.route("/api/system_diagram.<fmt>", methods=["GET"])
+def system_diagram(fmt):
+    """The whole inventory as a Graphviz graph (see padloper.system_dot).
+
+    `system_diagram.dot` returns the DOT source; `system_diagram.svg` the image
+    rendered with Graphviz on the server. Optional query parameter `time`
+    (UNIX seconds) selects the connections in force at that moment (default:
+    now).
+    """
+    if fmt not in ("dot", "svg"):
+        return ({'error': 'Format must be dot or svg'}), 404
+    at_time = request.args.get("time", type=int)
+    dot_source = p.system_dot(p.system_inventory(at_time))
+    if fmt == "dot":
+        return Response(dot_source, mimetype="text/vnd.graphviz")
+    try:
+        svg = p.render_dot(dot_source, "svg")
+    except RuntimeError as e:
+        return ({'error': str(e)}), 503
+    return Response(svg, mimetype="image/svg+xml")
 
 
 @app.route("/api/component_sequence_list", methods=["GET"])

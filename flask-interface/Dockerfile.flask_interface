@@ -1,7 +1,9 @@
 FROM python:3.12-slim
 
 # Apply available OS security updates
+# Graphviz renders the system diagram (/api/system_diagram.svg).
 RUN apt-get update && apt-get -y upgrade && \
+    apt-get install -y --no-install-recommends graphviz && \
     rm -rf /var/lib/apt/lists/*
 
 # Keep pip itself current

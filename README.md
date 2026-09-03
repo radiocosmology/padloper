@@ -74,6 +74,7 @@ package itself (once):
 ```
 pip install -r requirements.txt
 pip install -e .            # makes `import padloper` work from anywhere
+sudo apt install graphviz   # renders the System Diagram page (Visualizations menu)
 ```
 Create a `.env` file at the repository root (see
 [Environment configuration](#environment-configuration)). For a local run the
