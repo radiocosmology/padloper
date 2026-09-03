@@ -7,6 +7,7 @@ at a given time drawn between them.
 """
 import collections
 import datetime
+import html
 import shutil
 import subprocess
 import time
@@ -16,7 +17,7 @@ import _global as g
 from gremlin_python.process.graph_traversal import __
 from gremlin_python.process.traversal import P
 
-__all__ = ["system_inventory", "system_dot", "render_dot"]
+__all__ = ["system_inventory", "system_summary", "system_dot", "render_dot"]
 
 # Fill colours assigned to component types in sorted order.
 _PALETTE = ["#cfe2f3", "#d9ead3", "#fff2cc", "#f4cccc", "#d9d2e9", "#fce5cd",
@@ -60,6 +61,44 @@ def system_inventory(at_time: Optional[int] = None) -> dict:
     }
 
 
+def _type_colours(type_of: dict) -> dict:
+    """Fill colour per component type, assigned in sorted order so it is
+    stable between renders."""
+    types = sorted(set(type_of.values()))
+    return {t: _PALETTE[i % len(_PALETTE)] for i, t in enumerate(types)}
+
+
+def _drawn_connections(inventory: dict, type_of: dict) -> list:
+    return [(a, b) for a, b in inventory["connections"]
+            if a in type_of and b in type_of]
+
+
+def system_summary(inventory: Optional[dict] = None) -> dict:
+    """The legend data for the system view: each component type with its
+    colour and count, plus totals. Fetches the inventory when omitted.
+
+    :return: {'types': [{'name', 'colour', 'count'}], 'components': int,
+        'connections': int, 'at_time': int}
+    :rtype: dict
+    """
+    if inventory is None:
+        inventory = system_inventory()
+    type_of = {c["name"]: c["type"] for c in inventory["components"]}
+    colour = _type_colours(type_of)
+    counts = collections.Counter(type_of.values())
+    return {
+        "types": [{"name": t, "colour": colour[t], "count": counts[t]}
+                  for t in sorted(counts)],
+        "components": len(type_of),
+        "connections": len(_drawn_connections(inventory, type_of)),
+        "at_time": inventory["at_time"],
+    }
+
+
+def _plural(n: int, word: str) -> str:
+    return f"{n} {word}{'' if n == 1 else 's'}"
+
+
 def _quoted(s) -> str:
     """A DOT double-quoted string."""
     return '"' + str(s).replace("\\", "\\\\").replace('"', '\\"') + '"'
@@ -84,8 +123,7 @@ def system_dot(inventory: Optional[dict] = None, rankdir: str = "LR") -> str:
     if inventory is None:
         inventory = system_inventory()
     type_of = {c["name"]: c["type"] for c in inventory["components"]}
-    types = sorted(set(type_of.values()))
-    colour = {t: _PALETTE[i % len(_PALETTE)] for i, t in enumerate(types)}
+    colour = _type_colours(type_of)
     parent_of = {sub: container for sub, container in inventory["containment"]
                  if sub in type_of and container in type_of}
     children = collections.defaultdict(list)
@@ -133,9 +171,27 @@ def system_dot(inventory: Optional[dict] = None, rankdir: str = "LR") -> str:
         emit(root, "  ")
     for name in sorted(type_of):      # anything left over (containment cycles)
         emit(name, "  ")
-    for a, b in inventory["connections"]:
-        if a in type_of and b in type_of:
-            lines.append(f"  {_quoted(a)} -- {_quoted(b)};")
+    connections = _drawn_connections(inventory, type_of)
+    for a, b in connections:
+        lines.append(f"  {_quoted(a)} -- {_quoted(b)};")
+
+    # Legend: an HTML-like table node, so it survives in downloaded files.
+    counts = collections.Counter(type_of.values())
+    rows = "".join(
+        f'<TR><TD BGCOLOR="{colour[t]}">{html.escape(t)}</TD>'
+        f'<TD ALIGN="RIGHT">{counts[t]}</TD></TR>' for t in sorted(counts))
+    lines.append("  subgraph cluster_legend {")
+    lines.append('    label="Legend"; style="rounded"; color="#999999"; '
+                 'fontname="Helvetica"; fontsize=11;')
+    lines.append('    "__legend__" [shape=none, margin=0, fillcolor="white", label=<'
+                 '<TABLE BORDER="0" CELLBORDER="1" CELLSPACING="0" CELLPADDING="4">'
+                 '<TR><TD COLSPAN="2"><B>Component types</B></TD></TR>'
+                 f'{rows}'
+                 f'<TR><TD COLSPAN="2">{_plural(len(type_of), "component")}, '
+                 f'{_plural(len(connections), "connection")}</TD></TR>'
+                 '<TR><TD COLSPAN="2">Double border: contains subcomponents</TD></TR>'
+                 "</TABLE>>];")
+    lines.append("  }")
     lines.append("}")
     return "\n".join(lines) + "\n"
 

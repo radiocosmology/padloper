@@ -1,7 +1,7 @@
 import React, { useCallback, useEffect, useRef, useState } from 'react';
 import { useNavigate } from 'react-router-dom';
 import {
-    Box, Button, ButtonGroup, CircularProgress, Stack, Typography,
+    Box, Button, ButtonGroup, Chip, CircularProgress, Stack, Typography,
 } from '@mui/material';
 import { withBase } from './paths.js';
 import ErrorMessage from './ErrorMessage.js';
@@ -32,7 +32,8 @@ function svgPixelSize(svgEl) {
 /**
  * Whole-system diagram. The server renders the inventory to SVG with Graphviz
  * (/api/system_diagram.svg); this page inlines it with drag-to-pan and
- * wheel-to-zoom. Clicking a component box opens that component's page.
+ * wheel-to-zoom. Clicking a component box opens that component's page; the
+ * legend chips (from /api/system_diagram.json) highlight one type at a time.
  */
 export default function SystemDiagram() {
     const navigate = useNavigate();
@@ -40,6 +41,8 @@ export default function SystemDiagram() {
     const [error, setError] = useState(null);
     const [loading, setLoading] = useState(true);
     const [scalePct, setScalePct] = useState(100);
+    const [legend, setLegend] = useState(null);       // {types, components, connections}
+    const [highlight, setHighlight] = useState(null); // colour of the highlighted type
     const viewportRef = useRef(null);
     const contentRef = useRef(null);
     const view = useRef({ x: 0, y: 0, scale: 1 });
@@ -127,6 +130,32 @@ export default function SystemDiagram() {
         return () => { cancelled = true; };
     }, []);
 
+    // The legend is optional: if it cannot be loaded the diagram still shows.
+    useEffect(() => {
+        let cancelled = false;
+        fetch(withBase('/api/system_diagram.json'))
+            .then((res) => (res.ok ? res.json() : null))
+            .then((data) => {
+                if (!cancelled && data && Array.isArray(data.types)) setLegend(data);
+            })
+            .catch(() => { /* no legend */ });
+        return () => { cancelled = true; };
+    }, []);
+
+    // Dim every component box whose fill is not the highlighted type's colour.
+    useEffect(() => {
+        const root = contentRef.current;
+        if (!root) return;
+        const wanted = highlight ? highlight.toLowerCase() : null;
+        root.querySelectorAll('g.node').forEach((node) => {
+            const title = node.querySelector('title');
+            if (title && title.textContent.trim() === '__legend__') return;
+            const shape = node.querySelector('polygon, path, ellipse');
+            const fill = shape ? (shape.getAttribute('fill') || '').toLowerCase() : '';
+            node.style.opacity = (!wanted || fill === wanted) ? '' : '0.12';
+        });
+    }, [highlight, svg]);
+
     // Fit the drawing once it is in the DOM.
     useEffect(() => {
         if (!svg) return undefined;
@@ -176,7 +205,7 @@ export default function SystemDiagram() {
         if (!node) return;
         const title = node.querySelector('title');
         const name = title && title.textContent ? title.textContent.trim() : '';
-        if (name) navigate(`/component/${encodeURIComponent(name)}`);
+        if (name && !name.startsWith('__')) navigate(`/component/${encodeURIComponent(name)}`);
     };
 
     return (
@@ -230,6 +259,32 @@ export default function SystemDiagram() {
             </Stack>
 
             <ErrorMessage errorMessage={error} />
+
+            {legend && (
+                <Stack direction="row" flexWrap="wrap" alignItems="center" sx={{ gap: 0.5, mb: 1 }} aria-label="legend">
+                    {legend.types.map((t) => (
+                        <Chip
+                            key={t.name}
+                            size="small"
+                            label={`${t.name} (${t.count})`}
+                            onClick={() => setHighlight((h) => (h === t.colour ? null : t.colour))}
+                            sx={{
+                                bgcolor: t.colour,
+                                border: highlight === t.colour ? '2px solid #222' : '1px solid #bbb',
+                                opacity: highlight && highlight !== t.colour ? 0.45 : 1,
+                                '&:hover': { bgcolor: t.colour },
+                            }}
+                        />
+                    ))}
+                    {highlight && (
+                        <Chip size="small" variant="outlined" label="Show all" onClick={() => setHighlight(null)} />
+                    )}
+                    <Typography variant="body2" color="text.secondary" sx={{ ml: 1 }}>
+                        {legend.components} components, {legend.connections} connections.
+                        Double border: contains subcomponents. Click a type to highlight it.
+                    </Typography>
+                </Stack>
+            )}
 
             <Box
                 ref={viewportRef}

@@ -23,6 +23,7 @@ The flask app is imported the same way gunicorn does ('flask-interface.app'),
 so the repository root must be importable.
 """
 import importlib
+import re
 import os
 import sys
 import uuid
@@ -347,10 +348,17 @@ def test_system_dot_is_pure_and_nests_containers():
     dot = p.system_dot(inv)
     assert dot.startswith('graph padloper {') and dot.rstrip().endswith('}')
     assert 'as of 1970-01-01 00:00 UTC' in dot
-    assert dot.count('subgraph cluster_') == 1
+    assert len(re.findall(r'subgraph cluster_\d+ ', dot)) == 1   # containers only; the legend is cluster_legend
     assert dot.index('label="S  (Site)"') < dot.index('"D" [') < dot.index('"D" -- "L";')
     assert '"L" [' in dot and 'ghost' not in dot
     assert '"Q\\"x" [' in dot, "quotes in names are escaped"
+    # Legend table with one row per type, colours matching the summary.
+    summary = p.system_summary(inv)
+    assert [t['name'] for t in summary['types']] == ['Dish', 'LNA', 'Odd', 'Site']
+    assert summary['components'] == 4 and summary['connections'] == 1
+    for t in summary['types']:
+        assert f'<TD BGCOLOR="{t["colour"]}">{t["name"]}</TD>' in dot
+    assert '"__legend__" [' in dot and '4 components, 1 connection<' in dot
 
 
 def test_system_diagram_routes():
@@ -361,6 +369,11 @@ def test_system_diagram_routes():
     res = admin.get('/api/system_diagram.svg')
     assert res.status_code == 200, res.get_data(as_text=True)
     assert res.mimetype == 'image/svg+xml' and b'<svg' in res.data
+    res = admin.get('/api/system_diagram.json')
+    assert res.status_code == 200 and res.is_json
+    body = res.get_json()
+    assert {'types', 'components', 'connections', 'at_time'} <= set(body)
+    assert all({'name', 'colour', 'count'} <= set(t) for t in body['types'])
     assert admin.get('/api/system_diagram.png').status_code == 404
     assert admin.get('/api/system_diagram.dot?time=0').status_code == 200
     assert app.test_client().get('/api/system_diagram.svg').status_code == 401

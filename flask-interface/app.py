@@ -2583,15 +2583,19 @@ def get_all_permissions():
 def system_diagram(fmt):
     """The whole inventory as a Graphviz graph (see padloper.system_dot).
 
-    `system_diagram.dot` returns the DOT source; `system_diagram.svg` the image
-    rendered with Graphviz on the server. Optional query parameter `time`
+    `system_diagram.dot` returns the DOT source, `system_diagram.svg` the image
+    rendered with Graphviz on the server, and `system_diagram.json` the legend
+    (types with colours and counts, totals). Optional query parameter `time`
     (UNIX seconds) selects the connections in force at that moment (default:
     now).
     """
-    if fmt not in ("dot", "svg"):
-        return ({'error': 'Format must be dot or svg'}), 404
+    if fmt not in ("dot", "svg", "json"):
+        return ({'error': 'Format must be dot, svg or json'}), 404
     at_time = request.args.get("time", type=int)
-    dot_source = p.system_dot(p.system_inventory(at_time))
+    inventory = p.system_inventory(at_time)
+    if fmt == "json":
+        return p.system_summary(inventory)
+    dot_source = p.system_dot(inventory)
     if fmt == "dot":
         return Response(dot_source, mimetype="text/vnd.graphviz")
     try:

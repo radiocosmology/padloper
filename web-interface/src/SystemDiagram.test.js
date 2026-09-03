@@ -10,7 +10,26 @@ const SVG = '<?xml version="1.0" encoding="UTF-8" standalone="no"?>\n'
     + '<svg width="200pt" height="100pt" viewBox="0.00 0.00 200.00 100.00" xmlns="http://www.w3.org/2000/svg">'
     + '<g id="graph0" class="graph"><g id="node1" class="node"><title>CD-ANT-9001-A</title>'
     + '<polygon fill="#d9ead3" stroke="black" points="0,0 10,0 10,10 0,10"/>'
-    + '<text x="5" y="5">CD-ANT-9001-A</text></g></g></svg>';
+    + '<text x="5" y="5">CD-ANT-9001-A</text></g>'
+    + '<g id="node2" class="node"><title>CD-ADC-0001-A</title>'
+    + '<polygon fill="#cfe2f3" stroke="black" points="20,0 30,0 30,10 20,10"/>'
+    + '<text x="25" y="5">CD-ADC-0001-A</text></g>'
+    + '<g id="node3" class="node"><title>__legend__</title>'
+    + '<polygon fill="#d9ead3" points="40,0 50,0 50,10 40,10"/><text>Legend</text></g></g></svg>';
+const LEGEND = {
+    types: [{ name: 'ADC', colour: '#cfe2f3', count: 1 }, { name: 'Antenna', colour: '#d9ead3', count: 1 }],
+    components: 2, connections: 0, at_time: 0,
+};
+
+/** fetch mock: SVG for the .svg endpoint, legend JSON for .json. */
+function mockDiagramApi() {
+    global.fetch = jest.fn((url) => {
+        if (String(url).endsWith('.json')) {
+            return Promise.resolve({ ok: true, status: 200, json: () => Promise.resolve(LEGEND) });
+        }
+        return Promise.resolve({ ok: true, status: 200, statusText: 'OK', text: () => Promise.resolve(SVG) });
+    });
+}
 
 function ComponentStub() {
     const { name } = useParams();
@@ -29,9 +48,7 @@ function renderPage() {
 }
 
 test('inlines the server SVG, zooms with the buttons, and opens a component on click', async () => {
-    global.fetch = jest.fn(() => Promise.resolve({
-        ok: true, status: 200, statusText: 'OK', text: () => Promise.resolve(SVG),
-    }));
+    mockDiagramApi();
     renderPage();
 
     const content = await screen.findByTestId('diagram-content');
@@ -54,10 +71,30 @@ test('inlines the server SVG, zooms with the buttons, and opens a component on c
     expect(await screen.findByText('COMPONENT CD-ANT-9001-A')).toBeInTheDocument();
 });
 
+test('legend chips highlight one component type at a time', async () => {
+    mockDiagramApi();
+    renderPage();
+    const content = await screen.findByTestId('diagram-content');
+    const antenna = await screen.findByText('Antenna (1)');
+    expect(screen.getByText('ADC (1)')).toBeInTheDocument();
+    expect(screen.getByText(/2 components, 0 connections/)).toBeInTheDocument();
+
+    const [node1, node2, legendNode] = content.querySelectorAll('g.node');
+    userEvent.click(antenna);
+    await waitFor(() => expect(node2.style.opacity).toBe('0.12'));
+    expect(node1.style.opacity).toBe('');
+    expect(legendNode.style.opacity).toBe('');      // the legend itself is never dimmed
+
+    userEvent.click(screen.getByText('Show all'));
+    await waitFor(() => expect(node2.style.opacity).toBe(''));
+
+    // Clicking the legend node does not navigate anywhere.
+    userEvent.click(legendNode.querySelector('polygon'));
+    expect(screen.queryByText(/^COMPONENT/)).not.toBeInTheDocument();
+});
+
 test('a drag is not treated as a click', async () => {
-    global.fetch = jest.fn(() => Promise.resolve({
-        ok: true, status: 200, statusText: 'OK', text: () => Promise.resolve(SVG),
-    }));
+    mockDiagramApi();
     renderPage();
     const content = await screen.findByTestId('diagram-content');
     const viewport = screen.getByTestId('diagram-viewport');
@@ -77,6 +114,7 @@ test('a drag is not treated as a click', async () => {
 test('shows the server error when Graphviz is unavailable', async () => {
     global.fetch = jest.fn(() => Promise.resolve({
         ok: false, status: 503, statusText: 'Service Unavailable',
+        json: () => Promise.reject(new Error('no body')),
         text: () => Promise.resolve(JSON.stringify({ error: 'Graphviz is not installed on the server' })),
     }));
     renderPage();
