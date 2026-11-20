@@ -1,12 +1,16 @@
 import ComponentList from './ComponentList.js';
 import ComponentTypeList from './ComponentTypeList.js';
 import ComponentVersionList from './ComponentVersionList.js';
+import ComponentSequenceList from './ComponentSequenceList.js';
 import PropertyTypeList from './PropertyTypeList';
 import ComponentPage from './ComponentPage.js';
 import ComponentConnectionVisualizer from './ComponentConnectionVisualizer.js';
+import NewVisualizer from './NewVisualizer.js';
 import FlagTypeList from './FlagTypeList.js'
 import FlagList from './FlagList.js';
 import Header from './Header.js';
+import Barcode from './Barcode.js';
+import BulkInput from './BulkInput.js';
 
 import { ReactFlowProvider } from 'reactflow';
 
@@ -17,6 +21,14 @@ import {
 } from "react-router-dom";
 import Login from './Login.js';
 import { OAuthContext, useOAuthContext } from './contexts/OAuthContext.js';
+import UserManagementPage from './UserManagement.js';
+import UserGroupManagementPage from './UserGroupManagement.js';
+import UserCreatePage from './UserCreate.js';
+import UserEditPage from './UserEdit.js';
+import UserGroupEditPage from './UserGroupEdit.js';
+import SystemDiagram from './SystemDiagram.js';
+import { BASE_PATH } from './paths.js';
+
 
 /**
  * The main page where the header and site contents are rendered,
@@ -31,7 +43,9 @@ function App() {
    */
 
   window.addEventListener("error", (e) => {
-    if (e.message === 'ResizeObserver loop completed with undelivered notifications.' || e.message === 'ResizeObserver loop limit exceeded') {
+    if (e.message === "ResizeObserver loop completed with undelivered " +
+        "notifications." ||
+        e.message === 'ResizeObserver loop limit exceeded') {
       console.log("Oh, yeah!!!!");
 //      e.stopImmediatePropagation();
     }
@@ -46,13 +60,13 @@ function App() {
     <OAuthContext.Provider value={useOAuthContext()}>
       <div className="App">
 
-      <Router>
+      <Router basename={BASE_PATH}>
         {/* {localStorage.getItem("accessToken") === null ?
         <></> :
         <Header />
       } */}
         <Header />
-        
+
         <Routes>
 
           {/**
@@ -65,44 +79,103 @@ function App() {
             element={<Login />}
           />
 
-          <Route 
-            exact={true} 
+          <Route
+            exact={true}
             path="/list/component"
-            element={<ComponentList />} 
+            element={<ComponentList />}
           />
-            
-          <Route 
-            exact={true} 
+
+          <Route
+            exact={true}
             path="/list/component-types"
-            element={<ComponentTypeList />} 
+            element={<ComponentTypeList />}
           />
 
-          <Route 
-            exact={true} 
+          <Route
+            exact={true}
             path="/list/flag-types"
-            element={<FlagTypeList />} 
+            element={<FlagTypeList />}
           />
 
-          <Route 
-            exact={true} 
+          <Route
+            exact={true}
             path="/list/flag"
-            element={<FlagList />} 
+            element={<FlagList />}
           />
 
-          <Route 
-            exact={true} 
-            path="/list/component-versions" 
+          <Route
+            exact={true}
+            path="/list/component-versions"
             element={<ComponentVersionList />}
           />
 
-          <Route 
-            exact={true} 
+          <Route
+            exact={true}
             path="/list/property-types"
             element={
               <PropertyTypeList />
-            } 
+            }
           />
-          
+
+          <Route
+            exact={true}
+            path="/manage/users"
+            element={
+              <UserManagementPage />
+            }
+          />
+
+
+          <Route
+            exact={true}
+            path="/manage/users/groups"
+            element={
+              <UserGroupManagementPage />
+            }
+          />
+
+          <Route
+            exact={true}
+            path="/users"
+            element={
+              <UserCreatePage />
+            }
+          />
+
+          {/* Edit one user's group memberships. */}
+          <Route
+            exact={true}
+            path="/manage/user/:name"
+            element={
+              <UserEditPage />
+            }
+          />
+
+          {/* Edit one user group's permissions and members. */}
+          <Route
+            exact={true}
+            path="/manage/group/:name"
+            element={
+              <UserGroupEditPage />
+            }
+          />
+
+
+          {
+            // A ReactFlowProvider is wrapped around the visualizer to give it
+            // access to the React Flow hooks:
+            // https://reactflow.dev/docs/api/react-flow-provider/
+          }
+          <Route
+            exact={true}
+            path="/legacy-visualizer"
+            element={
+              <ReactFlowProvider>
+                <ComponentConnectionVisualizer />
+              </ReactFlowProvider>
+            }
+          />
+
           {
             /**
              * A ReactFlowProvider is wrapped around the visualizer to
@@ -110,21 +183,70 @@ function App() {
              * https://reactflow.dev/docs/api/react-flow-provider/
              */
           }
-          <Route 
-            exact={true} 
-            path="/component-connections" 
+          <Route
+            exact={true}
+            path="/component-connections"
             element={
               <ReactFlowProvider>
-                <ComponentConnectionVisualizer />
+                <NewVisualizer />
               </ReactFlowProvider>
-            } 
+            }
           />
-          
+
+          {/* Whole-system Graphviz diagram, rendered server-side, pannable. */}
+          <Route
+            exact={true}
+            path="/system-diagram"
+            element={<SystemDiagram />}
+          />
+
           {/*
             :name denotes a URL parameter, so /component/COMP-1 will load
             the component page for COMP-1.
           */}
           <Route exact path="/component/:name" element={<ComponentPage />} />
+
+          {/**
+           * Barcode scanning to find, connect, and add components
+           */}
+          <Route
+            exact={true}
+            path="/barcode"
+            element={
+              <Barcode />
+            }
+          />
+
+          {/**
+           * Bulk input to create or edit components
+           */}
+          <Route
+            exact={true}
+            path="/bulk-input"
+            element={
+              <BulkInput />
+            }
+          />
+
+          {/**
+           * Component sequence list
+           */}
+          <Route
+            exact={true}
+            path="/list/component-sequences"
+            element={
+              <ComponentSequenceList />
+            }
+          />
+
+          {/**
+           * Route for specific component
+           */}
+          {/* <Route
+            exact={true}
+            path="/component-sequence/:name"
+            element={}
+          /> */}
 
         </Routes>
 
@@ -133,7 +255,7 @@ function App() {
       </div>
 
     </OAuthContext.Provider>
-    
+
   );
 }
 

@@ -1,22 +1,32 @@
-FROM janusgraph/janusgraph:0.6.2
+# JG_VERSION selects the JanusGraph base image. Default 1.1.0 (TinkerPop 3.7 —
+# provides server-side TextP.regex). Build with --build-arg JG_VERSION=0.6.2
+# for rollback to the pre-bump server.
+ARG JG_VERSION=1.1.0
+FROM janusgraph/janusgraph:${JG_VERSION}
 
 USER root
 
-# Install OpenJDK 1.8
+# Install OpenJDK 11 (JanusGraph 1.1.0 supports JDK 8/11; the image already
+# ships with a JDK, but we install OpenJDK 11 explicitly to keep JAVA_HOME
+# predictable and to use a non-EOL JDK).
 RUN apt-get update && \
-    apt-get install -y openjdk-8-jdk && \
-    apt-get clean;
+    apt-get install -y openjdk-11-jdk && \
+    apt-get clean && \
+    rm -rf /var/lib/apt/lists/*
 
-# Set JAVA_HOME environment variable
-ENV JAVA_HOME=/usr/lib/jvm/java-8-openjdk-amd64
+ENV JAVA_HOME=/usr/lib/jvm/java-11-openjdk-amd64
 ENV JAVA_OPTS="-Xms512m -Xmx512m"
 
-# Add custom JanusGraph configuration
-COPY conf/janusgraph-cql-es-prod.properties /opt/janusgraph/conf/janusgraph-cql-es.properties
+# Add custom JanusGraph configuration. The -server suffix and matching
+# JANUS_PROPS_TEMPLATE=cql-es env var in docker-compose.yml are required for
+# the JanusGraph entrypoint to actually load this file.
+COPY conf/janusgraph-cql-es-prod.properties /opt/janusgraph/conf/janusgraph-cql-es-server.properties
 COPY index_setup.groovy /docker-entrypoint-initdb.d/index_setup.groovy
 
 # Expose the necessary port
 EXPOSE 8182
 
-RUN sed -i 's/-Xms4096m/-Xms512m/; s/-Xmx4096m/-Xmx512m/' /opt/janusgraph/conf/jvm-8.options
-RUN sed -i 's/-Xms4096m/-Xms512m/; s/-Xmx4096m/-Xmx512m/' /opt/janusgraph/conf/jvm-11.options
+# Apply heap caps to whichever jvm-*.options file the image actually uses.
+RUN for f in /opt/janusgraph/conf/jvm-11.options /opt/janusgraph/conf/jvm-17.options; do \
+      [ -f "$f" ] && sed -i 's/-Xms4096m/-Xms512m/; s/-Xmx4096m/-Xmx512m/' "$f" || true; \
+    done

@@ -1,0 +1,3 @@
+* text eol=lf
+*.pdf binary
+* whitespace=space-before-tab,tab-in-indent,trailing-space

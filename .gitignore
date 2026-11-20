@@ -13,3 +13,4 @@ subgraph.pdf
 *.egg-info
 elasticsearch-data
 cassandra-data
+.env

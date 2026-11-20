@@ -14,6 +14,7 @@ import axios from 'axios'
 import EditIcon from '@mui/icons-material/Edit';
 import styled from '@mui/material/styles/styled';
 import ErrorMessage from './ErrorMessage';
+import { withBase } from './paths.js';
 
 /**
  * A MUI component representing a button for replacing a flag type.
@@ -72,7 +73,7 @@ export default function FlagTypeReplaceButton ({nameFlagType,toggleReload}) {
     input += `?name=${name}`;
     input += `&comments=${comment}`;
     input += `&flag_type=${nameFlagType}`;
-    axios.post(input).then((response)=>{
+    axios.post(withBase(input)).then((response)=>{
       if(response.data.result){
         toggleReload() //To reload the page once the form has been submitted.
         handleClose()

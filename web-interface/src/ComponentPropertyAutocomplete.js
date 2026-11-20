@@ -2,11 +2,12 @@ import React, { useState, useEffect } from 'react';
 import Autocomplete from '@mui/material/Autocomplete';
 import CircularProgress from '@mui/material/CircularProgress';
 import TextField from '@mui/material/TextField';
+import { withBase, requireOkJson } from './paths.js';
 
 /**
- * An Autocomplete component that queries the component property list in the DB 
+ * An Autocomplete component that queries the component property list in the DB
  * and gives a text field with possible values to select in the dropdown.
- * 
+ *
  * @param {function(string)} onSelect - function to call when value is selected.
  */
 export default function ComponentPropertyAutocomplete(
@@ -21,9 +22,9 @@ export default function ComponentPropertyAutocomplete(
 
     // list of options to pick from
     const [options, setOptions] = useState([]);
-    
+
     // what is contained inside the text field
-    const [entered_string, setEnteredString] = useState(""); 
+    const [entered_string, setEnteredString] = useState("");
 
     // whether the list of options is currently loading the list of components
     const [loading, setLoading] = useState(open && options.length === 0);
@@ -52,15 +53,20 @@ export default function ComponentPropertyAutocomplete(
             input += `&orderBy=name`
             input += `&orderDirection=asc`;
             input += `&nameSubstring=${entered_string}`;
-    
+
             // query the URL with flask, and set the input.
-            fetch(input).then(
-                res => res.json()
-            ).then(data => {
+            fetch(withBase(input))
+              .then(requireOkJson)
+              .then(data => {
                 setOptions(data.result);
-    
+
                 setLoading(false);
-            });
+              })
+              .catch(err => {
+                console.error('Failed to load property types:', err);
+                setOptions([]);
+                setLoading(false);
+              });
         }
         if (open) {
             fetchData();
@@ -71,7 +77,7 @@ export default function ComponentPropertyAutocomplete(
     }, [entered_string, open]);
 
     /**
-     * basically copied from 
+     * basically copied from
      * https://mui.com/components/autocomplete/#asynchronous-requests
      */
     return (
@@ -94,11 +100,11 @@ export default function ComponentPropertyAutocomplete(
                 setSelectedOption(option)
             }
         }}
-        onChange={(event, value, reason, details) => {onSelect(value); setSelectedOption(value); console.log(value)}}
+        onChange={(event, value, reason, details) => {onSelect(value); setSelectedOption(value);}}
         value={selectedOption}
         loading={loading}
         renderInput={(params) => (
-            <TextField  
+            <TextField
             variant="filled"
             {...params}
             label="Property Type"

@@ -1,9 +1,24 @@
+# Rotate container logs; without this json-file logs grow without bound.
+x-logging: &default-logging
+  driver: json-file
+  options:
+    max-size: "20m"
+    max-file: "5"
+
 services:
   flask-interface:
     build:
       context: .
       dockerfile: flask-interface/Dockerfile.flask_interface
     container_name: flask-interface
+    platform: linux/amd64
+    env_file:
+      - .env
+    environment:
+      # Padloper is also used directly over plain HTTP on the ctc network
+      # (http://padloper...:3000), where browsers refuse a Secure cookie.
+      # Set to "true" once all access goes through the HTTPS proxy.
+      SESSION_COOKIE_SECURE: "false"
     depends_on:
       - janusgraph
     ports:
@@ -11,88 +26,158 @@ services:
     networks:
       padloper-network:
         ipv4_address: 172.20.0.20
+    restart: unless-stopped
+    logging: *default-logging
   nginx:
-    image: nginx:latest
+    image: nginx:1.27-alpine
     container_name: nginx
+    platform: linux/amd64
     depends_on:
       - flask-interface
     ports:
+      # The site proxy reaches padloper through this nginx, so it must stay
+      # reachable from the ctc network.
       - "3000:80"
     volumes:
       - ./nginx.conf:/etc/nginx/conf.d/default.conf
     networks:
       padloper-network:
         ipv4_address: 172.20.0.10
+    restart: unless-stopped
+    logging: *default-logging
   web-interface:
-    build: 
+    build:
       context: .
       dockerfile: web-interface/Dockerfile.web_interface
+      args:
+        REACT_APP_GITHUB_CLIENT_ID: ${GITHUB_OAUTH_CLIENT_ID}
+        REACT_APP_BASE_PATH: /padloper
     container_name: web-interface
+    platform: linux/amd64
     ports:
       - "4301:4301"
     networks:
       padloper-network:
         ipv4_address: 172.20.0.21
-
+    restart: unless-stopped
+    logging: *default-logging
   oauth-proxy-server:
-    build: 
+    build:
       context: .
       dockerfile: oauth-proxy-server/Dockerfile.oauth
     container_name: oauth-proxy-server
+    platform: linux/amd64
+    env_file:
+      - .env
+    environment:
+      CLIENT_ID: ${GITHUB_OAUTH_CLIENT_ID}
+      CLIENT_SECRET: ${GITHUB_OAUTH_CLIENT_SECRET}
     ports:
       - "4000:4000"
     networks:
       padloper-network:
         ipv4_address: 172.20.0.22
+    restart: unless-stopped
+    logging: *default-logging
   cassandra:
     image: cassandra:3.11
     container_name: cassandra
+    platform: linux/amd64
     ports:
-      - "9042:9042"
+      # Unauthenticated backend; reachable from this host only. Containers talk
+      # to each other over the compose network, not via published ports.
+      - "127.0.0.1:9042:9042"
     environment:
       - MAX_HEAP_SIZE=512M
       - HEAP_NEWSIZE=100M
     volumes:
       - cassandra_data:/var/lib/cassandra
+    healthcheck:
+      test: ["CMD-SHELL", "cqlsh -e 'describe keyspaces' >/dev/null 2>&1 || exit 1"]
+      interval: 15s
+      timeout: 10s
+      retries: 20
+      start_period: 90s
     networks:
       padloper-network:
         ipv4_address: 172.20.0.23
-
+    restart: unless-stopped
+    logging: *default-logging
   elasticsearch:
-    image: docker.elastic.co/elasticsearch/elasticsearch:7.10.2
+    image: docker.elastic.co/elasticsearch/elasticsearch:7.17.26
     container_name: elasticsearch
+    platform: linux/amd64
     environment:
       - discovery.type=single-node
       - cluster.name=janusgraph
       - ES_JAVA_OPTS=-Xms512m -Xmx512m
     ports:
-      - "9200:9200"
+      # Unauthenticated backend (security features off); this host only.
+      - "127.0.0.1:9200:9200"
     volumes:
       - es_data:/usr/share/elasticsearch/data
+    tmpfs:
+      - /tmp
+    healthcheck:
+      test: ["CMD-SHELL", "curl -fs http://localhost:9200/_cluster/health >/dev/null || exit 1"]
+      interval: 15s
+      timeout: 10s
+      retries: 20
+      start_period: 60s
     networks:
       padloper-network:
         ipv4_address: 172.20.0.24
-
+    restart: unless-stopped
+    logging: *default-logging
   janusgraph:
     build:
       context: .
       dockerfile: Dockerfile.janusgraph
     container_name: janusgraph
+    platform: linux/amd64
     ports:
-      - "8182:8182"
+      # Gremlin Server has no authentication; this host only. Remote users can
+      # tunnel: ssh -L 8182:localhost:8182 padloper.ctc.chord-observatory.ca
+      - "127.0.0.1:8182:8182"
     environment:
+      # Pick the janusgraph-cql-es-server.properties template (copied in by
+      # Dockerfile.janusgraph from conf/janusgraph-cql-es-prod.properties).
+      # Without this, the image falls back to JANUS_PROPS_TEMPLATE=berkeleyje-lucene
+      # and the Cassandra/ES services below are not actually used.
+      - JANUS_PROPS_TEMPLATE=cql-es
+      # This host reboots nightly; Cassandra can die before JanusGraph has
+      # deregistered its instance id. The id is deterministic here (fixed IP,
+      # PID 1, fixed hostname), so a stale record would otherwise block every
+      # later start with "same instance id is already open" (Aug 2026 outage).
+      # The entrypoint writes janusgraph.-prefixed vars into janusgraph.properties.
+      - janusgraph.graph.replace-instance-if-exists=true
+      # The values below are already in the properties file but kept here for
+      # discoverability. They are *not* applied as env overrides because the
+      # JanusGraph entrypoint only honors env vars prefixed with `janusgraph.`.
       - storage.backend=cassandra
       - storage.hostname=cassandra
       - index.search.backend=elasticsearch
       - index.search.hostname=elasticsearch
     depends_on:
-      - cassandra
-      - elasticsearch
+      cassandra:
+        condition: service_healthy
+      elasticsearch:
+        condition: service_healthy
+    healthcheck:
+      # Nothing listening on 8182 is exactly the failure mode seen in Aug 2026
+      # (JVM alive, server never started).
+      test: ["CMD-SHELL", "bash -c 'exec 3<>/dev/tcp/127.0.0.1/8182' || exit 1"]
+      interval: 30s
+      timeout: 10s
+      retries: 5
+      start_period: 120s
     volumes:
       - janusgraph_data:/var/lib/janusgraph
     networks:
       padloper-network:
         ipv4_address: 172.20.0.25
+    restart: unless-stopped
+    logging: *default-logging
 
 volumes:
   cassandra_data:

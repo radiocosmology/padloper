@@ -9,6 +9,7 @@ import DialogTitle from '@mui/material/DialogTitle';
 import axios from 'axios'
 import styled from '@mui/material/styles/styled';
 import ErrorMessage from './ErrorMessage';
+import { withBase } from './paths.js';
 
 /**
  * A MUI component representing a button for ending a component's property or connection.
@@ -87,7 +88,7 @@ export default function FlagEndButton ({toggleReload,name}){
       input += `&end_time=${endTime}`;
       input += `&uid=${property.uid}`;
       input += `&comments=${property.comment}`;
-      axios.post(input).then((response)=>{
+      axios.post(withBase(input)).then((response)=>{
         if(response.data.result){
           toggleReload() //To reload the page once the form has been submitted.
           handleClose()

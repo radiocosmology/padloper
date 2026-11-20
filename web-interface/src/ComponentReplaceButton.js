@@ -17,6 +17,7 @@ import EditIcon from '@mui/icons-material/Edit';
 import styled from '@mui/material/styles/styled';
 import CircularProgress from '@mui/material/CircularProgress';
 import ErrorMessage from './ErrorMessage';
+import { withBase } from './paths.js';
 
 /**
  * A MUI component representing a button for replacing a component type.
@@ -98,7 +99,7 @@ const ReplaceButton = styled((props) => (
     input += `&type=${componentType}`;
     input += `&version=${componentVersion}`;
     input += `&component=${nameComponent}`;
-    axios.post(input).then((response)=>{
+    axios.post(withBase(input)).then((response)=>{
       if(response.data.result){
         toggleReload(); //To reload the list of components once the form has been submitted.
         handleClose();

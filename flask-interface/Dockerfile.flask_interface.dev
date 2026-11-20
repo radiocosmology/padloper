@@ -1,0 +1,20 @@
+FROM python:3.12-slim
+
+# Apply available OS security updates
+# Graphviz renders the system diagram (/api/system_diagram.svg).
+RUN apt-get update && apt-get -y upgrade && \
+    apt-get install -y --no-install-recommends graphviz && \
+    rm -rf /var/lib/apt/lists/*
+
+# Keep pip itself current
+RUN pip install --no-cache-dir --upgrade pip
+
+WORKDIR /
+
+COPY requirements.txt requirements.txt
+RUN pip3 install -r requirements.txt
+
+COPY ./flask-interface/.flaskenv ./flask-interface/flaskenv
+
+ENV DB_HOST="ws://janusgraph"
+CMD ["gunicorn", "--bind", "0.0.0.0:4300", "flask-interface.app:app"]
