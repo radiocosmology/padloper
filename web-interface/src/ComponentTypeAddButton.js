@@ -13,6 +13,7 @@ import DialogTitle from '@mui/material/DialogTitle';
 import CircularProgress from '@mui/material/CircularProgress';
 import axios from 'axios'
 import ErrorMessage from './ErrorMessage';
+import { withBase } from './paths.js';
 
 export default function ComponentTypeAddButton ({toggleReload}) {
 
@@ -56,7 +57,7 @@ export default function ComponentTypeAddButton ({toggleReload}) {
       let input = `/api/set_component_type`;
       input += `?name=${componentType}`;
       input += `&comments=${comment}`;
-      axios.post(input).then((response)=>{
+      axios.post(withBase(input)).then((response)=>{
         if(response.data.result){
           handleClose();
           toggleReload(); //To reload the page once the form has been submitted.

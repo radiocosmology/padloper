@@ -1,12 +1,43 @@
-FROM node:18-alpine
+FROM node:22-alpine
+
+# Apply available OS security updates
+RUN apk upgrade --no-cache
+
+# Keep npm current within the major that supports this image's Node 20
+# (npm@latest now requires Node >= 22 and fails the build).
+RUN npm install -g npm@10 && npm cache clean --force
 
 WORKDIR /web-interface
 
+# Install dependencies first (leverage Docker layer cache)
+COPY ./web-interface/package.json /web-interface/
+# If a lockfile exists, copy it too for deterministic installs
+# Install deps deterministically when a lockfile is present
+RUN if [ -f package-lock.json ]; then \
+      npm ci --no-audit --no-fund; \
+    else \
+      npm install --no-audit --no-fund; \
+    fi \
+    && npm cache clean --force
+
+# Copy source
 COPY ./web-interface/public/ /web-interface/public
 COPY ./web-interface/src/ /web-interface/src
-COPY ./web-interface/package.json /web-interface/
-ENV API_URL="http://flask-interface"
-ENV OAUTH_URL="http://oauth-proxy-server"
-RUN npm install
 
-CMD [ "npm", "start" ]
+# Build-time env for CRA
+ARG REACT_APP_GITHUB_CLIENT_ID
+ARG REACT_APP_BASE_PATH
+ENV REACT_APP_GITHUB_CLIENT_ID=${REACT_APP_GITHUB_CLIENT_ID}
+ENV REACT_APP_BASE_PATH=${REACT_APP_BASE_PATH:-/padloper}
+# There is no lockfile, so every build floats to the newest transitive
+# versions; the CRA ESLint plugin currently fails with "Environment key
+# jest/globals is unknown" on a fresh install. Lint is run separately
+# (`npx eslint src`), so build the bundle without it.
+ENV DISABLE_ESLINT_PLUGIN=true
+
+# Build static assets and serve with a lightweight server on 4301
+RUN npm run build
+RUN npm install -g serve && npm cache clean --force
+
+EXPOSE 4301
+CMD [ "serve", "-s", "build", "-l", "4301" ]

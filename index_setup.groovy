@@ -1,6 +1,10 @@
 :remote connect tinkerpop.server conf/remote.yaml session
 :remote console
 
+// IMPORTANT: Keep this file in sync with index_setup.txt.
+// The bootstrap helper (scripts/bootstrap_graph.sh) streams index_setup.txt
+// into the Gremlin console inside the JanusGraph container for schema seeding.
+
 mgmt = graph.openManagement()
 
 // Properties. The ones for which we record the return value for (e.g., active,
@@ -26,6 +30,8 @@ mgmt.makePropertyKey('units').dataType(String.class).make()
 mgmt.makePropertyKey('allowed_regex').dataType(String.class).make()
 mgmt.makePropertyKey('n_values').dataType(Long.class).make()
 mgmt.makePropertyKey('values').dataType(String.class).cardinality(Cardinality.LIST).make()
+mgmt.makePropertyKey('notes').dataType(String.class).make()
+mgmt.makePropertyKey('permissions').dataType(String.class).cardinality(Cardinality.LIST).make()
 
 // Edges
 connection = mgmt.makeEdgeLabel("rel_connection").make()
@@ -69,3 +75,60 @@ mgmt.commit()
 mgmt = graph.openManagement()
 // vals = mgmt.makePropertyKey('values').dataType(String.class).cardinality(org.janusgraph.core.Cardinality.LIST).make()
 mgmt.commit()
+
+// Seed initial admin user and group
+g.addV().property("category", "user").property("time_added", 1)\
+        .property("uid_added", "master").property("time_disabled", 2**63 - 1)\
+        .property("active", true).property("replacement", 0)\
+        .property("name", "master").next()
+
+user = g.V().has("category", "user").has("name", "master").next()
+
+g.addV().property("category", "user_group").property("time_added", 1)\
+        .property("uid_added", "master").property("time_disabled", 2**63 - 1)\
+        .property("active", true).property("replacement", 0)\
+        .property("name", "admin")\
+        .property("comments", "Superuser group, capable of all actions")\
+        .property("permissions", "Component;add")\
+        .property("permissions", "Component;replace")\
+        .property("permissions", "Component;unset_property")\
+        .property("permissions", "Component;replace_property")\
+        .property("permissions", "Component;disable_property")\
+        .property("permissions", "Component;disconnect")\
+        .property("permissions", "Component;disable_connection")\
+        .property("permissions", "Component;disable_subcomponent")\
+        .property("permissions", "Component;subcomponent_connect")\
+        .property("permissions", "Component;connect")\
+        .property("permissions", "Component;set_property")\
+        .property("permissions", "ComponentType;add")\
+        .property("permissions", "ComponentType;replace")\
+        .property("permissions", "ComponentVersion;add")\
+        .property("permissions", "ComponentVersion;replace")\
+        .property("permissions", "PropertyType;add")\
+        .property("permissions", "PropertyType;replace")\
+        .property("permissions", "FlagType;add")\
+        .property("permissions", "FlagType;replace")\
+        .property("permissions", "FlagSeverity;add")\
+        .property("permissions", "FlagSeverity;replace")\
+        .property("permissions", "Property;add")\
+        .property("permissions", "Flag;add")\
+        .property("permissions", "Flag;replace")\
+        .property("permissions", "Flag;set_end")\
+        .property("permissions", "User;add")\
+        .property("permissions", "User;add_group")\
+        .property("permissions", "UserGroup;add")\
+        .property("permissions", "ComponentSequence;add")\
+        .property("permissions", "ComponentSequence;update")\
+        .property("permissions", "ComponentSequence;delete")\
+        .next()
+
+group = g.V().has("category", "user_group").has("name", "admin").next()
+g.V(group).addE("rel_user_group").to(user)\
+          .property('category', "rel_user_group").property("time_added", 1)\
+          .property("time_disabled", 2**63 - 1).property("active", true)\
+          .property("replacement", 0).next()
+
+// The statements above run inside a Gremlin Server *session*, whose
+// transaction is rolled back when the console exits unless committed here.
+// (mgmt.commit() above only commits the schema changes.)
+graph.tx().commit()

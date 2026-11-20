@@ -19,48 +19,49 @@ import ComponentEvent from './ComponentEvent.js';
 import FlagEvent from './FlagEvent.js';
 import DeleteIcon from '@mui/icons-material/Delete';
 import Authenticator from './components/Authenticator.js';
+import { withBase } from './paths.js';
 
 /**
  * A styling for an MUI Accordion component.
  */
 const Accordion = styled((props) => (
-    <MuiAccordion 
-        disableGutters 
-        elevation={0} 
+    <MuiAccordion
+        disableGutters
+        elevation={0}
         defaultExpanded
-        {...props} 
+        {...props}
     />
 ))(({ theme }) => ({
     borderBottom: `1px solid ${theme.palette.divider}`,
-    
+
 }));
 
 /**
  * An even more styled Accordion component.
  */
 const EntryAccordion = styled((props) => (
-    <Accordion 
+    <Accordion
         defaultExpanded={false}
         {...props}
     />
 ))(({ theme }) => ({
     borderBottom: `0`,
-    
+
 }));
 
 const AccordionDetails = styled(MuiAccordionDetails)(({ theme }) => ({
     padding: theme.spacing(2),
     borderTop: '1px solid rgba(0, 0, 0, .125)',
-    
+
 }));
 
 const EntryAccordionDetails = styled(AccordionDetails)(({ theme }) => ({
     backgroundColor: 'rgba(0, 0, 0, .015)',
-    
+
 }));
 
 /**
- * Custom MUI theme, see 
+ * Custom MUI theme, see
  * https://mui.com/customization/theming/#theme-configuration-variables
  */
 const theme = createTheme({
@@ -78,7 +79,7 @@ const theme = createTheme({
 const AccordionSummary = styled((props) => (
     <MuiAccordionSummary
         expandIcon={
-            <ExpandMoreIcon 
+            <ExpandMoreIcon
                 sx={{
                     color: "rgba(0,0,0, 0.4)",
                     padding: "4px",
@@ -101,11 +102,11 @@ const AccordionSummary = styled((props) => (
 A MUI component representing a button for disabling.
  */
 const DisableButton = styled((props) => (
-    <Button 
+    <Button
     style={{
-        maxWidth: '40px', 
-        maxHeight: '30px', 
-        minWidth: '30px', 
+        maxWidth: '40px',
+        maxHeight: '30px',
+        minWidth: '30px',
         minHeight: '30px',
     }}
     {...props}
@@ -113,7 +114,7 @@ const DisableButton = styled((props) => (
         <DeleteIcon/>
     </Button>
 ))(({ theme }) => ({
-    
+
 }))
 
 
@@ -139,7 +140,8 @@ export default function FlagList() {
 
     // property to order the flag types by
     // must be in the set {'name, start.time, end.time'}
-    const [orderBy, setOrderBy] = useState('name');
+    // Flags don't have a name attribute; default to a supported field.
+    const [orderBy, setOrderBy] = useState('type');
 
     // how to order the elements
     // 'asc' or 'desc'
@@ -152,7 +154,7 @@ export default function FlagList() {
         name : 'Global'
     }]);
 
-    /* filters stored as 
+    /* filters stored as
         [
             {
             name: <str>,
@@ -166,7 +168,7 @@ export default function FlagList() {
 
     /**
      * add an empty filter to filters
-     */ 
+     */
     const addFilter = () => {
         setFilters([...filters, {
             name: "",
@@ -208,7 +210,7 @@ export default function FlagList() {
    /**
     * To send the filters to the URL, create a string that contains all the
     * filter information.
-    * 
+    *
     * The string is of the format
     * "<name>,<ftype_name>,<fseverity_name>;...;<name>,<ftype_name>,<fseverity_name>"
     * @returns Return a string containing all of the filter information
@@ -219,7 +221,7 @@ export default function FlagList() {
 
         if (filters.length > 0) {
 
-            // create the string 
+            // create the string
             for (let f of filters) {
                 strSoFar += `${f.name},${f.type},${f.severity};`;
             }
@@ -239,29 +241,39 @@ export default function FlagList() {
     /**
      * Disable a flag.
      * @param {string} name - the name of the flag which is being disabled.
-     * @returns 
+     * @returns
      */
     async function disableFlag(name) {
-        
+
         // build up the string to query the API
         let input = `/api/disable_flag`;
         input += `?name=${name}`;
 
         return new Promise((resolve, reject) => {
-            fetch(input).then(
-                res => res.json()
-            ).then(data => {
+            fetch(withBase(input), { method: 'POST' })
+              .then(async (res) => {
+                if (!res.ok) {
+                    const text = await res.text();
+                    throw new Error(`disable_flag ${res.status}: ${text}`);
+                }
+                return res.json();
+              })
+              .then(data => {
                 if (data.result) {
                     toggleReload();
                 }
                 resolve(data.result);
-            });
+              })
+              .catch((err) => {
+                console.error('Failed to disable flag:', err);
+                resolve(false);
+              });
         });
 
     }
    /**
-    * The function that updates the list of flags when the site is 
-    * loaded or a change of the flags is requested 
+    * The function that updates the list of flags when the site is
+    * loaded or a change of the flags is requested
     * (upon state change).
     */
     useEffect(() => {
@@ -278,12 +290,23 @@ export default function FlagList() {
             }
 
             // query the URL with flask, and set the input.
-            fetch(input).then(
-                res => res.json()
-            ).then(data => {
-                setElements(data.result);
-                setLoaded(true);
-            });
+            fetch(withBase(input))
+                .then(async (res) => {
+                    if (!res.ok) {
+                        const text = await res.text();
+                        throw new Error(`flag_list ${res.status}: ${text}`);
+                    }
+                    return res.json();
+                })
+                .then((data) => {
+                    setElements(data.result);
+                    setLoaded(true);
+                })
+                .catch((err) => {
+                    console.error('Failed to load flags:', err);
+                    setElements([]);
+                    setLoaded(true);
+                });
         }
         fetchData();
     }, [
@@ -303,12 +326,22 @@ export default function FlagList() {
         if (filters.length > 0) {
             input += `?filters=${createFilterString()}`;
         }
-        fetch(input).then(
-            res => res.json()
-        ).then(data => {
-            setCount(data.result);
-            setMin(0);
-        });
+        fetch(withBase(input))
+            .then(async (res) => {
+                if (!res.ok) {
+                    const text = await res.text();
+                    throw new Error(`flag_count ${res.status}: ${text}`);
+                }
+                return res.json();
+            })
+            .then((data) => {
+                setCount(data.result);
+                setMin(0);
+            })
+            .catch((err) => {
+                console.error('Failed to load flag count:', err);
+                setCount(0);
+            });
     }, [
         filters,
         reloadBool
@@ -316,7 +349,7 @@ export default function FlagList() {
 
     /**
      * Load all of the flag types (so they can be used for the filter)
-     * 
+     *
      * TODO: THIS IS GARBAGE, WILL BE REALLY REALLY SLOW WHEN YOU HAVE A LOT
      * OF FLAG TYPES. INSTEAD, MAKE A FLAG TYPE AUTOCOMPLETE AND
      * THEN USE THEM IN THE FILTERS INSTEAD OF THIS PILE OF TRASH.
@@ -328,16 +361,23 @@ export default function FlagList() {
         input += `&orderBy=name`
         input += `&orderDirection=asc`
         input += `&nameSubstring=`
-        fetch(input).then(
-            res => res.json()
-        ).then(data => {
-            setFlagTypes(data.result);
-        });
+        fetch(withBase(input))
+            .then(async (res) => {
+                if (!res.ok) {
+                    const text = await res.text();
+                    throw new Error(`flag_type_list ${res.status}: ${text}`);
+                }
+                return res.json();
+            })
+            .then((data) => {
+                setFlagTypes(data.result);
+            })
+            .catch((err) => console.error('Failed to load flag types:', err));
     }, []);
 
     /**
      * Load all of the flag severities (so they can be used for the filter)
-     * 
+     *
      * TODO: THIS IS GARBAGE, WILL BE REALLY REALLY SLOW WHEN YOU HAVE A LOT
      * OF FLAG SEVERITIES. INSTEAD, MAKE A FLAG SEVERITY AUTOCOMPLETE AND
      * THEN USE THEM IN THE FILTERS INSTEAD OF THIS PILE OF TRASH.
@@ -348,12 +388,18 @@ export default function FlagList() {
         input += `?range=0;-1`
         input += `&orderBy=name`
         input += `&orderDirection=asc`
-        fetch(input).then(
-            res => res.json()
-        ).then(data => {
-            setFlagSeverities(data.result);
-            console.log(data.result)
-        });
+        fetch(withBase(input))
+            .then(async (res) => {
+                if (!res.ok) {
+                    const text = await res.text();
+                    throw new Error(`flag_severity_list ${res.status}: ${text}`);
+                }
+                return res.json();
+            })
+            .then((data) => {
+                setFlagSeverities(data.result);
+            })
+            .catch((err) => console.error('Failed to load flag severities:', err));
     }, []);
 
     /**
@@ -365,13 +411,18 @@ export default function FlagList() {
         input += `?range=0;-1`
         input += `&orderBy=name`
         input += `&orderDirection=asc`
-        fetch(input).then(
-            res => res.json()
-        ).then(data => {
-            setComponents((prevState) => {
-                return prevState.concat(data.result)
-            });
-        });
+        fetch(withBase(input))
+            .then(async (res) => {
+                if (!res.ok) {
+                    const text = await res.text();
+                    throw new Error(`component_list ${res.status}: ${text}`);
+                }
+                return res.json();
+            })
+            .then((data) => {
+                setComponents((prevState) => prevState.concat(data.result));
+            })
+            .catch((err) => console.error('Failed to load components:', err));
     }, []);
 
 
@@ -379,22 +430,22 @@ export default function FlagList() {
 // can order by them.
     const tableHeadCells = [
         {
-            id: 'name', 
+            id: 'name',
             label: 'Flag',
             allowOrdering: true,
         },
         {
-            id: 'Type', 
+            id: 'Type',
             label: 'Flag Type',
             allowOrdering: false,
         },
         {
-            id: 'Severity', 
+            id: 'Severity',
             label: 'Flag Severity',
             allowOrdering: false,
         },
         {
-            id: 'More Information', 
+            id: 'More Information',
             label: '',
             allowOrdering: false,
         },
@@ -414,7 +465,7 @@ export default function FlagList() {
      * - more information accordion
      */
     let tableRowContent = elements.map((flag) => [
-        flag.end.uid 
+        flag.end.uid
         ?
         flag.name
         :
@@ -428,10 +479,10 @@ export default function FlagList() {
         name = {flag.name}
         toggleReload={toggleReload}
         />}
-        <FlagReplaceButton 
+        <FlagReplaceButton
         nameFlag = {flag.name}
-        type={type} 
-        severities={severities} 
+        type={type}
+        severities={severities}
         components={components}
         toggleReload={toggleReload}
     />
@@ -457,7 +508,7 @@ export default function FlagList() {
 
         <EntryAccordionDetails>
             <Stack spacing={1}>
-                <Stack 
+                <Stack
                 direction='row'
                 justifyContent='space-between'
                 alignItems='center'
@@ -471,7 +522,7 @@ export default function FlagList() {
                     theme={theme} />
             </Stack>
                 {
-                    flag.end.time <= 
+                    flag.end.time <=
                     Number.MAX_SAFE_INTEGER ?
                     <ComponentEvent
                     name="End"
@@ -494,7 +545,7 @@ export default function FlagList() {
                         name="Components"
                         parameter={
                             flag.components.length != 0
-                            ? 
+                            ?
                             flag.components.map((item)=>item.name + ' | ')
                             :
                             'Global'
@@ -540,9 +591,9 @@ export default function FlagList() {
                     )
                 }
                 rightColumn2 = {
-                    <FlagAddButton 
-                    type={type} 
-                    severities={severities} 
+                    <FlagAddButton
+                    type={type}
+                    severities={severities}
                     components={components}
                     toggleReload={toggleReload}
                     />

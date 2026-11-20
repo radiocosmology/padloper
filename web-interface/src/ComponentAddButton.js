@@ -18,6 +18,7 @@ import Paper from '@mui/material/Paper';
 import AlertDialog from './ComponentAlertDialog.js';
 import Grid from '@mui/material/Grid';
 import ErrorMessage from './ErrorMessage.js';
+import { withBase } from './paths.js';
 
 const help_val = 'enter one or more name(s)';
 const no_version_val = "– None –";
@@ -155,7 +156,7 @@ export default function ComponentAddButton ({types_and_versions,
     input += `?name=${nameList.sort().join(';')}`;
     input += `&type=${componentType}`;
     input += `&version=${componentVersion}`;
-    axios.post(input).then((response)=>{
+    axios.post(withBase(input)).then((response)=>{
       if(response.data.result){
         toggleReload() //To reload the list of components once the form has been submitted.
         handleClose()

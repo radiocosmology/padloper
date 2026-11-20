@@ -12,6 +12,7 @@ import DialogTitle from '@mui/material/DialogTitle';
 import CircularProgress from '@mui/material/CircularProgress';
 import axios from 'axios'
 import ErrorMessage from './ErrorMessage';
+import { withBase } from './paths.js';
 
 export default function FlagTypeAddButton ({toggleReload}) {
 
@@ -49,7 +50,7 @@ export default function FlagTypeAddButton ({toggleReload}) {
     let input = `/api/set_flag_type`;
     input += `?name=${name}`;
     input += `&comments=${comment}`;
-    axios.post(input).then((response)=>{
+    axios.post(withBase(input)).then((response)=>{
       if(response.data.result){
         toggleReload() //To reload the page once the form has been submitted.
         handleClose()

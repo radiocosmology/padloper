@@ -25,6 +25,7 @@ permissions_set = {
     # protected
     'Component;add',
     'Component;replace',
+    'Component;disable',
     'Component;unset_property',
     'Component;replace_property',
     'Component;disable_property',
@@ -102,16 +103,30 @@ permissions_set = {
     # Flag:
     # protected
     'Flag;replace',
+    'Flag;disable',
 
     # general
     'Flag;add',
     'Flag;set_end',
+
+    # Edges:
+    'RelationConnection;disable',
+
+    # Users and Groups:
+    'User;add',
+    'User;add_group',
+    'UserGroup;add',
+
+    # Component sequences:
+    'ComponentSequence;add',
+    'ComponentSequence;update',
+    'ComponentSequence;delete',
 }
 
 def check_permission(permission, class_name, method_name):
     """Called by the @authenticated decorator."""
     #print(f"{class_name};{method_name}")
-    if permission is None:
+    if not permission:
         # Check for global variable. User to be stored as a user vertex.
         try:
             user = _get_user()
@@ -130,8 +145,10 @@ def check_permission(permission, class_name, method_name):
     #                          "an admin.")
     if f"{class_name};{method_name}" in permissions_set and \
         f"{class_name};{method_name}" not in permission:
-        raise NoPermissionsError("User does not have the required " +\
-                                 "permissions to perform this action.")
+        raise NoPermissionsError("User does not have the required "
+                                 "permissions to perform this action "
+                                 f"({class_name};{method_name}). "
+                                 f"User permissions: {permission}. ")
 
 
 def authenticated(func):
@@ -174,13 +191,14 @@ def set_user(uid):
 #    g._user["id"] = uid
 
 def _get_user():
-    try:
-        return g._user
-    except TypeError:
+    # Ensure a user identity is present for write operations
+    u = g._user
+    if u is None:
         raise RuntimeError(
-            "You must call padloper.set_user() before performing this "\
-            "operation."
+            "You must call padloper.set_user() before performing "
+            "this operation."
         )
+    return u
 
 def _parse_time(t):
     try:
@@ -195,9 +213,9 @@ def _parse_time(t):
 class Element(object):
     """
     The simplest element. Contains an ID.
-    :ivar id: The unique identifier of the element. 
+    :ivar id: The unique identifier of the element.
 
-    If id is _VIRTUAL_ID_PLACEHOLDER, then the 
+    If id is _VIRTUAL_ID_PLACEHOLDER, then the
     element is not in the actual graph and only exists client side.
     """
 
@@ -230,12 +248,13 @@ class Element(object):
 
     def __repr__(self):
         return str(self._id)
-        
+
 
 class VertexAttr(object):
     def __init__(self, name, type, edge_class=None, optional=False,
-                 default=None, is_list=False, list_len=(0, int(1e10))):
-        """A class for describing an attribute of a Vertex, or a connection to 
+                 default=None, is_list=False, list_len=(0, int(1e10)),
+                 edge_active=False):
+        """A class for describing an attribute of a Vertex, or a connection to
         another Vertex that classifies the Vertex.
 
         :param name: The key name of the attribute.
@@ -257,6 +276,12 @@ class VertexAttr(object):
         :param list_len: If the values are in a list, you can define a
             (min_length, max_length) here.
         :type list_len: Tuple of two ints/None
+        :param edge_active: For connexions to other vertices, whether the edge
+            itself must also have `active` set to True for the neighbour to be
+            loaded (by default only the neighbouring vertex is checked). Use
+            this for relations that can be ended without disabling either
+            vertex, such as user group membership.
+        :type edge_active: bool
         """
         self.name = name
         self.type = type
@@ -265,6 +290,7 @@ class VertexAttr(object):
         self.default = default
         self.is_list = is_list
         self.list_len = list_len
+        self.edge_active = edge_active
 
 class Vertex(Element):
     """
@@ -278,7 +304,7 @@ class Vertex(Element):
 
     :ivar category: The category of the Vertex.
     :ivar time_added: When this vertex was added to the database (UNIX time).
-    :ivar time_disabled: When this vertex was disabled in the database (UNIX 
+    :ivar time_disabled: When this vertex was disabled in the database (UNIX
           time).
     :ivar active: Whether the vertex is disabled or not.
     :ivar replacement: If the vertex has been replaced, then this property
@@ -296,7 +322,7 @@ class Vertex(Element):
     active: bool
     replacement: int
 
-    def __new__(cls, _id: int = g._VIRTUAL_ID_PLACEHOLDER, 
+    def __new__(cls, _id: int = g._VIRTUAL_ID_PLACEHOLDER,
                  _time_added: int = g._TIMESTAMP_NO_EDITTIME_VALUE,
                  _uid_added: str = None, **kwargs):
         if _id is not g._VIRTUAL_ID_PLACEHOLDER and _id in g._vertex_cache:
@@ -304,7 +330,7 @@ class Vertex(Element):
         else:
             return object.__new__(cls)
 
-    def __init__(self, _id: int = g._VIRTUAL_ID_PLACEHOLDER, 
+    def __init__(self, _id: int = g._VIRTUAL_ID_PLACEHOLDER,
                  _time_added: int = g._TIMESTAMP_NO_EDITTIME_VALUE,
                  _uid_added: str = None, **kwargs):
         """
@@ -356,7 +382,7 @@ class Vertex(Element):
         self.replacement = 0
         self.active = True
         Element.__init__(self, _id)
-    
+
     def __repr__(self):
         if self.primary_attr is None:
             return str(self._id)
@@ -394,6 +420,10 @@ class Vertex(Element):
             if issubclass(a.type, Vertex):
                 if allow_disabled:
                     d = d.by(__.both(a.edge_class.category).id_().fold())
+                elif a.edge_active:
+                    d = d.by(__.bothE(a.edge_class.category) \
+                         .has("active", True).otherV() \
+                         .has("active", True).id_().fold())
                 else:
                     d = d.by(__.both(a.edge_class.category) \
                          .has("active", True).id_().fold())
@@ -413,8 +443,8 @@ class Vertex(Element):
     def from_db(cls, primary_attr: str, allow_disabled: bool = False):
         """Query the database and return an instance of the Vertex by searching
         for its primary attribute (typically "name").
-        
-        :param primary_attr: The primary attribute name of the component 
+
+        :param primary_attr: The primary attribute name of the component
             serverside.
         :type primary_attr: str
         :param allow_disabled: Whether to only select vertices with active=True.
@@ -434,7 +464,7 @@ class Vertex(Element):
             raise NotInDatabase("Could not find %s in the DB." %\
                                 primary_attr)
 
-        return cls._from_attrs(d) 
+        return cls._from_attrs(d)
 
     @classmethod
     def from_id(cls, id: int, allow_disabled: bool = False):
@@ -503,13 +533,13 @@ class Vertex(Element):
                 arg[a.name] = Timestamp._from_dict(attrs, "%s_" % a.name)
             else:
                 arg[a.name] = attrs[a.name]
-            
+
         return Vertex._cache_vertex(cls(**arg))
 
     @classmethod
     def _cache_vertex(cls, vertex):
         """Add a vertex and its ID to the vertex cache if not already added,
-        and return this new cached vertex. 
+        and return this new cached vertex.
 
         TODO: Raise an error if already cached, because that'd mean there's
         an implementation error with the caching.
@@ -530,7 +560,7 @@ class Vertex(Element):
         :param strict_add: If False, then do not throw an error if the vertex
             already exists.
         :type strict_add: bool
-        :param strict_check: If False, then add the vertex even if a vertex 
+        :param strict_check: If False, then add the vertex even if a vertex
             exists in the database with the same name and category.
         : type strict_check: bool
 
@@ -616,7 +646,7 @@ class Vertex(Element):
            set to True in the database are ignored; otherwise they are
            considered to be "in" the DB.
         :type allowed_removed: bool
-            
+
         :return: True if element is added to database, False otherwise.
         :rtype: bool
         """
@@ -671,7 +701,7 @@ class Vertex(Element):
                     else:
                         if va.is_list:
                             q = q.not_( \
-                                  __.has(va.name, 
+                                  __.has(va.name,
                                          P.without(getattr(self, va.name))))
                         else:
                             q = q.has(va.name, getattr(self, va.name))
@@ -799,27 +829,47 @@ class Vertex(Element):
         return newVertex
 
     @authenticated
-    def disable(self, disable_time: int = int(time.time()), permissions=None):
+    def disable(self, disable_time: int = None, permissions=None, uid=None):
         """Disables the vertex as well all the edges connected to the vertex by
             setting the property from 'active' from true to false.
 
-        :ivar disable_time: When this vertex was disabled in the database (UNIX
-            time).
-
+        :param disable_time: When this vertex was disabled in the database (UNIX
+            time); defaults to now.
+        :type disable_time: int
+        :param uid: The user disabling the vertex; defaults to the user set
+            with set_user(), if any.
+        :type uid: str
         """
+        if disable_time is None:
+            disable_time = int(time.time())
+        if uid is None:
+            try:
+                uid = _get_user().name
+            except Exception:
+                uid = None
 
         # Sets the active property from true to false and registers the time
         # when this self vertex was disabled.
-        g.t.V(self.id()).property(
-            'active', False).property('time_disabled', disable_time).iterate()
+        t = g.t.V(self.id()).property('active', False)\
+                            .property('time_disabled', disable_time)
+        if uid is not None:
+            t = t.property('uid_disabled', uid)
+        t.iterate()
 
-        # Counts the total number of edges connected to this vertex.
-        edge_count = g.t.V(self.id()).bothE().toList()
+        # Disable the connected edges that are still active, in one
+        # traversal. (Indexing bothE()[i] across separate traversals, as was
+        # done before, does not guarantee a stable order, so edges could be
+        # missed.) Edges disabled earlier keep their own time/uid.
+        t = g.t.V(self.id()).bothE().has('active', True)\
+                            .property('active', False)\
+                            .property('time_disabled', disable_time)
+        if uid is not None:
+            t = t.property('uid_disabled', uid)
+        t.iterate()
 
-        # Disables all the connnected edges.
-        for i in range(len(edge_count)):
-            g.t.V(self.id()).bothE()[i].property('active', False).property(
-                'time_disabled', disable_time).next()
+        self.active = False
+        self.time_disabled = disable_time
+        self.uid_disabled = uid
 
     @authenticated
     def as_dict(self, permissions=None):
@@ -850,6 +900,18 @@ class Vertex(Element):
         return self.id() in g._vertex_cache
 
     @classmethod
+    def _neighbour_traversal(cls, va):
+        """Anonymous traversal from a vertex to the neighbours connected by the
+        edge class of vertex attribute `va`, for filtering and ordering. For
+        attributes with `edge_active`, only active edges to active neighbours
+        are followed (matching how such attributes are loaded).
+        """
+        if va.edge_active:
+            return __.bothE(va.edge_class.category).has("active", True)\
+                     .otherV().has("active", True)
+        return __.both(va.edge_class.category)
+
+    @classmethod
     def _list_filter_traversal(cls, filters):
         """Helper class for get_count() and get_list() with common code needed
         by both.
@@ -867,7 +929,7 @@ class Vertex(Element):
                 if va is None:
                     raise TypeError("Filter key %s not in Vertex." % and_key)
                 if issubclass(va.type, Vertex):
-                    contents.append(__.both(va.edge_class.category)\
+                    contents.append(cls._neighbour_traversal(va)\
                                       .has(va.type.primary_attr, and_val))
                 else:
                     contents.append(__.has(and_key, and_val))
@@ -881,9 +943,9 @@ class Vertex(Element):
     def get_count(cls, filters: list = [], allow_disabled: bool = False):
         """
         Return the number of vertices in the DB of this type, subject to
-        provided filters. See docstring for `Vertex.get_list()` for more on 
+        provided filters. See docstring for `Vertex.get_list()` for more on
         filters.
-        
+
         :param filters: See `Vertex.get_list()` documentation.
         :type filters: A list of dictionaries; if a single dictionary is passed
             it is automatically treated as list of length one.
@@ -893,14 +955,14 @@ class Vertex(Element):
         """
         if not isinstance(filters, list):
             filters = [filters]
-        
+
         q = cls._list_filter_traversal(filters)
         if not allow_disabled:
             q = q.has("active", True)
         return q.count().next()
 
     @classmethod
-    def get_list(cls, range: tuple = (0, -1), order_by: list = [], 
+    def get_list(cls, range: tuple = (0, -1), order_by: list = [],
                  filters: list = [], allow_disabled: bool = False):
         """
         Return a list of Vertex instances based in the range :param range:,
@@ -958,10 +1020,10 @@ class Vertex(Element):
                     if va.name == ob[0]:
                         break
                 if va is None:
-                    raise TypeError("Filter key %s not in Vertex." % and_key)
+                    raise TypeError("Filter key %s not in Vertex." % ob[0])
                 if issubclass(va.type, Vertex):
-                    t = t.by(__.both(va.edge_class.category)\
-                               .values(va.type.primary_attr), 
+                    t = t.by(cls._neighbour_traversal(va)\
+                               .values(va.type.primary_attr),
                                Order.asc if ob[1] == "asc" else Order.desc)
                 else:
                     t = t.by(ob[0], Order.asc if ob[1] == "asc" else Order.desc)
@@ -1024,7 +1086,7 @@ class Edge(Element):
     @classmethod
     def from_db(cls, id: int, allow_disabled: bool = False):
         """Query the database and return an instance of the Edge, given its ID.
-        
+
         :param id: The ID of the edge
         :type primary_attr: int
         :param allow_disabled: Whether to only select edgeswith active=True.
@@ -1040,15 +1102,14 @@ class Edge(Element):
         try:
             d = d.next()
         except StopIteration:
-            raise NotInDatabase("Could not find %s in the DB." %\
-                                primary_attr)
+            raise NotInDatabase("Could not find %s in the DB." % id)
 
 #        Element.__init__(self, id)
 #
 #        self.inVertex = inVertex
 #        self.outVertex = outVertex
 #
-#        return cls._from_attrs(d) 
+#        return cls._from_attrs(d)
 
 
     @authenticated
@@ -1114,17 +1175,19 @@ class Edge(Element):
         )
 
     @authenticated
-    def disable(self, disable_time: int = int(time.time()),
-                permissions=None):
+    def disable(self, disable_time: int = None, permissions=None):
         """Disable this connexion by setting active to false.
 
-        :param disable_time: When this edge was disabled in the database.
+        :param disable_time: When this edge was disabled in the database;
+            defaults to now.
         :type disable_time: int
         """
+        if disable_time is None:
+            disable_time = int(time.time())
         g.t.E(self.id()).property('active', False)\
                         .property('time_disabled', disable_time).iterate()
 
-    @authenticated                        
+    @authenticated
     def replace(self, newEdge, disable_time: int = int(time.time()),
                 permissions=None, uid=None):
         """Replaces the edge in the JanusGraph DB with a new edge by
@@ -1158,7 +1221,7 @@ class Edge(Element):
 
         return newEdge
 
-        
+
     @authenticated
     def other_vertex(self, v, permissions=None):
         """Given one vertex of this edge, return the other.
@@ -1176,6 +1239,7 @@ class Edge(Element):
 
     def __str__(self, connector=" -> "):
         return self.inVertex.name + connector + self.outVertex.name
+
 
 class Timestamp(object):
     """A timestamp for starting or ending connections, properties, etc.
@@ -1258,7 +1322,7 @@ class Timestamp(object):
         This is for when the end timestamp does not yet exist; the timestamp has
         no user id, and reserved values for the time and edit_time.
         """
-        return cls.__raw_init__(g._TIMESTAMP_NO_ENDTIME_VALUE, "", 
+        return cls.__raw_init__(g._TIMESTAMP_NO_ENDTIME_VALUE, "",
                                 g._TIMESTAMP_NO_EDITTIME_VALUE, comments="")
 
     def as_dict(self):
@@ -1339,7 +1403,7 @@ class TimestampedEdge(Edge):
     def _end(self, end: Timestamp):
         """Set the end timestamp.
 
-        :param end: The ending timestamp of the connection. 
+        :param end: The ending timestamp of the connection.
         :type end: Timestamp
         """
 
@@ -1390,7 +1454,38 @@ class UserGroup(Vertex):
             if p not in permissions_set:
                 raise ValueError("Unknown permission \"%s\"." % p)
 
-#    def add_permission(self, permission, strict_add=False):
+    @authenticated
+    def replace_permissions(self, new_permissions, permissions=None):
+        """Replace this group's permissions with `new_permissions`.
+
+        :param new_permissions: The complete new list of permission names;
+            each must be in `permissions_set`. An empty list removes all
+            permissions.
+        :type new_permissions: list of str
+        :raises ValueError: if a permission name is unknown.
+        :raises UserGroupNotAddedError: if the group is not in the database.
+        """
+        if not isinstance(new_permissions, list):
+            new_permissions = [new_permissions]
+        # Remove duplicates while keeping order.
+        new_permissions = list(dict.fromkeys(new_permissions))
+        for perm in new_permissions:
+            if perm not in permissions_set:
+                raise ValueError("Unknown permission \"%s\"." % perm)
+        if not self.in_db():
+            raise UserGroupNotAddedError(
+                f"UserGroup {self.name} has not yet been added to the database."
+            )
+
+        # Drop the existing LIST-cardinality values and write the new ones in a
+        # single traversal so the change is applied atomically.
+        t = g.t.V(self.id()).sideEffect(__.properties('permissions').drop())
+        for perm in new_permissions:
+            t = t.property('permissions', perm)
+        t.iterate()
+
+        self.permissions = new_permissions
+        return self
 
 
 class User(Vertex):
@@ -1407,91 +1502,120 @@ class User(Vertex):
     _vertex_attrs: list = [
         VertexAttr("name", str),
         VertexAttr("groups", UserGroup, edge_class=RelationUserGroup,
-                   is_list=True)
+                   is_list=True, edge_active=True)
     ]
     primary_attr: str = "name"
 
-#    def add_group(self, group, strict_add: bool=False):
-#        """
-#        Given a UserGroup :param group, connect this User to this group.
-#
-#        :param group: A UserGroup to connect this User to
-#        :type group: UserGroup
-#        """
-#        from _edges import RelationUserGroup
-#
-#        if not self.in_db():
-#            raise UserNotAddedError(
-#                f"User {self.name} has not yet been added to the database."
-#            )
-#
-#        if not group.in_db():
-#            raise UserGroupNotAddedError(
-#                f"UserGroup {group.name} has not yet been added to the "\
-#                 "database."
-#            )
-#
-#        if group not in self.get_groups():
-#            e = RelationUserGroup(inVertex=self, outVertex=group)
-#            e.add()
-#        else:
-#            strictraise(strict_add, AlreadyInDatabase,
-#                        "User %s is already in group %s." %\
-#                        (self.name, group.name))
-#
-#    def remove_group(self, group, strict_remove: bool=False):
-#        """
-#        Given a UserGroup :param group, connect this User to this group.
-#
-#        :param group: A UserGroup to connect this User to
-#        :type group: UserGroup
-#        """
-#        from _edges import RelationUserGroup
-#
-#        if not self.in_db():
-#            raise UserNotAddedError(
-#                f"User {self.name} has not yet been added to the database."
-#            )
-#
-#        if not group.in_db():
-#            raise UserGroupNotAddedError(
-#                f"UserGroup {group.name} has not yet been added to the "\
-#                 "database."
-#            )
-#
-#        if group in self.get_groups():
-#            e = g.t.V(self.id()).bothE(RelationUserGroup.category)\
-#                 .has("active", True)\
-#                 .as_("e").otherV().has("name", group.name)\
-#                 .select("e").property("active", False).next()
-##            e = RelationUserGroup(inVertex=self, outVertex=group)
-##            e.add()
-#        else:
-#            strictraise(strict_add, AlreadyInDatabase,
-#                        "User %s is not in group %s." %\
-#                        (self.name, group.name))
-#
-#    def get_groups(self, allow_disabled=False):
-#        from _edges import RelationUserGroup
-#
-#        if not self.in_db():
-#            raise UserNotAddedError(
-#                f"User {self.name} has not yet been added to the database."
-#            )
-#
-#        query = g.t.V(self.id()).bothE(RelationUserGroup.category)
-#        if not allow_disabled:
-#            query = query.has("active", True)
-#        query = query.as_('e').valueMap().as_('edge_props')\
-#                     .select('e').otherV().id_().as_('vertex_id')\
-#                     .select('edge_props', 'vertex_id').toList()
-#
-#        # Build up the result 
-#        result = []
-#        for q in query:
-#            result.append(UserGroup.from_id(q['vertex_id']))
-#
-#        return result
+    @authenticated
+    def add_group(self, group, strict_add: bool=False, permissions=None):
+        """Connect this User to a UserGroup with a rel_user_group edge.
+
+        :param group: A UserGroup to connect this User to
+        :type group: UserGroup
+        """
+        from _edges import RelationUserGroup
+        from _exceptions import UserNotAddedError, UserGroupNotAddedError, AlreadyInDatabase
+
+        if not self.in_db():
+            raise UserNotAddedError(
+                f"User {self.name} has not yet been added to the database."
+            )
+
+        if not group.in_db():
+            raise UserGroupNotAddedError(
+                f"UserGroup {group.name} has not yet been added to the database."
+            )
+
+        # Use the loaded attribute to check existing memberships
+        if any(gr.name == group.name for gr in getattr(self, 'groups', []) or []):
+            strictraise(strict_add, AlreadyInDatabase,
+                        "User %s is already in group %s." %
+                        (self.name, group.name))
+            return
+
+        # Direction: group -> user (outVertex=group)
+        e = RelationUserGroup(inVertex=self, outVertex=group)
+        e.add()
+
+        # Keep local attribute view in sync for this instance
+        try:
+            if isinstance(self.groups, list):
+                self.groups.append(group)
+        except Exception:
+            pass
+
+    def get_groups(self, allow_disabled: bool=False):
+        """Return a list of UserGroup vertices this user belongs to.
+
+        Uses the preloaded groups attribute; falls back to querying if needed.
+        """
+        if hasattr(self, 'groups') and isinstance(self.groups, list):
+            return self.groups
+
+        # Fallback to a query if groups are not present (edge case)
+        from _edges import RelationUserGroup
+        if not self.in_db():
+            raise UserNotAddedError(
+                f"User {self.name} has not yet been added to the database."
+            )
+        query = g.t.V(self.id()).bothE(RelationUserGroup.category)
+        if not allow_disabled:
+            query = query.has('active', True)
+        query = query.otherV()
+        if not allow_disabled:
+            query = query.has('active', True)
+        ids = [vid for vid in query.id_().toList()]
+        return [UserGroup.from_id(vid) for vid in ids]
+
+    @authenticated
+    def remove_group(self, group, permissions=None, uid=None):
+        """End this User's membership of a UserGroup by disabling the
+        rel_user_group edge(s) between them. The edge is kept, disabled, for
+        history.
+
+        :param group: The UserGroup to remove this User from.
+        :type group: UserGroup
+        :param uid: The user performing the removal; defaults to the user set
+            with set_user(), if any.
+        :type uid: str
+        :raises NotInDatabase: if the user is not an active member of the group.
+        """
+        from _edges import RelationUserGroup
+
+        if not self.in_db():
+            raise UserNotAddedError(
+                f"User {self.name} has not yet been added to the database."
+            )
+        if not group.in_db():
+            raise UserGroupNotAddedError(
+                f"UserGroup {group.name} has not yet been added to the database."
+            )
+        if uid is None:
+            try:
+                uid = _get_user().name
+            except Exception:
+                uid = None
+
+        def membership_edges():
+            return g.t.V(self.id()).bothE(RelationUserGroup.category)\
+                      .has('active', True)\
+                      .where(__.otherV().hasId(group.id()))
+
+        if membership_edges().count().next() == 0:
+            raise NotInDatabase("User %s is not in group %s." %
+                                (self.name, group.name))
+
+        t = membership_edges().property('active', False)\
+                              .property('time_disabled', int(time.time()))
+        if uid is not None:
+            t = t.property('uid_disabled', uid)
+        t.iterate()
+
+        # Keep local attribute view in sync for this instance
+        try:
+            self.groups = [gr for gr in self.groups if gr.id() != group.id()]
+        except Exception:
+            pass
 
     def get_permissions(self) -> set:
         # Store perms
@@ -1502,6 +1626,38 @@ class User(Vertex):
 
         # Make unique
         return list(set(perms))
+
+    @classmethod
+    def reactivate(cls, name):
+        """Re-enable a user that was deactivated with disable(), by name.
+
+        The vertex is restored to the never-disabled state (active, no
+        uid_disabled, placeholder time_disabled). Membership edges ended by
+        the deactivation stay ended; the caller decides which groups to add
+        the user back to.
+
+        :param name: The username.
+        :type name: str
+        :return: The reactivated User.
+        :raises AlreadyInDatabase: if an active user of that name exists.
+        :raises NotInDatabase: if no deactivated user of that name exists.
+        """
+        base = g.t.V().has("category", cls.category).has("name", name)
+        if base.has("active", True).count().next() > 0:
+            raise AlreadyInDatabase(
+                f"An active user named {name} already exists.")
+        base = g.t.V().has("category", cls.category).has("name", name)
+        ids = base.has("active", False).order() \
+                  .by("time_disabled", Order.desc).id_().toList()
+        if len(ids) == 0:
+            raise NotInDatabase(f"No deactivated user named {name}.")
+        vid = ids[0]
+        g.t.V(vid).property("active", True) \
+           .property("time_disabled", g._TIMESTAMP_NO_EDITTIME_VALUE) \
+           .sideEffect(__.properties("uid_disabled").drop()).iterate()
+        # Any cached copy still says disabled; reload from the database.
+        g._vertex_cache.pop(vid, None)
+        return cls.from_db(name)
 
 
 class Permission(object):

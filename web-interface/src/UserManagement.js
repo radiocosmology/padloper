@@ -1,169 +1,225 @@
-import React, { useState, useEffect } from 'react';
-import Autocomplete from '@mui/material/Autocomplete';
-import TextField from '@mui/material/TextField';
-import Button from '@mui/material/Button';
-import Table from '@mui/material/Table';
-import TableBody from '@mui/material/TableBody';
-import TableCell from '@mui/material/TableCell';
-import TableContainer from '@mui/material/TableContainer';
-import TableRow from '@mui/material/TableRow';
-import axios from 'axios';
+import React, { useCallback, useEffect, useState } from 'react';
+import { Link as RouterLink } from 'react-router-dom';
+import {
+    Alert, Box, Button, Chip, CircularProgress, FormControlLabel, Paper,
+    Stack, Switch, Table, TableBody, TableCell, TableContainer, TableHead,
+    TableRow, TextField, Typography,
+} from '@mui/material';
+import { getJson, postForm } from './paths.js';
+import ErrorMessage from './ErrorMessage.js';
+import ConfirmDialog from './ConfirmDialog.js';
+import {
+    effectivePermissions, groupEditPath, sortByName, userEditPath,
+} from './userAdminUtils.js';
 
+/**
+ * Lists every user with their groups, and links to a page where an admin can
+ * edit an individual user's group memberships.
+ */
 function UserManagementPage() {
     const [users, setUsers] = useState([]);
-    const [selectedUser, setSelectedUser] = useState(null);
-    const [userGroups, setUserGroups] = useState([]);
-    const [selectedUserGroups, setSelectedUserGroups] = useState([]);
-    const [userGroupAssociations, setUserGroupAssociations] = useState([]);
+    const [loaded, setLoaded] = useState(false);
+    const [error, setError] = useState(null);
+    const [notice, setNotice] = useState(null);
+    const [filter, setFilter] = useState('');
+    const [showDeactivated, setShowDeactivated] = useState(false);
+    const [reactivating, setReactivating] = useState(null); // name awaiting confirm
+    const [busy, setBusy] = useState(false);
 
-    useEffect(() => {
-        // Fetch users from API and set them in state
-        fetchUsers();
-        // Fetch user groups from API and set them in state
-        fetchUserGroups();
-    }, []);
-
-    useEffect(() => {
-        if (selectedUser) {
-            // Fetch user group associations for the selected user
-            fetchUserGroupAssociations(selectedUser.id);
+    const load = useCallback(async () => {
+        try {
+            const data = await getJson(
+                `/api/get_user_list${showDeactivated ? '?include_disabled=1' : ''}`);
+            setUsers(sortByName(data.result));
+            setError(null);
+        } catch (err) {
+            setUsers([]);
+            setError(err.message);
+        } finally {
+            setLoaded(true);
         }
-    }, [selectedUser]);
+    }, [showDeactivated]);
 
-    const fetchUsers = () => {
-       
-        let input = '/api/get_user_list'
-        fetch(input).then(
-            res => res.json()
-            ).then(data => {
-                console.log(data)
-                setUsers(data.result);
-            })
-    };
+    useEffect(() => { load(); }, [load]);
 
-    const fetchUserGroups = () => {
-        // Mocking user groups data for demonstration
-       
-        let input = '/api/get_user_group_list'
-        fetch(input).then(
-            res => res.json()
-        ).then(data => {
-            setUserGroups(data.result);
-        })
-    };
-
-    const handleUserSelect = (event, value) => {
-        // Update selected user when user is selected from autocomplete
-        setSelectedUser(value);
-        // Reset selected user groups
-        setSelectedUserGroups([]);
-    };
-
-    const fetchUserGroupAssociations = (userId) => {
-        // Mocking user group associations data for demonstration
-        const mockUserGroupAssociations = [
-            { id: 1, name: 'Group 1', permissions: ['Permission 1', 'Permission 2'] },
-            { id: 2, name: 'Group 2', permissions: ['Permission 2', 'Permission 3'] },
-            // Add more user group associations as needed
-        ];
-        let input = '/api/get_user_groups';
-        input += `?username=${selectedUser.name}`
-
-        fetch(input).then(
-            res => res.json()
-        ).then(data => {
-            console.log(data);
-            setUserGroupAssociations(data.result);
-        })
-
-    };
-
-    const handleUserGroupSelect = (event, values) => {
-        // Update selected user groups
-        setSelectedUserGroups(values);
-    };
-
-    const handleAddToGroups = () => {
-        // Add selected user to selected user groups
-        if (selectedUser && selectedUserGroups.length > 0) {
-
-            let input = '/api/new_set_usergroup'
-            const formData = new FormData();
-            formData.append('user', selectedUser.name);
-            formData.append('group', selectedUserGroups.map(obj => obj.name).join(";"));
-            console.log(formData)
-             const requestOptions = {
-                method: 'POST', 
-                body: formData
-              };
-            fetch(input, requestOptions)
-              .then(res => res.json())
-              .then(data => {
-                console.log("res", data);
-              })
-              .catch(err => {
-                console.error("Err:", err);
-              })
-
-
-            console.log(`Adding user ${selectedUser.name} to groups:`, selectedUserGroups);
-            // Clear selected user and user groups after adding
-            setSelectedUser(null);
-            setSelectedUserGroups([]);
+    const confirmReactivate = async () => {
+        setBusy(true);
+        setError(null);
+        try {
+            await postForm('/api/enable_user', { username: reactivating });
+            setNotice(`Reactivated ${reactivating}. They are back in the readonly group.`);
+            setReactivating(null);
+            await load();
+        } catch (err) {
+            setError(err.message);
+        } finally {
+            setBusy(false);
         }
     };
+
+    const needle = filter.trim().toLowerCase();
+    const shown = users.filter((user) =>
+        user.name.toLowerCase().includes(needle));
 
     return (
-        <div style={{ display: 'flex', flexDirection: 'column', alignItems: 'center', width: '80%', margin: '0 auto' }}>
-            <h1>User Management</h1>
-            <div style={{ marginBottom: '20px', width: '100%' }}>
-                <Autocomplete
-                    options={users}
-                    getOptionLabel={(user) => user.name}
-                    onChange={handleUserSelect}
-                    renderInput={(params) => <TextField {...params} label="Search Users" variant="outlined" />}
-                />
-            </div>
-            {selectedUser && (
-                <div style={{ marginBottom: '20px', width: '100%' }}>
-                    <div style={{ display: 'flex', alignItems: 'center', marginBottom: '10px' }}>
-                        <p style={{ marginRight: '10px', fontSize: '1.2rem' }}>User ID:</p>
-                        <p style={{ fontSize: '1.2rem' }}>{selectedUser.name}</p>
-                        <p style={{ marginLeft: '20px', marginRight: '10px', fontSize: '1.2rem' }}>Institution:</p>
-                        <p style={{ fontSize: '1.2rem' }}>{selectedUser.institution}</p>
-                    </div>
-                    <h2>User Groups</h2>
-                    <TableContainer>
-                        <Table>
-                            <TableBody>
-                                {userGroupAssociations.map((group) => (
-                                    <TableRow key={group.id}>
-                                        <TableCell>
-                                            <a href="#">{group.name}</a>
-                                        </TableCell>
-                                        <TableCell>
-                                            {group.permissions.join(', ')}
-                                        </TableCell>
-                                    </TableRow>
-                                ))}
-                            </TableBody>
-                        </Table>
-                    </TableContainer>
-                    <div style={{ marginBottom: '10px', marginTop: '10px', width: '100%' }}>
-                        <Autocomplete
-                            multiple
-                            options={userGroups}
-                            getOptionLabel={(group) => group.name}
-                            onChange={handleUserGroupSelect}
-                            renderInput={(params) => <TextField {...params} label="Select User Groups" variant="outlined" />}
-                        />
-                    </div>
-                    <Button variant="contained" color="primary" onClick={handleAddToGroups}>
-                        Add to User Groups
+        <Box sx={{ width: '90%', maxWidth: 1100, mx: 'auto', my: 3 }}>
+            <Stack
+                direction="row"
+                alignItems="center"
+                justifyContent="space-between"
+                flexWrap="wrap"
+                sx={{ mb: 2, gap: 1 }}
+            >
+                <Typography variant="h4" component="h1">
+                    User Management
+                </Typography>
+                <Stack direction="row" spacing={1}>
+                    <Button
+                        component={RouterLink}
+                        to="/manage/users/groups"
+                        variant="outlined"
+                    >
+                        User Groups
                     </Button>
-                </div>
+                    <Button
+                        component={RouterLink}
+                        to="/users"
+                        variant="contained"
+                    >
+                        Add User
+                    </Button>
+                </Stack>
+            </Stack>
+
+            <Stack direction="row" spacing={3} alignItems="center" sx={{ mb: 2 }}>
+                <TextField
+                    label="Filter users"
+                    variant="outlined"
+                    size="small"
+                    value={filter}
+                    onChange={(e) => setFilter(e.target.value)}
+                    sx={{ width: 320 }}
+                />
+                <FormControlLabel
+                    control={
+                        <Switch
+                            checked={showDeactivated}
+                            onChange={(e) => setShowDeactivated(e.target.checked)}
+                        />
+                    }
+                    label="Show deactivated users"
+                />
+            </Stack>
+
+            <ErrorMessage errorMessage={error} />
+            {notice && (
+                <Alert severity="success" onClose={() => setNotice(null)} sx={{ mb: 2 }}>
+                    {notice}
+                </Alert>
             )}
-        </div>
+
+            {!loaded ? (
+                <CircularProgress />
+            ) : (
+                <TableContainer component={Paper}>
+                    <Table size="small" aria-label="users">
+                        <TableHead>
+                            <TableRow>
+                                <TableCell>User</TableCell>
+                                <TableCell>Groups</TableCell>
+                                <TableCell align="right">Permissions</TableCell>
+                                <TableCell align="right">Actions</TableCell>
+                            </TableRow>
+                        </TableHead>
+                        <TableBody>
+                            {shown.map((user) => user.active === false ? (
+                                <TableRow key={user.name} hover sx={{ opacity: 0.7 }}>
+                                    <TableCell>{user.name}</TableCell>
+                                    <TableCell>
+                                        <Chip
+                                            size="small"
+                                            color="warning"
+                                            variant="outlined"
+                                            label={`Deactivated${user.uid_disabled ? ` by ${user.uid_disabled}` : ''}`}
+                                        />
+                                    </TableCell>
+                                    <TableCell align="right">&mdash;</TableCell>
+                                    <TableCell align="right">
+                                        <Button
+                                            size="small"
+                                            disabled={busy}
+                                            onClick={() => setReactivating(user.name)}
+                                        >
+                                            Reactivate
+                                        </Button>
+                                    </TableCell>
+                                </TableRow>
+                            ) : (
+                                <TableRow key={user.name} hover>
+                                    <TableCell>
+                                        <RouterLink to={userEditPath(user.name)}>
+                                            {user.name}
+                                        </RouterLink>
+                                    </TableCell>
+                                    <TableCell>
+                                        {(user.groups || []).length === 0 ? (
+                                            <em>none</em>
+                                        ) : (
+                                            <Box sx={{ display: 'flex', flexWrap: 'wrap', gap: 0.5 }}>
+                                                {sortByName(user.groups).map((group) => (
+                                                    <Chip
+                                                        key={group.name}
+                                                        label={group.name}
+                                                        size="small"
+                                                        component={RouterLink}
+                                                        to={groupEditPath(group.name)}
+                                                        clickable
+                                                    />
+                                                ))}
+                                            </Box>
+                                        )}
+                                    </TableCell>
+                                    <TableCell align="right">
+                                        {effectivePermissions(user).length}
+                                    </TableCell>
+                                    <TableCell align="right">
+                                        <Button
+                                            size="small"
+                                            component={RouterLink}
+                                            to={userEditPath(user.name)}
+                                        >
+                                            Edit
+                                        </Button>
+                                    </TableCell>
+                                </TableRow>
+                            ))}
+                            {shown.length === 0 && (
+                                <TableRow>
+                                    <TableCell colSpan={4}>
+                                        <em>
+                                            {users.length === 0
+                                                ? 'No users found.'
+                                                : 'No users match the filter.'}
+                                        </em>
+                                    </TableCell>
+                                </TableRow>
+                            )}
+                        </TableBody>
+                    </Table>
+                </TableContainer>
+            )}
+
+            <ConfirmDialog
+                open={reactivating !== null}
+                title="Reactivate user?"
+                message={`Reactivate ${reactivating}? They will be able to log in again and will start in the readonly group; add them back to other groups afterwards.`}
+                confirmLabel="Reactivate"
+                confirmColor="primary"
+                busy={busy}
+                onConfirm={confirmReactivate}
+                onClose={() => setReactivating(null)}
+            />
+        </Box>
     );
 }
 
